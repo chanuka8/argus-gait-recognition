@@ -1,6 +1,7 @@
 .history-page {
     width: 100vw;
-    min-height: 100vh;
+    height: 100vh;
+    overflow: hidden;
     background-color: var(--bg-color, #030514);
     color: var(--text-primary, #ffffff);
     display: flex;
@@ -98,7 +99,12 @@
     color: #6b7280;
 }
 
-.sort-dropdown {
+.custom-dropdown-container {
+    position: relative;
+    user-select: none;
+}
+
+.custom-dropdown-trigger {
     display: flex;
     align-items: center;
     background-color: #e5e7eb;
@@ -107,17 +113,59 @@
     color: #000;
     cursor: pointer;
     gap: 0.5rem;
+    font-weight: 500;
+    transition: background-color 0.2s, box-shadow 0.2s;
 }
 
-.sort-dropdown select {
-    background: transparent;
-    border: none;
-    outline: none;
-    color: #000;
-    cursor: pointer;
+.custom-dropdown-trigger:hover,
+.custom-dropdown-trigger.active {
+    background-color: #d1d5db;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.chevron-icon {
+    transition: transform 0.3s ease;
+}
+
+.chevron-icon.open {
+    transform: rotate(180deg);
+}
+
+.custom-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    overflow: hidden;
+    z-index: 10;
+    min-width: 200px;
+    animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.custom-dropdown-item {
+    padding: 0.75rem 1rem;
+    color: #374151;
     font-weight: 500;
-    appearance: none;
-    padding-right: 0.5rem;
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s;
+}
+
+.custom-dropdown-item:hover {
+    background-color: #f3f4f6;
+    color: #111827;
+}
+
+.custom-dropdown-item.selected {
+    background-color: #e5e7eb;
+    color: #111827;
+    font-weight: 600;
 }
 
 .history-content {
@@ -125,6 +173,7 @@
     padding: 0 3rem 2rem 3rem;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
 }
 
 .history-container {
@@ -135,6 +184,7 @@
     display: flex;
     flex-direction: column;
     box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    overflow: hidden;
 }
 
 .history-container-header {

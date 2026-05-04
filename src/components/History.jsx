@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Bell, User as UserIcon, Search, Filter, RotateCcw, MoreHorizontal } from 'lucide-react';
+import { ArrowLeft, Bell, User as UserIcon, Search, Filter, RotateCcw, MoreHorizontal, ChevronDown } from 'lucide-react';
 import logo from '../assets/logo.png';
 import './History.css';
 
@@ -13,10 +13,29 @@ const MOCK_CASES = [
     { id: '1006', name: 'Fiona Gallagher', nic: '199999887766', status: 'Investigating', date: '2023-10-01', time: '08:00' },
 ];
 
+const sortOptions = [
+    { value: 'date-desc', label: 'Date (Newest)' },
+    { value: 'date-asc', label: 'Date (Oldest)' },
+    { value: 'name-asc', label: 'Name (A-Z)' },
+    { value: 'name-desc', label: 'Name (Z-A)' },
+];
+
 const History = () => {
     const navigate = useNavigate();
     const [searchTerm, setSearchTerm] = useState('');
     const [sortBy, setSortBy] = useState('date-desc');
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const dropdownRef = useRef(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     const handleBack = () => {
         navigate(-1);
@@ -49,6 +68,8 @@ const History = () => {
         return 0;
     });
 
+    const currentSortLabel = sortOptions.find(opt => opt.value === sortBy)?.label || 'Sort by';
+
     return (
         <div className="history-page">
             <header className="history-header">
@@ -78,15 +99,32 @@ const History = () => {
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <div className="sort-dropdown">
-                    <Filter size={20} />
-                    <span>Sort by</span>
-                    <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-                        <option value="date-desc">Date (Newest)</option>
-                        <option value="date-asc">Date (Oldest)</option>
-                        <option value="name-asc">Name (A-Z)</option>
-                        <option value="name-desc">Name (Z-A)</option>
-                    </select>
+                <div className="custom-dropdown-container" ref={dropdownRef}>
+                    <div 
+                        className={`custom-dropdown-trigger ${isDropdownOpen ? 'active' : ''}`}
+                        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    >
+                        <Filter size={20} />
+                        <span>Sort by: {currentSortLabel}</span>
+                        <ChevronDown size={20} className={`chevron-icon ${isDropdownOpen ? 'open' : ''}`} />
+                    </div>
+                    
+                    {isDropdownOpen && (
+                        <div className="custom-dropdown-menu">
+                            {sortOptions.map(option => (
+                                <div 
+                                    key={option.value}
+                                    className={`custom-dropdown-item ${sortBy === option.value ? 'selected' : ''}`}
+                                    onClick={() => {
+                                        setSortBy(option.value);
+                                        setIsDropdownOpen(false);
+                                    }}
+                                >
+                                    {option.label}
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
 
