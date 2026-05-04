@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { User, Bell } from 'lucide-react';
 import logo from '../assets/logo.png';
 import './Dashboard.css';
+import { useNavigate } from 'react-router-dom';
 import MapComponent from './Map';
 
 const CountUp = ({ end, duration }) => {
@@ -43,6 +44,8 @@ const CountUp = ({ end, duration }) => {
 };
 
 const Dashboard = () => {
+    const navigate = useNavigate();
+
     return (
         <div className="dashboard-container">
             <header className="dashboard-header">
@@ -98,7 +101,7 @@ const Dashboard = () => {
                 </div>
                 <div className="action-buttons">
                     <button className="action-btn">Find a Missing Person</button>
-                    <button className="action-btn">History</button>
+                    <button className="action-btn" onClick={() => navigate('/history')}>History</button>
                 </div>
             </main>
         </div>
