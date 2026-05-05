@@ -19,6 +19,7 @@ const ReportCase = () => {
 
     const [images, setImages] = useState([]);
     const [videos, setVideos] = useState([]);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
 
     const imageInputRef = useRef(null);
     const videoInputRef = useRef(null);
@@ -58,6 +59,20 @@ const ReportCase = () => {
 
     const handleClose = () => {
         navigate('/dashboard');
+    };
+
+    const handleModalClose = () => {
+        setShowSuccessModal(false);
+        setFormData({
+            caseId: '',
+            caseName: '',
+            name: '',
+            nic: '',
+            age: '',
+            gender: ''
+        });
+        setImages([]);
+        setVideos([]);
     };
 
     return (
@@ -159,13 +174,24 @@ const ReportCase = () => {
                                 <span>{videos.length > 0 ? `${videos.length} Video(s) Added` : 'Add Videos'}</span>
                             </div>
 
-                            <button className="submit-btn" onClick={() => console.log('Submitting', formData, images, videos)}>
+                            <button className="submit-btn" onClick={() => setShowSuccessModal(true)}>
                                 <Play size={32} fill="#000" color="#000" />
                             </button>
                         </div>
                     </div>
                 </div>
             </main>
+
+            {showSuccessModal && (
+                <div className="modal-overlay">
+                    <div className="success-modal">
+                        <button className="modal-close-btn" onClick={handleModalClose}>
+                            <XCircle size={32} fill="#ef4444" color="#484848" />
+                        </button>
+                        <h3>New Case added ( Case id : {formData.caseId || '______'} )</h3>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
