@@ -1,0 +1,216 @@
+.report-page {
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background-color: var(--bg-color, #030514);
+    color: var(--text-primary, #ffffff);
+    display: flex;
+    flex-direction: column;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.report-content {
+    flex: 1;
+    padding: 0 3rem 1rem 3rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+.report-container {
+    background-color: #1a1c29;
+    border-radius: 16px;
+    padding: 2rem;
+    width: 100%;
+    max-width: 1100px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    position: relative;
+    max-height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.report-container-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+}
+
+.report-container-header h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+.close-btn {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    background: none;
+    border: none;
+    color: #ef4444;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.close-btn:hover {
+    transform: scale(1.1);
+}
+
+.report-form-layout {
+    display: flex;
+    justify-content: space-between;
+    align-items: center; /* This ensures both sides are vertically centered */
+    gap: 2rem;
+    flex: 1;
+    overflow: hidden;
+}
+
+.report-form-left {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    justify-content: center;
+    flex: 1; /* Takes left half of container */
+}
+
+.form-group {
+    display: flex;
+    align-items: center;
+    flex-direction: row !important; /* Force inline always */
+    flex-wrap: nowrap;
+    gap: 1rem;
+}
+
+.form-group label {
+    width: 30%;
+    min-width: 100px;
+    max-width: 150px;
+    font-size: 1.1rem;
+    color: #d1d5db;
+    flex-shrink: 0;
+    text-align: left;
+}
+
+.form-group input {
+    flex: 1;
+    max-width: 320px;
+    height: 44px;
+    background-color: #cfd3d8;
+    border: 2px solid transparent;
+    border-radius: 12px;
+    padding: 0 1rem;
+    color: #000;
+    font-size: 1rem;
+    outline: none;
+    font-weight: 500;
+    transition: background-color 0.2s, border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
+}
+
+.form-group input:hover {
+    background-color: #d8dbdf;
+}
+
+.form-group input:focus {
+    background-color: #e5e7eb;
+    border-color: transparent;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2);
+}
+
+.report-form-right {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    align-items: center;
+    justify-content: center; /* Centers the uploading section vertically on the right */
+    flex: 1; /* Takes right half of container */
+}
+
+.upload-box {
+    background-color: #333645;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 320px;
+    height: 110px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.2s, border-color 0.2s;
+    border: 2px solid transparent;
+    box-sizing: border-box;
+}
+
+.upload-box:hover {
+    background-color: #3f4254;
+    transform: translateY(-2px);
+}
+
+.upload-box.has-files {
+    background-color: rgba(0, 255, 132, 0.1);
+    border-color: var(--accent-green, #00ff84);
+}
+
+.upload-box.has-files span {
+    color: var(--accent-green, #00ff84);
+    font-weight: 600;
+}
+
+.upload-box span {
+    color: #e5e7eb;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.submit-btn {
+    background-color: var(--accent-green, #00ff84);
+    color: #000;
+    border: none;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 320px;
+    height: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: transform 0.2s, filter 0.2s;
+    margin-top: 0;
+}
+
+.submit-btn:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.1);
+}
+
+.submit-btn:active {
+    transform: translateY(0);
+    filter: brightness(0.9);
+}
+
+@media (max-width: 768px) {
+    .report-page {
+        height: auto;
+        overflow-y: auto;
+    }
+    .report-form-layout {
+        flex-direction: column;
+        gap: 3rem;
+        overflow: visible;
+    }
+    .report-form-left, .report-form-right {
+        width: 100%;
+    }
+    .form-group {
+        flex-direction: row !important; /* Enforce inline even on mobile as requested */
+    }
+    .report-content {
+        padding: 1.5rem;
+        overflow: visible;
+    }
+}

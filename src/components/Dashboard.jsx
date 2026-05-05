@@ -100,7 +100,7 @@ const Dashboard = () => {
                     <MapComponent />
                 </div>
                 <div className="action-buttons">
-                    <button className="action-btn">Find a Missing Person</button>
+                    <button className="action-btn" onClick={() => navigate('/report-case')}>Find a Missing Person</button>
                     <button className="action-btn" onClick={() => navigate('/history')}>History</button>
                 </div>
             </main>
