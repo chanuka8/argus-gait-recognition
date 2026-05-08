@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Bell, User as UserIcon, Search, Filter, RotateCcw, MoreHorizontal, ChevronDown, XCircle } from 'lucide-react';
 import logo from '../assets/logo.png';
+import Notifications from './Notifications';
 import './History.css';
 
 const MOCK_CASES = [
@@ -22,6 +23,7 @@ const sortOptions = [
 
 const History = () => {
     const navigate = useNavigate();
+    const [showNotifications, setShowNotifications] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [sortBy, setSortBy] = useState('date-desc');
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -76,6 +78,8 @@ const History = () => {
 
     return (
         <div className="history-page">
+            <Notifications isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
+            
             <header className="history-header">
                 <div className="history-header-left">
                     <button className="history-back-btn" onClick={handleBack}>
@@ -89,7 +93,13 @@ const History = () => {
                         <UserIcon size={24} fill="#00ff84" />
                         <span>John Doe</span>
                     </div>
-                    <Bell size={24} className="notification-bell" fill="#ff3b3b" />
+                    <Bell 
+                        size={24} 
+                        className="notification-bell" 
+                        fill="#ff3b3b" 
+                        onClick={() => setShowNotifications(true)}
+                        style={{ cursor: 'pointer' }}
+                    />
                 </div>
             </header>
 
@@ -145,7 +155,12 @@ const History = () => {
                     
                     <div className="cases-list">
                         {filteredAndSortedCases.map((c) => (
-                            <div className="case-card" key={c.id}>
+                            <div 
+                                className="case-card" 
+                                key={c.id} 
+                                onClick={() => navigate(`/case/${c.id}`)}
+                                style={{ cursor: 'pointer' }}
+                            >
                                 <div className="case-card-left">
                                     <div className="case-avatar">
                                         <UserIcon size={48} />
@@ -160,7 +175,13 @@ const History = () => {
                                         <div className={`status-dot ${getStatusClass(c.status)}`}></div>
                                         {c.status}
                                     </div>
-                                    <button className="more-btn">
+                                    <button 
+                                        className="more-btn"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            navigate(`/case/${c.id}`);
+                                        }}
+                                    >
                                         <MoreHorizontal size={24} />
                                     </button>
                                 </div>

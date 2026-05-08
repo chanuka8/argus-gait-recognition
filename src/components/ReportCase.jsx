@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Bell, User as UserIcon, PlusCircle, XCircle, Play, CheckCircle } from 'lucide-react';
 import logo from '../assets/logo.png';
+import Notifications from './Notifications';
 import './ReportCase.css';
 import './History.css'; // Reusing header styles
 
@@ -20,6 +21,7 @@ const ReportCase = () => {
     const [images, setImages] = useState([]);
     const [videos, setVideos] = useState([]);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [showNotifications, setShowNotifications] = useState(false);
 
     const imageInputRef = useRef(null);
     const videoInputRef = useRef(null);
@@ -77,6 +79,8 @@ const ReportCase = () => {
 
     return (
         <div className="report-page">
+            <Notifications isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
+            
             <header className="history-header">
                 <div className="history-header-left">
                     <button className="history-back-btn" onClick={handleBack}>
@@ -90,7 +94,13 @@ const ReportCase = () => {
                         <UserIcon size={24} fill="#00ff84" />
                         <span>John Doe</span>
                     </div>
-                    <Bell size={24} className="notification-bell" fill="#ff3b3b" />
+                    <Bell 
+                        size={24} 
+                        className="notification-bell" 
+                        fill="#ff3b3b" 
+                        onClick={() => setShowNotifications(true)}
+                        style={{ cursor: 'pointer' }}
+                    />
                 </div>
             </header>
 

@@ -1,17 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, User as UserIcon, Bell } from 'lucide-react';
 import logo from '../assets/logo.png';
+import Notifications from './Notifications';
 import './CaseDetails.css';
 
 const CaseDetails = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const [showNotifications, setShowNotifications] = useState(false);
 
     const displayId = id && id !== 'undefined' ? id : '_______________';
 
     return (
         <div className="case-details-page">
+            <Notifications isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
+            
             <header className="case-details-header">
                 <div className="header-left">
                     <button className="case-back-btn" onClick={() => navigate(-1)}>
@@ -25,7 +29,13 @@ const CaseDetails = () => {
                         <UserIcon size={24} fill="#00ff84" color="#00ff84" />
                         <span>John Doe</span>
                     </div>
-                    <Bell size={24} className="notification-bell" fill="#ff3b3b" />
+                    <Bell 
+                        size={24} 
+                        className="notification-bell" 
+                        fill="#ff3b3b" 
+                        onClick={() => setShowNotifications(true)}
+                        style={{ cursor: 'pointer' }}
+                    />
                 </div>
             </header>
 

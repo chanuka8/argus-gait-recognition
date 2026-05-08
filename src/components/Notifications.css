@@ -1,0 +1,133 @@
+.notification-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.6);
+    z-index: 100;
+    display: flex;
+    justify-content: flex-end;
+    align-items: flex-start;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.notification-modal {
+    background-color: #4a4d5c;
+    border-radius: 16px;
+    width: 450px;
+    margin-top: 80px; 
+    margin-right: 40px; 
+    position: relative;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    animation: slideInNotif 0.3s ease-out;
+    padding: 2.5rem 2rem 1.5rem 2rem;
+}
+
+@keyframes slideInNotif {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.notif-close-btn {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.2s;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.notif-close-btn:hover {
+    transform: scale(1.1);
+}
+
+.notif-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+}
+
+.notif-header-actions svg {
+    transition: transform 0.2s;
+}
+
+.notif-header-actions svg:hover {
+    transform: scale(1.1);
+}
+
+.notif-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.notif-header h2 {
+    color: #fff;
+    font-size: 1.8rem;
+    font-weight: bold;
+    margin: 0;
+}
+
+.notif-list {
+    display: flex;
+    flex-direction: column;
+    max-height: 380px;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
+.notif-list::-webkit-scrollbar {
+    width: 6px;
+}
+.notif-list::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+}
+.notif-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+}
+.notif-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.notif-item {
+    display: flex;
+    flex-direction: column;
+    padding: 1rem 0;
+    border-bottom: 2px solid #000;
+}
+
+.notif-item:last-child {
+    border-bottom: none;
+}
+
+.notif-title {
+    color: #fff;
+    font-size: 1rem;
+    margin: 0 0 1rem 0;
+}
+
+.notif-case {
+    color: #1e90ff;
+    font-size: 1rem;
+    margin: 0 0 0.25rem 0;
+    font-weight: bold;
+}
+
+.notif-details {
+    color: #e5e7eb;
+    font-size: 0.95rem;
+    font-style: italic;
+    margin: 0;
+    line-height: 1.4;
+}
+
+
