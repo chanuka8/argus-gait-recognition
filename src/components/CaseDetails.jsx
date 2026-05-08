@@ -1,0 +1,96 @@
+import React from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { ArrowLeft, User as UserIcon, Bell } from 'lucide-react';
+import logo from '../assets/logo.png';
+import './CaseDetails.css';
+
+const CaseDetails = () => {
+    const { id } = useParams();
+    const navigate = useNavigate();
+
+    const displayId = id && id !== 'undefined' ? id : '_______________';
+
+    return (
+        <div className="case-details-page">
+            <header className="case-details-header">
+                <div className="header-left">
+                    <button className="case-back-btn" onClick={() => navigate(-1)}>
+                        <ArrowLeft size={24} color="#000" />
+                    </button>
+                    <img src={logo} alt="Argus Logo" className="header-logo" />
+                    <span className="header-title">ARGUS</span>
+                </div>
+                <div className="header-right">
+                    <div className="user-profile">
+                        <UserIcon size={24} fill="#00ff84" color="#00ff84" />
+                        <span>John Doe</span>
+                    </div>
+                    <Bell size={24} className="notification-bell" fill="#ff3b3b" />
+                </div>
+            </header>
+
+            <main className="case-details-content">
+                <div className="case-details-container">
+                    <h2 className="case-id-header">Case ID : {displayId}</h2>
+
+                    <div className="case-layout">
+                        <div className="case-info-panel">
+                            <div className="case-icon-wrapper">
+                                <UserIcon size={140} color="#000" fill="#000" />
+                            </div>
+                            
+                            <div className="info-grid">
+                                <div className="info-row">
+                                    <span className="info-label">Case type :</span>
+                                    <span className="info-value">Abduction</span>
+                                </div>
+                                <div className="info-row">
+                                    <span className="info-label">Case status :</span>
+                                    <span className="info-value">Active</span>
+                                </div>
+                                <div className="info-row">
+                                    <span className="info-label">Name :</span>
+                                    <span className="info-value">Alex Smith</span>
+                                </div>
+                                <div className="info-row">
+                                    <span className="info-label">Gender :</span>
+                                    <span className="info-value">Male</span>
+                                </div>
+                                <div className="info-row">
+                                    <span className="info-label">NIC :</span>
+                                    <span className="info-value">0123456789012</span>
+                                </div>
+                                <div className="info-row">
+                                    <span className="info-label">Age :</span>
+                                    <span className="info-value">24</span>
+                                </div>
+                                
+                                <div className="about-case">
+                                    <span className="info-label">About Case :</span>
+                                    <p className="about-text">
+                                        Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="case-visuals-panel">
+                            <div className="case-map-box"></div>
+                            
+                            <div className="case-feed-box">
+                                <p className="feed-placeholder">Live Camera Feed / Surveillance Footage</p>
+                            </div>
+
+                            <div className="case-actions">
+                                <button className="case-action-btn">Update Status</button>
+                                <button className="case-action-btn">Close Case</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    );
+};
+
+export default CaseDetails;

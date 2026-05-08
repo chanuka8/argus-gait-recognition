@@ -5,6 +5,7 @@ import Login from './components/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import History from './components/History';
 import ReportCase from './components/ReportCase';
+import CaseDetails from './components/CaseDetails';
 import './App.css';
 
 function App() {
@@ -32,6 +33,14 @@ function App() {
         element={
           <ProtectedRoute>
             <ReportCase />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/case/:id"
+        element={
+          <ProtectedRoute>
+            <CaseDetails />
           </ProtectedRoute>
         }
       />

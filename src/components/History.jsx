@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Bell, User as UserIcon, Search, Filter, RotateCcw, MoreHorizontal, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Bell, User as UserIcon, Search, Filter, RotateCcw, MoreHorizontal, ChevronDown, XCircle } from 'lucide-react';
 import logo from '../assets/logo.png';
 import './History.css';
 
@@ -41,6 +41,10 @@ const History = () => {
         navigate(-1);
     };
 
+    const handleClose = () => {
+        navigate('/dashboard');
+    };
+
     const getStatusClass = (status) => {
         switch(status.toLowerCase()) {
             case 'missing': return 'missing';
@@ -74,7 +78,7 @@ const History = () => {
         <div className="history-page">
             <header className="history-header">
                 <div className="history-header-left">
-                    <button className="back-btn" onClick={handleBack}>
+                    <button className="history-back-btn" onClick={handleBack}>
                         <ArrowLeft size={24} />
                     </button>
                     <img src={logo} alt="Argus Logo" className="history-logo" />
@@ -130,6 +134,10 @@ const History = () => {
 
             <main className="history-content">
                 <div className="history-container">
+                    <button className="history-close-btn" onClick={handleClose}>
+                        <XCircle size={32} fill="#ef4444" color="#1a1c29" />
+                    </button>
+                    
                     <div className="history-container-header">
                         <RotateCcw size={28} color="#00ff84" />
                         <h2>History</h2>

@@ -31,7 +31,11 @@ const Login = () => {
     return (
         <div className="login-container">
             <div className="login-left">
-                <img src={logo} alt="Argus Logo" className="huge-logo" />
+                <div className="brand-wrapper">
+                    <img src={logo} alt="Argus Logo" className="huge-logo" />
+                    <h1 className="brand-title-text">ARGUS</h1>
+                    <p className="slogan-text">See. Know. Secure</p>
+                </div>
             </div>
 
             <div className="login-right">

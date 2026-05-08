@@ -79,7 +79,7 @@ const ReportCase = () => {
         <div className="report-page">
             <header className="history-header">
                 <div className="history-header-left">
-                    <button className="back-btn" onClick={handleBack}>
+                    <button className="history-back-btn" onClick={handleBack}>
                         <ArrowLeft size={24} />
                     </button>
                     <img src={logo} alt="Argus Logo" className="history-logo" />

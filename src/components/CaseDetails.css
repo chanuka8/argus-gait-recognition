@@ -1,0 +1,202 @@
+.case-details-page {
+    width: 100vw;
+    height: 100vh;
+    background-color: var(--bg-color, #030514);
+    color: #ffffff;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.case-details-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 3rem;
+    background-color: transparent;
+}
+
+.case-back-btn {
+    background-color: var(--accent-green, #00ff84);
+    color: #000;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: transform 0.1s ease;
+    padding: 0;
+}
+
+.case-back-btn:hover {
+    transform: scale(1.1);
+}
+
+.case-details-content {
+    flex: 1;
+    padding: 0 3rem 2rem 3rem;
+    display: flex;
+    justify-content: center;
+    align-items: stretch;
+    overflow: hidden;
+}
+
+.case-details-container {
+    background-color: #1a1c29;
+    border-radius: 20px;
+    padding: 2.5rem;
+    width: 100%;
+    max-width: 1200px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+}
+
+.case-id-header {
+    font-size: 1.6rem;
+    font-weight: 800;
+    margin-bottom: 2rem;
+    color: #fff;
+}
+
+.case-layout {
+    display: flex;
+    gap: 2.5rem;
+    flex: 1;
+    min-height: 0;
+}
+
+/* Left Panel */
+.case-info-panel {
+    background-color: #d8dbdf;
+    border-radius: 12px;
+    padding: 2.5rem 2rem;
+    width: 350px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #000;
+    overflow-y: auto;
+}
+
+.case-icon-wrapper {
+    background-color: transparent;
+    margin-bottom: 2rem;
+}
+
+.info-grid {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.info-row {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+}
+
+.info-label {
+    font-weight: 800;
+    font-size: 0.95rem;
+}
+
+.info-value {
+    font-weight: 800;
+    font-size: 0.95rem;
+}
+
+.about-case {
+    margin-top: 1rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.about-text {
+    font-weight: 800;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    text-align: center;
+}
+
+/* Right Panel */
+.case-visuals-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    min-width: 0;
+}
+
+.case-map-box {
+    width: 100%;
+    height: 180px;
+    background-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/Google_Earth_Snapshot.jpg/1200px-Google_Earth_Snapshot.jpg');
+    background-size: cover;
+    background-position: center;
+    border-radius: 12px;
+    position: relative;
+    overflow: hidden;
+}
+
+.case-map-box::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 60%;
+    width: 40px;
+    height: 60px;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23ff0000" stroke="%23ff0000"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>');
+    background-repeat: no-repeat;
+    background-size: contain;
+    transform: translate(-50%, -100%);
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+}
+
+.case-feed-box {
+    width: 100%;
+    flex: 1;
+    background-color: #d8dbdf;
+    border-radius: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.feed-placeholder {
+    color: #4a4d5c;
+    font-weight: 800;
+    font-size: 1.5rem;
+}
+
+.case-actions {
+    display: flex;
+    gap: 2rem;
+    height: 65px;
+}
+
+.case-action-btn {
+    flex: 1;
+    background-color: var(--accent-green, #00ff84);
+    border: none;
+    border-radius: 12px;
+    color: #000;
+    cursor: pointer;
+    transition: transform 0.2s, filter 0.2s;
+}
+
+.case-action-btn:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.1);
+}
+
+.case-action-btn:active {
+    transform: translateY(0);
+}
