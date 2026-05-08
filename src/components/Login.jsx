@@ -31,11 +31,7 @@ const Login = () => {
     return (
         <div className="login-container">
             <div className="login-left">
-                <div className="brand-wrapper">
-                    <img src={logo} alt="Argus Logo" className="brand-logo" />
-                    <h1 className="brand-title-text">ARGUS</h1>
-                    <p className="slogan-text">See. Know. Secure</p>
-                </div>
+                <img src={logo} alt="Argus Logo" className="huge-logo" />
             </div>
 
             <div className="login-right">
@@ -53,7 +49,6 @@ const Login = () => {
                                 className="styled-input"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                placeholder="Enter your email"
                                 required
                             />
                         </div>
@@ -65,13 +60,12 @@ const Login = () => {
                                 className="styled-input"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                placeholder="Enter your password"
                                 required
                             />
                         </div>
 
                         <div className="forgot-password-link">
-                            <a href="#">Forgot Password ?</a>
+                            <a href="#">Forget Password ?</a>
                         </div>
 
                         <button type="submit" className="login-btn" disabled={loading}>

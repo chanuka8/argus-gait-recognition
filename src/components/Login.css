@@ -6,51 +6,26 @@
     overflow: hidden;
 }
 
-
 .login-left {
     flex: 1;
     display: flex;
-    justify-content: flex-end;
+    justify-content: center;
     align-items: center;
-    padding-right: 10rem;
+    padding: 2rem;
 }
 
-.brand-wrapper {
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.brand-logo {
-    width: 350px;
-    max-width: 80%;
+.huge-logo {
+    width: 100%;
+    max-width: 650px;
     height: auto;
+    object-fit: contain;
 }
-
-.brand-title-text {
-    font-size: 3rem;
-    color: #c5a065;
-    margin-top: 1rem;
-    letter-spacing: 5px;
-    font-weight: bold;
-}
-
-.slogan-text {
-    color: #888;
-    font-size: 1rem;
-    margin-top: 0.5rem;
-    letter-spacing: 2px;
-}
-
 
 .login-right {
     flex: 1;
     display: flex;
     justify-content: flex-start;
     align-items: center;
-    padding-left: 3rem;
-    background-color: transparent;
 }
 
 .form-wrapper {
@@ -64,7 +39,7 @@
 
 .sign-in-title {
     color: #00ff84;
-    font-size: 3rem;
+    font-size: 3.5rem;
     font-weight: bold;
     margin-bottom: 0.5rem;
     text-align: center;
@@ -75,7 +50,7 @@
     font-size: 1.1rem;
     margin-bottom: 3rem;
     text-align: center;
-    font-weight: 500;
+    font-weight: bold;
 }
 
 .signin-form {
@@ -112,7 +87,7 @@
 }
 
 .styled-input:focus {
-    box-shadow: 0 0 0 2px #00ff84;
+    box-shadow: 0 0 0 3px #00ff84;
 }
 
 .forgot-password-link {
@@ -124,7 +99,7 @@
 .forgot-password-link a {
     color: #0066cc;
     text-decoration: none;
-    font-size: 0.9rem;
+    font-size: 1rem;
 }
 
 .forgot-password-link a:hover {
@@ -132,7 +107,7 @@
 }
 
 .login-btn {
-    width: 180px;
+    width: 200px;
     align-self: center;
     margin-top: 2rem;
     padding: 1rem;
@@ -158,18 +133,19 @@
         min-height: 100vh;
         overflow-y: auto;
     }
-
-    .login-left,
-    .login-right {
-        padding: 3rem 1rem;
+    
+    .login-left, .login-right {
+        padding: 2rem;
         flex: none;
+        justify-content: center;
     }
 
-    .brand-logo {
-        width: 200px;
+    .huge-logo {
+        max-width: 300px;
+        margin-top: 2rem;
     }
 
     .sign-in-title {
-        font-size: 2.5rem;
+        font-size: 2.8rem;
     }
 }
