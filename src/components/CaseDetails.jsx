@@ -3,18 +3,21 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, User as UserIcon, Bell } from 'lucide-react';
 import logo from '../assets/logo.png';
 import Notifications from './Notifications';
+import UserProfileModal from './UserProfileModal';
 import './CaseDetails.css';
 
 const CaseDetails = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const [showNotifications, setShowNotifications] = useState(false);
+    const [showProfile, setShowProfile] = useState(false);
 
     const displayId = id && id !== 'undefined' ? id : '_______________';
 
     return (
         <div className="case-details-page">
             <Notifications isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
+            <UserProfileModal isOpen={showProfile} onClose={() => setShowProfile(false)} />
             
             <header className="case-details-header">
                 <div className="header-left">
@@ -25,7 +28,7 @@ const CaseDetails = () => {
                     <span className="header-title">ARGUS</span>
                 </div>
                 <div className="header-right">
-                    <div className="user-profile">
+                    <div className="user-profile" onClick={() => setShowProfile(true)} style={{ cursor: 'pointer' }}>
                         <UserIcon size={24} fill="#00ff84" color="#00ff84" />
                         <span>John Doe</span>
                     </div>

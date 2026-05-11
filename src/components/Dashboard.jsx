@@ -5,6 +5,7 @@ import './Dashboard.css';
 import { useNavigate } from 'react-router-dom';
 import MapComponent from './Map';
 import Notifications from './Notifications';
+import UserProfileModal from './UserProfileModal';
 
 const CountUp = ({ end, duration }) => {
     const [count, setCount] = useState(0);
@@ -47,10 +48,12 @@ const CountUp = ({ end, duration }) => {
 const Dashboard = () => {
     const navigate = useNavigate();
     const [showNotifications, setShowNotifications] = useState(false);
+    const [showProfile, setShowProfile] = useState(false);
 
     return (
         <div className="dashboard-container">
             <Notifications isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
+            <UserProfileModal isOpen={showProfile} onClose={() => setShowProfile(false)} />
             
             <header className="dashboard-header">
                 <div className="header-left">
@@ -58,7 +61,7 @@ const Dashboard = () => {
                     <span className="header-title">ARGUS</span>
                 </div>
                 <div className="header-right">
-                    <div className="user-profile">
+                    <div className="user-profile" onClick={() => setShowProfile(true)} style={{ cursor: 'pointer' }}>
                         <User size={24} fill="#00ff84" color="#00ff84" />
                         <span>John Doe</span>
                     </div>

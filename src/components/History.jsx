@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Bell, User as UserIcon, Search, Filter, RotateCcw, MoreHorizontal, ChevronDown, XCircle } from 'lucide-react';
 import logo from '../assets/logo.png';
 import Notifications from './Notifications';
+import UserProfileModal from './UserProfileModal';
 import './History.css';
 
 const MOCK_CASES = [
@@ -24,6 +25,7 @@ const sortOptions = [
 const History = () => {
     const navigate = useNavigate();
     const [showNotifications, setShowNotifications] = useState(false);
+    const [showProfile, setShowProfile] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [sortBy, setSortBy] = useState('date-desc');
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -79,6 +81,7 @@ const History = () => {
     return (
         <div className="history-page">
             <Notifications isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
+            <UserProfileModal isOpen={showProfile} onClose={() => setShowProfile(false)} />
             
             <header className="history-header">
                 <div className="history-header-left">
@@ -89,7 +92,7 @@ const History = () => {
                     <span className="history-title-text">ARGUS</span>
                 </div>
                 <div className="history-header-right">
-                    <div className="user-profile">
+                    <div className="user-profile" onClick={() => setShowProfile(true)} style={{ cursor: 'pointer' }}>
                         <UserIcon size={24} fill="#00ff84" />
                         <span>John Doe</span>
                     </div>

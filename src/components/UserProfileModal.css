@@ -1,0 +1,116 @@
+.profile-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    display: flex;
+    justify-content: flex-end;
+    align-items: flex-start;
+    animation: fadeInProfile 0.2s ease-out;
+}
+
+.profile-modal {
+    background-color: #5a5a5a; 
+    border-radius: 24px;
+    width: 480px;
+    height: 560px;
+    margin-top: 80px; 
+    margin-right: 40px; 
+    position: relative;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+    animation: slideInProfile 0.3s ease-out;
+    padding: 2.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+@keyframes slideInProfile {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInProfile {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.profile-close-btn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.2s;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.profile-close-btn:hover {
+    transform: scale(1.1);
+}
+
+.profile-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    margin-top: 1.5rem;
+}
+
+.profile-icon-wrapper {
+    margin-bottom: 3rem;
+}
+
+.profile-details-container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin-bottom: 4rem;
+}
+
+.profile-details {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    align-items: flex-start;
+}
+
+.profile-details p {
+    color: #fff;
+    font-size: 1.5rem;
+    margin: 0;
+    letter-spacing: 0.5px;
+}
+
+.profile-details p strong {
+    font-weight: 700;
+}
+
+.logout-btn {
+    background-color: var(--accent-green, #00ff84);
+    color: #000;
+    border: none;
+    border-radius: 16px;
+    padding: 1.2rem 3rem;
+    font-size: 1.6rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    transition: transform 0.1s ease, filter 0.2s ease;
+    width: 75%;
+    justify-content: center;
+}
+
+.logout-btn:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.1);
+}

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Bell, User as UserIcon, PlusCircle, XCircle, Play, CheckCircle } from 'lucide-react';
 import logo from '../assets/logo.png';
 import Notifications from './Notifications';
+import UserProfileModal from './UserProfileModal';
 import './ReportCase.css';
 import './History.css'; // Reusing header styles
 
@@ -22,6 +23,7 @@ const ReportCase = () => {
     const [videos, setVideos] = useState([]);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [showNotifications, setShowNotifications] = useState(false);
+    const [showProfile, setShowProfile] = useState(false);
 
     const imageInputRef = useRef(null);
     const videoInputRef = useRef(null);
@@ -80,6 +82,7 @@ const ReportCase = () => {
     return (
         <div className="report-page">
             <Notifications isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
+            <UserProfileModal isOpen={showProfile} onClose={() => setShowProfile(false)} />
             
             <header className="history-header">
                 <div className="history-header-left">
@@ -90,7 +93,7 @@ const ReportCase = () => {
                     <span className="history-title-text">ARGUS</span>
                 </div>
                 <div className="history-header-right">
-                    <div className="user-profile">
+                    <div className="user-profile" onClick={() => setShowProfile(true)} style={{ cursor: 'pointer' }}>
                         <UserIcon size={24} fill="#00ff84" />
                         <span>John Doe</span>
                     </div>
