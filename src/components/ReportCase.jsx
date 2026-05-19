@@ -123,14 +123,21 @@ const ReportCase = () => {
                 videoUrls.push(url);
             }
 
-            // Save to Firestore
-            const caseRef = doc(db, 'cases', caseId);
-
-            await setDoc(caseRef, {
+            // Save Person Details to 'persons' collection
+            const personRef = doc(db, 'persons', caseId);
+            await setDoc(personRef, {
                 ...formData,
-                imageUrls,
-                videoUrls,
                 status: 'Active',
+                createdAt: serverTimestamp()
+            });
+
+            // Save Media Details to 'media' collection
+            const mediaRef = doc(db, 'media', caseId);
+            await setDoc(mediaRef, {
+                caseId: caseId,
+                nic: formData.nic,
+                imageUrls: imageUrls,
+                videoUrls: videoUrls,
                 createdAt: serverTimestamp()
             });
 
