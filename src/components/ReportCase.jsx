@@ -98,6 +98,7 @@ const ReportCase = () => {
 
         try {
             const caseId = formData.caseId;
+            console.log('Submitting case', caseId, 'NIC', formData.nic);
 
             // Upload Images
             const imageUrls = [];
@@ -106,7 +107,9 @@ const ReportCase = () => {
                 const fileRef = ref(storage, `cases/${caseId}/images/${file.name}`);
                 const uploadTask = uploadBytesResumable(fileRef, file);
                 uploadTasksRef.current.push(uploadTask);
-                await uploadTask;
+                await new Promise((resolve, reject) => {
+                    uploadTask.on('state_changed', null, reject, () => resolve());
+                });
                 const url = await getDownloadURL(fileRef);
                 imageUrls.push(url);
             }
@@ -118,26 +121,30 @@ const ReportCase = () => {
                 const fileRef = ref(storage, `cases/${caseId}/videos/${file.name}`);
                 const uploadTask = uploadBytesResumable(fileRef, file);
                 uploadTasksRef.current.push(uploadTask);
-                await uploadTask;
+                await new Promise((resolve, reject) => {
+                    uploadTask.on('state_changed', null, reject, () => resolve());
+                });
                 const url = await getDownloadURL(fileRef);
                 videoUrls.push(url);
             }
 
-            // Save Person Details to 'persons' collection
-            const personRef = doc(db, 'persons', caseId);
-            await setDoc(personRef, {
+            // Save Person Details to 'victims' collection
+            const victimRef = doc(db, 'victims', caseId);
+            await setDoc(victimRef, {
                 ...formData,
+                caseId: caseId,
                 status: 'Active',
                 createdAt: serverTimestamp()
             });
 
-            // Save Media Details to 'media' collection
-            const mediaRef = doc(db, 'media', caseId);
+            // Save Media Details to 'person_media' collection and link by caseId + nic
+            const mediaRef = doc(db, 'person_media', caseId);
             await setDoc(mediaRef, {
                 caseId: caseId,
                 nic: formData.nic,
                 imageUrls: imageUrls,
                 videoUrls: videoUrls,
+                linkedAt: serverTimestamp(),
                 createdAt: serverTimestamp()
             });
 
