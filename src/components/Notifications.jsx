@@ -7,34 +7,7 @@ const Notifications = ({ isOpen, onClose }) => {
     const navigate = useNavigate();
     
     // In a real application, this would come from a Context or API
-    const [notifications, setNotifications] = useState([
-        {
-            id: 1,
-            title: 'Potential match found in Camera Zone A',
-            caseId: '',
-            details: ''
-        },
-        {
-            id: 2,
-            caseId: '1001',
-            details: 'High Confident gait and facial match detected confident score : 92%'
-        },
-        {
-            id: 3,
-            caseId: '1002',
-            details: 'Subject re identified in Camera Zone D'
-        },
-        {
-            id: 4,
-            caseId: '1003',
-            details: 'Tracking session ended. Case data securely achieved'
-        },
-        {
-            id: 5,
-            caseId: '1004',
-            details: 'Subject detected entering Zone F via main gate.'
-        }
-    ]);
+    const [notifications, setNotifications] = useState([]);
 
     const handleClearNotifications = () => {
         setNotifications([]);
@@ -50,13 +23,15 @@ const Notifications = ({ isOpen, onClose }) => {
     return (
         <div className="notification-overlay" onClick={onClose}>
             <div className="notification-modal" onClick={(e) => e.stopPropagation()}>
-                <button className="notif-close-btn" onClick={onClose} title="Close">
-                    <XCircle size={26} fill="#FF5252" color="rgba(4,6,84,0.9)" />
-                </button>
                 <div className="notif-header">
                     <h2>Notifications</h2>
-                    <div className="notif-header-actions">
-                        <Trash2 size={22} color="#90E0EF" style={{ cursor: 'pointer' }} onClick={handleClearNotifications} title="Clear all" />
+                    <div className="notif-actions">
+                        <button className="notif-clear-btn" onClick={handleClearNotifications} title="Clear all">
+                            <Trash2 size={22} />
+                        </button>
+                        <button className="notif-close-btn" onClick={onClose} title="Close">
+                            <XCircle size={26} fill="#FF5252" color="rgba(4,6,84,0.9)" />
+                        </button>
                     </div>
                 </div>
                 
