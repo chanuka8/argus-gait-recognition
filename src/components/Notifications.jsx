@@ -6,7 +6,7 @@ import './Notifications.css';
 const Notifications = ({ isOpen, onClose }) => {
     const navigate = useNavigate();
     
-    // In a real application, this would come from a Context or API
+    
     const [notifications, setNotifications] = useState([]);
 
     const handleClearNotifications = () => {
@@ -14,7 +14,7 @@ const Notifications = ({ isOpen, onClose }) => {
     };
 
     const handleNotificationClick = (caseId) => {
-        onClose(); // Close the modal before navigating
+        onClose(); 
         navigate(`/case/${caseId || '123'}`);
     };
 

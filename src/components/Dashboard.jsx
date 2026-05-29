@@ -21,7 +21,6 @@ const CountUp = ({ end, duration }) => {
             const progress = currentTime - startTime;
             const percentage = Math.min(progress / finalDuration, 1);
 
-            // Ease out cubic
             const easeOutCubic = 1 - Math.pow(1 - percentage, 3);
 
             const currentCount = Math.floor(end * easeOutCubic);
@@ -54,7 +53,7 @@ const Dashboard = () => {
         <div className="dashboard-container">
             <Notifications isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
             <UserProfileModal isOpen={showProfile} onClose={() => setShowProfile(false)} />
-            
+
             <header className="dashboard-header">
                 <div className="header-left">
                     <img src={logo} alt="Argus Logo" className="header-logo" />
@@ -65,12 +64,12 @@ const Dashboard = () => {
                         <User size={22} fill="#90E0EF" color="#90E0EF" />
                         <span>John Doe</span>
                     </div>
-                    <Bell 
-                        size={22} 
-                        className="notification-bell" 
-                        fill="#00B4D8" 
+                    <Bell
+                        size={22}
+                        className="notification-bell"
+                        fill="#00B4D8"
                         color="#00B4D8"
-                        onClick={() => setShowNotifications(true)} 
+                        onClick={() => setShowNotifications(true)}
                         style={{ cursor: 'pointer' }}
                     />
                 </div>

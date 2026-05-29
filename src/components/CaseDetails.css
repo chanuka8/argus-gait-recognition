@@ -1,6 +1,4 @@
-/* ============================================================
-   ARGUS — Case Details Page  (Dark Theme)
-   ============================================================ */
+
 
 .case-details-page {
     width: 100vw; height: 100vh;
@@ -36,7 +34,7 @@
     overflow: hidden; min-height: 0;
 }
 
-/* ── Dark Container ── */
+
 .case-details-container {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -48,7 +46,7 @@
     overflow: hidden;
 }
 
-/* ── Case ID ── */
+
 .case-id-header {
     font-size: 1.3rem; font-weight: 800;
     margin-bottom: 1.25rem; padding-bottom: 1rem;
@@ -63,13 +61,13 @@
     border-radius: 2px; flex-shrink: 0;
 }
 
-/* ── Layout ── */
+
 .case-layout {
     display: flex; gap: 1.5rem;
     flex: 1; min-height: 0; overflow: hidden;
 }
 
-/* ── Left Panel ── */
+
 .case-info-panel {
     background: var(--surface-2);
     border: 1px solid var(--border);
@@ -114,7 +112,7 @@
 }
 .about-text { font-size: 0.82rem; line-height: 1.6; color: var(--text-secondary); font-weight: 400; }
 
-/* ── Right Panel ── */
+
 .case-visuals-panel {
     flex: 1; display: flex; flex-direction: column;
     gap: 1rem; min-width: 0; overflow: hidden;
@@ -156,7 +154,7 @@
     position: relative; z-index: 1; text-align: center; padding: 1rem;
 }
 
-/* ── Action Buttons ── */
+
 .case-actions { display: flex; gap: 1rem; height: 50px; flex-shrink: 0; }
 
 .case-action-btn {

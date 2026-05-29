@@ -1,6 +1,4 @@
-/* ============================================================
-   ARGUS — Map Component  (Dark Theme)
-   ============================================================ */
+
 
 .map-container {
     width: 100%;
@@ -9,13 +7,13 @@
     overflow: hidden;
 }
 
-/* Required: Leaflet container must have explicit height */
+
 .leaflet-container {
     width: 100% !important;
     height: 100% !important;
 }
 
-/* ── Zoom Controls ── */
+
 .leaflet-control-zoom {
     border: 1px solid rgba(0,180,216,0.22) !important;
     border-radius: var(--radius-sm) !important;
@@ -38,7 +36,7 @@
     color: #CAF0F8 !important;
 }
 
-/* ── Attribution ── */
+
 .leaflet-control-attribution {
     background: rgba(7,12,58,0.80) !important;
     color: rgba(144,224,239,0.55) !important;

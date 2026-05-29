@@ -8,7 +8,7 @@ import logo from '../assets/logo.png';
 import Notifications from './Notifications';
 import UserProfileModal from './UserProfileModal';
 import './ReportCase.css';
-import './History.css'; // Reusing header styles
+import './History.css'; 
 
 const ReportCase = () => {
     const navigate = useNavigate();
@@ -104,7 +104,7 @@ const ReportCase = () => {
             const caseId = formData.caseId;
             console.log('Submitting case', caseId, 'NIC', formData.nic);
 
-            // Upload Images
+            
             const imageUrls = [];
             for (let i = 0; i < images.length; i++) {
                 const file = images[i];
@@ -118,7 +118,7 @@ const ReportCase = () => {
                 imageUrls.push(url);
             }
 
-            // Upload Videos
+            
             const videoUrls = [];
             for (let i = 0; i < videos.length; i++) {
                 const file = videos[i];
@@ -132,7 +132,7 @@ const ReportCase = () => {
                 videoUrls.push(url);
             }
 
-            // Save Person Details to 'victims' collection
+            
             const victimRef = doc(db, 'victims', caseId);
             await setDoc(victimRef, {
                 ...formData,
@@ -141,7 +141,7 @@ const ReportCase = () => {
                 createdAt: serverTimestamp()
             });
 
-            // Save Media Details to 'person_media' collection and link by caseId + nic
+            
             const mediaRef = doc(db, 'person_media', caseId);
             await setDoc(mediaRef, {
                 caseId: caseId,
@@ -152,7 +152,7 @@ const ReportCase = () => {
                 createdAt: serverTimestamp()
             });
 
-            // Make sure the modal knows the confirmed ID
+            
             setShowSuccessModal(true);
         } catch (error) {
             if (error.code === 'storage/canceled') {

@@ -1,6 +1,4 @@
-/* ============================================================
-   ARGUS — Login Page  (Dark Theme)
-   ============================================================ */
+
 
 .login-container {
     display: flex;
@@ -11,7 +9,7 @@
     background-attachment: fixed;
 }
 
-/* ── Left Panel — navy branding ── */
+
 .login-left {
     flex: 1;
     display: flex;
@@ -83,7 +81,7 @@
     margin-top: 0.2rem;
 }
 
-/* ── Right Panel — dark form ── */
+
 .login-right {
     flex: 1;
     display: flex;
@@ -126,7 +124,7 @@
     font-weight: 400;
 }
 
-/* ── Form ── */
+
 .signin-form {
     width: 100%;
     display: flex;
@@ -165,7 +163,7 @@
     box-shadow: 0 0 0 3px rgba(0,180,216,0.12), var(--glow-sky);
 }
 
-/* ── Error ── */
+
 .error-message {
     color: var(--status-missing);
     font-size: 0.85rem;
@@ -178,12 +176,12 @@
     animation: fadeIn 0.2s ease;
 }
 
-/* ── Forgot ── */
+
 .forgot-password-link { width: 100%; text-align: right; margin-top: -0.2rem; }
 .forgot-password-link a { color: var(--sky); font-size: 0.83rem; font-weight: 600; }
 .forgot-password-link a:hover { color: var(--mist); }
 
-/* ── Login Button ── */
+
 .login-btn {
     width: 100%;
     margin-top: 1.1rem;
@@ -217,7 +215,7 @@
 .login-btn:active { transform: translateY(0); }
 .login-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
-/* ── Responsive ── */
+
 @media (max-width: 900px) {
     .login-container { flex-direction: column; height: auto; min-height: 100vh; overflow-y: auto; }
     .login-left { flex: none; min-height: 36vh; padding: 2.5rem 1.5rem; border-right: none; border-bottom: 1px solid var(--border); }

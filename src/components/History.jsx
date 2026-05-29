@@ -4,16 +4,9 @@ import { ArrowLeft, Bell, User as UserIcon, Search, Filter, RotateCcw, MoreHoriz
 import logo from '../assets/logo.png';
 import Notifications from './Notifications';
 import UserProfileModal from './UserProfileModal';
+import { db } from '../firebaseConfig';
+import { collection, getDocs } from 'firebase/firestore';
 import './History.css';
-
-const MOCK_CASES = [
-    { id: '1001', name: 'Alice Smith', nic: '199012345678', status: 'Missing', date: '2023-10-12', time: '14:30' },
-    { id: '1002', name: 'Bob Jones', nic: '198598765432', status: 'Investigating', date: '2023-10-15', time: '09:15' },
-    { id: '1003', name: 'Charlie Brown', nic: '200134567890', status: 'Found', date: '2023-09-20', time: '11:45' },
-    { id: '1004', name: 'Diana Prince', nic: '199511223344', status: 'Missing', date: '2023-10-18', time: '16:00' },
-    { id: '1005', name: 'Evan Wright', nic: '198855667788', status: 'Found', date: '2023-08-10', time: '10:30' },
-    { id: '1006', name: 'Fiona Gallagher', nic: '199999887766', status: 'Investigating', date: '2023-10-01', time: '08:00' },
-];
 
 const sortOptions = [
     { value: 'date-desc', label: 'Date (Newest)' },
@@ -29,6 +22,9 @@ const History = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [sortBy, setSortBy] = useState('date-desc');
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [cases, setCases] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
     const dropdownRef = useRef(null);
 
     useEffect(() => {
@@ -41,6 +37,43 @@ const History = () => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
+    useEffect(() => {
+        const fetchCases = async () => {
+            try {
+                setIsLoading(true);
+                const querySnapshot = await getDocs(collection(db, 'victims'));
+                const casesData = querySnapshot.docs.map(doc => {
+                    const data = doc.data();
+                    let createdDate = new Date();
+                    if (data.createdAt) {
+                        if (typeof data.createdAt.toDate === 'function') {
+                            createdDate = data.createdAt.toDate();
+                        } else if (data.createdAt.seconds) {
+                            createdDate = new Date(data.createdAt.seconds * 1000);
+                        } else {
+                            createdDate = new Date(data.createdAt);
+                        }
+                    }
+                    return {
+                        id: data.caseId || doc.id,
+                        name: data.name || 'Unnamed Case',
+                        nic: data.nic || '',
+                        status: data.status || 'Active',
+                        createdDate: createdDate,
+                    };
+                });
+                setCases(casesData);
+            } catch (err) {
+                console.error("Error fetching cases:", err);
+                setError("Failed to load history cases.");
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchCases();
+    }, []);
+
     const handleBack = () => {
         navigate(-1);
     };
@@ -50,24 +83,26 @@ const History = () => {
     };
 
     const getStatusClass = (status) => {
+        if (!status) return '';
         switch(status.toLowerCase()) {
             case 'missing': return 'missing';
+            case 'active': return 'missing';
             case 'investigating': return 'investigating';
             case 'found': return 'found';
             default: return '';
         }
     };
 
-    const filteredAndSortedCases = MOCK_CASES.filter(c => {
+    const filteredAndSortedCases = cases.filter(c => {
         const term = searchTerm.toLowerCase();
         return c.name.toLowerCase().includes(term) || 
-               c.nic.includes(term) || 
-               c.id.includes(term);
+               c.nic.toLowerCase().includes(term) || 
+               c.id.toLowerCase().includes(term);
     }).sort((a, b) => {
         if (sortBy === 'date-desc') {
-            return new Date(b.date + 'T' + b.time) - new Date(a.date + 'T' + a.time);
+            return b.createdDate - a.createdDate;
         } else if (sortBy === 'date-asc') {
-            return new Date(a.date + 'T' + a.time) - new Date(b.date + 'T' + b.time);
+            return a.createdDate - b.createdDate;
         } else if (sortBy === 'name-asc') {
             return a.name.localeCompare(b.name);
         } else if (sortBy === 'name-desc') {
@@ -158,39 +193,59 @@ const History = () => {
                     </div>
                     
                     <div className="cases-list">
-                        {filteredAndSortedCases.map((c) => (
-                            <div 
-                                className="case-card" 
-                                key={c.id} 
-                                onClick={() => navigate(`/case/${c.id}`)}
-                                style={{ cursor: 'pointer' }}
-                            >
-                                <div className="case-card-left">
-                                    <div className="case-avatar">
-                                        <UserIcon size={48} />
-                                    </div>
-                                    <div className="case-details">
-                                        <span>Case id : {c.id}</span>
-                                        <span>Case Name : {c.name}</span>
-                                    </div>
-                                </div>
-                                <div className="case-card-right">
-                                    <div className="status-badge">
-                                        <div className={`status-dot ${getStatusClass(c.status)}`}></div>
-                                        {c.status}
-                                    </div>
-                                    <button 
-                                        className="more-btn"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            navigate(`/case/${c.id}`);
-                                        }}
-                                    >
-                                        <MoreHorizontal size={24} />
-                                    </button>
-                                </div>
+                        {isLoading ? (
+                            <div className="history-loading-container">
+                                <div className="history-spinner"></div>
+                                <h3>Loading Case History...</h3>
+                                <p>Securing details from connection feed...</p>
                             </div>
-                        ))}
+                        ) : error ? (
+                            <div className="history-error-container">
+                                <XCircle size={40} fill="#E53935" color="#ffffff" />
+                                <h3>Error Fetching Cases</h3>
+                                <p>{error}</p>
+                            </div>
+                        ) : filteredAndSortedCases.length === 0 ? (
+                            <div className="history-empty-container">
+                                <Search size={40} color="#00B4D8" />
+                                <h3>No Cases Found</h3>
+                                <p>{searchTerm ? "No cases match your search query." : "There are currently no reported cases."}</p>
+                            </div>
+                        ) : (
+                            filteredAndSortedCases.map((c) => (
+                                <div 
+                                    className="case-card" 
+                                    key={c.id} 
+                                    onClick={() => navigate(`/case/${c.id}`)}
+                                    style={{ cursor: 'pointer' }}
+                                >
+                                    <div className="case-card-left">
+                                        <div className="case-avatar">
+                                            <UserIcon size={48} />
+                                        </div>
+                                        <div className="case-details">
+                                            <span>Case id : {c.id}</span>
+                                            <span>Case Name : {c.name}</span>
+                                        </div>
+                                    </div>
+                                    <div className="case-card-right">
+                                        <div className="status-badge">
+                                            <div className={`status-dot ${getStatusClass(c.status)}`}></div>
+                                            {c.status}
+                                        </div>
+                                        <button 
+                                            className="more-btn"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                navigate(`/case/${c.id}`);
+                                            }}
+                                        >
+                                            <MoreHorizontal size={24} />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))
+                        )}
                     </div>
                 </div>
             </main>

@@ -1,6 +1,4 @@
-/* ============================================================
-   ARGUS — History Page  (Dark Theme)
-   ============================================================ */
+
 
 .history-page {
     width: 100vw;
@@ -14,7 +12,7 @@
     animation: fadeInUp 0.4s ease both;
 }
 
-/* ── Header ── */
+
 .history-header {
     display: flex;
     justify-content: space-between;
@@ -60,7 +58,7 @@
 
 .history-header-right { display: flex; align-items: center; gap: 1rem; }
 
-/* ── Controls Bar ── */
+
 .history-controls {
     display: flex;
     justify-content: center;
@@ -72,7 +70,7 @@
     flex-shrink: 0;
 }
 
-/* ── Search Bar ── */
+
 .search-bar {
     display: flex;
     align-items: center;
@@ -92,7 +90,7 @@
 }
 .search-bar input::placeholder { color: var(--text-muted); }
 
-/* ── Custom Dropdown ── */
+
 .custom-dropdown-container { position: relative; user-select: none; }
 
 .custom-dropdown-trigger {
@@ -133,7 +131,7 @@
 .custom-dropdown-item:hover { background: rgba(0,180,216,0.10); color: var(--ice); }
 .custom-dropdown-item.selected { background: rgba(0,119,182,0.18); color: var(--sky); font-weight: 700; }
 
-/* ── Content ── */
+
 .history-content {
     flex: 1;
     padding: 1rem 2.5rem 1.5rem;
@@ -141,7 +139,7 @@
     overflow: hidden; min-height: 0;
 }
 
-/* ── History Panel ── */
+
 .history-container {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -166,14 +164,14 @@
 }
 .history-container-header h2 { font-size: 1.15rem; font-weight: 700; color: var(--ice); }
 
-/* ── Cases List ── */
+
 .cases-list {
     display: flex; flex-direction: column;
     gap: 0.7rem; overflow-y: auto;
     padding-right: 0.3rem; flex: 1; min-height: 0;
 }
 
-/* ── Case Card ── */
+
 .case-card {
     background: var(--surface-2);
     border: 1px solid var(--border);
@@ -208,7 +206,7 @@
 
 .case-card-right { display: flex; align-items: center; gap: 1rem; }
 
-/* ── Status Badge ── */
+
 .status-badge {
     background: rgba(3,4,94,0.50);
     border: 1px solid var(--border);
@@ -220,7 +218,7 @@
     min-width: 132px; justify-content: center;
 }
 
-/* ── Status Dot + pulse ── */
+
 .status-dot {
     width: 9px; height: 9px;
     border-radius: 50%; position: relative; flex-shrink: 0;
@@ -237,7 +235,7 @@
 .status-dot.found         { background-color: var(--status-found); }
 .status-dot.found::after  { border: 2px solid var(--status-found); }
 
-/* ── More Button ── */
+
 .more-btn {
     background: rgba(0,180,216,0.06);
     border: 1px solid var(--border);
@@ -249,7 +247,7 @@
 }
 .more-btn:hover { background: rgba(0,180,216,0.16); border-color: var(--sky); transform: scale(1.05); }
 
-/* ── Responsive ── */
+
 @media (max-width: 768px) {
     .history-header, .history-controls, .history-content { padding-left: 1.25rem; padding-right: 1.25rem; }
     .search-bar { width: 100%; }
@@ -257,3 +255,44 @@
     .case-card { flex-direction: column; align-items: flex-start; gap: 0.85rem; }
     .case-card-right { width: 100%; justify-content: space-between; }
 }
+
+
+.history-loading-container,
+.history-error-container,
+.history-empty-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    gap: 1.2rem;
+    color: var(--text-secondary);
+    min-height: 250px;
+    text-align: center;
+}
+
+.history-loading-container h3,
+.history-error-container h3,
+.history-empty-container h3 {
+    color: var(--ice);
+    font-size: 1.2rem;
+    margin: 0;
+}
+
+.history-loading-container p,
+.history-error-container p,
+.history-empty-container p {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.history-spinner {
+    width: 48px;
+    height: 48px;
+    border: 4.5px solid rgba(0, 180, 216, 0.12);
+    border-top-color: var(--sky);
+    border-radius: 50%;
+    animation: spin 0.85s linear infinite;
+}
+

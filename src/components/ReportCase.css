@@ -1,6 +1,4 @@
-/* ============================================================
-   ARGUS — Report Case Page  (Dark Theme)
-   ============================================================ */
+
 
 .report-page {
     width: 100vw;
@@ -20,7 +18,7 @@
     overflow: hidden; min-height: 0;
 }
 
-/* ── Dark Container ── */
+
 .report-container {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -47,7 +45,7 @@
 }
 .close-btn:hover { transform: scale(1.12) rotate(5deg); }
 
-/* ── Layout ── */
+
 .report-form-layout {
     display: flex; justify-content: space-between; align-items: center;
     gap: 2rem; flex: 1; overflow: hidden;
@@ -58,7 +56,7 @@
     gap: 1rem; justify-content: center; flex: 1;
 }
 
-/* ── Form Fields ── */
+
 .form-group {
     display: flex; align-items: center;
     flex-direction: row !important; flex-wrap: nowrap; gap: 1rem;
@@ -102,7 +100,7 @@
     box-shadow: 0 0 0 3px rgba(0,180,216,0.10), var(--glow-sky);
 }
 
-/* Read-only Case ID */
+
 .form-group input[readonly] {
     background: rgba(0,119,182,0.10);
     border-color: rgba(0,180,216,0.15);
@@ -110,13 +108,13 @@
     cursor: not-allowed; font-weight: 700; letter-spacing: 0.5px;
 }
 
-/* ── Right Column ── */
+
 .report-form-right {
     display: flex; flex-direction: column;
     gap: 1.1rem; align-items: center; justify-content: center; flex: 1;
 }
 
-/* ── Upload Box ── */
+
 .upload-box {
     background: var(--surface-2);
     border: 2px dashed var(--border);
@@ -194,7 +192,7 @@
     transform: scale(1.05);
 }
 
-/* ── Submit ── */
+
 .submit-btn {
     background: var(--grad-primary); background-size: 200% auto;
     color: #fff; border: none;
@@ -223,9 +221,7 @@
     .report-content { padding: 1rem 1.25rem; overflow: visible; }
 }
 
-/* ══════════════════════
-   MODALS
-   ══════════════════════ */
+
 
 .modal-overlay {
     position: fixed; inset: 0;

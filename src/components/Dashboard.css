@@ -1,6 +1,4 @@
-/* ============================================================
-   ARGUS — Dashboard Page  (Dark Theme)
-   ============================================================ */
+
 
 .dashboard-container {
     width: 100vw;
@@ -13,7 +11,7 @@
     animation: fadeInUp 0.4s ease both;
 }
 
-/* ── Sticky Header ── */
+
 .dashboard-header {
     display: flex;
     justify-content: space-between;
@@ -76,7 +74,7 @@
     filter: drop-shadow(0 0 6px rgba(0,180,216,0.50));
 }
 
-/* ── Main ── */
+
 .dashboard-content {
     padding: 1.75rem 2.5rem;
     display: flex;
@@ -85,7 +83,7 @@
     flex: 1;
 }
 
-/* ── Stats Grid ── */
+
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
@@ -144,7 +142,7 @@
 .stat-value.green  { color: var(--status-found); }
 .stat-value.blue   { color: var(--ice); }
 
-/* ── Map Section ── */
+
 .map-section {
     width: 100%;
     height: 440px;
@@ -156,7 +154,7 @@
     background: var(--surface);
 }
 
-/* ── Action Buttons ── */
+
 .action-buttons {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -193,7 +191,7 @@
 .action-btn:hover::after { background-position: -50% center; }
 .action-btn:active { transform: translateY(0); }
 
-/* ── Responsive ── */
+
 @media (max-width: 768px) {
     .dashboard-header, .dashboard-content { padding: 0.85rem 1.25rem; }
     .stats-grid { grid-template-columns: repeat(2,1fr); }
