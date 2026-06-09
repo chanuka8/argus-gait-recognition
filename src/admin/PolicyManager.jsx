@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Shield, Save, CheckCircle, RotateCcw, AlertOctagon, HelpCircle } from 'lucide-react';
 import AdminHeader from './AdminHeader';
 import './PolicyManager.css';

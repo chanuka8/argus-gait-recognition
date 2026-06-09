@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Trash2, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -11,26 +11,30 @@ const Notifications = ({ isOpen, onClose }) => {
     const email = currentUser?.email || '';
     const isAdmin = email.toLowerCase().includes('admin');
 
-    const adminNotifs = [
-        { id: 1, title: '[SYSTEM] Policies Compiled', details: 'Operational rules successfully written to all nodes.', caseId: null },
-        { id: 2, title: '[SURVEILLANCE] CCTV Feed Link Drops', details: 'Camera 04 dropped connection handshake.', caseId: null },
-        { id: 3, title: '[DATABASE] Hot Storage Snapshot Complete', details: 'Backup backup_index_1029 successfully archived.', caseId: null },
-        { id: 4, title: '[AUTH] New Account Authorized', details: 'Investigator user "inv_agentX" registered.', caseId: null }
-    ];
-
-    const invNotifs = [
-        { id: 1, title: 'BIOMETRIC ALERT: Case ID #9103 Match', details: '94% facial match detected on Core Server Vault CCTV.', caseId: '9103' },
-        { id: 2, title: 'NEW CASE REPORTED: Sector Alpha', details: 'Missing person case reported for Alice Smith.', caseId: 'Alice-Smith' },
-        { id: 3, title: 'CASE STATUS UPDATE: Case ID #8172', details: 'Case status changed to INVESTIGATING.', caseId: '8172' }
-    ];
-
-    const [notifications, setNotifications] = useState([]);
-
-    useEffect(() => {
-        if (isOpen) {
-            setNotifications(isAdmin ? adminNotifs : invNotifs);
+    const roleNotifs = useMemo(() => {
+        if (isAdmin) {
+            return [
+                { id: 1, title: '[SYSTEM] Policies Compiled', details: 'Operational rules successfully written to all nodes.', caseId: null },
+                { id: 2, title: '[SURVEILLANCE] CCTV Feed Link Drops', details: 'Camera 04 dropped connection handshake.', caseId: null },
+                { id: 3, title: '[DATABASE] Hot Storage Snapshot Complete', details: 'Backup backup_index_1029 successfully archived.', caseId: null },
+                { id: 4, title: '[AUTH] New Account Authorized', details: 'Investigator user "inv_agentX" registered.', caseId: null }
+            ];
         }
-    }, [isOpen, isAdmin]);
+        return [
+            { id: 1, title: 'BIOMETRIC ALERT: Case ID #9103 Match', details: '94% facial match detected on Core Server Vault CCTV.', caseId: '9103' },
+            { id: 2, title: 'NEW CASE REPORTED: Sector Alpha', details: 'Missing person case reported for Alice Smith.', caseId: 'Alice-Smith' },
+            { id: 3, title: 'CASE STATUS UPDATE: Case ID #8172', details: 'Case status changed to INVESTIGATING.', caseId: '8172' }
+        ];
+    }, [isAdmin]);
+
+    const [notifications, setNotifications] = useState(roleNotifs);
+
+    // Reset notifications when role-specific data changes
+    const [prevRoleNotifs, setPrevRoleNotifs] = useState(roleNotifs);
+    if (roleNotifs !== prevRoleNotifs) {
+        setPrevRoleNotifs(roleNotifs);
+        setNotifications(roleNotifs);
+    }
 
     const handleClearNotifications = () => {
         setNotifications([]);

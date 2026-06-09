@@ -51,8 +51,6 @@ const Dashboard = () => {
     const [showNotifications, setShowNotifications] = useState(false);
     const [showProfile, setShowProfile] = useState(false);
 
-    const isAdmin = currentUser?.email?.toLowerCase().includes('admin');
-
     return (
         <div className="dashboard-container">
             <Notifications isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
