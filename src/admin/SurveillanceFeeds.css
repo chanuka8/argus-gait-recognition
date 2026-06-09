@@ -1,0 +1,369 @@
+.surveillance-feeds-page {
+    width: 100%;
+    min-height: 100vh;
+    background: var(--grad-bg);
+    background-attachment: fixed;
+    color: var(--text-primary);
+    display: flex;
+    flex-direction: column;
+    animation: fadeInUp 0.4s ease both;
+}
+
+.surveillance-content {
+    padding: 2rem 2.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.75rem;
+    flex: 1;
+    max-width: 1400px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+.surv-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.surv-header-row h1 {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--mist);
+}
+
+.surv-header-row p {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.add-feed-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--sky);
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 0.65rem 1.25rem;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all var(--ease-mid);
+}
+
+.add-feed-btn:hover {
+    background: rgba(92, 225, 230, 0.08);
+    border-color: var(--sky);
+    box-shadow: var(--glow-sky);
+}
+
+.add-camera-form-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    animation: slideDown 0.3s ease both;
+}
+
+.add-camera-form-panel h3 {
+    font-size: 1.1rem;
+    color: var(--mist);
+}
+
+.add-camera-form-panel .form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.25rem;
+}
+
+.add-camera-form-panel .form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.add-camera-form-panel .form-field label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.add-camera-form-panel .form-field input,
+.add-camera-form-panel .form-field select {
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    padding: 0.55rem 0.85rem;
+    font-family: var(--font);
+    font-size: 0.85rem;
+    outline: none;
+    transition: all var(--ease-fast);
+}
+
+.add-camera-form-panel .form-field input:focus,
+.add-camera-form-panel .form-field select:focus {
+    border-color: var(--sky);
+    box-shadow: var(--glow-sky);
+}
+
+.submit-cam-btn {
+    background: var(--grad-primary);
+    border: none;
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 0.65rem;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    align-self: flex-start;
+    box-shadow: var(--shadow-btn);
+    transition: all var(--ease-mid);
+}
+
+.submit-cam-btn:hover {
+    box-shadow: 0 4px 18px rgba(92, 225, 230, 0.35);
+    transform: translateY(-1px);
+}
+
+.camera-feeds-layout-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.5rem;
+}
+
+.camera-feed-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    transition: all var(--ease-mid);
+}
+
+.camera-feed-card:hover {
+    border-color: var(--border-hover);
+    box-shadow: var(--shadow-md);
+}
+
+.camera-feed-card.online:hover {
+    box-shadow: var(--shadow-md), 0 0 15px rgba(6, 214, 160, 0.10);
+}
+
+.camera-feed-card.offline:hover {
+    box-shadow: var(--shadow-md), 0 0 15px rgba(255, 107, 107, 0.08);
+}
+
+.camera-feed-viewport {
+    width: 100%;
+    height: 180px;
+    background: #1e2023;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.camera-feed-canvas {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.camera-offline-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+}
+
+.camera-offline-screen p {
+    font-family: monospace;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--status-missing);
+    letter-spacing: 1.5px;
+    margin-top: 0.5rem;
+}
+
+.camera-offline-screen span {
+    font-family: monospace;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+}
+
+.cam-viewport-overlay {
+    position: absolute;
+    bottom: 0.65rem;
+    right: 0.75rem;
+    display: flex;
+    gap: 0.5rem;
+}
+
+.cam-fps, .cam-bitrate {
+    font-family: monospace;
+    font-size: 0.68rem;
+    background: rgba(30, 32, 35, 0.75);
+    padding: 0.15rem 0.45rem;
+    border-radius: 2px;
+    border: 1px solid rgba(92, 225, 230, 0.15);
+}
+
+.cam-fps {
+    color: var(--status-found);
+}
+
+.cam-bitrate {
+    color: var(--ice);
+}
+
+.camera-details-body {
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    flex: 1;
+}
+
+.camera-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.camera-title-row h3 {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--mist);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cam-status-dot-badge {
+    font-family: monospace;
+    font-size: 0.68rem;
+    font-weight: bold;
+    padding: 0.15rem 0.5rem;
+    border-radius: 2px;
+}
+
+.cam-status-dot-badge.online {
+    background: rgba(6, 214, 160, 0.12);
+    color: var(--status-found);
+    border: 1px solid rgba(6, 214, 160, 0.30);
+}
+
+.cam-status-dot-badge.offline {
+    background: rgba(255, 107, 107, 0.10);
+    color: var(--status-missing);
+    border: 1px solid rgba(255, 107, 107, 0.25);
+}
+
+.camera-meta-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.meta-field {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.meta-field svg {
+    color: var(--text-muted);
+}
+
+.meta-loc {
+    font-family: monospace;
+}
+
+.camera-card-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: auto;
+    padding-top: 0.5rem;
+}
+
+.toggle-connection-btn {
+    flex: 1;
+    border: none;
+    font-family: var(--font);
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 0.55rem;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all var(--ease-mid);
+}
+
+.toggle-connection-btn.terminate {
+    background: rgba(255, 107, 107, 0.06);
+    color: var(--status-missing);
+    border: 1px solid rgba(255, 107, 107, 0.20);
+}
+
+.toggle-connection-btn.terminate:hover {
+    background: rgba(255, 107, 107, 0.14);
+    border-color: var(--status-missing);
+}
+
+.toggle-connection-btn.initiate {
+    background: rgba(92, 225, 230, 0.06);
+    color: var(--sky);
+    border: 1px solid rgba(92, 225, 230, 0.20);
+}
+
+.toggle-connection-btn.initiate:hover {
+    background: rgba(92, 225, 230, 0.14);
+    border-color: var(--sky);
+}
+
+.remove-camera-btn {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 0.5rem;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--ease-fast);
+}
+
+.remove-camera-btn:hover {
+    color: var(--status-missing);
+    background: rgba(255, 107, 107, 0.08);
+    border-color: rgba(255, 107, 107, 0.25);
+}
+
+@media (max-width: 768px) {
+    .surveillance-content {
+        padding: 1rem 1.25rem;
+    }
+    .surv-header-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    .add-feed-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}

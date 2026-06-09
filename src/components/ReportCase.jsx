@@ -196,14 +196,14 @@ const ReportCase = () => {
                 </div>
                 <div className="history-header-right">
                     <div className="user-profile" onClick={() => setShowProfile(true)} style={{ cursor: 'pointer' }}>
-                        <UserIcon size={22} fill="#CAF0F8" color="#CAF0F8" />
+                        <UserIcon size={22} fill="#d6e4ea" color="#d6e4ea" />
                         <span>John Doe</span>
                     </div>
                     <Bell
                         size={22}
                         className="notification-bell"
-                        fill="#00B4D8"
-                        color="#00B4D8"
+                        fill="#5ce1e6"
+                        color="#5ce1e6"
                         onClick={() => setShowNotifications(true)}
                         style={{ cursor: 'pointer' }}
                     />
@@ -217,7 +217,7 @@ const ReportCase = () => {
                     </button>
 
                     <div className="report-container-header">
-                        <PlusCircle size={28} color="#00B4D8" />
+                        <PlusCircle size={28} color="#5ce1e6" />
                         <h2>Report a New Case</h2>
                     </div>
 
@@ -274,9 +274,9 @@ const ReportCase = () => {
                                 onClick={() => imageInputRef.current.click()}
                             >
                                 {images.length > 0 ? (
-                                    <CheckCircle size={48} color="#00B4D8" strokeWidth={2} />
+                                    <CheckCircle size={48} color="#5ce1e6" strokeWidth={2} />
                                 ) : (
-                                    <PlusCircle size={48} color="#90E0EF" strokeWidth={2} />
+                                    <PlusCircle size={48} color="#a0e4e8" strokeWidth={2} />
                                 )}
                                 <span>{images.length > 0 ? `${images.length} Image(s) Added` : 'Add Images'}</span>
                             </div>
@@ -313,9 +313,9 @@ const ReportCase = () => {
                                 onClick={() => videoInputRef.current.click()}
                             >
                                 {videos.length > 0 ? (
-                                    <CheckCircle size={48} color="#00B4D8" strokeWidth={2} />
+                                    <CheckCircle size={48} color="#5ce1e6" strokeWidth={2} />
                                 ) : (
-                                    <PlusCircle size={48} color="#90E0EF" strokeWidth={2} />
+                                    <PlusCircle size={48} color="#a0e4e8" strokeWidth={2} />
                                 )}
                                 <span>{videos.length > 0 ? `${videos.length} Video(s) Added` : 'Add Videos'}</span>
                             </div>

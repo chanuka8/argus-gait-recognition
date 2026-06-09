@@ -29,14 +29,14 @@ const CaseDetails = () => {
                 </div>
                 <div className="header-right">
                     <div className="user-profile" onClick={() => setShowProfile(true)} style={{ cursor: 'pointer' }}>
-                        <UserIcon size={22} fill="#CAF0F8" color="#CAF0F8" />
+                        <UserIcon size={22} fill="#d6e4ea" color="#d6e4ea" />
                         <span>John Doe</span>
                     </div>
                     <Bell 
                         size={22} 
                         className="notification-bell" 
-                        fill="#00B4D8" 
-                        color="#00B4D8"
+                        fill="#5ce1e6" 
+                        color="#5ce1e6"
                         onClick={() => setShowNotifications(true)}
                         style={{ cursor: 'pointer' }}
                     />
@@ -50,7 +50,7 @@ const CaseDetails = () => {
                     <div className="case-layout">
                         <div className="case-info-panel">
                             <div className="case-icon-wrapper">
-                                <UserIcon size={140} color="#90E0EF" fill="#0077B6" />
+                                <UserIcon size={140} color="#a0e4e8" fill="#4ab8bd" />
                             </div>
                             
                             <div className="info-grid">

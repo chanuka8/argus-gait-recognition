@@ -6,6 +6,11 @@ import ProtectedRoute from './components/ProtectedRoute';
 import History from './components/History';
 import ReportCase from './components/ReportCase';
 import CaseDetails from './components/CaseDetails';
+import AdminDashboard from './admin/AdminDashboard';
+import UserManagement from './admin/UserManagement';
+import LogViewer from './admin/LogViewer';
+import SurveillanceFeeds from './admin/SurveillanceFeeds';
+import PolicyManager from './admin/PolicyManager';
 import './App.css';
 
 function App() {
@@ -15,7 +20,7 @@ function App() {
       <Route
         path="/dashboard"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRole="investigator">
             <Dashboard />
           </ProtectedRoute>
         }
@@ -23,7 +28,7 @@ function App() {
       <Route
         path="/history"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRole="investigator">
             <History />
           </ProtectedRoute>
         }
@@ -31,7 +36,7 @@ function App() {
       <Route
         path="/report-case"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRole="investigator">
             <ReportCase />
           </ProtectedRoute>
         }
@@ -39,8 +44,48 @@ function App() {
       <Route
         path="/case/:id"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRole="investigator">
             <CaseDetails />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/dashboard"
+        element={
+          <ProtectedRoute allowedRole="admin">
+            <AdminDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/users"
+        element={
+          <ProtectedRoute allowedRole="admin">
+            <UserManagement />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/logs"
+        element={
+          <ProtectedRoute allowedRole="admin">
+            <LogViewer />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/surveillance"
+        element={
+          <ProtectedRoute allowedRole="admin">
+            <SurveillanceFeeds />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/policies"
+        element={
+          <ProtectedRoute allowedRole="admin">
+            <PolicyManager />
           </ProtectedRoute>
         }
       />

@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import MapComponent from './Map';
 import Notifications from './Notifications';
 import UserProfileModal from './UserProfileModal';
+import { useAuth } from '../contexts/AuthContext';
 
 const CountUp = ({ end, duration }) => {
     const [count, setCount] = useState(0);
@@ -46,8 +47,11 @@ const CountUp = ({ end, duration }) => {
 
 const Dashboard = () => {
     const navigate = useNavigate();
+    const { currentUser } = useAuth();
     const [showNotifications, setShowNotifications] = useState(false);
     const [showProfile, setShowProfile] = useState(false);
+
+    const isAdmin = currentUser?.email?.toLowerCase().includes('admin');
 
     return (
         <div className="dashboard-container">
@@ -61,14 +65,14 @@ const Dashboard = () => {
                 </div>
                 <div className="header-right">
                     <div className="user-profile" onClick={() => setShowProfile(true)} style={{ cursor: 'pointer' }}>
-                        <User size={22} fill="#90E0EF" color="#90E0EF" />
-                        <span>John Doe</span>
+                        <User size={22} fill="#a0e4e8" color="#a0e4e8" />
+                        <span>{currentUser?.email?.split('@')[0] || 'John Doe'}</span>
                     </div>
                     <Bell
                         size={22}
                         className="notification-bell"
-                        fill="#00B4D8"
-                        color="#00B4D8"
+                        fill="#5ce1e6"
+                        color="#5ce1e6"
                         onClick={() => setShowNotifications(true)}
                         style={{ cursor: 'pointer' }}
                     />
