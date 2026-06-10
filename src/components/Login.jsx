@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { ArrowLeft, Server, UserCheck } from 'lucide-react';
+import { ArrowLeft, Server, UserCheck, Eye, EyeOff } from 'lucide-react';
 import logo from '../assets/logo.png';
 import './Login.css';
 
@@ -10,9 +10,10 @@ const Login = () => {
     const { login } = useAuth();
     const [step, setStep] = useState('role-select');
     const [selectedRole, setSelectedRole] = useState('');
-    const [email, setEmail] = useState('');
+    const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
 
@@ -20,12 +21,14 @@ const Login = () => {
         setSelectedRole(role);
         setStep('credentials');
         setError('');
+        setShowPassword(false);
     };
 
     const handleBackToRoles = () => {
         setStep('role-select');
         setSelectedRole('');
         setError('');
+        setShowPassword(false);
     };
 
     const handleLogin = async (e) => {
@@ -34,15 +37,9 @@ const Login = () => {
         try {
             setError('');
             setLoading(true);
-            
-            // Format username to email if it does not contain '@'
-            let loginEmail = email;
-            if (!email.includes('@')) {
-                loginEmail = `${email}@argus.com`;
-            }
-            
-            const loggedUser = await login(loginEmail, password, selectedRole);
-            
+
+            const loggedUser = await login(username, password, selectedRole);
+
             // Trigger button checkmark and card exit states
             setIsSuccess(true);
             setLoading(false);
@@ -78,16 +75,16 @@ const Login = () => {
                         <div className="role-selection-wrapper">
                             <h1 className="sign-in-title">Access Gate</h1>
                             <p className="sign-in-subtitle">Select Your Role to Login</p>
-                            
+
                             <div className="role-cards-container">
                                 <div className="role-select-card admin" onClick={() => handleRoleSelect('admin')}>
                                     <div className="role-card-icon-wrapper">
                                         <Server size={32} />
                                     </div>
                                     <div className="role-card-info">
-                                        <h2>System Administrator</h2>
+                                        <h2>Administrator</h2>
                                     </div>
-                                    <div className="select-badge">ADMIN\'S VIEW</div>
+                                    <div className="select-badge">ADMIN PANEL</div>
                                 </div>
 
                                 <div className="role-select-card investigator" onClick={() => handleRoleSelect('investigator')}>
@@ -95,9 +92,9 @@ const Login = () => {
                                         <UserCheck size={32} />
                                     </div>
                                     <div className="role-card-info">
-                                        <h2>Field Investigator</h2>
+                                        <h2>Investigator</h2>
                                     </div>
-                                    <div className="select-badge">INVESTIGATOR\'S VIEW</div>
+                                    <div className="select-badge">INVESTIGATOR PANEL</div>
                                 </div>
                             </div>
                         </div>
@@ -123,8 +120,8 @@ const Login = () => {
                                     <input
                                         type="text"
                                         className="styled-input"
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
+                                        value={username}
+                                        onChange={(e) => setUsername(e.target.value)}
                                         placeholder="enter your username"
                                         disabled={isSuccess}
                                         required
@@ -133,15 +130,39 @@ const Login = () => {
 
                                 <div className="form-group">
                                     <label className="input-label">Password</label>
-                                    <input
-                                        type="password"
-                                        className="styled-input"
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                        placeholder="enter your password"
-                                        disabled={isSuccess}
-                                        required
-                                    />
+                                    <div className="password-input-wrapper" style={{ position: 'relative' }}>
+                                        <input
+                                            type={showPassword ? "text" : "password"}
+                                            className="styled-input"
+                                            value={password}
+                                            onChange={(e) => setPassword(e.target.value)}
+                                            placeholder="enter your password"
+                                            disabled={isSuccess}
+                                            style={{ paddingRight: '2.5rem' }}
+                                            required
+                                        />
+                                        <button
+                                            type="button"
+                                            className="password-toggle-btn"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            style={{
+                                                position: 'absolute',
+                                                right: '12px',
+                                                top: '50%',
+                                                transform: 'translateY(-50%)',
+                                                background: 'transparent',
+                                                border: 'none',
+                                                color: 'var(--text-muted)',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                padding: '4px'
+                                            }}
+                                        >
+                                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <div className="forgot-password-link">

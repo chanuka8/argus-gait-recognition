@@ -14,8 +14,7 @@ const AdminHeader = () => {
     const [showNotifications, setShowNotifications] = useState(false);
     const [showProfile, setShowProfile] = useState(false);
 
-    const email = currentUser?.email || '';
-    const username = email ? email.split('@')[0] : 'Admin';
+    const username = currentUser?.username || 'Admin';
 
     const menuItems = [
         { path: '/admin/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={16} /> },

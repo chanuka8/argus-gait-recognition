@@ -8,8 +8,7 @@ const Notifications = ({ isOpen, onClose }) => {
     const navigate = useNavigate();
     const { currentUser } = useAuth();
     
-    const email = currentUser?.email || '';
-    const isAdmin = email.toLowerCase().includes('admin');
+    const isAdmin = currentUser?.role === 'admin';
 
     const roleNotifs = useMemo(() => {
         if (isAdmin) {

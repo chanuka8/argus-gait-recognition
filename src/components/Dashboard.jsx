@@ -64,7 +64,7 @@ const Dashboard = () => {
                 <div className="header-right">
                     <div className="user-profile" onClick={() => setShowProfile(true)} style={{ cursor: 'pointer' }}>
                         <User size={22} fill="#a0e4e8" color="#a0e4e8" />
-                        <span>{currentUser?.email?.split('@')[0] || 'John Doe'}</span>
+                        <span>{currentUser?.username || 'John Doe'}</span>
                     </div>
                     <Bell
                         size={22}

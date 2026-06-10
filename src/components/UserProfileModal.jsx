@@ -10,9 +10,8 @@ const UserProfileModal = ({ isOpen, onClose }) => {
 
     if (!isOpen) return null;
 
-    const email = currentUser?.email || '';
-    const username = email ? email.split('@')[0] : 'John Doe';
-    const isSystemAdmin = email.toLowerCase().includes('admin');
+    const username = currentUser?.username || 'John Doe';
+    const isSystemAdmin = currentUser?.role === 'admin';
     const position = isSystemAdmin ? 'System Administrator' : 'Investigator';
 
     const handleLogout = async () => {
