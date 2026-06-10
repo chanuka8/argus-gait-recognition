@@ -139,13 +139,12 @@ const AdminDashboard = () => {
     return (
         <div className="admin-dashboard-container">
             <AdminHeader />
-            
+
             <main className="admin-dashboard-content">
                 <section className="admin-welcome-section">
                     <div className="welcome-banner">
                         <div className="pulse-indicator"></div>
-                        <h1>Command Center</h1>
-                        <p>Argus System Administration & Operational Core</p>
+                        <h1>Control Center</h1>
                     </div>
                 </section>
 
@@ -192,7 +191,7 @@ const AdminDashboard = () => {
                     <div className="quick-access-panel">
                         <h2>Administrative Controls</h2>
                         <p className="panel-desc">Quickly configure, review, or authorize system components.</p>
-                        
+
                         <div className="control-cards-grid">
                             <div className="control-card" onClick={() => navigate('/admin/users')}>
                                 <div className="card-header-icon">

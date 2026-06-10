@@ -13,7 +13,7 @@ const CasesManagement = () => {
     const [cases, setCases] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    
+
     // Deletion states
     const [deletingCase, setDeletingCase] = useState(null);
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -82,7 +82,7 @@ const CasesManagement = () => {
                 where('username', '==', currentUser?.username || '')
             );
             const querySnapshot = await getDocs(adminQuery);
-            
+
             if (querySnapshot.empty) {
                 setPasswordError('Administrator credentials record not found in system database.');
                 setIsAuthorizing(false);
@@ -98,10 +98,10 @@ const CasesManagement = () => {
             }
 
             // Password is correct, perform cascade deletion:
-            // 1. Fetch associated media documents to get storage files
+            // Fetch associated media documents to get storage files
             const mediaRef = doc(db, 'person_media', deletingCase.id);
             const mediaSnap = await getDoc(mediaRef);
-            
+
             if (mediaSnap.exists()) {
                 const mediaData = mediaSnap.data();
                 const imageUrls = mediaData.imageUrls || [];
@@ -137,11 +137,11 @@ const CasesManagement = () => {
                 await deleteDoc(mediaRef);
             }
 
-            // 2. Delete main victims case document
+            // Delete main victims case document
             const victimRef = doc(db, 'victims', deletingCase.id);
             await deleteDoc(victimRef);
 
-            // 3. Log the critical action in system logs
+            // Log the critical action in system logs
             addLog(
                 'critical',
                 `Case ${deletingCase.caseId} permanently removed`,
@@ -149,7 +149,7 @@ const CasesManagement = () => {
                 currentUser.username
             );
 
-            // 4. Update local state list
+            // Update local state list
             setCases(prev => prev.filter(c => c.id !== deletingCase.id));
 
             // Trigger success state
@@ -175,9 +175,9 @@ const CasesManagement = () => {
     // Filter cases by ID or type
     const filteredCases = cases.filter(c => {
         const term = searchTerm.toLowerCase();
-        return String(c.caseId).toLowerCase().includes(term) || 
-               String(c.caseType).toLowerCase().includes(term) ||
-               String(c.status).toLowerCase().includes(term);
+        return String(c.caseId).toLowerCase().includes(term) ||
+            String(c.caseType).toLowerCase().includes(term) ||
+            String(c.status).toLowerCase().includes(term);
     });
 
     const getStatusColor = (status) => {
@@ -193,21 +193,20 @@ const CasesManagement = () => {
     return (
         <div className="cases-mgmt-page">
             <AdminHeader />
-            
+
             <main className="cases-mgmt-content">
                 <div className="cases-mgmt-header-row">
                     <div className="title-group">
-                        <h1>Case Logs & Management</h1>
-                        <p>Audit case registries, verify classifications, and authorize permanent records purge.</p>
+                        <h1>Case Records</h1>
                     </div>
                 </div>
 
                 <div className="search-controls">
                     <div className="cases-search-bar">
                         <Search size={18} color="var(--text-muted)" />
-                        <input 
-                            type="text" 
-                            placeholder="Search cases by Case ID, Type, or Status..." 
+                        <input
+                            type="text"
+                            placeholder="Search cases by Case ID, Type, or Status..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
@@ -219,7 +218,7 @@ const CasesManagement = () => {
                         <thead>
                             <tr>
                                 <th>Case ID</th>
-                                <th>Case Classification</th>
+                                <th>Case Type</th>
                                 <th>Status</th>
                                 <th style={{ textAlign: 'center' }}>Actions</th>
                             </tr>
@@ -254,8 +253,8 @@ const CasesManagement = () => {
                                         </td>
                                         <td>
                                             <div className="actions-cell">
-                                                <button 
-                                                    className="delete-case-btn" 
+                                                <button
+                                                    className="delete-case-btn"
                                                     onClick={() => handleDeleteClick(c)}
                                                     title="Delete Case Log"
                                                 >
@@ -273,8 +272,8 @@ const CasesManagement = () => {
 
             {/* Password Verification Modal */}
             {deletingCase && (
-                <div 
-                    className="delete-modal-overlay" 
+                <div
+                    className="delete-modal-overlay"
                     onClick={(e) => {
                         if (e.target === e.currentTarget) {
                             handleCloseModal();
@@ -287,7 +286,7 @@ const CasesManagement = () => {
                                 <div className="trash-circle">
                                     <Trash2 size={36} className="trash-svg" />
                                 </div>
-                                <h3>Case Log Purged!</h3>
+                                <h3>Case Log Removed!</h3>
                                 <p>Case and associated media files were removed permanently.</p>
                             </div>
                         ) : (
@@ -307,7 +306,7 @@ const CasesManagement = () => {
                                 <form onSubmit={handleConfirmDelete} className="delete-case-form">
                                     <div className="warning-banner">
                                         <p>
-                                            <strong>CRITICAL:</strong> You are authorizing the permanent deletion of case <strong>{deletingCase.caseId}</strong>. 
+                                            <strong>CRITICAL:</strong> You are authorizing the permanent deletion of case <strong>{deletingCase.caseId}</strong>.
                                             This action is irreversible. All databases entries, metadata connections, and stored files in Firebase Storage will be deleted.
                                         </p>
                                     </div>
@@ -315,13 +314,13 @@ const CasesManagement = () => {
                                     <div className="form-field">
                                         <label>Confirm Administrator Password</label>
                                         <div className="password-input-wrapper">
-                                            <input 
-                                                type={showConfirmPassword ? "text" : "password"} 
-                                                value={confirmPassword} 
-                                                onChange={(e) => setConfirmPassword(e.target.value)} 
+                                            <input
+                                                type={showConfirmPassword ? "text" : "password"}
+                                                value={confirmPassword}
+                                                onChange={(e) => setConfirmPassword(e.target.value)}
                                                 placeholder="••••••••"
                                                 disabled={isAuthorizing}
-                                                required 
+                                                required
                                             />
                                             <button
                                                 type="button"
@@ -334,17 +333,17 @@ const CasesManagement = () => {
                                     </div>
 
                                     <div className="modal-actions">
-                                        <button 
-                                            type="button" 
-                                            className="modal-cancel-btn" 
+                                        <button
+                                            type="button"
+                                            className="modal-cancel-btn"
                                             onClick={handleCloseModal}
                                             disabled={isAuthorizing}
                                         >
                                             Cancel
                                         </button>
-                                        <button 
-                                            type="submit" 
-                                            className="modal-confirm-btn" 
+                                        <button
+                                            type="submit"
+                                            className="modal-confirm-btn"
                                             disabled={isAuthorizing}
                                         >
                                             {isAuthorizing ? 'Purging Case...' : 'Authorize Deletion'}

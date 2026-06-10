@@ -454,8 +454,7 @@ const UserManagement = () => {
             <main className="user-mgmt-content">
                 <div className="user-mgmt-header-row">
                     <div className="title-group">
-                        <h1>User & Role Management</h1>
-                        <p>Configure operator databases, credential validation, and authentication parameters.</p>
+                        <h1>Users & Roles</h1>
                     </div>
                     <button className="add-operator-btn" onClick={() => setShowAddModal(true)}>
                         <UserPlus size={18} />

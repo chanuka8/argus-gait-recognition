@@ -46,7 +46,7 @@ const LogViewer = () => {
 
     const filteredLogs = logs.filter(log => {
         const matchesSearch = log.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                              log.user.toLowerCase().includes(searchTerm.toLowerCase());
+            log.user.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesLevel = selectedLevel === 'all' || log.level === selectedLevel;
         return matchesSearch && matchesLevel;
     });
@@ -58,8 +58,7 @@ const LogViewer = () => {
             <main className="log-viewer-content">
                 <div className="log-header-row">
                     <div className="title-group">
-                        <h1>System Audit Logs</h1>
-                        <p>Automatically collected system events. Click any entry to view details.</p>
+                        <h1>System Logs</h1>
                     </div>
                     <div className="log-actions">
                         <button className="log-action-btn export" onClick={handleExport} title="Export to CSV">

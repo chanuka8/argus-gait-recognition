@@ -65,7 +65,6 @@ const PolicyManager = () => {
                 <div className="policy-header-row">
                     <div className="title-group">
                         <h1>Security Policies & Parameters</h1>
-                        <p>Configure facial scanning thresholds, data purge boundaries, and session timeout restrictions.</p>
                     </div>
                 </div>
 
@@ -77,18 +76,18 @@ const PolicyManager = () => {
                                 <span>Threat & Biometric Detection</span>
                             </h2>
                             <p className="sec-desc">Calibrate facial matching tolerances and threat intelligence filters.</p>
-                            
+
                             <div className="policy-control-item">
                                 <div className="control-label-desc">
                                     <label>Facial Recognition Match Confidence (%)</label>
                                     <span>Lower values speed up matching but increase false positives. Recommendation: 85%.</span>
                                 </div>
                                 <div className="slider-control-row">
-                                    <input 
-                                        type="range" 
-                                        min="50" 
-                                        max="99" 
-                                        value={policies.biometricMatch} 
+                                    <input
+                                        type="range"
+                                        min="50"
+                                        max="99"
+                                        value={policies.biometricMatch}
                                         onChange={(e) => handlePolicyChange('biometricMatch', parseInt(e.target.value))}
                                         className="styled-slider"
                                     />
@@ -101,8 +100,8 @@ const PolicyManager = () => {
                                     <label>Automatic Incident Alert Level</label>
                                     <span>Define the lowest incident level that triggers automatic investigator notifications.</span>
                                 </div>
-                                <select 
-                                    value={policies.alertSeverity} 
+                                <select
+                                    value={policies.alertSeverity}
                                     onChange={(e) => handlePolicyChange('alertSeverity', e.target.value)}
                                     className="styled-select"
                                 >
@@ -126,10 +125,10 @@ const PolicyManager = () => {
                                     <label>Active Case Retention Limit (Days)</label>
                                     <span>Length of time telemetry coordinates are preserved before archival. Default: 180 days.</span>
                                 </div>
-                                <input 
-                                    type="number" 
-                                    min="30" 
-                                    max="730" 
+                                <input
+                                    type="number"
+                                    min="30"
+                                    max="730"
                                     value={policies.dataRetention}
                                     onChange={(e) => handlePolicyChange('dataRetention', parseInt(e.target.value))}
                                     className="styled-number-input"
@@ -143,8 +142,8 @@ const PolicyManager = () => {
                                     <span>Archive missing person cases after 365 consecutive days with zero coordinate feeds.</span>
                                 </div>
                                 <label className="switch-toggle">
-                                    <input 
-                                        type="checkbox" 
+                                    <input
+                                        type="checkbox"
                                         checked={policies.autoArchiveCold}
                                         onChange={(e) => handlePolicyChange('autoArchiveCold', e.target.checked)}
                                     />
@@ -165,10 +164,10 @@ const PolicyManager = () => {
                                     <label>Operator Session Inactivity Limit (Minutes)</label>
                                     <span>Forced logout interval when zero clicks or cursor movements are detected.</span>
                                 </div>
-                                <input 
-                                    type="number" 
-                                    min="5" 
-                                    max="240" 
+                                <input
+                                    type="number"
+                                    min="5"
+                                    max="240"
                                     value={policies.sessionTimeout}
                                     onChange={(e) => handlePolicyChange('sessionTimeout', parseInt(e.target.value))}
                                     className="styled-number-input"
@@ -182,8 +181,8 @@ const PolicyManager = () => {
                                     <span>Dispatch instant alerts to administration when biometric algorithms flag critical subjects.</span>
                                 </div>
                                 <label className="switch-toggle">
-                                    <input 
-                                        type="checkbox" 
+                                    <input
+                                        type="checkbox"
                                         checked={policies.emailNotifications}
                                         onChange={(e) => handlePolicyChange('emailNotifications', e.target.checked)}
                                     />
@@ -196,8 +195,8 @@ const PolicyManager = () => {
                                     <label>Database Encryption Backup Schedule</label>
                                     <span>Automated snapshot triggers for full platform recovery.</span>
                                 </div>
-                                <select 
-                                    value={policies.backupFrequency} 
+                                <select
+                                    value={policies.backupFrequency}
                                     onChange={(e) => handlePolicyChange('backupFrequency', e.target.value)}
                                     className="styled-select"
                                 >
@@ -213,7 +212,7 @@ const PolicyManager = () => {
                                 <RotateCcw size={16} />
                                 <span>Restore Defaults</span>
                             </button>
-                            
+
                             <button type="submit" className="save-policies-btn" disabled={isSaving}>
                                 {isSaving ? (
                                     <>
