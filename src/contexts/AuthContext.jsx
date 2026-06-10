@@ -65,6 +65,7 @@ export const AuthProvider = ({ children }) => {
                             // Update cached information with live data
                             const updatedUser = {
                                 ...parsedUser,
+                                id: querySnapshot.docs[0].id,
                                 name: userData.name,
                                 image: userData.image,
                                 nic: userData.nic,
@@ -96,11 +97,14 @@ export const AuthProvider = ({ children }) => {
 
         const roleLower = currentUser.role.toLowerCase();
         const targetCollection = roleLower === 'admin' ? 'admins' : 'investigators';
-        const docRef = doc(db, targetCollection, currentUser.id || currentUser.username);
+        const q = query(
+            collection(db, targetCollection),
+            where('username', '==', currentUser.username)
+        );
 
-        const unsubscribe = onSnapshot(docRef, (docSnap) => {
-            if (docSnap.exists()) {
-                const data = docSnap.data();
+        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+            if (!querySnapshot.empty) {
+                const data = querySnapshot.docs[0].data();
                 if (data.status === 'Suspended') {
                     alert('Your account has been suspended. Logging out.');
                     localStorage.removeItem('argus_current_user');
@@ -118,7 +122,7 @@ export const AuthProvider = ({ children }) => {
         });
 
         return () => unsubscribe();
-    }, [currentUser?.id, currentUser?.username, currentUser?.role]);
+    }, [currentUser?.username, currentUser?.role]);
 
     // 2. Custom Login Logic querying Firestore
     const login = async (username, password, role) => {

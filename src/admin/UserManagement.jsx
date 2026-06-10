@@ -38,7 +38,7 @@ const UserManagement = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [showAddModal, setShowAddModal] = useState(false);
     const fileInputRef = useRef(null);
-    
+
     // Add user form states
     const [newName, setNewName] = useState('');
     const [newUsername, setNewUsername] = useState('');
@@ -66,7 +66,7 @@ const UserManagement = () => {
         setNewUsername(user.username);
         setNewRole(user.role === 'Admin' ? 'Admin' : 'Investigator');
         setNewNic(user.nic);
-        setNewPassword(''); // Optional on edit
+        setNewPassword('');
         setImageFile(null);
         setShowAddModal(true);
     };
@@ -335,13 +335,13 @@ const UserManagement = () => {
             }
 
             // Update local state
-            setUsers(prev => prev.map(u => 
-                u.id === docId ? { 
-                    ...u, 
-                    name: newName, 
-                    role: newRole, 
-                    nic: newNic, 
-                    image: finalImageUrl 
+            setUsers(prev => prev.map(u =>
+                u.id === docId ? {
+                    ...u,
+                    name: newName,
+                    role: newRole,
+                    nic: newNic,
+                    image: finalImageUrl
                 } : u
             ));
 
@@ -391,7 +391,7 @@ const UserManagement = () => {
             await updateDoc(docRef, { status: newStatus });
 
             // Update local state
-            setUsers(users.map(u => 
+            setUsers(users.map(u =>
                 u.id === id ? { ...u, status: newStatus } : u
             ));
 
@@ -441,16 +441,16 @@ const UserManagement = () => {
     // Filter users
     const filteredUsers = users.filter(u => {
         const term = searchTerm.toLowerCase();
-        return u.name.toLowerCase().includes(term) || 
-               u.username.toLowerCase().includes(term) ||
-               u.role.toLowerCase().includes(term) ||
-               u.nic.toLowerCase().includes(term);
+        return u.name.toLowerCase().includes(term) ||
+            u.username.toLowerCase().includes(term) ||
+            u.role.toLowerCase().includes(term) ||
+            u.nic.toLowerCase().includes(term);
     });
 
     return (
         <div className="user-mgmt-page">
             <AdminHeader />
-            
+
             <main className="user-mgmt-content">
                 <div className="user-mgmt-header-row">
                     <div className="title-group">
@@ -466,9 +466,9 @@ const UserManagement = () => {
                 <div className="search-controls">
                     <div className="user-search-bar">
                         <Search size={18} color="var(--text-muted)" />
-                        <input 
-                            type="text" 
-                            placeholder="Search operators by name, email, role or NIC..." 
+                        <input
+                            type="text"
+                            placeholder="Search operators by name, email, role or NIC..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
@@ -505,18 +505,18 @@ const UserManagement = () => {
                                 </tr>
                             ) : (
                                 filteredUsers.map((user) => (
-                                    <tr 
-                                        key={user.id} 
+                                    <tr
+                                        key={user.id}
                                         className={`${user.status === 'Suspended' ? 'suspended-row' : ''} user-row-clickable`}
                                         onClick={() => handleEditClick(user)}
                                         style={{ cursor: 'pointer' }}
                                     >
                                         <td className="op-name-cell">
                                             <div className="op-profile-cell-flex">
-                                                <img 
-                                                    src={user.image || `https://api.dicebear.com/7.x/bottts/svg?seed=${user.id}`} 
-                                                    alt="Avatar" 
-                                                    className="op-table-avatar" 
+                                                <img
+                                                    src={user.image || `https://api.dicebear.com/7.x/bottts/svg?seed=${user.id}`}
+                                                    alt="Avatar"
+                                                    className="op-table-avatar"
                                                 />
                                                 <span>{user.name}</span>
                                             </div>
@@ -537,8 +537,8 @@ const UserManagement = () => {
                                         <td className="op-login-cell">{user.lastLogin}</td>
                                         <td>
                                             <div className="actions-cell">
-                                                <button 
-                                                    className="status-toggle-btn" 
+                                                <button
+                                                    className="status-toggle-btn"
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         toggleStatus(user.id, user.role, user.status, user.username);
@@ -551,8 +551,8 @@ const UserManagement = () => {
                                                         <ToggleLeft size={22} color="var(--text-muted)" />
                                                     )}
                                                 </button>
-                                                <button 
-                                                    className="delete-operator-btn" 
+                                                <button
+                                                    className="delete-operator-btn"
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         deleteUser(user.id, user.role, user.username);
@@ -572,8 +572,8 @@ const UserManagement = () => {
             </main>
             {/* Modal for adding/editing user */}
             {showAddModal && (
-                <div 
-                    className="add-modal-overlay" 
+                <div
+                    className="add-modal-overlay"
                     onClick={(e) => {
                         if (e.target === e.currentTarget) {
                             handleCloseModal();
@@ -605,32 +605,32 @@ const UserManagement = () => {
                                 <form onSubmit={handleFormSubmit} className="add-operator-form">
                                     <div className="form-field">
                                         <label>Full Name</label>
-                                        <input 
-                                            type="text" 
-                                            value={newName} 
-                                            onChange={(e) => setNewName(e.target.value)} 
+                                        <input
+                                            type="text"
+                                            value={newName}
+                                            onChange={(e) => setNewName(e.target.value)}
                                             placeholder="e.g. John Doe"
                                             disabled={isUploading}
-                                            required 
+                                            required
                                         />
                                     </div>
 
                                     <div className="form-field">
                                         <label>NIC Card Number</label>
-                                        <input 
-                                            type="text" 
-                                            value={newNic} 
-                                            onChange={(e) => setNewNic(e.target.value)} 
+                                        <input
+                                            type="text"
+                                            value={newNic}
+                                            onChange={(e) => setNewNic(e.target.value)}
                                             placeholder="e.g. 19990429402"
                                             disabled={isUploading}
-                                            required 
+                                            required
                                         />
                                     </div>
 
                                     <div className="form-field">
                                         <label>Security Role</label>
-                                        <select 
-                                            value={newRole} 
+                                        <select
+                                            value={newRole}
                                             onChange={(e) => setNewRole(e.target.value)}
                                             disabled={isUploading}
                                         >
@@ -641,19 +641,19 @@ const UserManagement = () => {
 
                                     <div className="form-field">
                                         <label>Username</label>
-                                        <input 
-                                            type="text" 
-                                            value={newUsername} 
-                                            onChange={(e) => setNewUsername(e.target.value)} 
+                                        <input
+                                            type="text"
+                                            value={newUsername}
+                                            onChange={(e) => setNewUsername(e.target.value)}
                                             placeholder="e.g. admin_jane or inv_doe"
                                             disabled={isUploading || !!editingUser}
                                             style={editingUser ? { background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', cursor: 'not-allowed' } : {}}
-                                            required 
+                                            required
                                         />
                                         {!editingUser && (
                                             <span className="field-hint">
-                                                {newRole === 'Admin' ? 
-                                                    "Will prefix 'admin_' if not present." : 
+                                                {newRole === 'Admin' ?
+                                                    "Will prefix 'admin_' if not present." :
                                                     "Will prefix 'inv_' if not present."
                                                 }
                                             </span>
@@ -663,16 +663,16 @@ const UserManagement = () => {
                                     <div className="form-field">
                                         <label>Profile Image (Optional)</label>
                                         <div className="profile-image-upload-wrapper">
-                                            <input 
-                                                type="file" 
+                                            <input
+                                                type="file"
                                                 accept="image/*"
                                                 style={{ display: 'none' }}
                                                 ref={fileInputRef}
                                                 onChange={handleImageChange}
                                                 disabled={isUploading}
                                             />
-                                            <div 
-                                                className="profile-image-preview-container" 
+                                            <div
+                                                className="profile-image-preview-container"
                                                 onClick={() => fileInputRef.current.click()}
                                                 title="Choose Profile Image"
                                             >
@@ -696,9 +696,9 @@ const UserManagement = () => {
                                             {imageFile && (
                                                 <div className="image-file-info">
                                                     <span>{imageFile.name}</span>
-                                                    <button 
-                                                        type="button" 
-                                                        className="clear-image-btn" 
+                                                    <button
+                                                        type="button"
+                                                        className="clear-image-btn"
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             setImageFile(null);
@@ -714,10 +714,10 @@ const UserManagement = () => {
                                     <div className="form-field">
                                         <label>{editingUser ? 'Access Password (Optional)' : 'Access Password'}</label>
                                         <div className="password-input-wrapper" style={{ position: 'relative' }}>
-                                            <input 
-                                                type={showNewPassword ? "text" : "password"} 
-                                                value={newPassword} 
-                                                onChange={(e) => setNewPassword(e.target.value)} 
+                                            <input
+                                                type={showNewPassword ? "text" : "password"}
+                                                value={newPassword}
+                                                onChange={(e) => setNewPassword(e.target.value)}
                                                 placeholder={editingUser ? "Leave blank to keep unchanged" : "••••••••"}
                                                 disabled={isUploading}
                                                 style={{ width: '100%', paddingRight: '2.5rem' }}
@@ -746,7 +746,7 @@ const UserManagement = () => {
                                             </button>
                                         </div>
                                         <span className="field-hint" style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>
-                                            {editingUser ? 
+                                            {editingUser ?
                                                 "Only fill this in if you want to change the operator's password. Must be at least 8 characters with uppercase, lowercase, number, and special character." :
                                                 "Must be at least 8 characters and include uppercase, lowercase, number, and special character."
                                             }

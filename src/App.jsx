@@ -11,6 +11,7 @@ import UserManagement from './admin/UserManagement';
 import LogViewer from './admin/LogViewer';
 import SurveillanceFeeds from './admin/SurveillanceFeeds';
 import PolicyManager from './admin/PolicyManager';
+import CasesManagement from './admin/CasesManagement';
 import './App.css';
 
 function App() {
@@ -62,6 +63,14 @@ function App() {
         element={
           <ProtectedRoute allowedRole="admin">
             <UserManagement />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/cases"
+        element={
+          <ProtectedRoute allowedRole="admin">
+            <CasesManagement />
           </ProtectedRoute>
         }
       />

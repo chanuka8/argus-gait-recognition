@@ -53,7 +53,56 @@ const AdminDashboard = () => {
     // Fetch cases from Firebase
     const [cases, setCases] = useState([]);
     const [casesLoading, setCasesLoading] = useState(true);
-    const [showCasesModal, setShowCasesModal] = useState(false);
+
+    // Fetch operators from Firebase
+    const [adminCount, setAdminCount] = useState(0);
+    const [investigatorCount, setInvestigatorCount] = useState(0);
+    const [operatorsLoading, setOperatorsLoading] = useState(true);
+
+    // Fetch surveillance feeds from Firebase
+    const [cameraCount, setCameraCount] = useState(0);
+    const [onlineCameraCount, setOnlineCameraCount] = useState(0);
+    const [camerasLoading, setCamerasLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchCameras = async () => {
+            try {
+                const snapshot = await getDocs(collection(db, 'cameras'));
+                let total = snapshot.size;
+                let online = 0;
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const status = data.status || '';
+                    if (status.toLowerCase() === 'online') {
+                        online++;
+                    }
+                });
+                setCameraCount(total);
+                setOnlineCameraCount(online);
+            } catch (error) {
+                console.error('Error fetching cameras count:', error);
+            } finally {
+                setCamerasLoading(false);
+            }
+        };
+        fetchCameras();
+    }, []);
+
+    useEffect(() => {
+        const fetchOperatorsCount = async () => {
+            try {
+                const adminSnapshot = await getDocs(collection(db, 'admins'));
+                const invSnapshot = await getDocs(collection(db, 'investigators'));
+                setAdminCount(adminSnapshot.size);
+                setInvestigatorCount(invSnapshot.size);
+            } catch (error) {
+                console.error('Error fetching operators count:', error);
+            } finally {
+                setOperatorsLoading(false);
+            }
+        };
+        fetchOperatorsCount();
+    }, []);
 
     useEffect(() => {
         const fetchCases = async () => {
@@ -115,16 +164,24 @@ const AdminDashboard = () => {
                     <div className="admin-stat-card">
                         <Users size={24} className="stat-icon cyan" />
                         <span className="admin-stat-title">System Operators</span>
-                        <span className="admin-stat-value">12</span>
-                        <span className="admin-stat-sub">10 Investigators, 2 Admins</span>
+                        <span className="admin-stat-value">
+                            {operatorsLoading ? '...' : String(adminCount + investigatorCount).padStart(2, '0')}
+                        </span>
+                        <span className="admin-stat-sub">
+                            {operatorsLoading ? 'Loading counts...' : `${investigatorCount} Investigators, ${adminCount} Admins`}
+                        </span>
                     </div>
                     <div className="admin-stat-card">
                         <Video size={24} className="stat-icon blue" />
                         <span className="admin-stat-title">Surveillance Feeds</span>
-                        <span className="admin-stat-value">08</span>
-                        <span className="admin-stat-sub">8 Online, 0 Offline</span>
+                        <span className="admin-stat-value">
+                            {camerasLoading ? '...' : String(cameraCount).padStart(2, '0')}
+                        </span>
+                        <span className="admin-stat-sub">
+                            {camerasLoading ? 'Loading feeds...' : `${onlineCameraCount} Online, ${cameraCount - onlineCameraCount} Offline`}
+                        </span>
                     </div>
-                    <div className="admin-stat-card clickable-card" onClick={() => setShowCasesModal(true)}>
+                    <div className="admin-stat-card">
                         <Briefcase size={24} className="stat-icon purple" />
                         <span className="admin-stat-title">Active Cases</span>
                         <span className="admin-stat-value">
@@ -228,62 +285,6 @@ const AdminDashboard = () => {
                 </div>
             </main>
 
-            {/* Cases List Modal */}
-            {showCasesModal && (
-                <div className="cases-modal-overlay" onClick={() => setShowCasesModal(false)}>
-                    <div className="cases-modal" onClick={(e) => e.stopPropagation()}>
-                        <div className="cases-modal-header">
-                            <div className="modal-title-flex">
-                                <Briefcase size={22} className="modal-title-icon" />
-                                <h2>Active Cases</h2>
-                            </div>
-                            <button className="cases-modal-close" onClick={() => setShowCasesModal(false)}>
-                                <X size={20} />
-                            </button>
-                        </div>
-
-                        <div className="cases-modal-body">
-                            {casesLoading ? (
-                                <div className="cases-loading">
-                                    <div className="loading-spinner"></div>
-                                    <p>Retrieving operational case logs...</p>
-                                </div>
-                            ) : cases.length === 0 ? (
-                                <div className="cases-empty">
-                                    <Briefcase size={36} className="empty-icon" />
-                                    <p>No case logs currently active in system.</p>
-                                </div>
-                            ) : (
-                                <div className="cases-table-wrapper">
-                                    <table className="cases-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Case ID</th>
-                                                <th>Case Type</th>
-                                                <th>Status</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {cases.map((c) => (
-                                                <tr key={c.id}>
-                                                    <td className="case-id-cell">{c.caseId}</td>
-                                                    <td className="case-type-cell">{c.caseType}</td>
-                                                    <td>
-                                                        <span className={`case-status-badge ${getStatusColor(c.status)}`}>
-                                                            <span className="status-dot"></span>
-                                                            {c.status}
-                                                        </span>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

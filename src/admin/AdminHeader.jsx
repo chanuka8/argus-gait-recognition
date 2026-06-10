@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { User, Bell, LayoutDashboard, Users, Video, Shield, FileClock, ShieldAlert } from 'lucide-react';
+import { User, Bell, LayoutDashboard, Users, Video, Shield, FileClock, ShieldAlert, Briefcase } from 'lucide-react';
 import logo from '../assets/logo.png';
 import Notifications from '../components/Notifications';
 import UserProfileModal from '../components/UserProfileModal';
@@ -19,6 +19,7 @@ const AdminHeader = () => {
     const menuItems = [
         { path: '/admin/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={16} /> },
         { path: '/admin/users', label: 'Users', icon: <Users size={16} /> },
+        { path: '/admin/cases', label: 'Cases', icon: <Briefcase size={16} /> },
         { path: '/admin/surveillance', label: 'Surveillance', icon: <Video size={16} /> },
         { path: '/admin/policies', label: 'Policies', icon: <Shield size={16} /> },
         { path: '/admin/logs', label: 'Logs', icon: <FileClock size={16} /> }
