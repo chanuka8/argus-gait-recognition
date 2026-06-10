@@ -58,7 +58,7 @@ const History = () => {
                         id: data.caseId || doc.id,
                         name: data.name || 'Unnamed Case',
                         nic: data.nic || '',
-                        status: data.status || 'Active',
+                        status: data.status || 'Investigating',
                         createdDate: createdDate,
                     };
                 });
@@ -85,10 +85,10 @@ const History = () => {
     const getStatusClass = (status) => {
         if (!status) return '';
         switch(status.toLowerCase()) {
-            case 'missing': return 'missing';
-            case 'active': return 'missing';
             case 'investigating': return 'investigating';
+            case 'cold': return 'cold';
             case 'found': return 'found';
+            case 'closed': return 'closed';
             default: return '';
         }
     };
@@ -229,9 +229,9 @@ const History = () => {
                                         </div>
                                     </div>
                                     <div className="case-card-right">
-                                        <div className="status-badge">
+                                        <div className={`status-badge ${getStatusClass(c.status)}`}>
                                             <div className={`status-dot ${getStatusClass(c.status)}`}></div>
-                                            {c.status}
+                                            <span className="status-text">{c.status}</span>
                                         </div>
                                         <button 
                                             className="more-btn"

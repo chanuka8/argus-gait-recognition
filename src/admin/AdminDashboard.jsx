@@ -119,7 +119,7 @@ const AdminDashboard = () => {
                         nic: data.nic || 'N/A',
                         age: data.age || 'N/A',
                         gender: data.gender || 'N/A',
-                        status: data.status || 'Active',
+                        status: data.status || 'Investigating',
                         createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toLocaleString() : 'N/A'
                     });
                 });
@@ -134,7 +134,7 @@ const AdminDashboard = () => {
         fetchCases();
     }, []);
 
-    const activeCases = cases.filter(c => c.status === 'Active');
+    const activeCases = cases.filter(c => c.status?.toLowerCase() === 'investigating' || c.status?.toLowerCase() === 'cold');
 
     return (
         <div className="admin-dashboard-container">

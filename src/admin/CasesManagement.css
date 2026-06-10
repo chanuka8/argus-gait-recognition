@@ -135,46 +135,59 @@
     text-transform: capitalize;
 }
 
-.case-status-badge.status-active, 
+/* Investigating — yellow */
 .case-status-badge.status-investigating {
-    background: rgba(92, 225, 230, 0.08);
-    color: var(--sky);
-    border: 1px solid rgba(92, 225, 230, 0.25);
+    background: rgba(255, 209, 102, 0.08);
+    color: var(--status-investigating);
+    border: 1px solid rgba(255, 209, 102, 0.30);
 }
 
-.case-status-badge.status-active .status-dot,
 .case-status-badge.status-investigating .status-dot {
     width: 6px;
     height: 6px;
-    background: var(--sky);
+    background: var(--status-investigating);
     border-radius: 50%;
 }
 
-.case-status-badge.status-missing {
-    background: rgba(255, 107, 107, 0.06);
-    color: var(--status-missing);
-    border: 1px solid rgba(255, 107, 107, 0.25);
+/* Cold — blue */
+.case-status-badge.status-cold {
+    background: rgba(160, 228, 232, 0.08);
+    color: var(--ice);
+    border: 1px solid rgba(160, 228, 232, 0.30);
 }
 
-.case-status-badge.status-missing .status-dot {
+.case-status-badge.status-cold .status-dot {
     width: 6px;
     height: 6px;
-    background: var(--status-missing);
+    background: var(--ice);
     border-radius: 50%;
 }
 
-.case-status-badge.status-found,
-.case-status-badge.status-closed {
-    background: rgba(6, 214, 160, 0.06);
+/* Found — green */
+.case-status-badge.status-found {
+    background: rgba(6, 214, 160, 0.08);
     color: var(--status-found);
-    border: 1px solid rgba(6, 214, 160, 0.25);
+    border: 1px solid rgba(6, 214, 160, 0.30);
 }
 
-.case-status-badge.status-found .status-dot,
-.case-status-badge.status-closed .status-dot {
+.case-status-badge.status-found .status-dot {
     width: 6px;
     height: 6px;
     background: var(--status-found);
+    border-radius: 50%;
+}
+
+/* Closed — red */
+.case-status-badge.status-closed {
+    background: rgba(255, 107, 107, 0.08);
+    color: var(--status-missing);
+    border: 1px solid rgba(255, 107, 107, 0.30);
+}
+
+.case-status-badge.status-closed .status-dot {
+    width: 6px;
+    height: 6px;
+    background: var(--status-missing);
     border-radius: 50%;
 }
 

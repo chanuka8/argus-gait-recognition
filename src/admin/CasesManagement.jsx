@@ -33,7 +33,7 @@ const CasesManagement = () => {
                     id: doc.id,
                     caseId: data.caseId || doc.id,
                     caseType: data.caseType || 'N/A',
-                    status: data.status || 'Active'
+                    status: data.status || 'Investigating'
                 });
             });
             setCases(casesList);
@@ -170,6 +170,8 @@ const CasesManagement = () => {
         }
     };
 
+
+
     // Filter cases by ID or type
     const filteredCases = cases.filter(c => {
         const term = searchTerm.toLowerCase();
@@ -180,8 +182,7 @@ const CasesManagement = () => {
 
     const getStatusColor = (status) => {
         switch (status?.toLowerCase()) {
-            case 'active': return 'status-active';
-            case 'missing': return 'status-missing';
+            case 'cold': return 'status-cold';
             case 'investigating': return 'status-investigating';
             case 'found': return 'status-found';
             case 'closed': return 'status-closed';

@@ -44,7 +44,7 @@ export const AuthProvider = ({ children }) => {
         const checkSessionAndSeed = async () => {
             await seedDatabase();
             
-            const cachedUser = localStorage.getItem('argus_current_user');
+            const cachedUser = sessionStorage.getItem('argus_current_user');
             if (cachedUser) {
                 const parsedUser = JSON.parse(cachedUser);
                 try {
@@ -59,7 +59,7 @@ export const AuthProvider = ({ children }) => {
                         const userData = querySnapshot.docs[0].data();
                         if (userData.status === 'Suspended') {
                             console.warn('Current user is suspended. Logging out.');
-                            localStorage.removeItem('argus_current_user');
+                            sessionStorage.removeItem('argus_current_user');
                             setCurrentUser(null);
                         } else {
                             // Update cached information with live data
@@ -72,12 +72,12 @@ export const AuthProvider = ({ children }) => {
                                 role: userData.role || roleLower,
                                 status: userData.status
                             };
-                            localStorage.setItem('argus_current_user', JSON.stringify(updatedUser));
+                            sessionStorage.setItem('argus_current_user', JSON.stringify(updatedUser));
                             setCurrentUser(updatedUser);
                         }
                     } else {
                         // User no longer exists in Firestore
-                        localStorage.removeItem('argus_current_user');
+                        sessionStorage.removeItem('argus_current_user');
                         setCurrentUser(null);
                     }
                 } catch (err) {
@@ -107,13 +107,13 @@ export const AuthProvider = ({ children }) => {
                 const data = querySnapshot.docs[0].data();
                 if (data.status === 'Suspended') {
                     alert('Your account has been suspended. Logging out.');
-                    localStorage.removeItem('argus_current_user');
+                    sessionStorage.removeItem('argus_current_user');
                     setCurrentUser(null);
                     addLog('info', `Operator ${currentUser.username} suspended and logged out`, `Session terminated automatically due to administrator suspension.`, currentUser.username);
                 }
             } else {
                 alert('Your account has been removed. Logging out.');
-                localStorage.removeItem('argus_current_user');
+                sessionStorage.removeItem('argus_current_user');
                 setCurrentUser(null);
                 addLog('info', `Operator ${currentUser.username} removed and logged out`, `Session terminated automatically because the operator account was deleted.`, currentUser.username);
             }
@@ -172,7 +172,7 @@ export const AuthProvider = ({ children }) => {
         };
 
         // Cache and set state
-        localStorage.setItem('argus_current_user', JSON.stringify(loggedUser));
+        sessionStorage.setItem('argus_current_user', JSON.stringify(loggedUser));
         setCurrentUser(loggedUser);
 
         // Record login event in system logs
@@ -186,7 +186,7 @@ export const AuthProvider = ({ children }) => {
         const username = currentUser?.username || 'unknown';
         const name = currentUser?.name || 'Unknown';
 
-        localStorage.removeItem('argus_current_user');
+        sessionStorage.removeItem('argus_current_user');
         setCurrentUser(null);
 
         // Record logout event in system logs

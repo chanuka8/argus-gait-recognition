@@ -7,6 +7,8 @@ import MapComponent from './Map';
 import Notifications from './Notifications';
 import UserProfileModal from './UserProfileModal';
 import { useAuth } from '../contexts/AuthContext';
+import { db } from '../firebaseConfig';
+import { collection, getDocs } from 'firebase/firestore';
 
 const CountUp = ({ end, duration }) => {
     const [count, setCount] = useState(0);
@@ -51,6 +53,35 @@ const Dashboard = () => {
     const [showNotifications, setShowNotifications] = useState(false);
     const [showProfile, setShowProfile] = useState(false);
 
+    const [cases, setCases] = useState([]);
+
+    useEffect(() => {
+        const fetchCases = async () => {
+            try {
+                const snapshot = await getDocs(collection(db, 'victims'));
+                const casesList = [];
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    casesList.push({
+                        status: data.status || 'Investigating',
+                        caseType: data.caseType || ''
+                    });
+                });
+                setCases(casesList);
+            } catch (error) {
+                console.error('Error fetching cases stats:', error);
+            }
+        };
+
+        fetchCases();
+    }, []);
+
+    const totalCases = cases.length;
+    const missingCases = cases.filter(c => c.caseType?.toLowerCase() === 'missing').length;
+    const investigatingCases = cases.filter(c => c.status?.toLowerCase() === 'investigating').length;
+    const foundCases = cases.filter(c => c.status?.toLowerCase() === 'found' || c.status?.toLowerCase() === 'closed').length;
+    const coldCases = cases.filter(c => c.status?.toLowerCase() === 'cold').length;
+
     return (
         <div className="dashboard-container">
             <Notifications isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
@@ -82,31 +113,31 @@ const Dashboard = () => {
                     <div className="stat-card">
                         <span className="stat-title">Total Cases</span>
                         <span className="stat-value white">
-                            <CountUp end={6} />
+                            <CountUp end={totalCases} />
                         </span>
                     </div>
                     <div className="stat-card">
                         <span className="stat-title">Missing</span>
                         <span className="stat-value red">
-                            <CountUp end={2} />
+                            <CountUp end={missingCases} />
                         </span>
                     </div>
                     <div className="stat-card">
                         <span className="stat-title">Investigating</span>
                         <span className="stat-value yellow">
-                            <CountUp end={1} />
+                            <CountUp end={investigatingCases} />
                         </span>
                     </div>
                     <div className="stat-card">
                         <span className="stat-title">Found</span>
                         <span className="stat-value green">
-                            <CountUp end={2} />
+                            <CountUp end={foundCases} />
                         </span>
                     </div>
                     <div className="stat-card">
                         <span className="stat-title">Cold Cases</span>
                         <span className="stat-value blue">
-                            <CountUp end={1} />
+                            <CountUp end={coldCases} />
                         </span>
                     </div>
                 </div>

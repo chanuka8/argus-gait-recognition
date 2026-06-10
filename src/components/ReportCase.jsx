@@ -137,7 +137,7 @@ const ReportCase = () => {
             await setDoc(victimRef, {
                 ...formData,
                 caseId: caseId,
-                status: 'Active',
+                status: 'Investigating',
                 createdAt: serverTimestamp()
             });
 
