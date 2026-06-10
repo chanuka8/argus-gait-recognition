@@ -136,17 +136,6 @@ const AdminDashboard = () => {
 
     const activeCases = cases.filter(c => c.status === 'Active');
 
-    const getStatusColor = (status) => {
-        switch (status?.toLowerCase()) {
-            case 'active': return 'status-active';
-            case 'missing': return 'status-missing';
-            case 'investigating': return 'status-investigating';
-            case 'found': return 'status-found';
-            case 'closed': return 'status-closed';
-            default: return 'status-default';
-        }
-    };
-
     return (
         <div className="admin-dashboard-container">
             <AdminHeader />

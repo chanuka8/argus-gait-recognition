@@ -122,7 +122,7 @@ export const AuthProvider = ({ children }) => {
         });
 
         return () => unsubscribe();
-    }, [currentUser?.username, currentUser?.role]);
+    }, [currentUser]);
 
     // 2. Custom Login Logic querying Firestore
     const login = async (username, password, role) => {
