@@ -3,6 +3,7 @@ import { UserPlus, Search, ToggleLeft, ToggleRight, Trash2, X } from 'lucide-rea
 import AdminHeader from './AdminHeader';
 import { db } from '../firebaseConfig';
 import { collection, getDocs, doc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { addLog } from '../utils/logService';
 import './UserManagement.css';
 
 const UserManagement = () => {
@@ -149,6 +150,9 @@ const UserManagement = () => {
             setNewImageSeed('');
             setNewPassword('');
             setShowAddModal(false);
+
+            // Record user creation in system logs
+            addLog('info', `New operator registered: ${finalUsername}`, `Operator ${newName} was created with role ${newRole}. NIC: ${newNic}. Account status: Active.`, 'admin');
         } catch (error) {
             console.error('Error creating operator:', error);
             setFormError('Failed to save operator to database.');
@@ -173,6 +177,9 @@ const UserManagement = () => {
             setUsers(users.map(u => 
                 u.id === id ? { ...u, status: newStatus } : u
             ));
+
+            // Record status change in system logs
+            addLog('warning', `Operator ${email} status changed to ${newStatus}`, `Account status for operator ${email} was changed from ${currentStatus} to ${newStatus} by administrator.`, 'admin');
         } catch (error) {
             console.error('Error updating status:', error);
             alert('Failed to update operator status.');
@@ -194,6 +201,9 @@ const UserManagement = () => {
 
                 // Update local state
                 setUsers(users.filter(u => u.id !== id));
+
+                // Record deletion in system logs
+                addLog('critical', `Operator ${email} removed from system`, `Operator account ${email} (${role}) was permanently deleted from the database.`, 'admin');
             } catch (error) {
                 console.error('Error deleting operator:', error);
                 alert('Failed to delete operator from database.');

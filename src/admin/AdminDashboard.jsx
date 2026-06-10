@@ -1,37 +1,102 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, Video, ShieldAlert, FileClock, Terminal, ArrowRight, Activity, Cpu } from 'lucide-react';
+import { Users, Video, FileClock, Terminal, ArrowRight, Activity, Briefcase, X } from 'lucide-react';
 import AdminHeader from './AdminHeader';
+import { getLogs } from '../utils/logService';
+import { db } from '../firebaseConfig';
+import { collection, getDocs } from 'firebase/firestore';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
     const navigate = useNavigate();
 
-    // Mock logs for the dashboard audit trail preview
-    const [recentLogs, setRecentLogs] = useState([
-        { id: 1, time: 'Just Now', category: 'AUTH', action: 'User login success', user: 'admin', level: 'info' },
-        { id: 2, time: '10 mins ago', category: 'SURVEILLANCE', action: 'Camera 04 connection restored', user: 'system', level: 'info' },
-        { id: 3, time: '30 mins ago', category: 'POLICY', action: 'Biometric threshold updated to 94%', user: 'admin', level: 'warning' },
-        { id: 4, time: '1 hour ago', category: 'AUTH', action: 'New Investigator user registered', user: 'admin', level: 'info' }
-    ]);
+    // Helper to convert log timestamp to relative time
+    const formatTimeAgo = (timestamp) => {
+        const now = new Date();
+        const logTime = new Date(timestamp.replace(' ', 'T'));
+        const diffMs = now - logTime;
+        const diffSec = Math.floor(diffMs / 1000);
+        const diffMin = Math.floor(diffSec / 60);
+        const diffHr = Math.floor(diffMin / 60);
 
-    // Live update effect for a dynamic command center feel
+        if (diffMin < 1) return 'Just Now';
+        if (diffMin < 60) return `${diffMin} min ago`;
+        if (diffHr < 24) return `${diffHr} hr ago`;
+        return timestamp.slice(0, 10);
+    };
+
+    // Pull recent logs from centralized log service
+    const [recentLogs, setRecentLogs] = useState([]);
+
+    const refreshDashboardLogs = () => {
+        const allLogs = getLogs();
+        const latest = allLogs.slice(0, 4).map(log => ({
+            id: log.id,
+            time: formatTimeAgo(log.timestamp),
+            category: 'SYSTEM',
+            action: log.message,
+            user: log.user,
+            level: log.level
+        }));
+        setRecentLogs(latest);
+    };
+
     useEffect(() => {
-        const interval = setInterval(() => {
-            const actions = [
-                { category: 'SURVEILLANCE', action: 'Pings received from all 8 cameras', user: 'system', level: 'info' },
-                { category: 'AUTH', action: 'Token expiration checked', user: 'system', level: 'info' },
-                { category: 'DATABASE', action: 'Backup index refreshed successfully', user: 'system', level: 'info' }
-            ];
-            const randomAction = actions[Math.floor(Math.random() * actions.length)];
-            setRecentLogs(prev => [
-                { id: Date.now(), time: 'Just Now', ...randomAction },
-                ...prev.slice(0, 3)
-            ]);
-        }, 15000);
+        refreshDashboardLogs();
 
-        return () => clearInterval(interval);
+        const handleLogUpdate = () => refreshDashboardLogs();
+        window.addEventListener('argus-log-update', handleLogUpdate);
+
+        return () => window.removeEventListener('argus-log-update', handleLogUpdate);
     }, []);
+
+    // Fetch cases from Firebase
+    const [cases, setCases] = useState([]);
+    const [casesLoading, setCasesLoading] = useState(true);
+    const [showCasesModal, setShowCasesModal] = useState(false);
+
+    useEffect(() => {
+        const fetchCases = async () => {
+            try {
+                const snapshot = await getDocs(collection(db, 'victims'));
+                const casesList = [];
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    casesList.push({
+                        id: doc.id,
+                        caseId: data.caseId || doc.id,
+                        caseType: data.caseType || 'N/A',
+                        name: data.name || 'Unknown',
+                        nic: data.nic || 'N/A',
+                        age: data.age || 'N/A',
+                        gender: data.gender || 'N/A',
+                        status: data.status || 'Active',
+                        createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toLocaleString() : 'N/A'
+                    });
+                });
+                setCases(casesList);
+            } catch (error) {
+                console.error('Error fetching cases:', error);
+            } finally {
+                setCasesLoading(false);
+            }
+        };
+
+        fetchCases();
+    }, []);
+
+    const activeCases = cases.filter(c => c.status === 'Active');
+
+    const getStatusColor = (status) => {
+        switch (status?.toLowerCase()) {
+            case 'active': return 'status-active';
+            case 'missing': return 'status-missing';
+            case 'investigating': return 'status-investigating';
+            case 'found': return 'status-found';
+            case 'closed': return 'status-closed';
+            default: return 'status-default';
+        }
+    };
 
     return (
         <div className="admin-dashboard-container">
@@ -59,11 +124,15 @@ const AdminDashboard = () => {
                         <span className="admin-stat-value">08</span>
                         <span className="admin-stat-sub">8 Online, 0 Offline</span>
                     </div>
-                    <div className="admin-stat-card">
-                        <Cpu size={24} className="stat-icon purple" />
-                        <span className="admin-stat-title">Active Policies</span>
-                        <span className="admin-stat-value">05</span>
-                        <span className="admin-stat-sub">Security constraints active</span>
+                    <div className="admin-stat-card clickable-card" onClick={() => setShowCasesModal(true)}>
+                        <Briefcase size={24} className="stat-icon purple" />
+                        <span className="admin-stat-title">Active Cases</span>
+                        <span className="admin-stat-value">
+                            {casesLoading ? '...' : String(activeCases.length).padStart(2, '0')}
+                        </span>
+                        <span className="admin-stat-sub">
+                            {casesLoading ? 'Loading...' : `${cases.length} total cases in system`}
+                        </span>
                     </div>
                     <div className="admin-stat-card">
                         <Activity size={24} className="stat-icon green" />
@@ -103,7 +172,7 @@ const AdminDashboard = () => {
 
                             <div className="control-card" onClick={() => navigate('/admin/policies')}>
                                 <div className="card-header-icon">
-                                    <Cpu size={22} color="var(--ice)" />
+                                    <Briefcase size={22} color="var(--ice)" />
                                 </div>
                                 <div className="card-info">
                                     <h3>Security Policies</h3>
@@ -135,23 +204,86 @@ const AdminDashboard = () => {
                         <p className="panel-desc">Real-time log events happening inside Argus system.</p>
 
                         <div className="mini-logs-list">
-                            {recentLogs.map((log) => (
-                                <div key={log.id} className={`mini-log-item ${log.level}`}>
-                                    <div className="mini-log-meta">
-                                        <Terminal size={14} className="terminal-log-icon" />
-                                        <span className="log-category">[{log.category}]</span>
-                                        <span className="log-time">{log.time}</span>
-                                    </div>
-                                    <div className="log-msg-row">
-                                        <p className="log-msg">{log.action}</p>
-                                        <span className="log-user">@{log.user}</span>
-                                    </div>
+                            {recentLogs.length === 0 ? (
+                                <div className="mini-logs-empty">
+                                    <p>No system events recorded yet.</p>
                                 </div>
-                            ))}
+                            ) : (
+                                recentLogs.map((log) => (
+                                    <div key={log.id} className={`mini-log-item ${log.level}`}>
+                                        <div className="mini-log-meta">
+                                            <Terminal size={14} className="terminal-log-icon" />
+                                            <span className="log-category">[{log.category}]</span>
+                                            <span className="log-time">{log.time}</span>
+                                        </div>
+                                        <div className="log-msg-row">
+                                            <p className="log-msg">{log.action}</p>
+                                            <span className="log-user">@{log.user}</span>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
                         </div>
                     </div>
                 </div>
             </main>
+
+            {/* Cases List Modal */}
+            {showCasesModal && (
+                <div className="cases-modal-overlay" onClick={() => setShowCasesModal(false)}>
+                    <div className="cases-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="cases-modal-header">
+                            <div className="modal-title-flex">
+                                <Briefcase size={22} className="modal-title-icon" />
+                                <h2>Active Cases</h2>
+                            </div>
+                            <button className="cases-modal-close" onClick={() => setShowCasesModal(false)}>
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="cases-modal-body">
+                            {casesLoading ? (
+                                <div className="cases-loading">
+                                    <div className="loading-spinner"></div>
+                                    <p>Retrieving operational case logs...</p>
+                                </div>
+                            ) : cases.length === 0 ? (
+                                <div className="cases-empty">
+                                    <Briefcase size={36} className="empty-icon" />
+                                    <p>No case logs currently active in system.</p>
+                                </div>
+                            ) : (
+                                <div className="cases-table-wrapper">
+                                    <table className="cases-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Case ID</th>
+                                                <th>Case Type</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {cases.map((c) => (
+                                                <tr key={c.id}>
+                                                    <td className="case-id-cell">{c.caseId}</td>
+                                                    <td className="case-type-cell">{c.caseType}</td>
+                                                    <td>
+                                                        <span className={`case-status-badge ${getStatusColor(c.status)}`}>
+                                                            <span className="status-dot"></span>
+                                                            {c.status}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

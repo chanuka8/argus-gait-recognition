@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { db } from '../firebaseConfig';
 import { collection, query, where, getDocs, doc, setDoc } from 'firebase/firestore';
+import { addLog } from '../utils/logService';
 
 const AuthContext = createContext();
 
@@ -123,13 +124,23 @@ export const AuthProvider = ({ children }) => {
         // Cache and set state
         localStorage.setItem('argus_current_user', JSON.stringify(loggedUser));
         setCurrentUser(loggedUser);
+
+        // Record login event in system logs
+        addLog('info', `Operator ${loggedUser.username} logged in successfully`, `User ${loggedUser.name} (${loggedUser.role}) authenticated via credential verification. Session started.`, loggedUser.username);
+
         return loggedUser;
     };
 
     // 3. Logout logic
     const logout = async () => {
+        const username = currentUser?.username || 'unknown';
+        const name = currentUser?.name || 'Unknown';
+
         localStorage.removeItem('argus_current_user');
         setCurrentUser(null);
+
+        // Record logout event in system logs
+        addLog('info', `Operator ${username} logged out`, `User ${name} ended their session and was signed out of the system.`, username);
     };
 
     const value = {

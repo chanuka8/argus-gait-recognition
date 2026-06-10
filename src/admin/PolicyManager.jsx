@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Shield, Save, CheckCircle, RotateCcw, AlertOctagon, HelpCircle } from 'lucide-react';
 import AdminHeader from './AdminHeader';
+import { addLog } from '../utils/logService';
 import './PolicyManager.css';
 
 const PolicyManager = () => {
@@ -39,6 +40,9 @@ const PolicyManager = () => {
             setIsSaving(false);
             setShowToast(true);
 
+            // Record policy save event
+            addLog('info', 'Security policies updated and deployed', `Policies saved: Biometric match ${policies.biometricMatch}%, Alert severity ${policies.alertSeverity}, Session timeout ${policies.sessionTimeout}min, Data retention ${policies.dataRetention} days, Backup ${policies.backupFrequency}.`, 'admin');
+
             // Hide toast after 3 seconds
             setTimeout(() => {
                 setShowToast(false);
@@ -49,6 +53,7 @@ const PolicyManager = () => {
     const handleReset = () => {
         if (window.confirm('Reset all security policies to system defaults?')) {
             setPolicies(defaultPolicies);
+            addLog('warning', 'Security policies reset to system defaults', 'All security policies were restored to factory default values by the administrator.', 'admin');
         }
     };
 

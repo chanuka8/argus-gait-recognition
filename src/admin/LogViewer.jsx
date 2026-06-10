@@ -1,60 +1,41 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Filter, Trash2, Download, AlertTriangle, Info, Skull, RefreshCcw } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Search, Filter, Download, AlertTriangle, Info, Skull, Trash2, X, ExternalLink } from 'lucide-react';
 import AdminHeader from './AdminHeader';
+import { getLogs, clearLogs, exportLogsCSV } from '../utils/logService';
 import './LogViewer.css';
 
 const LogViewer = () => {
-    const defaultLogs = [
-        { id: 1, timestamp: '2026-06-10 00:01:25', level: 'info', category: 'AUTH', message: 'Operator admin successfully authenticated via secure token', user: 'admin', ip: '192.168.1.1' },
-        { id: 2, timestamp: '2026-06-09 23:58:44', level: 'info', category: 'SURVEILLANCE', message: 'Tracking frame sequence matched target metadata', user: 'system', ip: 'localhost' },
-        { id: 3, timestamp: '2026-06-09 23:45:10', level: 'warning', category: 'DATABASE', message: 'Connection load spiked above 80% capacity during history query', user: 'system', ip: '127.0.0.1' },
-        { id: 4, timestamp: '2026-06-09 23:30:15', level: 'info', category: 'POLICY', message: 'Facial identification match parameter set to 94%', user: 'admin', ip: '192.168.1.1' },
-        { id: 5, timestamp: '2026-06-09 22:15:30', level: 'critical', category: 'AUTH', message: 'Failed login attempt detected from unknown host IP 203.0.113.43', user: 'unknown', ip: '203.0.113.43' },
-        { id: 6, timestamp: '2026-06-09 21:04:12', level: 'info', category: 'SURVEILLANCE', message: 'Added CCTV feed 08 (Sector B West Corner)', user: 'admin', ip: '192.168.1.1' },
-        { id: 7, timestamp: '2026-06-09 19:44:02', level: 'warning', category: 'SURVEILLANCE', message: 'Video drop frames detected on channel 03', user: 'system', ip: 'localhost' },
-        { id: 8, timestamp: '2026-06-09 18:22:19', level: 'info', category: 'POLICY', message: 'Policy threshold for automatic cold-case archive changed to 365 days', user: 'admin', ip: '192.168.1.1' },
-        { id: 9, timestamp: '2026-06-09 15:10:45', level: 'info', category: 'AUTH', message: 'Operator inv_john changed password successfully', user: 'inv_john', ip: '192.168.1.12' },
-        { id: 10, timestamp: '2026-06-09 10:05:00', level: 'critical', category: 'DATABASE', message: 'Storage partition /dev/sda4 reached 92% capacity limit', user: 'system', ip: 'localhost' }
-    ];
-
-    const [logs, setLogs] = useState(() => {
-        const localLogs = localStorage.getItem('argus_system_logs');
-        return localLogs ? JSON.parse(localLogs) : defaultLogs;
-    });
-
+    const [logs, setLogs] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedLevel, setSelectedLevel] = useState('all');
-    const [selectedCategory, setSelectedCategory] = useState('all');
+    const [selectedLog, setSelectedLog] = useState(null);
 
+    // Load logs from the centralized service
+    const refreshLogs = useCallback(() => {
+        setLogs(getLogs());
+    }, []);
+
+    // Initial load and listen for real-time log events from other components
     useEffect(() => {
-        localStorage.setItem('argus_system_logs', JSON.stringify(logs));
-    }, [logs]);
+        refreshLogs();
+
+        const handleLogUpdate = () => {
+            refreshLogs();
+        };
+
+        window.addEventListener('argus-log-update', handleLogUpdate);
+        return () => window.removeEventListener('argus-log-update', handleLogUpdate);
+    }, [refreshLogs]);
 
     const handleClearLogs = () => {
-        if (window.confirm('Are you sure you want to purge all system logs? This action is irreversible.')) {
+        if (window.confirm('Are you sure you want to clear all system logs?')) {
+            clearLogs();
             setLogs([]);
         }
     };
 
-    const handleResetLogs = () => {
-        setLogs(defaultLogs);
-    };
-
-    const handleExportLogs = () => {
-        const headers = 'ID,Timestamp,Level,Category,Message,User,IP Address\n';
-        const csvContent = logs.map(log => 
-            `"${log.id}","${log.timestamp}","${log.level}","${log.category}","${log.message.replace(/"/g, '""')}","${log.user}","${log.ip}"`
-        ).join('\n');
-        
-        const blob = new Blob([headers + csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.setAttribute('href', url);
-        link.setAttribute('download', `argus_audit_logs_${Date.now()}.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+    const handleExport = () => {
+        exportLogsCSV();
     };
 
     const getLevelIcon = (level) => {
@@ -67,12 +48,9 @@ const LogViewer = () => {
 
     const filteredLogs = logs.filter(log => {
         const matchesSearch = log.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                              log.user.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                              log.category.toLowerCase().includes(searchTerm.toLowerCase());
+                              log.user.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesLevel = selectedLevel === 'all' || log.level === selectedLevel;
-        const matchesCategory = selectedCategory === 'all' || log.category === selectedCategory;
-
-        return matchesSearch && matchesLevel && matchesCategory;
+        return matchesSearch && matchesLevel;
     });
 
     return (
@@ -83,20 +61,16 @@ const LogViewer = () => {
                 <div className="log-header-row">
                     <div className="title-group">
                         <h1>System Audit Logs</h1>
-                        <p>Track all platform authentication, surveillance connections, policy modifications and security breaches.</p>
+                        <p>Automatically collected system events. Click any entry to view details.</p>
                     </div>
                     <div className="log-actions">
-                        <button className="log-action-btn reset" onClick={handleResetLogs} title="Reset to Defaults">
-                            <RefreshCcw size={16} />
-                            <span>Reset Feed</span>
-                        </button>
-                        <button className="log-action-btn export" onClick={handleExportLogs} title="Export to CSV">
+                        <button className="log-action-btn export" onClick={handleExport} title="Export to CSV">
                             <Download size={16} />
                             <span>Export CSV</span>
                         </button>
-                        <button className="log-action-btn purge" onClick={handleClearLogs} title="Clear Logs">
+                        <button className="log-action-btn purge" onClick={handleClearLogs} title="Clear all logs">
                             <Trash2 size={16} />
-                            <span>Purge Logs</span>
+                            <span>Clear Logs</span>
                         </button>
                     </div>
                 </div>
@@ -104,9 +78,9 @@ const LogViewer = () => {
                 <div className="log-filter-controls">
                     <div className="log-search-bar">
                         <Search size={18} color="var(--text-muted)" />
-                        <input 
-                            type="text" 
-                            placeholder="Search logs by keyword, user or event details..." 
+                        <input
+                            type="text"
+                            placeholder="Search logs by keyword, user or event details..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
@@ -121,18 +95,6 @@ const LogViewer = () => {
                                 <option value="info">INFO</option>
                                 <option value="warning">WARNING</option>
                                 <option value="critical">CRITICAL</option>
-                            </select>
-                        </div>
-
-                        <div className="filter-select-group">
-                            <Filter size={14} color="var(--text-muted)" />
-                            <label>Category:</label>
-                            <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)}>
-                                <option value="all">ALL CATEGORIES</option>
-                                <option value="AUTH">AUTH</option>
-                                <option value="SURVEILLANCE">SURVEILLANCE</option>
-                                <option value="POLICY">POLICY</option>
-                                <option value="DATABASE">DATABASE</option>
                             </select>
                         </div>
                     </div>
@@ -153,26 +115,79 @@ const LogViewer = () => {
                         {filteredLogs.length === 0 ? (
                             <div className="no-logs">
                                 <Search size={32} color="var(--text-muted)" />
-                                <p>No audit events match current criteria.</p>
+                                <p>No system events recorded yet.</p>
+                                <span className="no-logs-hint">Logs will appear here automatically as you use the system.</span>
                             </div>
                         ) : (
                             filteredLogs.map((log) => (
-                                <div key={log.id} className={`log-row-item ${log.level}`}>
+                                <div
+                                    key={log.id}
+                                    className={`log-row-item ${log.level} clickable`}
+                                    onClick={() => setSelectedLog(log)}
+                                    title="Click to view details"
+                                >
                                     <span className="log-cell-timestamp">[{log.timestamp}]</span>
                                     <span className={`log-cell-level badge-${log.level}`}>
                                         {getLevelIcon(log.level)}
                                         {log.level.toUpperCase()}
                                     </span>
-                                    <span className="log-cell-category">[{log.category}]</span>
                                     <span className="log-cell-message">{log.message}</span>
-                                    <span className="log-cell-user">@{log.user}</span>
-                                    <span className="log-cell-ip">({log.ip})</span>
+                                    <span className="log-cell-expand"><ExternalLink size={12} /></span>
                                 </div>
                             ))
                         )}
                     </div>
                 </div>
             </main>
+
+            {/* Log Detail Modal */}
+            {selectedLog && (
+                <div className="log-detail-overlay" onClick={() => setSelectedLog(null)}>
+                    <div className="log-detail-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="log-detail-header">
+                            <div className="log-detail-title-row">
+                                <span className={`log-detail-level-badge badge-${selectedLog.level}`}>
+                                    {getLevelIcon(selectedLog.level)}
+                                    {selectedLog.level.toUpperCase()}
+                                </span>
+                            </div>
+                            <button className="log-detail-close" onClick={() => setSelectedLog(null)}>
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="log-detail-body">
+                            <h3 className="log-detail-message">{selectedLog.message}</h3>
+
+                            <div className="log-detail-meta-grid">
+                                <div className="log-detail-meta-item">
+                                    <span className="meta-label">Timestamp</span>
+                                    <span className="meta-value">{selectedLog.timestamp}</span>
+                                </div>
+                                <div className="log-detail-meta-item">
+                                    <span className="meta-label">User</span>
+                                    <span className="meta-value">@{selectedLog.user}</span>
+                                </div>
+                                <div className="log-detail-meta-item">
+                                    <span className="meta-label">IP Address</span>
+                                    <span className="meta-value">{selectedLog.ip}</span>
+                                </div>
+                                <div className="log-detail-meta-item">
+                                    <span className="meta-label">Event ID</span>
+                                    <span className="meta-value">EVT-{String(selectedLog.id).padStart(5, '0')}</span>
+                                </div>
+                            </div>
+
+                            {selectedLog.details && (
+                                <div className="log-detail-description">
+                                    <span className="meta-label">Full Details</span>
+                                    <p>{selectedLog.details}</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
