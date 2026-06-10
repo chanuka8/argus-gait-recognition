@@ -5,7 +5,7 @@ import { getLogs, clearLogs, exportLogsCSV } from '../utils/logService';
 import './LogViewer.css';
 
 const LogViewer = () => {
-    const [logs, setLogs] = useState([]);
+    const [logs, setLogs] = useState(() => getLogs());
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedLevel, setSelectedLevel] = useState('all');
     const [selectedLog, setSelectedLog] = useState(null);
@@ -15,10 +15,8 @@ const LogViewer = () => {
         setLogs(getLogs());
     }, []);
 
-    // Initial load and listen for real-time log events from other components
+    // Listen for real-time log events from other components
     useEffect(() => {
-        refreshLogs();
-
         const handleLogUpdate = () => {
             refreshLogs();
         };

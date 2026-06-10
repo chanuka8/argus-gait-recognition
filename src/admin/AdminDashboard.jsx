@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Users, Video, FileClock, Terminal, ArrowRight, Activity, Briefcase, X } from 'lucide-react';
 import AdminHeader from './AdminHeader';
@@ -7,28 +7,28 @@ import { db } from '../firebaseConfig';
 import { collection, getDocs } from 'firebase/firestore';
 import './AdminDashboard.css';
 
+// Helper to convert log timestamp to relative time
+const formatTimeAgo = (timestamp) => {
+    const now = new Date();
+    const logTime = new Date(timestamp.replace(' ', 'T'));
+    const diffMs = now - logTime;
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHr = Math.floor(diffMin / 60);
+
+    if (diffMin < 1) return 'Just Now';
+    if (diffMin < 60) return `${diffMin} min ago`;
+    if (diffHr < 24) return `${diffHr} hr ago`;
+    return timestamp.slice(0, 10);
+};
+
 const AdminDashboard = () => {
     const navigate = useNavigate();
-
-    // Helper to convert log timestamp to relative time
-    const formatTimeAgo = (timestamp) => {
-        const now = new Date();
-        const logTime = new Date(timestamp.replace(' ', 'T'));
-        const diffMs = now - logTime;
-        const diffSec = Math.floor(diffMs / 1000);
-        const diffMin = Math.floor(diffSec / 60);
-        const diffHr = Math.floor(diffMin / 60);
-
-        if (diffMin < 1) return 'Just Now';
-        if (diffMin < 60) return `${diffMin} min ago`;
-        if (diffHr < 24) return `${diffHr} hr ago`;
-        return timestamp.slice(0, 10);
-    };
 
     // Pull recent logs from centralized log service
     const [recentLogs, setRecentLogs] = useState([]);
 
-    const refreshDashboardLogs = () => {
+    const refreshDashboardLogs = useCallback(() => {
         const allLogs = getLogs();
         const latest = allLogs.slice(0, 4).map(log => ({
             id: log.id,
@@ -39,7 +39,7 @@ const AdminDashboard = () => {
             level: log.level
         }));
         setRecentLogs(latest);
-    };
+    }, []);
 
     useEffect(() => {
         refreshDashboardLogs();
@@ -48,7 +48,7 @@ const AdminDashboard = () => {
         window.addEventListener('argus-log-update', handleLogUpdate);
 
         return () => window.removeEventListener('argus-log-update', handleLogUpdate);
-    }, []);
+    }, [refreshDashboardLogs]);
 
     // Fetch cases from Firebase
     const [cases, setCases] = useState([]);
