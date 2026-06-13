@@ -13,7 +13,7 @@ const ProtectedRoute = ({ children, allowedRole }) => {
             if (!currentUser) return;
             try {
                 const roleLower = currentUser.role.toLowerCase();
-                const targetCollection = roleLower === 'admin' ? 'admins' : 'investigators';
+                const targetCollection = (roleLower === 'admin' || roleLower === 'root admin') ? 'admins' : 'investigators';
                 const userQuery = query(
                     collection(db, targetCollection),
                     where('username', '==', currentUser.username)
@@ -43,10 +43,10 @@ const ProtectedRoute = ({ children, allowedRole }) => {
         return <Navigate to="/" />;
     }
 
-    const userRole = currentUser.role || '';
+    const userRole = (currentUser.role || '').toLowerCase();
     
     // Strict isolation checks based on session role
-    if (allowedRole === 'admin' && userRole !== 'admin') {
+    if (allowedRole === 'admin' && userRole !== 'admin' && userRole !== 'root admin') {
         if (userRole === 'investigator') {
             return <Navigate to="/dashboard" />;
         }
@@ -54,7 +54,7 @@ const ProtectedRoute = ({ children, allowedRole }) => {
     }
 
     if (allowedRole === 'investigator' && userRole !== 'investigator') {
-        if (userRole === 'admin') {
+        if (userRole === 'admin' || userRole === 'root admin') {
             return <Navigate to="/admin/dashboard" />;
         }
         return <Navigate to="/" />;

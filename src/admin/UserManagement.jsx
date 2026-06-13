@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { UserPlus, Search, ToggleLeft, ToggleRight, Trash2, X, Camera, Eye, EyeOff } from 'lucide-react';
 import AdminHeader from './AdminHeader';
 import { db, storage } from '../firebaseConfig';
-import { collection, getDocs, doc, getDoc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { useAuth } from '../contexts/AuthContext';
+import { collection, getDocs, doc, getDoc, setDoc, deleteDoc, updateDoc, query, where } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import { addLog } from '../utils/logService';
 import './UserManagement.css';
@@ -33,6 +34,7 @@ const validatePassword = (password) => {
 };
 
 const UserManagement = () => {
+    const { currentUser } = useAuth();
     const [users, setUsers] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -52,6 +54,14 @@ const UserManagement = () => {
     const [showNewPassword, setShowNewPassword] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
 
+    // Deletion verification states
+    const [deletingOperator, setDeletingOperator] = useState(null);
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [passwordError, setPasswordError] = useState('');
+    const [isAuthorizing, setIsAuthorizing] = useState(false);
+    const [isDeleteSuccess, setIsDeleteSuccess] = useState(false);
+
     const handleImageChange = (e) => {
         if (e.target.files && e.target.files[0]) {
             setImageFile(e.target.files[0]);
@@ -64,7 +74,8 @@ const UserManagement = () => {
         setEditingUser(user);
         setNewName(user.name);
         setNewUsername(user.username);
-        setNewRole(user.role === 'Admin' ? 'Admin' : 'Investigator');
+        const roleStr = (user.role || '').toLowerCase();
+        setNewRole(roleStr === 'root admin' ? 'Root Admin' : roleStr === 'admin' ? 'Admin' : 'Investigator');
         setNewNic(user.nic);
         setNewPassword('');
         setImageFile(null);
@@ -96,11 +107,13 @@ const UserManagement = () => {
             const adminSnapshot = await getDocs(collection(db, 'admins'));
             adminSnapshot.forEach((doc) => {
                 const data = doc.data();
+                const roleLower = (data.role || 'admin').toLowerCase();
+                const resolvedRole = roleLower === 'root admin' ? 'Root Admin' : 'Admin';
                 mergedUsers.push({
                     id: doc.id,
                     name: data.name,
                     username: data.username,
-                    role: 'Admin',
+                    role: resolvedRole,
                     nic: data.nic || '',
                     image: data.image || '',
                     status: data.status || 'Active',
@@ -153,10 +166,33 @@ const UserManagement = () => {
             return;
         }
 
+        const rootAdminCount = users.filter(u => u.role.toLowerCase() === 'root admin').length;
+        const isRootAdmin = currentUser?.role?.toLowerCase() === 'root admin';
+
+        // Restrict Root Admin creation
+        if (newRole === 'Root Admin' && !isRootAdmin) {
+            setFormError('Only a Root Admin can create another Root Admin.');
+            return;
+        }
+
+        // Restrict maximum active Root Admins to 2
+        if (newRole === 'Root Admin' && rootAdminCount >= 2) {
+            setFormError('Only two Root Admins can act in the system.');
+            return;
+        }
+
+        // Only Root Admin can set/change passwords for Admin / Root Admin accounts
+        if ((newRole === 'Admin' || newRole === 'Root Admin') && !isRootAdmin) {
+            setFormError('Only a Root Admin can set or change Admin/Root Admin passwords.');
+            return;
+        }
+
         // Validate that username contains role identifiers
         let finalUsername = newUsername.trim().toLowerCase();
         if (newRole === 'Admin' && !finalUsername.includes('admin')) {
             finalUsername = `admin_${finalUsername}`;
+        } else if (newRole === 'Root Admin' && !finalUsername.includes('root')) {
+            finalUsername = `root_${finalUsername}`;
         } else if (newRole === 'Investigator' && !finalUsername.includes('inv')) {
             finalUsername = `inv_${finalUsername}`;
         }
@@ -251,11 +287,32 @@ const UserManagement = () => {
             return;
         }
 
+        const rootAdminCount = users.filter(u => u.role.toLowerCase() === 'root admin').length;
+        const isRootAdmin = currentUser?.role?.toLowerCase() === 'root admin';
+
+        // Block non-root admins from changing anything on a Root Admin account, or promoting to Root Admin
+        if ((editingUser.role.toLowerCase() === 'root admin' || newRole === 'Root Admin') && !isRootAdmin) {
+            setFormError('Only a Root Admin can manage Root Admin accounts.');
+            return;
+        }
+
+        // Limit to 2 Root Admins
+        if (newRole === 'Root Admin' && editingUser.role.toLowerCase() !== 'root admin' && rootAdminCount >= 2) {
+            setFormError('Only two Root Admins can act in the system.');
+            return;
+        }
+
         // Validate password rules only if a new one is typed
         if (newPassword.trim()) {
             const passwordError = validatePassword(newPassword);
             if (passwordError) {
                 setFormError(passwordError);
+                return;
+            }
+
+            // Only Root Admin can change passwords for Admin / Root Admin accounts
+            if ((editingUser.role === 'Admin' || editingUser.role.toLowerCase() === 'root admin' || newRole === 'Admin' || newRole === 'Root Admin') && !isRootAdmin) {
+                setFormError('Only a Root Admin can change Admin/Root Admin passwords.');
                 return;
             }
         }
@@ -286,12 +343,12 @@ const UserManagement = () => {
                 }
             }
 
-            const roleLower = newRole.toLowerCase(); // 'admin' or 'investigator'
-            const targetCollection = roleLower === 'admin' ? 'admins' : 'investigators';
+            const roleLower = newRole.toLowerCase();
+            const targetCollection = (roleLower === 'admin' || roleLower === 'root admin') ? 'admins' : 'investigators';
 
             // Check if role changed (e.g. from Admin to Investigator)
             const oldRoleLower = editingUser.role.toLowerCase();
-            const roleChanged = oldRoleLower !== roleLower;
+            const roleChanged = (oldRoleLower === 'admin' || oldRoleLower === 'root admin') !== (roleLower === 'admin' || roleLower === 'root admin');
 
             const docId = editingUser.id; // Document ID (usually username)
 
@@ -311,7 +368,7 @@ const UserManagement = () => {
                 updatedData.password = newPassword;
             } else {
                 // Fetch the existing password from Firestore to preserve it
-                const oldCollection = oldRoleLower === 'admin' ? 'admins' : 'investigators';
+                const oldCollection = (oldRoleLower === 'admin' || oldRoleLower === 'root admin') ? 'admins' : 'investigators';
                 const oldDocRef = doc(db, oldCollection, docId);
                 const oldDocSnap = await getDoc(oldDocRef);
                 if (oldDocSnap.exists()) {
@@ -323,7 +380,7 @@ const UserManagement = () => {
 
             if (roleChanged) {
                 // Delete from old collection and write to new collection
-                const oldDocRef = doc(db, oldRoleLower === 'admin' ? 'admins' : 'investigators', docId);
+                const oldDocRef = doc(db, (oldRoleLower === 'admin' || oldRoleLower === 'root admin') ? 'admins' : 'investigators', docId);
                 await deleteDoc(oldDocRef);
 
                 const newDocRef = doc(db, targetCollection, docId);
@@ -383,7 +440,7 @@ const UserManagement = () => {
 
     // Toggle user status in Firestore
     const toggleStatus = async (id, role, currentStatus, username) => {
-        const targetCollection = role.toLowerCase() === 'admin' ? 'admins' : 'investigators';
+        const targetCollection = (role.toLowerCase() === 'admin' || role.toLowerCase() === 'root admin') ? 'admins' : 'investigators';
         const newStatus = currentStatus === 'Active' ? 'Suspended' : 'Active';
 
         try {
@@ -403,38 +460,100 @@ const UserManagement = () => {
         }
     };
 
-    // Delete user in Firestore
-    const deleteUser = async (id, role, username) => {
-        if (window.confirm(`Are you sure you want to remove operator: ${username}?`)) {
-            const targetCollection = role.toLowerCase() === 'admin' ? 'admins' : 'investigators';
-            try {
-                // Find image URL first before deleting the document
-                const userObj = users.find(u => u.id === id);
-                const imageUrl = userObj?.image;
+    // Trigger delete confirmation modal
+    const handleDeleteClick = (user) => {
+        // Only Root Admin can delete operators
+        if (currentUser?.role?.toLowerCase() !== 'root admin') {
+            alert('Access Denied: Only a Root Admin can delete operators.');
+            return;
+        }
 
-                const docRef = doc(db, targetCollection, id);
-                await deleteDoc(docRef);
+        // Prevent self-deletion
+        if (user.username === currentUser?.username) {
+            alert('Access Denied: You cannot delete your own Root Admin account.');
+            return;
+        }
 
-                // Update local state
-                setUsers(users.filter(u => u.id !== id));
+        setDeletingOperator(user);
+        setConfirmPassword('');
+        setShowConfirmPassword(false);
+        setPasswordError('');
+        setIsDeleteSuccess(false);
+    };
 
-                // If user has an uploaded profile picture, remove it from Storage
-                if (imageUrl && imageUrl.includes('firebasestorage.googleapis.com')) {
-                    try {
-                        const imageRef = ref(storage, imageUrl);
-                        await deleteObject(imageRef);
-                        console.log('Successfully deleted operator profile image from storage.');
-                    } catch (storageErr) {
-                        console.error('Failed to delete profile image from storage:', storageErr);
-                    }
-                }
+    // Confirm password and delete operator
+    const handleConfirmDelete = async (e) => {
+        e.preventDefault();
+        setPasswordError('');
 
-                // Record deletion in system logs
-                addLog('critical', `Operator ${username} removed from system`, `Operator account ${username} (${role}) was permanently deleted from the database.`, 'admin');
-            } catch (error) {
-                console.error('Error deleting operator:', error);
-                alert(`Failed to delete operator from database: ${error.message || error.toString()}`);
+        if (!confirmPassword.trim()) {
+            setPasswordError('Administrator password is required.');
+            return;
+        }
+
+        setIsAuthorizing(true);
+
+        try {
+            // Verify admin password by querying username
+            const adminQuery = query(
+                collection(db, 'admins'),
+                where('username', '==', currentUser?.username || '')
+            );
+            const querySnapshot = await getDocs(adminQuery);
+
+            if (querySnapshot.empty) {
+                setPasswordError('Administrator credentials record not found in system database.');
+                setIsAuthorizing(false);
+                return;
             }
+
+            const adminDoc = querySnapshot.docs[0];
+            const correctPassword = adminDoc.data().password;
+            if (confirmPassword !== correctPassword) {
+                setPasswordError('Incorrect password. Authorization failed.');
+                setIsAuthorizing(false);
+                return;
+            }
+
+            // Password is correct, perform deletion:
+            const role = deletingOperator.role;
+            const targetCollection = (role.toLowerCase() === 'admin' || role.toLowerCase() === 'root admin') ? 'admins' : 'investigators';
+            
+            const docRef = doc(db, targetCollection, deletingOperator.id);
+            await deleteDoc(docRef);
+
+            // Update local state
+            setUsers(users.filter(u => u.id !== deletingOperator.id));
+
+            // If user has an uploaded profile picture, remove it from Storage
+            if (deletingOperator.image && deletingOperator.image.includes('firebasestorage.googleapis.com')) {
+                try {
+                    const imageRef = ref(storage, deletingOperator.image);
+                    await deleteObject(imageRef);
+                    console.log('Successfully deleted operator profile image from storage.');
+                } catch (storageErr) {
+                    console.error('Failed to delete profile image from storage:', storageErr);
+                }
+            }
+
+            // Record deletion in system logs
+            addLog('critical', `Operator ${deletingOperator.username} removed from system`, `Operator account ${deletingOperator.username} (${role}) was permanently deleted by administrator.`, currentUser.username);
+
+            // Trigger success state
+            setIsDeleteSuccess(true);
+
+            // Reset and close after delay
+            setTimeout(() => {
+                setDeletingOperator(null);
+                setConfirmPassword('');
+                setIsDeleteSuccess(false);
+            }, 1500);
+
+        } catch (error) {
+            console.error('Error deleting operator:', error);
+            setPasswordError(`Deletion failed: ${error.message || error.toString()}`);
+        } finally {
+            setIsAuthorizing(false);
         }
     };
 
@@ -554,7 +673,7 @@ const UserManagement = () => {
                                                     className="delete-operator-btn"
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        deleteUser(user.id, user.role, user.username);
+                                                        handleDeleteClick(user);
                                                     }}
                                                     title="Delete Operator"
                                                 >
@@ -635,6 +754,7 @@ const UserManagement = () => {
                                         >
                                             <option value="Investigator">Investigator</option>
                                             <option value="Admin">Admin (Full Control)</option>
+                                            <option value="Root Admin">Root Admin</option>
                                         </select>
                                     </div>
 
@@ -755,6 +875,92 @@ const UserManagement = () => {
                                     <button type="submit" className="form-submit-btn" disabled={isUploading}>
                                         {isUploading ? 'Securing Operator...' : editingUser ? 'Update Operator' : 'Save to Database'}
                                     </button>
+                                </form>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* Password Verification Modal for Operator Deletion */}
+            {deletingOperator && (
+                <div
+                    className="delete-modal-overlay"
+                    onClick={(e) => {
+                        if (e.target === e.currentTarget) {
+                            setDeletingOperator(null);
+                        }
+                    }}
+                >
+                    <div className="delete-modal-card">
+                        {isDeleteSuccess ? (
+                            <div className="deletion-success-animation">
+                                <div className="trash-circle">
+                                    <Trash2 size={36} className="trash-svg" />
+                                </div>
+                                <h3>Operator Account Removed!</h3>
+                                <p>Operator and profile archives were removed permanently.</p>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="modal-header">
+                                    <div className="header-title-flex">
+                                        <Trash2 size={20} className="modal-header-icon" />
+                                        <h2>Authorize Operator Purge</h2>
+                                    </div>
+                                    <button className="modal-close-btn" onClick={() => setDeletingOperator(null)} disabled={isAuthorizing}>
+                                        <X size={20} />
+                                    </button>
+                                </div>
+
+                                {passwordError && <div className="form-error-banner">{passwordError}</div>}
+
+                                <form onSubmit={handleConfirmDelete} className="delete-case-form">
+                                    <div className="warning-banner">
+                                        <p>
+                                            <strong>CRITICAL:</strong> You are authorizing the permanent deletion of operator <strong>{deletingOperator.username}</strong>.
+                                            This action is irreversible. All access rights, credentials, and logs associated with this operator will be updated.
+                                        </p>
+                                    </div>
+
+                                    <div className="form-field">
+                                        <label>Confirm Root Administrator Password</label>
+                                        <div className="password-input-wrapper">
+                                            <input
+                                                type={showConfirmPassword ? "text" : "password"}
+                                                value={confirmPassword}
+                                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                                placeholder="••••••••"
+                                                disabled={isAuthorizing}
+                                                required
+                                            />
+                                            <button
+                                                type="button"
+                                                className="password-toggle-btn"
+                                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                            >
+                                                {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="modal-actions">
+                                        <button
+                                            type="button"
+                                            className="modal-cancel-btn"
+                                            onClick={() => setDeletingOperator(null)}
+                                            disabled={isAuthorizing}
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            className="modal-confirm-btn"
+                                            disabled={isAuthorizing}
+                                        >
+                                            {isAuthorizing ? 'Purging Operator...' : 'Authorize Deletion'}
+                                        </button>
+                                    </div>
                                 </form>
                             </>
                         )}

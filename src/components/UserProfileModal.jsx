@@ -11,8 +11,9 @@ const UserProfileModal = ({ isOpen, onClose }) => {
     if (!isOpen) return null;
 
     const username = currentUser?.username || 'John Doe';
-    const isSystemAdmin = currentUser?.role === 'admin';
-    const position = isSystemAdmin ? 'System Administrator' : 'Investigator';
+    const userRole = (currentUser?.role || '').toLowerCase();
+    const isSystemAdmin = userRole === 'admin' || userRole === 'root admin';
+    const position = userRole === 'root admin' ? 'Root Administrator' : isSystemAdmin ? 'System Administrator' : 'Investigator';
 
     const handleLogout = async () => {
         try {

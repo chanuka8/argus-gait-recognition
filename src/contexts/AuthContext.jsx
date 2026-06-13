@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { db } from '../firebaseConfig';
-import { collection, query, where, getDocs, doc, setDoc, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, setDoc, onSnapshot, getDoc } from 'firebase/firestore';
 import { addLog } from '../utils/logService';
 
 const AuthContext = createContext();
@@ -17,23 +17,43 @@ export const AuthProvider = ({ children }) => {
     // 1. Seed database with default admin & investigator if collections are empty
     const seedDatabase = async () => {
         try {
-            // Check admins collection
-            const adminSnapshot = await getDocs(collection(db, 'admins'));
-            if (adminSnapshot.empty) {
-                const newAdminRef = doc(collection(db, 'admins'), 'admin_root');
-                await setDoc(newAdminRef, {
+            // Check & seed root admin 1 (original admin)
+            const admin1Ref = doc(db, 'admins', 'admin_root');
+            const admin1Snap = await getDoc(admin1Ref);
+            if (!admin1Snap.exists()) {
+                await setDoc(admin1Ref, {
                     name: 'Root Administrator',
                     username: 'admin',
                     password: 'Admin@123',
                     nic: '199502104523',
                     image: 'https://api.dicebear.com/7.x/bottts/svg?seed=admin',
-                    role: 'admin',
+                    role: 'Root Admin',
                     status: 'Active',
                     lastLogin: 'Never'
                 });
-                console.log('Seeded root admin account.');
+                console.log('Seeded root admin account 1.');
+            } else if (admin1Snap.data().role !== 'Root Admin') {
+                await setDoc(admin1Ref, { role: 'Root Admin' }, { merge: true });
+                console.log('Updated first root admin role to Root Admin.');
             }
 
+            // Check & seed root admin 2 (root.admin)
+            const admin2Ref = doc(db, 'admins', 'root_admin');
+            const admin2Snap = await getDoc(admin2Ref);
+            if (!admin2Snap.exists()) {
+                await setDoc(admin2Ref, {
+                    name: 'Root Admin',
+                    username: 'root.admin',
+                    email: 'rootadmin@argus.com',
+                    password: 'Admin@123',
+                    nic: '199502104524',
+                    image: 'https://api.dicebear.com/7.x/bottts/svg?seed=rootadmin',
+                    role: 'Root Admin',
+                    status: 'Active',
+                    lastLogin: 'Never'
+                });
+                console.log('Seeded second root admin account (root.admin).');
+            }
         } catch (error) {
             console.error('Error seeding database:', error);
         }
@@ -49,7 +69,7 @@ export const AuthProvider = ({ children }) => {
                 const parsedUser = JSON.parse(cachedUser);
                 try {
                     const roleLower = parsedUser.role.toLowerCase();
-                    const targetCollection = roleLower === 'admin' ? 'admins' : 'investigators';
+                    const targetCollection = (roleLower === 'admin' || roleLower === 'root admin') ? 'admins' : 'investigators';
                     const userQuery = query(
                         collection(db, targetCollection),
                         where('username', '==', parsedUser.username)
@@ -96,7 +116,7 @@ export const AuthProvider = ({ children }) => {
         if (!currentUser) return;
 
         const roleLower = currentUser.role.toLowerCase();
-        const targetCollection = roleLower === 'admin' ? 'admins' : 'investigators';
+        const targetCollection = (roleLower === 'admin' || roleLower === 'root admin') ? 'admins' : 'investigators';
         const q = query(
             collection(db, targetCollection),
             where('username', '==', currentUser.username)
@@ -134,7 +154,7 @@ export const AuthProvider = ({ children }) => {
         const formattedUsername = username.trim().toLowerCase();
 
         const roleLower = role.toLowerCase();
-        const targetCollection = roleLower === 'admin' ? 'admins' : 'investigators';
+        const targetCollection = (roleLower === 'admin' || roleLower === 'root admin') ? 'admins' : 'investigators';
         const userQuery = query(
             collection(db, targetCollection),
             where('username', '==', formattedUsername)

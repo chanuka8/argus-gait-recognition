@@ -596,3 +596,201 @@
 .clear-image-btn:hover {
     opacity: 0.8;
 }
+
+/* Deletion Password Modal Styles */
+.delete-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(10, 11, 13, 0.85);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    animation: fadeIn var(--ease-mid) both;
+}
+
+.delete-modal-card {
+    background: rgba(30, 33, 37, 0.95);
+    border: 1px solid rgba(255, 77, 77, 0.25);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6), 0 0 15px rgba(255, 77, 77, 0.15);
+    border-radius: var(--radius-lg);
+    width: 100%;
+    max-width: 500px;
+    padding: 2rem;
+    animation: scaleUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.header-title-flex {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.modal-header-icon {
+    color: #ff4d4d;
+}
+
+.warning-banner {
+    background: rgba(255, 153, 0, 0.06);
+    border-left: 4px solid #ff9900;
+    padding: 0.85rem 1rem;
+    border-radius: 4px;
+    font-size: 0.82rem;
+    line-height: 1.45;
+    color: #ffb84d;
+    text-align: left;
+}
+
+.warning-banner strong {
+    color: #ff9900;
+}
+
+.password-input-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.password-input-wrapper input {
+    width: 100%;
+    background: rgba(15, 16, 18, 0.6);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 0.75rem 2.75rem 0.75rem 1rem;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color var(--ease-fast), box-shadow var(--ease-fast);
+}
+
+.password-input-wrapper input:focus {
+    border-color: rgba(255, 77, 77, 0.5);
+    box-shadow: 0 0 10px rgba(255, 77, 77, 0.15);
+}
+
+.password-toggle-btn {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    transition: color var(--ease-fast);
+}
+
+.password-toggle-btn:hover {
+    color: var(--mist);
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 0.75rem;
+}
+
+.modal-cancel-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 0.65rem 1.25rem;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background var(--ease-fast);
+}
+
+.modal-cancel-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.modal-cancel-btn:disabled, .modal-confirm-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.modal-confirm-btn {
+    background: linear-gradient(135deg, #ff4d4d 0%, #cc0000 100%);
+    border: none;
+    color: #fff;
+    padding: 0.65rem 1.5rem;
+    border-radius: var(--radius-sm);
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(255, 77, 77, 0.25);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.modal-confirm-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(255, 77, 77, 0.4);
+}
+
+.modal-confirm-btn:active {
+    transform: translateY(0);
+}
+
+/* Success Animation for deletion */
+.deletion-success-animation {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 1.5rem 0;
+    animation: fadeIn var(--ease-mid) both;
+}
+
+.trash-circle {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background: rgba(255, 77, 77, 0.1);
+    border: 2px solid #ff4d4d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ff4d4d;
+    margin-bottom: 1.25rem;
+    animation: pulseRed 1.5s infinite;
+}
+
+.trash-svg {
+    animation: shakeTrash 0.5s ease both;
+}
+
+.deletion-success-animation h3 {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--mist);
+    margin-bottom: 0.5rem;
+}
+
+.deletion-success-animation p {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+@keyframes pulseRed {
+    0% { box-shadow: 0 0 0 0 rgba(255, 77, 77, 0.4); }
+    70% { box-shadow: 0 0 0 15px rgba(255, 77, 77, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 77, 77, 0); }
+}
+
+@keyframes shakeTrash {
+    0%, 100% { transform: rotate(0); }
+    20% { transform: rotate(-10deg); }
+    40% { transform: rotate(10deg); }
+    60% { transform: rotate(-5deg); }
+    80% { transform: rotate(5deg); }
+}

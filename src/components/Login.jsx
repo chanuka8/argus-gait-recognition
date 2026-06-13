@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { ArrowLeft, Server, UserCheck, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, Server, UserCheck, Eye, EyeOff, ShieldAlert } from 'lucide-react';
 import logo from '../assets/logo.png';
+import { db } from '../firebaseConfig';
+import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import './Login.css';
 
 const Login = () => {
@@ -16,6 +18,47 @@ const Login = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
+    const [rootAdminEmails, setRootAdminEmails] = useState(['admin', 'rootadmin@argus.com']);
+    const [activeAdminEmails, setActiveAdminEmails] = useState([]);
+
+    useEffect(() => {
+        const fetchAdminEmails = async () => {
+            try {
+                // 1. Fetch Root Admins specifically
+                const qRoot = query(collection(db, 'admins'), where('role', '==', 'Root Admin'));
+                const rootSnapshot = await getDocs(qRoot);
+                const roots = [];
+                rootSnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    if (data.email) {
+                        roots.push(data.email);
+                    } else if (data.username) {
+                        roots.push(data.username);
+                    }
+                });
+                setRootAdminEmails(roots.length > 0 ? roots : ['admin', 'rootadmin@argus.com']);
+
+                // 2. Fetch all active admin emails
+                const qActive = query(collection(db, 'admins'), where('status', '==', 'Active'));
+                const activeSnapshot = await getDocs(qActive);
+                const activeEmails = [];
+                activeSnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    if (data.email) {
+                        activeEmails.push(data.email);
+                    } else if (data.username) {
+                        activeEmails.push(data.username);
+                    }
+                });
+                setActiveAdminEmails(activeEmails.length > 0 ? activeEmails : ['admin', 'rootadmin@argus.com']);
+            } catch (err) {
+                console.error('Error fetching admin emails:', err);
+                setRootAdminEmails(['admin', 'rootadmin@argus.com']);
+                setActiveAdminEmails(['admin', 'rootadmin@argus.com']);
+            }
+        };
+        fetchAdminEmails();
+    }, []);
 
     const handleRoleSelect = (role) => {
         setSelectedRole(role);
@@ -46,7 +89,8 @@ const Login = () => {
 
             // Redirect after 1.2s to show success feedback animation
             setTimeout(() => {
-                if (loggedUser.role === 'admin') {
+                const roleLower = (loggedUser.role || '').toLowerCase();
+                if (roleLower === 'admin' || roleLower === 'root admin') {
                     navigate('/admin/dashboard');
                 } else {
                     navigate('/dashboard');
@@ -98,7 +142,7 @@ const Login = () => {
                                 </div>
                             </div>
                         </div>
-                    ) : (
+                    ) : step === 'credentials' ? (
                         <div className="credentials-form-wrapper">
                             <button className="back-roles-btn" onClick={handleBackToRoles} disabled={isSuccess}>
                                 <ArrowLeft size={16} />
@@ -166,7 +210,7 @@ const Login = () => {
                                 </div>
 
                                 <div className="forgot-password-link">
-                                    <a href="#" onClick={(e) => e.preventDefault()}>Forget Password ?</a>
+                                    <a href="#" onClick={(e) => { e.preventDefault(); setStep('forgot-password'); }}>Forget Password ?</a>
                                 </div>
 
                                 <button type="submit" className={`login-btn ${isSuccess ? 'success' : ''}`} disabled={loading || isSuccess}>
@@ -181,6 +225,30 @@ const Login = () => {
                                     )}
                                 </button>
                             </form>
+                        </div>
+                    ) : (
+                        <div className="forgot-password-wrapper">
+                            <button className="back-roles-btn" onClick={() => setStep('credentials')}>
+                                <ArrowLeft size={16} />
+                                <span>Back to Login</span>
+                            </button>
+
+                            <div className="forgot-password-card">
+                                <div className="forgot-password-icon-wrapper">
+                                    <ShieldAlert size={32} />
+                                </div>
+                                <h1 className="forgot-password-title">Access Recovery</h1>
+                                <p className="forgot-password-message">
+                                    To Reset Your Password, Please Contact System Administrator
+                                </p>
+                                <div className="forgot-password-admin-info">
+                                    <p className="forgot-password-admin-text">
+                                        Admin email : <span className="forgot-password-email-value">
+                                            {selectedRole === 'admin' ? rootAdminEmails.join(', ') : activeAdminEmails.join(', ')}
+                                        </span>
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>
