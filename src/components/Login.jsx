@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { ArrowLeft, Server, UserCheck, Eye, EyeOff, ShieldAlert } from 'lucide-react';
 import logo from '../assets/logo.png';
 import { db } from '../firebaseConfig';
-import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import './Login.css';
 
 const Login = () => {
