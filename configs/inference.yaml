@@ -1,0 +1,66 @@
+camera_index: 0
+evaluation_threshold: 0.75
+live_threshold: 0.85
+security_threshold: 0.90
+
+matching_policy:
+  confirmed_threshold: 0.92
+  verify_low: 0.85
+  verify_high: 0.92
+  low_confidence_low: 0.70
+  low_confidence_high: 0.85
+  unknown_ceiling: 0.70
+  centroid_threshold: 0.85
+  margin: 0.05
+  top_k: 5
+  min_stable_votes: 3
+  history_size: 10
+
+crowd_control:
+  enabled: true
+  max_tracked_people_per_camera: 50
+  max_recognitions_per_frame: 3
+  recognition_queue_size: 100
+  track_timeout_frames: 90
+  min_box_height: 60
+  min_box_area_ratio: 0.003
+  priority_update_interval: 10
+  alert_cooldown_seconds: 5
+  disable_debug_windows: true
+
+box_stability:
+  enabled: true
+  ema_alpha: 0.35
+  min_detection_confidence: 0.35
+  min_iou_keep: 0.25
+  max_missed_frames: 8
+  max_jump_ratio: 0.35
+  use_stable_box_for_display: true
+  use_stable_box_for_silhouette: true
+  prune_after_frames: 30
+
+display:
+  enabled: true
+  show_camera_id: true
+  show_track_id: true
+  show_score: true
+  line_thickness: 2
+  font_scale: 0.6
+  colors:
+    detection: [0, 0, 255]
+    tracking: [0, 165, 255]
+    unknown: [0, 255, 0]
+    confirmed: [0, 255, 0]
+
+reporting:
+  enabled: true
+  output_dir: outputs/detection_reports
+  save_jsonl: true
+  save_csv: true
+  save_snapshots: true
+  snapshot_dir: outputs/detection_reports/snapshots
+  cooldown_seconds: 10
+  report_detection: false
+  report_tracking: false
+  report_unknown: true
+  report_confirmed: true

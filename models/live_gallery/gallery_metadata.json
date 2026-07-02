@@ -1,0 +1,8 @@
+{
+    "demo_person_001": {
+        "embeddings": 10,
+        "status": "DISABLED",
+        "enabled": false,
+        "updated_at": 1781316058.0657258
+    }
+}

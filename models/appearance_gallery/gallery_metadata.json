@@ -1,0 +1,32 @@
+{
+    "demo_person_001": {
+        "embeddings": 15,
+        "status": "ACTIVE",
+        "enabled": true,
+        "updated_at": 1781320732.1698515
+    },
+    "Devhan": {
+        "embeddings": 18,
+        "status": "ACTIVE",
+        "enabled": true,
+        "updated_at": 1781324469.3119366
+    },
+    "Isuru": {
+        "embeddings": 33,
+        "status": "ACTIVE",
+        "enabled": true,
+        "updated_at": 1781324475.8808558
+    },
+    "person01": {
+        "embeddings": 45,
+        "status": "ACTIVE",
+        "enabled": true,
+        "updated_at": 1781324462.0828006
+    },
+    "person_test": {
+        "embeddings": 110,
+        "status": "ACTIVE",
+        "enabled": true,
+        "updated_at": 1781317596.2740016
+    }
+}

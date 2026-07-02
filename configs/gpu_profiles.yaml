@@ -1,0 +1,3 @@
+cpu:
+  device: cpu
+  batch_size: 4

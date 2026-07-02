@@ -1,0 +1,4 @@
+project_name: ARGUS
+version: 0.1.0
+device: cpu
+seed: 42

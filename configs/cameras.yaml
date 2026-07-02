@@ -1,0 +1,27 @@
+# ARGUS Multi-Camera Configuration
+# Each camera entry defines an independent video source.
+# Cameras are processed in parallel with isolated tracker/buffer state.
+
+cameras:
+  - id: cam_01
+    source: 0
+    width: 640
+    height: 480
+    enabled: true
+    target_fps: 5
+    location: "Main Entrance"
+
+  - id: cam_02
+    source: 1
+    width: 640
+    height: 480
+    enabled: false
+    target_fps: 5
+    location: "Side Gate"
+
+# Orchestrator settings
+orchestrator:
+  show_gui: true
+  max_cameras: 2
+  queue_max_size: 20
+

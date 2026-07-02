@@ -1,0 +1,3 @@
+enabled: false
+min_new_samples: 20
+validation_rank1_threshold: 0.70

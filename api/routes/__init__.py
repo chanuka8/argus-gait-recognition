@@ -1,0 +1,3 @@
+"""
+ARGUS API routes.
+"""
