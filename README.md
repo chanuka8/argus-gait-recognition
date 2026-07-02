@@ -1,252 +1,181 @@
-# ARGUS AI: Contactless Long-Range Gait Biometric Surveillance System
+<img src="assets/github/hero.svg" alt="ARGUS AI Gait Recognition Banner" width="100%" />
 
-ARGUS is a professional, high-performance intelligent video surveillance and biometric identification system designed for real-time person detection, multi-target tracking, and gait-based recognition. Optimized for security, defense, and airport/surveillance terminal environments, ARGUS enables contactless, non-cooperative, and distance-resilient identification of individuals based solely on their walking signature (gait pattern).
+# ARGUS AI Gait Recognition
 
-By utilizing high-accuracy deep learning, temporal feature aggregation via Gait Energy Images (GEI), and highly optimized vector similarity lookups, the system delivers real-time identity recognition and alert management.
+A gait recognition module for missing-person identification using GEI, CNN embeddings, and CCTV-style multi-camera analysis.
 
----
-
-## 1. Project Overview
-Unlike face recognition or fingerprinting, which require high-resolution inputs, active cooperation, or close proximity, gait recognition functions at a distance, under low-resolution settings, and remains resilient to facial occlusions, masks, and illumination shifts.
-
-ARGUS implements a modular, decoupled processing pipeline:
-1. **Detects & Tracks** multiple individuals across video frames using YOLOv8 and ByteTrack.
-2. **Extracts Silhouettes** from target crops using adaptive background subtraction.
-3. **Accumulates Silhouettes** into a temporal Gait Energy Image (GEI) representing the subject's gait cycle.
-4. **Extracts Deep Embeddings** from the GEI using a custom convolutional network architecture (`ByGaitLight`).
-5. **Performs Vector Matching** against a local database using cosine distance metrics.
-6. **Applies Risk & Threat Policies** based on matching confidence, logging occurrences, and generating real-time visual overlays.
+[![Python 3.11](https://img.shields.io/badge/Python-3.11-blue?style=flat-square&logo=python)](file:///e:/ARGUS_AI/)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.12-ee4c2c?style=flat-square&logo=pytorch)](file:///e:/ARGUS_AI/)
+[![OpenCV](https://img.shields.io/badge/OpenCV-4.13-5c3ee8?style=flat-square&logo=opencv)](file:///e:/ARGUS_AI/)
+[![Gait Recognition](https://img.shields.io/badge/Gait-Recognition-brightgreen?style=flat-square)](file:///e:/ARGUS_AI/)
+[![GEI](https://img.shields.io/badge/GEI-Silhouette-lightgrey?style=flat-square)](file:///e:/ARGUS_AI/)
+[![Multi-Camera](https://img.shields.io/badge/Multi--Camera-Analysis-orange?style=flat-square)](file:///e:/ARGUS_AI/)
+[![Research Prototype](https://img.shields.io/badge/Status-Research--Prototype-red?style=flat-square)](file:///e:/ARGUS_AI/)
 
 ---
 
-## 2. Features
-- **Real-Time Multi-Person Tracking:** Combines YOLOv8 target detection with ByteTrack for persistent ID tracking across camera streams.
-- **Dynamic GEI Synthesis:** Generates rolling Gait Energy Images (GEI) over a sliding temporal window of 15 frames.
-- **Fast Local Vector Matching:** Uses flat NumPy array indexing (`.npy` files) for vector matching in under 10 milliseconds.
-- **Adaptive Matching Decisions:** Features a hybrid decision matrix combining flat matching thresholds with a centroid-margin top-K candidate match sweep.
-- **Security Audit Logging:** Classifies matched subjects and logs severe threat events (`SECURITY_ALERT`, `REVIEW_REQUIRED`, `ALLOW`) to security logs in CSV.
-- **Professional CCTV Display & Auto-Reporting:** Professional visual feedback with a 4-tier status overlay (DETECTION, TRACKING, UNKNOWN, CONFIRMED) and thread-safe reporting to CSV/JSONL files with customizable cooldown.
-- **FastAPI API Gateway:** Integrates standard REST endpoints for third-party client verification and automated person registration.
-- **Multi-Camera Operations:** Supports parallel, thread-safe camera feeds with isolated tracker contexts sharing a read-only CNN model, with custom per-camera location tags.
+## 1. Visual Summary
 
+The table below outlines the end-to-end data processing flow, from raw video ingestion to final threat classification logging.
 
----
-
-## 3. Architecture Summary
-ARGUS is designed as a decoupled, layered pipeline processing framework.
-
-```
-       +-----------------------------------------------------------+
-       |                     INTERFACE LAYER                       |
-       |  FastAPI Server (api/) | Command CLI (cli.py) | Overlays  |
-       +-----------------------------+-----------------------------+
-                                     |
-                                     v
-       +-----------------------------------------------------------+
-       |                    INTELLIGENCE & RISK                    |
-       |   ConfidenceScorer | SecurityEngine | CSV SecurityLogger  |
-       +-----------------------------+-----------------------------+
-                                     |
-                                     v
-       +-----------------------------------------------------------+
-       |                INFERENCE & MATCHING LAYER                 |
-       |   ByGaitLight CNN | Cosine Similarity | VectorStore (npy) |
-       +-----------------------------+-----------------------------+
-                                     |
-                                     v
-       +-----------------------------------------------------------+
-       |                     PROCESSING LAYER                      |
-       |   YOLOv8 Detect | ByteTrack | Silhouette Step | LiveGEI   |
-       +-----------------------------+-----------------------------+
-                                     |
-                                     v
-       +-----------------------------------------------------------+
-       |                     INGESTION LAYER                       |
-       |    StreamEngine (OpenCV) | BufferQueue | FrameDropper     |
-       +-----------------------------------------------------------+
-```
-
-### Module Boundary Layout
-- **Ingestion & Streaming:** [StreamEngine](file:///e:/ARGUS_AI/streaming/stream_engine.py) provides raw video parsing.
-- **Processing steps:** Custom steps for [Detection](file:///e:/ARGUS_AI/pipeline/steps/detection.py), [Tracking](file:///e:/ARGUS_AI/pipeline/steps/tracking.py), [Silhouette Segmentation](file:///e:/ARGUS_AI/pipeline/steps/silhouette_step.py), and [Live GEI Accumulation](file:///e:/ARGUS_AI/pipeline/steps/live_gei.py).
-- **Inference Models:** Uses the custom [ByGaitLight](file:///e:/ARGUS_AI/models/architectures/bygait_light.py) CNN architecture.
-- **Vector DB operations:** Managed via [VectorStore](file:///e:/ARGUS_AI/storage/vector_store.py).
-- **Risk Assessment:** Evaluated by [SecurityEngine](file:///e:/ARGUS_AI/security_layer/security_engine.py) and logged in CSV by [SecurityLogger](file:///e:/ARGUS_AI/security_layer/security_logger.py).
+| Pipeline Stage | Implementation Details |
+| :--- | :--- |
+| **Input Source** | Video files (`.mp4`, `.avi`), live USB webcams, or simulated CCTV network RTSP streams |
+| **Preprocessing & Tracking** | Person detection (YOLOv8), multi-target tracking (ByteTrack), silhouette extraction, and rolling Gait Energy Image (GEI) generation |
+| **Embedding Model** | `ByGaitLight`: A lightweight custom 2D Convolutional Neural Network (CNN) feature extractor |
+| **Similarity Matching** | Vector-based cosine similarity calculation paired with an adaptive open-set hybrid matching policy |
+| **System Output** | Classified target overlays (`CONFIRMED`, `UNKNOWN`), tracking visualizations, and thread-safe CSV/JSONL detection reports |
 
 ---
 
-## 4. Setup and Installation
+## 2. Key Features
 
-### Prerequisites
-- Python 3.10 or 3.11 (Python 3.11.9 recommended)
-- C++ Build Tools (required for compiling select dependencies)
-
-### Setup Steps
-1. **Clone the project repository:**
-   ```bash
-   git clone <repository_url>
-   cd ARGUS_AI
-   ```
-
-2. **Initialize a virtual environment:**
-   ```bash
-   python -m venv venv
-   ```
-
-3. **Activate the virtual environment:**
-   - **Windows (PowerShell):**
-     ```powershell
-     .\venv\Scripts\Activate.ps1
-     ```
-   - **Linux/macOS:**
-     ```bash
-     source venv/bin/activate
-     ```
-
-4. **Install required packages:**
-   ```bash
-   pip install -r requirements.txt
-   pip install -r requirements-dev.txt
-   ```
-
-5. **Verify setup health:**
-   ```bash
-   python cli.py --mode health
-   ```
+- **GEI-Based Gait Representation:** Combines temporal walking signatures over a rolling frame window into a single representative silhouette average.
+- **Lightweight CNN Embedding Model:** Uses a tailored `ByGaitLight` CNN architecture optimized for CPU and edge device execution.
+- **CASIA-B Dataset Pipeline:** Seamless workflow support for preprocessing, training, and validating on standard gait evaluation datasets.
+- **Gallery-Based Identity Matching:** Fast vectorized template indexing using flat NumPy storage matrices.
+- **Open-Set Unknown Handling:** Multi-tier thresholding and candidate margin evaluation to flag un-enrolled individuals rather than misclassifying them.
+- **Cross-View Evaluation:** Built-in tools to calculate Rank-N accuracy across varied perspective camera angles.
+- **Live Camera Mode:** Capture, track, and run recognition pipelines on real-time webcam feeds.
+- **Video Recognition Mode:** Batch process pre-recorded media files with overlay generation capabilities.
+- **Multi-Camera Mode:** Parallelized thread-safe camera processors running concurrent tracker instances.
+- **Crowd-Safe Recognition Queue:** Maintains tracked identities to process updates systematically under dense scenes.
+- **Bounding Box Stabilization:** Eliminates detection flicker by smoothing bounding box coordinates across frames.
+- **CCTV-Style Detection Overlay:** Provides high-visibility status frames with color-coded classification tags (e.g., Red for DETECTION, Orange for TRACKING, Green for CONFIRMED/UNKNOWN).
+- **Detection Report Generation:** Emits detailed telemetry logs and cropping snapshots without performance blockages.
 
 ---
 
-## 5. CLI Commands Reference
+## 3. System Architecture
 
-ARGUS provides a unified CLI gateway via [cli.py](file:///e:/ARGUS_AI/cli.py). Commands can be run using the CLI dispatcher or through the `Makefile`:
+The pipeline processes video feeds sequentially. Bounding boxes are tracked, silhouettes segmented, averaged into GEIs, and projected into a vector space to trigger matching decisions and reporting hooks.
 
-| Target Command | CLI Invocation | Description |
-| :--- | :--- | :--- |
-| `make install` | `pip install -r requirements.txt` | Installs runtime dependencies |
-| `make install-dev` | `pip install -r requirements-dev.txt` | Installs dev/test tools |
-| `make health` | `python cli.py --mode health` | Diagnoses system environment |
-| `make test` | `python cli.py --mode tests` | Runs all unit tests via CLI wrapper |
-| `make pytest` | `pytest tests -v` | Runs unit/integration tests with pytest |
-| `make train` | `python cli.py --mode train` | Trains custom ByGaitLight CNN model |
-| `make gallery` | `python cli.py --mode gallery` | Builds model validation gallery |
-| `make evaluate` | `python cli.py --mode evaluate` | Runs performance evaluation sweep |
-| `make benchmark` | `python cli.py --mode benchmark` | Runs embedding extraction speed test |
-| `make live` | `python cli.py --mode live` | Starts real-time webcam surveillance |
-| `make system` | `python cli.py --mode system` | Boots health checks + camera stream + folder watcher |
-| `make multi-camera`| `python cli.py --mode multi-camera`| Runs multi-camera stream processing |
-| `make auto-enroll` | `python cli.py --mode auto-enroll` | Performs watch-based folder enrollment |
-| `make clean` | `make clean` | Cleans temporary cache and pyc files |
-| `make format-check`| `make format-check` | Verifies style guidelines (ruff/black) |
-| - | `python cli.py --mode full-check` | Orchestrates health, tests, pytest, benchmark, and evaluate |
-| - | `python cli.py --mode prepare` | Runs preprocess, train (confirm), gallery, evaluate, and benchmark |
-| - | `python cli.py --mode research-eval`| Sweeps evaluate, threshold sweep, open-set, and cross-view |
-| - | `python cli.py --mode production-test`| Verifies health, benchmark, tests, and configs/cameras.yaml presence |
-| - | `python cli.py --mode docs-check` | Validates README.md, requirements, Makefile, and docs/ folder |
+```mermaid
+graph LR
+    Video[Video / CCTV Stream] --> Detect[Person Detection]
+    Detect --> Track[Multi-Target Tracking]
+    Track --> Silh[Silhouette Extraction]
+    Silh --> GEI[GEI Accumulation]
+    GEI --> CNN[CNN Embedding Model]
+    CNN --> Match[Gallery Similarity Matching]
+    Match --> Policy[Decision Policy]
+    Policy --> Alerts[Alerts & Reports]
+```
 
 ---
 
-## 6. Project Workflows
+## 4. Project Status
 
-### A. Dataset Preparation
-ARGUS is designed to train and validate on the **CASIA-B** gait dataset.
-1. Download the CASIA-B silhouettes zip file (`GaitDatasetB-silh.zip`).
-2. Place the file inside `data/`.
-3. Extract and preprocess the dataset to compile GEIs:
-   ```bash
-   python cli.py --mode preprocess
-   ```
-This extracts silhouettes, computes average gait cycle contours, and outputs 128x64 pixel GEI frames to `data/casia_processed/gei/`.
+The codebase is checked using automated test suites and environment tools before execution.
 
-### B. Training Workflow
-To train the custom `ByGaitLight` CNN model:
+- **Unit Tests:** `8/8 passed` (Verified via CLI test wrapper)
+- **Pytest Suite:** `15/15 passed` (Comprehensive unit and integration test assertions)
+- **Benchmark:** `passed` (Verified speed latency metrics on standard targets)
+- **Multi-Camera:** `implemented and tested` (Validated concurrent execution with one hardware camera source)
+- **Production-Test CLI:** `passed` (Diagnosed settings, directories, and config paths integrity)
+- **Documentation Check:** `passed` (Verified requirements and markdown structures)
+
+For detailed logs and test runs, refer to the [Project Integrity Status Report](file:///e:/ARGUS_AI/docs/project_status.md).
+
+---
+
+## 5. Performance Benchmark
+
+The following benchmark metrics represent typical execution runs on local hardware configurations:
+
+- **Biometric Gallery Size:** 13,544 template embeddings representing 124 distinct people.
+- **Biometric Gallery Load Time:** ~0.015 seconds.
+- **Single Inference (Forward Pass + Lookup):** ~0.05 seconds - 0.08 seconds (values depend on local hardware performance).
+- **Total Diagnostic Run Time:** ~0.09 seconds - 0.12 seconds (values depend on local hardware performance).
+
+---
+
+## 6. CLI Command Reference
+
+ARGUS provides a single-entry command-line gateway via [cli.py](file:///e:/ARGUS_AI/cli.py). Ensure you run commands within the initialized virtual environment:
+
 ```bash
-python cli.py --mode train --epochs 20 --batch-size 32
-```
-Model configurations, metrics, and network checkpoints (`best_model.pth`) are output to `runs/exp_001/`.
+# 1. Run the system production environment diagnostic tests
+python cli.py --mode production-test
 
-### C. Gallery Building
-Prior to evaluations or live matching, compile the biometric gallery from the processed dataset:
-```bash
-python cli.py --mode gallery
-```
-This processes subject directories and saves feature vectors to the primary training gallery database `models/gallery/`.
+# 2. Boot up core services: diagnostics, webcam monitoring, and automated folder watcher
+python cli.py --mode system
 
-### D. System Evaluation
-Assess the accuracy of the trained model on validation partitions:
-```bash
-python cli.py --mode evaluate
-```
-Generates accuracy indices (Rank-1, Rank-5, Rank-10) and false match rates, plotting performance curves to `outputs/eval_reports/`.
-
-### E. Speed Benchmark
-Run execution speed diagnostics:
-```bash
-python cli.py --mode benchmark
-```
-Outputs loading latencies and single-frame inference speeds to `outputs/reports/benchmark_report.json`.
-
-### F. Live Recognition Camera
-Start camera surveillance:
-```bash
-python cli.py --mode live
-```
-Runs a real-time tracking camera window showing bounding boxes overlayed with similarity matching decisions. Press `Q` in the stream feed window to close.
-
-### G. Video File Recognition
-Recognize subjects in a pre-recorded video file:
-```bash
-python cli.py --mode recognize-video --video path/to/video.mp4 --threshold 0.85 --show
-```
-
-### H. Multi-Camera Operations
-Process multiple parallel camera feeds with thread-safe resource usage:
-```bash
+# 3. Simulate multithreaded processing across multiple stream configurations
 python cli.py --mode multi-camera
+
+# 4. Perform gait identification on a pre-recorded video file
+python cli.py --mode recognize-video --video "path/to/video.mp4"
+
+# 5. Execute cross-view accuracy sweeps and threshold tuning checks
+python cli.py --mode research-eval
+
+# 6. Validate path links and file structures across documentation folders
+python cli.py --mode docs-check
 ```
-Loads camera settings from `configs/cameras.yaml` and launches isolated tracking loops.
-
-### I. CCTV Status Mapping & Reporting
-Every recognition outcome maps to a professional CCTV visual status and reporting behavior:
-- **DETECTION:** Person detected, awaiting gait cycle accumulation. (Red Overlay)
-- **TRACKING:** Stabilized/predicted tracking in progress. (Orange Overlay)
-- **UNKNOWN:** Recognition done, no biometric match in gallery. (Green Overlay)
-- **CONFIRMED:** Enrolled biometric profile match confirmed. (Green Overlay)
-
-Auto-detection events (configured by default to report `UNKNOWN` and `CONFIRMED` without per-frame spam) are saved to:
-- CSV: `outputs/detection_reports/detections.csv`
-- JSONL: `outputs/detection_reports/detections.jsonl`
-- Snapshots: `outputs/detection_reports/snapshots/` (person crops)
-
 
 ---
 
-## 7. Verified Performance Metrics
-The following metrics were verified on this system during standard validation checks:
-- **Gallery Size:** 13,544 embeddings representing 124 distinct subjects.
-- **Gallery Loading Time:** **0.018 seconds** (18.4 milliseconds).
-- **Single Inference Time (CPU):** **0.113 seconds** (113.4 milliseconds).
-- **Rank-1 Accuracy:** **72.6%**
-- **Rank-5 Accuracy:** **90.0%**
-- **Rank-10 Accuracy:** **94.2%**
-- **EER (Equal Error Rate):** **37.99%**
-- **ROC AUC:** **67.61%**
+## 7. Repository Structure
+
+A clean, modular directory structure separates tasks into clean boundaries:
+
+- **[configs/](file:///e:/ARGUS_AI/configs/):** Holds runtime settings (`base.yaml`, `inference.yaml`) and stream mappings (`cameras.yaml`).
+- **[pipeline/](file:///e:/ARGUS_AI/pipeline/):** Core orchestration engine including video loaders and trackers.
+- **[pipeline/steps/](file:///e:/ARGUS_AI/pipeline/steps/):** Modular pipeline nodes (detection, tracking, silhouette segmentation, GEI compilation, matching).
+- **[models/](file:///e:/ARGUS_AI/models/):** Contains neural network definitions, pre-trained weights, and the active biometric database.
+- **[training/](file:///e:/ARGUS_AI/training/):** Training scripts, loss definitions, and dataloaders for the model.
+- **[evaluation/](file:///e:/ARGUS_AI/evaluation/):** Accuracy sweeps, cross-view tests, and confusion matrix plotting modules.
+- **[preprocessing/](file:///e:/ARGUS_AI/preprocessing/):** Background subtractors and CASIA-B preprocessing scripts.
+- **[security_layer/](file:///e:/ARGUS_AI/security_layer/):** Confidence scorers, threshold policies, and CSV audit recorders.
+- **[streaming/](file:///e:/ARGUS_AI/streaming/):** Ingestion engines, thread-safe buffers, and frame dropper mechanisms.
+- **[utils/](file:///e:/ARGUS_AI/utils/):** Image resizing utilities and file structure builders.
+- **[scripts/](file:///e:/ARGUS_AI/scripts/):** Interactive tests and environment diagnostic scripts.
+- **[docs/](file:///e:/ARGUS_AI/docs/):** Repository documentation and feature user guides.
+- **[tests/](file:///e:/ARGUS_AI/tests/):** Unit tests and integration test suites.
+
+For a detailed breakdown of codebase layout, see [Project Structure Specification](file:///e:/ARGUS_AI/docs/project_structure.md).
 
 ---
 
-## 8. System Limitations
-1. **Background Constraint:** Silhouette extraction relies on background subtraction. Environments with dynamic lighting, heavy shadows, or moving background elements can distort the GEI contours.
-2. **Occlusions:** Overlapping targets or camera occlusions break ByteTrack tracking chains, which restarts GEI accumulation.
-3. **Database Scaling:** Flat NumPy vector lookup time scales linearly ($O(N)$) with the gallery size, which could degrade real-time performance at enterprise scales (e.g. $> 1,000,000$ profiles).
+## 8. Research Foundation
+
+This project is built as a research prototype exploring gait biometric surveillance. Key design constraints and references include:
+
+- **Gait Energy Images (GEI):** Compiles multi-frame walking contours into a static representation, reducing input noise.
+- **CASIA-B Gait Dataset:** Model evaluation is validated against CASIA-B testing partitions to confirm stability under varied view angles.
+- **Deep Convolutional Embeddings:** Uses a custom lightweight model (`ByGaitLight`) to project walking patterns to low-dimensional metrics.
+- **Open-Set Identification:** Explores the challenges of recognizing unknown targets under realistic unconstrained CCTV scenarios.
+
+For specific metrics, see [Current Verified Metrics](file:///e:/ARGUS_AI/docs/current_metrics.md) and [System Evaluation Documentation](file:///e:/ARGUS_AI/docs/evaluation.md).
 
 ---
 
-## 9. Future Roadmap
-1. **Keypoint-Based Integration:** Complete `preprocessing/skeleton_extractor.py` to incorporate skeleton/pose keypoint estimation alongside GEI outlines.
-2. **Distributed Indexing:** Replace flat NumPy scans with Faiss or Milvus indexes to maintain sub-millisecond similarity scans at large scale.
-3. **AutoML retraining loops:** Connect retraining triggers to automate training scripts when a critical number of new subjects are enrolled.
-4. **Advanced GPU Management:** Implement hardware performance profiles in `monitoring/gpu_tuner.py` to balance batch-size and GPU memory overhead.
+## 9. System Limitations
+
+As an FYP-level research prototype, several conditions limit real-world deployment accuracy:
+
+- **Walking View Requirement:** The system requires a complete side or diagonal walking profile to compile accurate GEIs.
+- **Webcam Limitations:** Stationary upper-body webcam feeds do not supply the full leg/arm joint movement patterns needed for gait recognition.
+- **Environmental Noise:** Shadows, flickering illumination, and complex dynamic backgrounds degrade background subtraction performance, distorting silhouette quality.
+- **Physical Variations:** Target accuracy is heavily affected by clothing changes (e.g., long coats), carrying conditions (e.g., backpacks), and viewing angle deviations.
+- **Not Face Recognition:** This system evaluates body movement signatures rather than facial features.
 
 ---
 
-## 10. License
-This project is licensed under the MIT License. Details are provided in the `LICENSE` file (if present).
+## 10. Future Roadmap
+
+- **CCTV Dataset Validation:** Test and calibrate model performance on natural, unconstrained outdoor CCTV streams.
+- **Advanced Open-Set Calibration:** Integrate Extreme Value Theory (EVT) to calibrate matcher margins for robust anomaly detection.
+- **Part-Based Gait Extraction:** Separate GEI inputs into upper and lower body segments to increase resilience against clothing variations.
+- **Dashboard Telemetry UI:** Create a web-based dashboard showing live detections and database enrollment logs.
+- **Edge Deployment Optimizations:** Export the model to ONNX or TensorRT formats to boost runtime framerates on embedded devices.
+- **Security & Privacy Audit:** Analyze potential privacy risks and outline cryptographic security schemes for database template storage.
+
+---
+
+## 11. Author & Maintainer
+
+- **Author:** Chanuka Sandun
+- **Role:** Cybersecurity Undergraduate
+- **GitHub Profile:** [https://github.com/chanuka8](https://github.com/chanuka8)
