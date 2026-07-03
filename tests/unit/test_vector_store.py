@@ -1,7 +1,4 @@
 import unittest
-import tempfile
-from pathlib import Path
-import numpy as np
 
 from storage.vector_store import VectorStore
 

@@ -69,9 +69,6 @@ class BoxStabilizer:
 
         with self._lock:
             self.current_frame += 1
-            h, w = frame_shape[:2]
-            frame_area = h * w
-
             detected_track_ids = set()
 
             # Step 1: Process current raw detections
@@ -84,8 +81,6 @@ class BoxStabilizer:
 
                 box_w = raw_box[2] - raw_box[0]
                 box_h = raw_box[3] - raw_box[1]
-                box_area = box_w * box_h
-                area_ratio = box_area / frame_area if frame_area > 0 else 0
 
                 # Reject extremely small boxes or invalid coordinates
                 if box_h < 10 or box_w < 10:

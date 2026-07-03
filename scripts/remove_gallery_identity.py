@@ -99,7 +99,7 @@ def main() -> None:
         if not removed_live and not removed_app:
             print(f"No gallery entries found for {args.person_id} in live or appearance galleries.")
     else:
-        success = remove_identity(
+        remove_identity(
             person_id=args.person_id,
             gallery_dir=args.gallery_dir,
             verbose=True,

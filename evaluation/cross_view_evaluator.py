@@ -1,7 +1,6 @@
 import csv
 import json
 from pathlib import Path
-import numpy as np
 
 from evaluation.evaluator import SplitEvaluator
 

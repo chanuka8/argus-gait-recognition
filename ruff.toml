@@ -1,0 +1,19 @@
+# Ruff configuration file
+
+# Exclude common directories
+exclude = [
+    ".git",
+    "venv",
+    ".pytest_cache",
+    ".qodo",
+    "_cleanup_quarantine"
+]
+
+# Set standard line length
+line-length = 120
+
+[lint]
+# Ignore specific rule warnings across the project
+ignore = [
+    "E402"  # Allow module level imports after sys.path modifications (standard script pattern)
+]

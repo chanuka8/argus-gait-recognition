@@ -128,7 +128,7 @@ def main() -> None:
                 f"Identity not found in live or appearance galleries: {args.person_id}"
             )
     else:
-        success = set_status(
+        set_status(
             person_id=args.person_id,
             status=args.status,
             gallery_dir=args.gallery_dir,
