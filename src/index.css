@@ -1,0 +1,132 @@
+
+
+@import url('https://fonts.googleapis.com/css2?family=Source+Sans+Pro:ital,wght@0,200;0,300;0,400;0,600;0,700;0,900;1,200;1,300;1,400;1,600;1,700;1,900&family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap');
+
+:root {
+  /* ── Accent palette ── */
+  --accent:     #5ce1e6;
+  --accent-dim: #4ab8bd;
+  --accent-sub: #7c8faa;
+  --highlight:  #a0e4e8;
+  --soft-white: #d6e4ea;
+
+  /* ── Surface layers (charcoal family) ── */
+  --bg:          #232528;
+  --surface:     #2a2d31;
+  --surface-2:   #32363b;
+  --header-bg:   #1e2023;
+  --input-bg:    #2f3237;
+
+  /* ── Borders ── */
+  --border:       rgba(92, 225, 230, 0.10);
+  --border-hover: rgba(92, 225, 230, 0.30);
+  --border-focus: #5ce1e6;
+
+  /* ── Text ── */
+  --text-primary:   #e8ecf1;
+  --text-secondary: rgba(232, 236, 241, 0.62);
+  --text-muted:     rgba(232, 236, 241, 0.38);
+  --text-on-dark:   #FFFFFF;
+
+  /* ── Status ── */
+  --status-missing:       #FF6B6B;
+  --status-investigating: #FFD166;
+  --status-found:         #06D6A0;
+  --status-cold:          #a0e4e8;
+
+  /* ── Gradients ── */
+  --grad-primary: linear-gradient(135deg, #4ab8bd 0%, #5ce1e6 100%);
+  --grad-header:  linear-gradient(135deg, #1e2023 0%, #262a2e 100%);
+  --grad-bg:      radial-gradient(ellipse at 20% 10%, rgba(92,225,230,0.06) 0%, transparent 55%),
+                  radial-gradient(ellipse at 85% 85%, rgba(92,225,230,0.04) 0%, transparent 50%),
+                  #232528;
+  --grad-card:    linear-gradient(145deg, #2c2f33, #2a2d31);
+
+  /* ── Shadows ── */
+  --shadow-xs:  0 1px 4px rgba(0,0,0,0.40);
+  --shadow-sm:  0 2px 10px rgba(0,0,0,0.35);
+  --shadow-md:  0 6px 22px rgba(0,0,0,0.40);
+  --shadow-lg:  0 14px 44px rgba(0,0,0,0.50);
+  --shadow-btn: 0 4px 18px rgba(92,225,230,0.20);
+  --glow-sky:   0 0 18px rgba(92,225,230,0.14);
+
+  /* ── Radii ── */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+
+  /* ── Transitions ── */
+  --ease-fast: 0.15s ease;
+  --ease-mid:  0.25s ease;
+  --ease-slow: 0.4s cubic-bezier(0.4,0,0.2,1);
+
+  /* ── Font ── */
+  --font: 'Source Sans Pro', 'Source Sans 3', system-ui, sans-serif;
+  --font-logs: 'Ubuntu', monospace, sans-serif;
+
+  /* ── Legacy aliases (backward compat) ── */
+  --navy:  #232528;
+  --ocean: #4ab8bd;
+  --sky:   #5ce1e6;
+  --ice:   #a0e4e8;
+  --mist:  #d6e4ea;
+}
+
+/* ── Reset ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font);
+  background: var(--grad-bg);
+  background-attachment: fixed;
+  color: var(--text-primary);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root { width: 100%; min-height: 100vh; }
+
+h1,h2,h3,h4,h5 { line-height: 1.2; font-weight: 700; }
+
+a { color: var(--sky); text-decoration: none; transition: color var(--ease-fast); }
+a:hover { color: var(--mist); }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: rgba(35,37,40,0.6); border-radius: 99px; }
+::-webkit-scrollbar-thumb { background: rgba(92,225,230,0.22); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(92,225,230,0.42); }
+
+/* ── Keyframes ── */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+@keyframes pulseRing {
+  0%   { transform: scale(1);   opacity: 0.9; }
+  70%  { transform: scale(2.4); opacity: 0; }
+  100% { transform: scale(1);   opacity: 0; }
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes scaleIn {
+  from { transform: scale(0.93); opacity: 0; }
+  to   { transform: scale(1);    opacity: 1; }
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(22px); }
+  to   { opacity: 1; transform: translateX(0); }
+}

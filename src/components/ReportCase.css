@@ -1,0 +1,425 @@
+.report-page {
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background: var(--grad-bg);
+    background-attachment: fixed;
+    color: var(--text-primary);
+    display: flex;
+    flex-direction: column;
+    animation: fadeInUp 0.4s ease both;
+}
+
+.report-content {
+    flex: 1;
+    padding: 1rem 2.5rem 1.5rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    min-height: 0;
+}
+
+/* ── Container ── */
+.report-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    padding: 2rem 2.25rem;
+    width: 100%;
+    max-width: 1080px;
+    box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(92, 225, 230, 0.03);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    max-height: 100%;
+    overflow: hidden;
+}
+
+.report-container-header {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.report-container-header h2 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--ice);
+}
+
+.close-btn {
+    position: absolute;
+    top: 1.15rem;
+    right: 1.15rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: transform var(--ease-mid);
+    display: flex;
+}
+
+.close-btn:hover {
+    transform: scale(1.12) rotate(5deg);
+}
+
+/* ── Form Layout ── */
+.report-form-layout {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 2rem;
+    flex: 1;
+    overflow: hidden;
+}
+
+.report-form-left {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    justify-content: center;
+    flex: 1;
+}
+
+/* ── Form Groups ── */
+.form-group {
+    display: flex;
+    align-items: center;
+    flex-direction: row !important;
+    flex-wrap: nowrap;
+    gap: 1rem;
+}
+
+.form-group label {
+    width: 30%;
+    min-width: 90px;
+    max-width: 125px;
+    font-size: 0.88rem;
+    color: var(--ice);
+    font-weight: 600;
+    flex-shrink: 0;
+    text-align: left;
+}
+
+.form-group input,
+.form-group select {
+    flex: 1;
+    max-width: 340px;
+    height: 42px;
+    background: var(--input-bg);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 0 0.9rem;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-family: var(--font);
+    font-weight: 500;
+    outline: none;
+    transition: border-color var(--ease-mid), box-shadow var(--ease-mid), background var(--ease-mid);
+    box-sizing: border-box;
+}
+
+.form-group select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23a0e4e8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.85rem top 50%;
+    background-size: 0.58rem auto;
+    cursor: pointer;
+    padding-right: 2.1rem;
+}
+
+.form-group select option {
+    background: var(--surface-2);
+    color: var(--text-primary);
+}
+
+.form-group input:hover,
+.form-group select:hover {
+    border-color: rgba(92, 225, 230, 0.25);
+    background: #363a3f;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    border-color: var(--sky);
+    background: #363a3f;
+    box-shadow: 0 0 0 3px rgba(92, 225, 230, 0.06), var(--glow-sky);
+}
+
+/* ── Read-only ── */
+.form-group input[readonly] {
+    background: rgba(74, 184, 189, 0.08);
+    border-color: rgba(92, 225, 230, 0.12);
+    color: var(--sky);
+    cursor: not-allowed;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+/* ── Right side ── */
+.report-form-right {
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+}
+
+/* ── Upload box ── */
+.upload-box {
+    background: var(--surface-2);
+    border: 2px dashed var(--border);
+    border-radius: var(--radius-lg);
+    width: 100%;
+    max-width: 310px;
+    height: 105px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    cursor: pointer;
+    transition: background var(--ease-mid), border-color var(--ease-mid), transform var(--ease-fast), box-shadow var(--ease-mid);
+    box-sizing: border-box;
+}
+
+.upload-box:hover {
+    background: rgba(74, 184, 189, 0.08);
+    border-color: var(--sky);
+    transform: translateY(-2px);
+    box-shadow: var(--glow-sky);
+}
+
+.upload-box.has-files {
+    background: rgba(92, 225, 230, 0.06);
+    border-color: var(--sky);
+    border-style: solid;
+}
+
+.upload-box.has-files span {
+    color: var(--sky);
+    font-weight: 700;
+}
+
+.upload-box span {
+    color: var(--text-muted);
+    font-size: 0.86rem;
+    font-weight: 500;
+}
+
+.selected-images {
+    width: 100%;
+    max-width: 310px;
+    background: rgba(42, 45, 49, 0.90);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 0.9rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.selected-images-header {
+    color: var(--sky);
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.selected-image-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.35rem;
+    padding: 0.65rem 0.75rem;
+    background: var(--surface-2);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+}
+
+.selected-image-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: calc(100% - 42px);
+    color: var(--text-primary);
+    font-size: 0.84rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.selected-image-remove {
+    margin-left: 0;
+    background: transparent;
+    border: none;
+    color: var(--status-missing);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.35rem;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background var(--ease-mid), transform var(--ease-fast);
+}
+
+.selected-image-remove:hover {
+    background: rgba(255, 107, 107, 0.10);
+    transform: scale(1.05);
+}
+
+/* ── Submit button ── */
+.submit-btn {
+    background: var(--grad-primary);
+    background-size: 200% auto;
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-md);
+    width: 100%;
+    max-width: 310px;
+    height: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: background-position var(--ease-mid), transform var(--ease-fast), box-shadow var(--ease-mid);
+    box-shadow: var(--shadow-btn);
+    position: relative;
+    overflow: hidden;
+}
+
+.submit-btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(105deg, transparent 40%, rgba(255, 255, 255, 0.18) 50%, transparent 60%);
+    background-size: 200% auto;
+    background-position: 150% center;
+    transition: background-position 0.45s ease;
+}
+
+.submit-btn:hover {
+    background-position: right center;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(92, 225, 230, 0.30);
+}
+
+.submit-btn:hover::after {
+    background-position: -50% center;
+}
+
+.submit-btn:active {
+    transform: translateY(0);
+}
+
+.submit-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+@media (max-width: 768px) {
+    .report-page {
+        height: auto;
+        overflow-y: auto;
+    }
+
+    .report-form-layout {
+        flex-direction: column;
+        gap: 2rem;
+        overflow: visible;
+    }
+
+    .report-form-left,
+    .report-form-right {
+        width: 100%;
+    }
+
+    .report-content {
+        padding: 1rem 1.25rem;
+        overflow: visible;
+    }
+}
+
+/* ── Modal overlay ── */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(35, 37, 40, 0.70);
+    backdrop-filter: blur(4px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 200;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.success-modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    padding: 3rem 3.5rem;
+    position: relative;
+    box-shadow: var(--shadow-lg), var(--glow-sky);
+    animation: scaleIn 0.25s ease-out;
+    text-align: center;
+}
+
+.modal-close-btn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: transform var(--ease-mid);
+    display: flex;
+}
+
+.modal-close-btn:hover {
+    transform: scale(1.12) rotate(5deg);
+}
+
+.success-modal h3 {
+    color: var(--ice);
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.spinner {
+    width: 52px;
+    height: 52px;
+    border: 5px solid rgba(92, 225, 230, 0.10);
+    border-top-color: var(--sky);
+    border-radius: 50%;
+    animation: spin 0.85s linear infinite;
+    margin: 0 auto;
+}
+
+.cancel-upload-btn {
+    margin-top: 1.5rem;
+    background: transparent;
+    color: var(--status-missing);
+    border: 1.5px solid var(--status-missing);
+    border-radius: var(--radius-sm);
+    padding: 0.5rem 2rem;
+    font-size: 0.92rem;
+    font-weight: 700;
+    font-family: var(--font);
+    cursor: pointer;
+    transition: all var(--ease-mid);
+}
+
+.cancel-upload-btn:hover {
+    background: var(--status-missing);
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(255, 107, 107, 0.25);
+}

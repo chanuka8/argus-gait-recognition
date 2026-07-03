@@ -5,8 +5,7 @@ exclude = [
     ".git",
     "venv",
     ".pytest_cache",
-    ".qodo",
-    "_cleanup_quarantine"
+    ".qodo"
 ]
 
 # Set standard line length

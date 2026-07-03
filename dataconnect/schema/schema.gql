@@ -1,0 +1,45 @@
+type User @table {
+  displayName: String!
+  email: String!
+  createdAt: Timestamp!
+  photoUrl: String
+  lastLogin: Timestamp
+}
+
+type Camera @table {
+  user: User!
+  name: String!
+  model: String!
+  location: String!
+  serialNumber: String!
+  createdAt: Timestamp!
+  description: String
+  ipAddress: String
+  recordingQuality: String
+}
+
+type Event @table {
+  camera: Camera!
+  eventType: String!
+  timestamp: Timestamp!
+  clipUrl: String!
+  durationSeconds: Int
+  thumbnailUrl: String
+}
+
+type NotificationSetting @table {
+  user: User!
+  camera: Camera
+  notificationType: String!
+  eventType: String!
+  isEnabled: Boolean
+}
+
+type RecordingSchedule @table {
+  camera: Camera!
+  dayOfWeek: String!
+  startTime: String!
+  endTime: String!
+  isEnabled: Boolean
+  repeatWeekly: Boolean
+}
