@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 <img src="assets/github/Gitrepo_profilepic.png" alt="ARGUS AI Gait Recognition Banner" width="100%" />
 
 # ARGUS AI Gait Recognition
@@ -180,7 +179,8 @@ As an FYP-level research prototype, several conditions limit real-world deployme
 - **Author:** Chanuka Sandun
 - **Role:** Cybersecurity Undergraduate
 - **GitHub Profile:** [https://github.com/chanuka8](https://github.com/chanuka8)
-=======
+
+
 # React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
