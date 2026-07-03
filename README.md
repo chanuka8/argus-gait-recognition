@@ -1,4 +1,4 @@
-<img src="assets/github/hero.svg" alt="ARGUS AI Gait Recognition Banner" width="100%" />
+<img src="assets/github/Gitrepo_profilepic.png" alt="ARGUS AI Gait Recognition Banner" width="100%" />
 
 # ARGUS AI Gait Recognition
 
