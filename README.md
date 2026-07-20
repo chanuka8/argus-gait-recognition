@@ -75,7 +75,7 @@ The codebase is checked using automated test suites and environment tools before
 - **Production-Test CLI:** `passed` (Diagnosed settings, directories, and config paths integrity)
 - **Documentation Check:** `passed` (Verified requirements and markdown structures)
 
-For detailed logs and test runs, refer to the [Project Integrity Status Report](file:///e:/ARGUS_AI/docs/project_status.md).
+For detailed documentation, refer to the [Matching Person Detection System Documentation](file:///e:/ARGUS_AI/docs/matching_person_detection.md).
 
 ---
 
@@ -134,7 +134,7 @@ A clean, modular directory structure separates tasks into clean boundaries:
 - **[docs/](file:///e:/ARGUS_AI/docs/):** Repository documentation and feature user guides.
 - **[tests/](file:///e:/ARGUS_AI/tests/):** Unit tests and integration test suites.
 
-For a detailed breakdown of codebase layout, see [Project Structure Specification](file:///e:/ARGUS_AI/docs/project_structure.md).
+For a detailed breakdown of codebase layout and features, see the [Matching Person Detection System Documentation](file:///e:/ARGUS_AI/docs/matching_person_detection.md).
 
 ---
 
@@ -147,7 +147,7 @@ This project is built as a research prototype exploring gait biometric surveilla
 - **Deep Convolutional Embeddings:** Uses a custom lightweight model (`ByGaitLight`) to project walking patterns to low-dimensional metrics.
 - **Open-Set Identification:** Explores the challenges of recognizing unknown targets under realistic unconstrained CCTV scenarios.
 
-For specific metrics, see [Current Verified Metrics](file:///e:/ARGUS_AI/docs/current_metrics.md) and [System Evaluation Documentation](file:///e:/ARGUS_AI/docs/evaluation.md).
+For specific metrics and evaluation details, see the [Matching Person Detection System Documentation](file:///e:/ARGUS_AI/docs/matching_person_detection.md).
 
 ---
 
