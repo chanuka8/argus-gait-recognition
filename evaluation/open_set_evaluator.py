@@ -1,5 +1,7 @@
 import csv
 import json
+import time
+
 import numpy as np
 
 from evaluation.evaluator import SplitEvaluator
@@ -106,10 +108,13 @@ class OpenSetEvaluator(SplitEvaluator):
         correct_known = 0
         total_known = 0
         total_unknown = 0
+        inference_times = []
 
         self.centroid_matcher.threshold = self.threshold
 
         for image_path, actual_id, is_known in test_items:
+            t_start = time.perf_counter()
+
             query_feature = self._image_to_embedding(image_path)
 
             predicted_id, score = self.centroid_matcher.match(
@@ -119,6 +124,9 @@ class OpenSetEvaluator(SplitEvaluator):
                 metadata=metadata,
                 mode=matching_mode,
             )
+
+            t_end = time.perf_counter()
+            inference_times.append(t_end - t_start)
 
             if is_known:
                 total_known += 1
@@ -141,15 +149,36 @@ class OpenSetEvaluator(SplitEvaluator):
         false_accept_rate = (total_unknown - tn) / total_unknown if total_unknown else 0.0
         false_reject_rate = fn / total_known if total_known else 0.0
 
+        precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
+        recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+        f1_score = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
+
+        total_inference_time = sum(inference_times) if inference_times else 0.0
+        avg_inference_time_ms = (
+            (total_inference_time / len(inference_times)) * 1000.0
+            if inference_times
+            else 0.0
+        )
+        eval_fps = (
+            len(inference_times) / total_inference_time
+            if total_inference_time > 0
+            else 0.0
+        )
+
         results = {
             "TP": tp,
             "FP": fp,
             "TN": tn,
             "FN": fn,
+            "precision": round(precision, 6),
+            "recall": round(recall, 6),
+            "f1_score": round(f1_score, 6),
             "known_accuracy": known_accuracy,
             "unknown_rejection_rate": unknown_rejection_rate,
             "false_accept_rate": false_accept_rate,
             "false_reject_rate": false_reject_rate,
+            "avg_inference_time_ms": round(avg_inference_time_ms, 4),
+            "fps": round(eval_fps, 2),
             "total_known": total_known,
             "total_unknown": total_unknown,
             "total_tested": len(test_items),

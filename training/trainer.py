@@ -51,16 +51,22 @@ class GaitClassifier(nn.Module):
         )
 
         if self.loss_mode == "ce_arcface" and labels is not None:
-            logits = self.arcface_classifier(
+            loss_logits, pred_logits = self.arcface_classifier(
                 embedding,
                 labels,
             )
-        else:
-            logits = self.classifier(
+        elif self.loss_mode == "ce_arcface" and labels is None:
+            pred_logits = self.arcface_classifier(
                 embedding,
             )
+            loss_logits = pred_logits
+        else:
+            loss_logits = self.classifier(
+                embedding,
+            )
+            pred_logits = loss_logits
 
-        return logits, embedding
+        return loss_logits, pred_logits, embedding
 
 
 
@@ -164,6 +170,12 @@ class Trainer:
             learning_rate=self.learning_rate,
         )
 
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+            optimizer,
+            T_max=self.epochs,
+            eta_min=1e-5,
+        )
+
         best_val_accuracy = 0.0
 
         history = {
@@ -192,6 +204,8 @@ class Trainer:
                 criterion=criterion,
                 optimizer=optimizer,
             )
+
+            scheduler.step()
 
             val_metrics = self._validate(
                 model=model,
@@ -284,13 +298,13 @@ class Trainer:
 
             optimizer.zero_grad()
 
-            logits, embeddings = model(
+            loss_logits, pred_logits, embeddings = model(
                 images,
                 labels=labels,
             )
 
             loss, ce_loss, triplet_loss = criterion(
-                logits,
+                loss_logits,
                 embeddings,
                 labels,
             )
@@ -307,7 +321,7 @@ class Trainer:
             total_triplet += triplet_loss.item() * batch_size
 
             predictions = torch.argmax(
-                logits,
+                pred_logits,
                 dim=1,
             )
 
@@ -354,13 +368,13 @@ class Trainer:
                     self.device,
                 )
 
-                logits, embeddings = model(
+                loss_logits, pred_logits, embeddings = model(
                     images,
                     labels=labels,
                 )
 
                 loss, ce_loss, triplet_loss = criterion(
-                    logits,
+                    loss_logits,
                     embeddings,
                     labels,
                 )
@@ -374,7 +388,7 @@ class Trainer:
                 total_triplet += triplet_loss.item() * batch_size
 
                 predictions = torch.argmax(
-                    logits,
+                    pred_logits,
                     dim=1,
                 )
 

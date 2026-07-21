@@ -1,6 +1,8 @@
+import random
 from pathlib import Path
 
 import cv2
+import numpy as np
 import torch
 from torch.utils.data import Dataset
 
@@ -12,11 +14,13 @@ class GEIDataset(Dataset):
         image_size: tuple[int, int] = (64, 128),
         max_classes: int | None = None,
         max_samples: int | None = None,
+        augment: bool = False,
     ) -> None:
         self.root_dir = Path(root_dir)
         self.image_size = image_size
         self.max_classes = max_classes
         self.max_samples = max_samples
+        self.augment = augment
 
         self.samples = []
         self.label_to_index = {}
@@ -64,9 +68,25 @@ class GEIDataset(Dataset):
             raise RuntimeError(f"Failed to read image: {sample['path']}")
 
         image = cv2.resize(image, self.image_size)
+
+        if self.augment:
+            if random.random() > 0.5:
+                image = cv2.flip(image, 1)
+            if random.random() > 0.5:
+                dx = random.randint(-3, 3)
+                dy = random.randint(-3, 3)
+                M = np.float32([[1, 0, dx], [0, 1, dy]])
+                image = cv2.warpAffine(
+                    image,
+                    M,
+                    (self.image_size[0], self.image_size[1]),
+                    borderMode=cv2.BORDER_CONSTANT,
+                    borderValue=0,
+                )
+
         image = image.astype("float32") / 255.0
 
         tensor = torch.from_numpy(image).unsqueeze(0)
         label = torch.tensor(sample["label"], dtype=torch.long)
 
-        return tensor, label
+        return tensor, label

@@ -1,4 +1,5 @@
 import json
+import time
 from pathlib import Path
 
 import cv2
@@ -251,6 +252,7 @@ class SplitEvaluator:
         false_match = 0
         false_non_match = 0
         tested = 0
+        inference_times = []
 
         # Array to track cumulative matches at ranks 1 to 10
         cmc_ranks = [0] * 10
@@ -259,6 +261,8 @@ class SplitEvaluator:
             test_items,
             desc="Split Evaluation",
         ):
+            t_start = time.perf_counter()
+
             query_feature = self._image_to_embedding(
                 image_path,
             )
@@ -270,6 +274,9 @@ class SplitEvaluator:
                 metadata=metadata,
                 k=10,
             )
+
+            t_end = time.perf_counter()
+            inference_times.append(t_end - t_start)
 
             if not top10:
                 predicted_id = "UNKNOWN"
@@ -357,6 +364,18 @@ class SplitEvaluator:
         plt.savefig(self.report_dir / "cmc_curve.png")
         plt.close()
 
+        total_inference_time = sum(inference_times) if inference_times else 0.0
+        avg_inference_time_ms = (
+            (total_inference_time / len(inference_times)) * 1000.0
+            if inference_times
+            else 0.0
+        )
+        eval_fps = (
+            len(inference_times) / total_inference_time
+            if total_inference_time > 0
+            else 0.0
+        )
+
         summary.update(
             {
                 "total": tested,
@@ -371,6 +390,8 @@ class SplitEvaluator:
                 "fnmr": fnmr,
                 "eer": roc_summary["eer"],
                 "roc_auc": roc_summary["roc_auc"],
+                "avg_inference_time_ms": round(avg_inference_time_ms, 4),
+                "fps": round(eval_fps, 2),
                 "gallery_size": int(
                     len(
                         gallery_labels,

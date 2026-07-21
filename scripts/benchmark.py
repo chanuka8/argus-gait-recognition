@@ -78,6 +78,8 @@ def benchmark_single_inference(
         "image_path": image_path,
         "pipeline_init_seconds": init_time,
         "prediction_seconds": predict_time,
+        "prediction_time_ms": round(predict_time * 1000.0, 4),
+        "fps": round(1.0 / predict_time, 2) if predict_time > 0 else 0.0,
         "identity": identity,
         "score": score,
         "reason": reason,
@@ -96,17 +98,46 @@ def save_report(report: dict) -> Path:
     return output_file
 
 
+def benchmark_inference_average(
+    image_path: str = "data/casia_processed/gei/034/034_nm-01_126.png",
+    num_iterations: int = 10,
+) -> dict:
+    pipeline = InferencePipeline(gallery_dir="models/gallery")
+
+    inference_times = []
+
+    for _ in range(num_iterations):
+        t_start = time.perf_counter()
+        pipeline.predict(image_path)
+        t_end = time.perf_counter()
+        inference_times.append(t_end - t_start)
+
+    times_ms = [t * 1000.0 for t in inference_times]
+    total_time = sum(inference_times)
+
+    return {
+        "num_iterations": num_iterations,
+        "avg_inference_time_ms": round(sum(times_ms) / len(times_ms), 4),
+        "min_inference_time_ms": round(min(times_ms), 4),
+        "max_inference_time_ms": round(max(times_ms), 4),
+        "fps": round(num_iterations / total_time, 2) if total_time > 0 else 0.0,
+    }
+
+
 def main() -> None:
     start_total = time.perf_counter()
 
     gallery_result = benchmark_gallery_load()
     inference_result = benchmark_single_inference()
 
+    inference_avg = benchmark_inference_average()
+
     total_time = time.perf_counter() - start_total
 
     report = {
         "gallery_load": gallery_result,
         "single_inference": inference_result,
+        "inference_average": inference_avg,
         "total_benchmark_seconds": total_time,
     }
 
@@ -122,6 +153,10 @@ def main() -> None:
     for key, value in inference_result.items():
         if key == "reason" and value is None:
             continue
+        print(f"  {key}: {value}")
+
+    print("\nInference Average:")
+    for key, value in inference_avg.items():
         print(f"  {key}: {value}")
 
     print(f"\nTotal benchmark seconds: {total_time:.4f}")

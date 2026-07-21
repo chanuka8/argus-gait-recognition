@@ -2,6 +2,7 @@ import argparse
 import csv
 import json
 import sys
+import time
 from pathlib import Path
 from collections import defaultdict
 import numpy as np
@@ -115,7 +116,11 @@ class SweepEvaluator(SplitEvaluator):
         self.metrics = EvaluationMetrics()
         self.roc = ROCAnalyzer()
 
+        inference_times = []
+
         for idx, (_, actual_id) in enumerate(test_items):
+            t_start = time.perf_counter()
+
             query_scores = scores[idx]
             # Get indices sorted by score descending
             top10_idx = np.argsort(query_scores)[::-1][:10]
@@ -161,6 +166,9 @@ class SweepEvaluator(SplitEvaluator):
                 is_match=actual_id in top_ids[:1],
             )
 
+            t_end = time.perf_counter()
+            inference_times.append(t_end - t_start)
+
         summary = self.metrics.summary()
 
         rank1_accuracy = rank1 / tested if tested else 0.0
@@ -172,6 +180,18 @@ class SweepEvaluator(SplitEvaluator):
 
         roc_summary = self.roc.compute(
             output_path=self.report_dir / f"roc_curve_{self.threshold:.2f}.png",
+        )
+
+        total_inference_time = sum(inference_times) if inference_times else 0.0
+        avg_inference_time_ms = (
+            (total_inference_time / len(inference_times)) * 1000.0
+            if inference_times
+            else 0.0
+        )
+        eval_fps = (
+            len(inference_times) / total_inference_time
+            if total_inference_time > 0
+            else 0.0
         )
 
         summary.update(
@@ -188,6 +208,8 @@ class SweepEvaluator(SplitEvaluator):
                 "fnmr": fnmr,
                 "eer": roc_summary["eer"],
                 "roc_auc": roc_summary["roc_auc"],
+                "avg_inference_time_ms": round(avg_inference_time_ms, 4),
+                "fps": round(eval_fps, 2),
                 "gallery_size": int(len(gallery_labels)),
                 "test_size_available": int(len(test_items)),
                 "gallery_ratio": self.gallery_ratio,
@@ -246,12 +268,17 @@ def main() -> None:
                 "rank1_accuracy": results["rank1_accuracy"],
                 "rank5_accuracy": results["rank5_accuracy"],
                 "rank10_accuracy": results["rank10_accuracy"],
+                "precision": results["precision"],
+                "recall": results["recall"],
+                "f1_score": results["f1_score"],
                 "false_match_count": results["false_match_count"],
                 "false_non_match_count": results["false_non_match_count"],
                 "fmr": results["fmr"],
                 "fnmr": results["fnmr"],
                 "eer": results["eer"],
                 "roc_auc": results["roc_auc"],
+                "avg_inference_time_ms": results["avg_inference_time_ms"],
+                "fps": results["fps"],
             }
         )
 
@@ -277,12 +304,17 @@ def main() -> None:
                 "rank1_accuracy",
                 "rank5_accuracy",
                 "rank10_accuracy",
+                "precision",
+                "recall",
+                "f1_score",
                 "false_match_count",
                 "false_non_match_count",
                 "fmr",
                 "fnmr",
                 "eer",
                 "roc_auc",
+                "avg_inference_time_ms",
+                "fps",
             ],
         )
         writer.writeheader()
@@ -292,21 +324,26 @@ def main() -> None:
     print("\n=== THRESHOLD SWEEP SUMMARY TABLE (Sorted by Rank-1 Accuracy) ===")
     print(
         f"{'Threshold':<10} | {'Rank-1 Acc':<12} | {'Rank-5 Acc':<12} | {'Rank-10 Acc':<12} | "
-        f"{'False Match':<12} | {'False Non-Match':<16} | {'FMR':<8} | {'FNMR':<8} | {'EER':<8} | {'ROC AUC':<8}"
+        f"{'Precision':<10} | {'Recall':<10} | {'F1':<10} | "
+        f"{'FMR':<8} | {'FNMR':<8} | {'EER':<8} | {'ROC AUC':<8} | "
+        f"{'Avg ms':<10} | {'FPS':<8}"
     )
-    print("-" * 135)
+    print("-" * 165)
     for res in sorted_results:
         print(
             f"{res['threshold']:<10.2f} | "
             f"{res['rank1_accuracy']:<12.4f} | "
             f"{res['rank5_accuracy']:<12.4f} | "
             f"{res['rank10_accuracy']:<12.4f} | "
-            f"{res['false_match_count']:<12} | "
-            f"{res['false_non_match_count']:<16} | "
+            f"{res['precision']:<10.4f} | "
+            f"{res['recall']:<10.4f} | "
+            f"{res['f1_score']:<10.4f} | "
             f"{res['fmr']:<8.4f} | "
             f"{res['fnmr']:<8.4f} | "
             f"{res['eer']:<8.4f} | "
-            f"{res['roc_auc']:<8.4f}"
+            f"{res['roc_auc']:<8.4f} | "
+            f"{res['avg_inference_time_ms']:<10.4f} | "
+            f"{res['fps']:<8.2f}"
         )
 
     print(f"\nSaved JSON report -> {json_path}")
