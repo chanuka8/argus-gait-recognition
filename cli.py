@@ -162,9 +162,7 @@ def recognize_folder(args=None) -> None:
     threshold = getattr(args, "threshold", None) or 0.70
 
     if output is None:
-        typed_output = input(
-            "Enter output CSV path or press Enter to skip: "
-        ).strip()
+        typed_output = input("Enter output CSV path or press Enter to skip: ").strip()
         output = typed_output or None
 
     command = [
@@ -204,15 +202,11 @@ def recognize_video(args=None) -> None:
     show = bool(getattr(args, "show", False))
 
     if output is None:
-        typed_output = input(
-            "Enter output CSV path or press Enter to skip: "
-        ).strip()
+        typed_output = input("Enter output CSV path or press Enter to skip: ").strip()
         output = typed_output or None
 
     if not show and getattr(args, "video", None) is None:
-        show_input = input(
-            "Show video window? y/n: "
-        ).strip().lower()
+        show_input = input("Show video window? y/n: ").strip().lower()
         show = show_input == "y"
 
     command = [
@@ -303,9 +297,7 @@ def remove_numeric_identities(args=None) -> None:
     if not confirm:
         print("\nThis will remove all numeric CASIA-B IDs from gallery.")
         print("Run with --confirm to apply.")
-        print(
-            "Example: python cli.py --mode clean-numeric-gallery --confirm"
-        )
+        print("Example: python cli.py --mode clean-numeric-gallery --confirm")
         return
 
     run_command(command)
@@ -658,6 +650,7 @@ def docs_check(args=None) -> int:
     doc_path = docs_dir / "matching_person_detection.md"
     try:
         import yaml
+
         config_path = Path("configs/inference.yaml")
         threshold = 0.85
         if config_path.exists():
@@ -666,13 +659,14 @@ def docs_check(args=None) -> int:
                 threshold = cfg_data.get("matching_policy", {}).get("confirmed_threshold", 0.92)
 
         import numpy as np
+
         gallery_feat_path = Path("models/gallery/gallery_features.npy")
         gallery_lbl_path = Path("models/gallery/gallery_labels.npy")
 
         num_templates = 0
         num_subjects = 0
         if gallery_feat_path.exists() and gallery_lbl_path.exists():
-            features = np.load(str(gallery_feat_path))
+            _features = np.load(str(gallery_feat_path))
             labels = np.load(str(gallery_lbl_path))
             num_templates = len(labels)
             num_subjects = len(np.unique(labels))
@@ -729,7 +723,7 @@ Detections are classified into the following statuses based on the confidence sc
 """
         with open(doc_path, "w", encoding="utf-8") as f:
             f.write(content.strip() + "\n")
-        print(f"[OK] Automatically generated: docs/matching_person_detection.md")
+        print("[OK] Automatically generated: docs/matching_person_detection.md")
     except Exception as e:
         print(f"[ERROR] Failed to auto-generate docs: {e}")
         return 1
@@ -744,12 +738,7 @@ Detections are classified into the following statuses based on the confidence sc
                 print(f"[WARNING] Failed to delete docs/{item.name}: {e}")
 
     # 4. Perform documentation checks
-    required_files = [
-        "README.md",
-        "requirements.txt",
-        "Makefile",
-        "docs/matching_person_detection.md"
-    ]
+    required_files = ["README.md", "requirements.txt", "Makefile", "docs/matching_person_detection.md"]
     missing = False
     for file_name in required_files:
         path = Path(file_name)
@@ -765,8 +754,6 @@ Detections are classified into the following statuses based on the confidence sc
 
     print("\nARGUS documentation check completed successfully.")
     return 0
-
-
 
 
 def demo(args=None) -> None:
@@ -800,9 +787,7 @@ def demo(args=None) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        description="ARGUS AI Command Line Interface"
-    )
+    parser = argparse.ArgumentParser(description="ARGUS AI Command Line Interface")
 
     parser.add_argument(
         "--mode",

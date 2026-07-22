@@ -7,7 +7,6 @@ import time
 from pathlib import Path
 
 import cv2
-import numpy as np
 import yaml
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -68,7 +67,6 @@ class ArgusService:
         return pipeline
 
     def _recognition_worker(self) -> None:
-        detection_logger = get_logger("detection")
         error_logger = get_logger("error")
 
         self._logger.info("Recognition worker starting (Phase 2 Intelligence Pipeline)...")
@@ -214,17 +212,13 @@ class ArgusService:
         self._logger.info("Camera service restarted.")
 
     def _write_pid(self) -> None:
-        pid_path = Path(
-            self._config.get("service", {}).get("pid_file", "outputs/argus.pid")
-        )
+        pid_path = Path(self._config.get("service", {}).get("pid_file", "outputs/argus.pid"))
         pid_path.parent.mkdir(parents=True, exist_ok=True)
         pid_path.write_text(str(os.getpid()), encoding="utf-8")
         self._logger.info(f"PID {os.getpid()} written to {pid_path}")
 
     def _remove_pid(self) -> None:
-        pid_path = Path(
-            self._config.get("service", {}).get("pid_file", "outputs/argus.pid")
-        )
+        pid_path = Path(self._config.get("service", {}).get("pid_file", "outputs/argus.pid"))
 
         try:
             if pid_path.exists():
@@ -239,9 +233,7 @@ class ArgusService:
 
     def start(self) -> None:
         self._start_time = time.monotonic()
-        service_name = self._config.get("service", {}).get(
-            "name", "ARGUS AI Gait Recognition"
-        )
+        service_name = self._config.get("service", {}).get("name", "ARGUS AI Gait Recognition")
 
         self._logger.info("=" * 60)
         self._logger.info(f"{service_name} — Starting")
@@ -296,9 +288,7 @@ class ArgusService:
         self._remove_pid()
 
         uptime = time.monotonic() - self._start_time if self._start_time else 0
-        self._logger.info(
-            f"ARGUS service stopped. Uptime: {uptime:.1f}s, Restarts: {self._restart_count}"
-        )
+        self._logger.info(f"ARGUS service stopped. Uptime: {uptime:.1f}s, Restarts: {self._restart_count}")
 
     def get_status(self) -> dict:
         uptime = time.monotonic() - self._start_time if self._start_time else 0

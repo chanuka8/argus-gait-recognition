@@ -3,9 +3,8 @@
 import time
 import unittest
 from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock
 
-import numpy as np
 import yaml
 
 from monitoring.camera_monitor import CameraMonitor

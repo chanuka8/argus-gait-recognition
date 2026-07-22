@@ -1,12 +1,10 @@
 import threading
 import time
-from pathlib import Path
 from queue import Empty, Full, Queue
 
 import cv2
 import numpy as np
 
-from core.logger import setup_logger
 from monitoring.logging_config import get_logger
 
 
@@ -118,9 +116,7 @@ class CameraWorker:
         while not self._stop_event.is_set():
             if self._capture is None or not self._capture.isOpened():
                 if self._max_reconnect > 0 and reconnect_attempts >= self._max_reconnect:
-                    self._logger.error(
-                        f"Max reconnect attempts ({self._max_reconnect}) reached. Stopping."
-                    )
+                    self._logger.error(f"Max reconnect attempts ({self._max_reconnect}) reached. Stopping.")
                     break
 
                 self._logger.warning(
@@ -161,9 +157,7 @@ class CameraWorker:
                 elapsed = time.monotonic() - self._last_fps_time
                 if elapsed >= 1.0:
                     with self._lock:
-                        self.stats["fps"] = (
-                            (self._frame_count - self._last_fps_count) / elapsed
-                        )
+                        self.stats["fps"] = (self._frame_count - self._last_fps_count) / elapsed
                         self.stats["queue_size"] = self._frame_queue.qsize()
                         self.stats["uptime_seconds"] = time.monotonic() - self._start_time
 
