@@ -4,7 +4,7 @@ install:
 	pip install -r requirements.txt
 
 install-dev:
-	pip install -r requirements-dev.txt
+	pip install -r requirements.txt
 
 health:
 	python cli.py --mode health

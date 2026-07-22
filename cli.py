@@ -747,7 +747,6 @@ Detections are classified into the following statuses based on the confidence sc
     required_files = [
         "README.md",
         "requirements.txt",
-        "requirements-dev.txt",
         "Makefile",
         "docs/matching_person_detection.md"
     ]

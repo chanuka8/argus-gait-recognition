@@ -22,7 +22,6 @@ DIRS = [
     "storage",
     "streaming",
     "monitoring",
-    "registry",
     "api/routes",
     "tests/unit",
     "tests/integration",
@@ -147,10 +146,6 @@ PY_FILES = [
     "monitoring/metrics_collector.py",
     "monitoring/performance_profiler.py",
 
-    "registry/__init__.py",
-    "registry/model_registry.py",
-    "registry/experiment_tracker.py",
-
     "api/__init__.py",
     "api/server.py",
     "api/schemas.py",
@@ -235,8 +230,6 @@ TEXT_FILES = {
         "scikit-learn\n"
         "tqdm\n"
     ),
-
-    "requirements-dev.txt": "pytest\nblack\nruff\nmypy\n",
 
     "README.md": (
         "# ARGUS AI Surveillance System\n\n"
