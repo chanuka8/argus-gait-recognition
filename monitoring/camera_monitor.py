@@ -30,7 +30,7 @@ class CameraMonitor:
         self.stats_dir.mkdir(parents=True, exist_ok=True)
 
         self._stats_history: Dict[str, list] = {}
-        self._alerts: Dict[str, list] = []
+        self._alerts: Dict[str, list] = {}
 
     def start(self) -> None:
         """Start monitoring."""

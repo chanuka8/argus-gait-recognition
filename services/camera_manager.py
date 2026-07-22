@@ -33,6 +33,17 @@ class CameraManager:
 
     def _load_config(self) -> None:
         """Load camera configuration from YAML."""
+        self.cameras_config = {}
+        self.defaults = {
+            "width": 640,
+            "height": 480,
+            "target_fps": 15,
+            "reconnect_interval": 5,
+            "max_reconnect_attempts": 3,
+            "max_queue_size": 10,
+        }
+        self.multi_camera_config = {}
+
         if not self.config_path.exists():
             self._logger.error(f"Config file not found: {self.config_path}")
             return
