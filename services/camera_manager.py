@@ -53,7 +53,7 @@ class CameraManager:
                 config = yaml.safe_load(f) or {}
 
             self.cameras_config = config.get("cameras", {})
-            self.defaults = config.get("defaults", {})
+            self.defaults = {**self.defaults, **config.get("defaults", {})}
             self.multi_camera_config = config.get("multi_camera", {})
 
             self._logger.info(f"Loaded {len(self.cameras_config)} camera configurations")
@@ -61,7 +61,6 @@ class CameraManager:
         except Exception as e:
             self._logger.error(f"Failed to load config: {str(e)}")
             self.cameras_config = {}
-            self.defaults = {}
             self.multi_camera_config = {}
 
     def _create_worker(self, camera_id: str, camera_config: dict) -> Optional[CameraWorker]:
