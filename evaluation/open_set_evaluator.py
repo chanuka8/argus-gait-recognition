@@ -1,201 +1,167 @@
 import csv
 import json
+import sys
 import time
-
+from pathlib import Path
 import numpy as np
 
-from evaluation.evaluator import SplitEvaluator
-from pipeline.steps.centroid_matching_step import CentroidMatchingStep
+ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from evaluation.evaluator import SubjectDisjointEvaluator
+from evaluation.gallery_probe_builder import build_gallery_and_probe_sets
+from evaluation.leakage_validator import assert_gallery_probe_disjointness
+from evaluation.metrics import compute_biometric_rates, compute_roc_auc_eer
 
 
-class OpenSetEvaluator(SplitEvaluator):
+class SubjectDisjointOpenSetEvaluator(SubjectDisjointEvaluator):
+    """
+    Evaluates open-set identification and unknown subject rejection performance
+    using held-out test subjects partitioned into Known Enrolled vs Unknown Open-Set identities.
+    """
+
     def __init__(
         self,
         gei_root: str = "data/casia_processed/gei",
         model_path: str = "runs/exp_001/best_model.pth",
-        gallery_ratio: float = 0.5,
+        split_config_path: str = "configs/subject_split.json",
         threshold: float = 0.85,
-        known_ratio: float = 0.6,
-        report_dir: str = "outputs/eval_reports",
+        known_ratio: float = 0.5,
+        report_dir: str = "runs/exp_001/evaluation_subject_disjoint",
     ) -> None:
-        self.known_ratio = known_ratio
         super().__init__(
             gei_root=gei_root,
             model_path=model_path,
-            gallery_ratio=gallery_ratio,
+            split_config_path=split_config_path,
             threshold=threshold,
             report_dir=report_dir,
         )
-        self.centroid_matcher = CentroidMatchingStep(
-            threshold=threshold,
-            margin=0.05,
-            top_k=5,
+        self.known_ratio = known_ratio
+
+    def evaluate_open_set_protocol(self) -> dict:
+        test_subjects = sorted(self.split_manifest["test_subjects"])
+        num_known = max(1, int(len(test_subjects) * self.known_ratio))
+
+        known_test_subjects = test_subjects[:num_known]       # e.g., 075-099
+        unknown_test_subjects = test_subjects[num_known:]     # e.g., 100-124
+
+        # Build gallery for KNOWN test subjects ONLY
+        gallery_items, _ = build_gallery_and_probe_sets(
+            subjects=known_test_subjects,
+            gei_root=str(self.gei_root),
         )
 
-    def _build_open_set_data(self):
-        all_subjects = sorted([d.name for d in self.gei_root.iterdir() if d.is_dir()])
-        num_subjects = len(all_subjects)
-
-        num_known = int(num_subjects * self.known_ratio)
-        num_known = max(1, min(num_known, num_subjects - 1))
-
-        known_ids = set(all_subjects[:num_known])
-        unknown_ids = set(all_subjects[num_known:])
-
-        gallery_features = []
-        gallery_labels = []
-        test_items = []
-        metadata = {}
-
-        for person_dir in sorted(self.gei_root.iterdir()):
-            if not person_dir.is_dir():
-                continue
-
-            person_id = person_dir.name
-            image_paths = list(person_dir.glob("*.png"))
-            if len(image_paths) < 2:
-                continue
-
-            if person_id in known_ids:
-                gallery_images, test_images = self._split_person_images(image_paths)
-                for img_path in gallery_images:
-                    gallery_features.append(self._image_to_embedding(img_path))
-                    gallery_labels.append(person_id)
-
-                metadata[person_id] = {
-                    "embeddings": len(gallery_images),
-                    "status": "ACTIVE",
-                    "enabled": True,
-                    "source": "EVALUATION",
-                }
-
-                for img_path in test_images:
-                    test_items.append((img_path, person_id, True))
-            else:
-                for img_path in image_paths:
-                    test_items.append((img_path, person_id, False))
-
-        return (
-            np.asarray(gallery_features, dtype=np.float32),
-            np.asarray(gallery_labels),
-            metadata,
-            test_items,
-            known_ids,
-            unknown_ids,
+        # Build probes for ALL test subjects (both known and unknown)
+        _, probe_items = build_gallery_and_probe_sets(
+            subjects=test_subjects,
+            gei_root=str(self.gei_root),
         )
 
-    def evaluate_open_set(self, max_test_images: int | None = None, matching_mode: str = "flat") -> dict:
-        (
-            gallery_features,
-            gallery_labels,
-            metadata,
-            test_items,
-            known_ids,
-            unknown_ids,
-        ) = self._build_open_set_data()
+        # Disjointness assertion: ensure unknown test subjects DO NOT exist in gallery
+        assert_gallery_probe_disjointness(
+            gallery_paths=[i["path"] for i in gallery_items],
+            probe_paths=[i["path"] for i in probe_items],
+            train_subjects=self.split_manifest["train_subjects"],
+            unknown_subjects=unknown_test_subjects,
+            gallery_subjects=[i["subject_id"] for i in gallery_items],
+        )
 
-        if max_test_images is not None:
-            import random
-            rng = random.Random(42)
-            rng.shuffle(test_items)
-            test_items = test_items[:max_test_images]
+        print(f"Extracting features for Open-Set Evaluation ({len(gallery_items)} gallery, {len(probe_items)} probes)...")
+        gal_features = np.asarray([self.image_to_embedding(Path(i["path"])) for i in gallery_items], dtype=np.float32)
+        gal_labels = np.asarray([i["subject_id"] for i in gallery_items])
 
-        tp = 0  # True Positive
-        fp = 0  # False Positive
-        tn = 0  # True Negative
-        fn = 0  # False Negative
+        metadata = {sub: {"status": "ACTIVE", "enabled": True} for sub in set(gal_labels)}
 
-        correct_known = 0
-        total_known = 0
-        total_unknown = 0
-        inference_times = []
+        scores = []
+        is_genuine = []
+        probe_details = []
 
-        self.centroid_matcher.threshold = self.threshold
+        known_set = set(known_test_subjects)
 
-        for image_path, actual_id, is_known in test_items:
-            t_start = time.perf_counter()
+        for prb in probe_items:
+            prb_feat = self.image_to_embedding(Path(prb["path"]))
+            actual_id = prb["subject_id"]
 
-            query_feature = self._image_to_embedding(image_path)
-
-            predicted_id, score = self.centroid_matcher.match(
-                query_feature=query_feature,
-                gallery_features=gallery_features,
-                gallery_labels=gallery_labels,
+            matches = self.matcher.top_k_matches(
+                query_feature=prb_feat,
+                gallery_features=gal_features,
+                gallery_labels=gal_labels,
                 metadata=metadata,
-                mode=matching_mode,
+                k=1,
             )
 
-            t_end = time.perf_counter()
-            inference_times.append(t_end - t_start)
+            best_id, best_score = matches[0] if matches else ("UNKNOWN", 0.0)
+            scores.append(best_score)
 
-            if is_known:
-                total_known += 1
-                if predicted_id == actual_id:
-                    tp += 1
-                    correct_known += 1
-                elif predicted_id == "UNKNOWN":
-                    fn += 1
-                else:
-                    fp += 1
-            else:
-                total_unknown += 1
-                if predicted_id == "UNKNOWN":
-                    tn += 1
-                else:
-                    fp += 1
+            is_gen = actual_id in known_set and actual_id == best_id
+            is_genuine.append(is_gen)
 
-        known_accuracy = correct_known / total_known if total_known else 0.0
-        unknown_rejection_rate = tn / total_unknown if total_unknown else 0.0
-        false_accept_rate = (total_unknown - tn) / total_unknown if total_unknown else 0.0
-        false_reject_rate = fn / total_known if total_known else 0.0
+            probe_details.append({
+                "probe_path": prb["path"],
+                "actual_id": actual_id,
+                "is_known_subject": actual_id in known_set,
+                "predicted_id": best_id,
+                "score": best_score,
+                "is_genuine_match": is_gen,
+            })
 
-        precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
-        recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
-        f1_score = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
+        scores_arr = np.asarray(scores, dtype=np.float32)
+        is_genuine_arr = np.asarray(is_genuine, dtype=bool)
 
-        total_inference_time = sum(inference_times) if inference_times else 0.0
-        avg_inference_time_ms = (
-            (total_inference_time / len(inference_times)) * 1000.0
-            if inference_times
-            else 0.0
-        )
-        eval_fps = (
-            len(inference_times) / total_inference_time
-            if total_inference_time > 0
-            else 0.0
-        )
+        # Compute ROC and EER across score range
+        roc_results = compute_roc_auc_eer(scores_arr, is_genuine_arr, num_thresholds=200)
 
-        results = {
-            "TP": tp,
-            "FP": fp,
-            "TN": tn,
-            "FN": fn,
-            "precision": round(precision, 6),
-            "recall": round(recall, 6),
-            "f1_score": round(f1_score, 6),
-            "known_accuracy": known_accuracy,
-            "unknown_rejection_rate": unknown_rejection_rate,
-            "false_accept_rate": false_accept_rate,
-            "false_reject_rate": false_reject_rate,
-            "avg_inference_time_ms": round(avg_inference_time_ms, 4),
-            "fps": round(eval_fps, 2),
-            "total_known": total_known,
-            "total_unknown": total_unknown,
-            "total_tested": len(test_items),
-            "threshold": self.threshold,
-            "known_ratio": self.known_ratio,
-            "matching_mode": matching_mode,
+        # Compute biometric rates at operating threshold
+        operating_rates = compute_biometric_rates(scores_arr, is_genuine_arr, threshold=self.threshold)
+
+        # Verify that FAR/FRR metrics change across thresholds
+        far_values = roc_results["far_list"]
+        if len(set(far_values)) <= 1:
+            raise ValueError("CRITICAL METRIC FAILURE: FAR metrics do not change across threshold sweep! Score distribution is degenerate.")
+
+        report = {
+            "evaluation_type": "Subject-Disjoint Open-Set Identification",
+            "checkpoint": str(self.model_path),
+            "split_manifest_path": "configs/subject_split.json",
+            "operating_threshold": self.threshold,
+            "known_test_subjects": known_test_subjects,
+            "unknown_test_subjects": unknown_test_subjects,
+            "gallery_samples_count": len(gallery_items),
+            "total_probe_count": len(probe_items),
+            "known_probe_count": sum(1 for p in probe_details if p["is_known_subject"]),
+            "unknown_probe_count": sum(1 for p in probe_details if not p["is_known_subject"]),
+            "ROC_AUC": round(roc_results["roc_auc"], 4),
+            "EER": round(roc_results["eer"], 4),
+            "EER_threshold": round(roc_results["eer_threshold"], 4),
+            "operating_metrics": operating_rates,
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
         }
 
-        self.report_dir.mkdir(parents=True, exist_ok=True)
-        report_json_path = self.report_dir / "open_set_report.json"
-        with open(report_json_path, "w", encoding="utf-8") as f:
-            json.dump(results, f, indent=4)
+        # Save report JSON
+        json_path = self.report_dir / "open_set_report.json"
+        with open(json_path, "w", encoding="utf-8") as f:
+            json.dump(report, f, indent=4)
 
-        report_csv_path = self.report_dir / "open_set_report.csv"
-        with open(report_csv_path, "w", newline="", encoding="utf-8") as f:
+        # Save scores JSON
+        scores_path = self.report_dir / "open_set_scores.json"
+        with open(scores_path, "w", encoding="utf-8") as f:
+            json.dump(probe_details, f, indent=2)
+
+        # Save CSV
+        csv_path = self.report_dir / "open_set_report.csv"
+        with open(csv_path, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
-            writer.writerow(results.keys())
-            writer.writerow(results.values())
+            writer.writerow(["Metric", "Value"])
+            writer.writerow(["ROC_AUC", report["ROC_AUC"]])
+            writer.writerow(["EER", report["EER"]])
+            writer.writerow(["EER_threshold", report["EER_threshold"]])
+            writer.writerow(["FAR", operating_rates["FAR"]])
+            writer.writerow(["FRR", operating_rates["FRR"]])
+            writer.writerow(["TAR", operating_rates["TAR"]])
+            writer.writerow(["TNR", operating_rates["TNR"]])
+            writer.writerow(["Precision", operating_rates["precision"]])
+            writer.writerow(["Recall", operating_rates["recall"]])
+            writer.writerow(["F1_Score", operating_rates["f1_score"]])
 
-        return results
+        return report
