@@ -1,0 +1,5 @@
+max_frames: 15
+min_frames: 10
+target_size: [64, 128]
+auto_clear_on_build: false
+idle_timeout_seconds: 10.0

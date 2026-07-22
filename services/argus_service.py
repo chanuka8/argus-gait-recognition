@@ -15,7 +15,10 @@ if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
 from monitoring.logging_config import get_logger, init_logging
-from pipeline.steps.live_gei import LiveGEI
+from pipeline.detection import PersonDetector
+from pipeline.gei import StreamGEIBuilder
+from pipeline.silhouette import SilhouetteExtractor
+from pipeline.tracking import PersonTracker
 from services.camera_service import CameraService
 
 
@@ -68,12 +71,17 @@ class ArgusService:
         detection_logger = get_logger("detection")
         error_logger = get_logger("error")
 
-        self._logger.info("Recognition worker starting...")
+        self._logger.info("Recognition worker starting (Phase 2 Intelligence Pipeline)...")
         self._recognition_alive = True
 
         try:
             pipeline = self._build_pipeline()
-            self._logger.info("Recognition pipeline built successfully.")
+            detector = PersonDetector()
+            tracker = PersonTracker()
+            extractor = SilhouetteExtractor()
+            gei_builder = StreamGEIBuilder()
+
+            self._logger.info("Phase 2 modular pipeline components initialized successfully.")
 
             headless = self._config.get("service", {}).get("headless", False)
             frame_count = 0
@@ -92,74 +100,46 @@ class ArgusService:
                 frame_count += 1
 
                 try:
-                    detections = pipeline.tracker.track(frame)
-
-                    xyxy = detections.xyxy
-                    tracker_ids = detections.tracker_id
-
-                    raw_detections = []
-
-                    if tracker_ids is not None:
-                        confidences = getattr(detections, "confidence", None)
-
-                        for i in range(len(tracker_ids)):
-                            raw_detections.append((
-                                int(tracker_ids[i]),
-                                xyxy[i],
-                                float(confidences[i]) if confidences is not None else 1.0,
-                            ))
-
-                    stable_results = pipeline.box_stabilizer.update(
-                        raw_detections,
-                        frame.shape,
-                    )
+                    raw_detections = detector.detect(frame)
+                    tracked_objects = tracker.update(raw_detections, frame.shape)
 
                     pipeline.current_frame_index += 1
 
-                    for track_id, (stable_box, is_valid, is_predicted) in stable_results.items():
-                        if not is_valid:
-                            continue
+                    for obj in tracked_objects:
+                        track_id = obj["track_id"]
+                        bbox = obj["bbox"]
 
-                        raw_detected = (tracker_ids is not None) and (track_id in tracker_ids)
-                        raw_box = None
+                        silhouette = extractor.extract_from_frame(frame, bbox)
 
-                        if raw_detected:
-                            raw_box = xyxy[list(tracker_ids).index(track_id)]
+                        if silhouette is not None:
+                            gei_builder.add_silhouette(track_id, silhouette)
 
-                        if raw_detected:
-                            box_to_crop = (
-                                stable_box
-                                if pipeline.box_stability_config.get("use_stable_box_for_silhouette", True)
-                                else raw_box
-                            )
+                        if gei_builder.is_ready(track_id) and pipeline._should_recognize(track_id):
+                            gei = gei_builder.build_gei(track_id)
 
-                            crop = pipeline._crop_person(frame, box_to_crop)
+                            if gei is not None:
+                                identity, score, decision = pipeline._match_gait(gei)
+                                stable_id = pipeline._final_identity(track_id, identity, score)
 
-                            if crop is not None:
-                                silhouette = pipeline.silhouette_step.extract_from_crop(crop)
+                                pipeline.last_results[track_id] = {
+                                    "identity": stable_id,
+                                    "score": score,
+                                    "decision": decision,
+                                }
 
-                                if silhouette is not None:
-                                    if track_id not in pipeline.buffers:
-                                        pipeline.buffers[track_id] = LiveGEI(
-                                            max_frames=pipeline.gei_frames,
-                                        )
-
-                                    pipeline.buffers[track_id].add(silhouette)
-
-                        if (
-                            track_id in pipeline.buffers
-                            and pipeline.buffers[track_id].ready()
-                            and pipeline._should_recognize(track_id)
-                        ):
-                            pipeline._recognize_track(track_id, is_predicted)
+                                pipeline.reporter.report(
+                                    camera_id=pipeline.camera_id,
+                                    location=pipeline.camera_location,
+                                    track_id=track_id,
+                                    identity=stable_id,
+                                    status=pipeline.renderer.get_status(decision),
+                                    score=score,
+                                    bbox=bbox,
+                                    frame=frame,
+                                )
 
                         if not headless:
-                            box_to_draw = (
-                                stable_box
-                                if pipeline.box_stability_config.get("use_stable_box_for_display", True)
-                                else (raw_box if raw_detected else stable_box)
-                            )
-                            pipeline._draw_track(frame, box_to_draw, track_id, is_predicted)
+                            pipeline._draw_track(frame, bbox, track_id, False)
 
                     if not headless:
                         cv2.imshow("ARGUS AI Service", frame)
@@ -168,6 +148,10 @@ class ArgusService:
                             self._logger.info("Quit signal received from GUI.")
                             self._stop_event.set()
                             break
+
+                    if frame_count % 300 == 0:
+                        tracker.cleanup_inactive()
+                        gei_builder.cleanup_inactive()
 
                 except Exception as error:
                     error_logger.error(
