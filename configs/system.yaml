@@ -1,0 +1,76 @@
+# ARGUS AI Production System Configuration
+
+camera:
+  # "rtsp" for RTSP/CCTV streams, "usb" for local USB camera, "file" for video file
+  type: usb
+  # RTSP URL (used when type=rtsp), e.g. rtsp://admin:pass@192.168.1.100:554/stream1
+  url: ""
+  # USB camera device index (used when type=usb)
+  device_index: 0
+  # Video file path (used when type=file)
+  file_path: ""
+  # Resolution
+  width: 640
+  height: 480
+  # Target capture FPS (0 = unlimited / camera native)
+  target_fps: 15
+  # Seconds to wait before reconnecting after disconnect
+  reconnect_seconds: 5
+  # Maximum reconnect attempts before giving up (0 = infinite)
+  max_reconnect_attempts: 0
+  # Maximum frames held in the thread-safe queue
+  max_queue_size: 10
+
+logging:
+  # Directory for all log files
+  log_dir: "outputs/logs"
+  # Maximum log file size in bytes (10MB)
+  max_bytes: 10485760
+  # Number of rotated backup files to keep
+  backup_count: 5
+  # Log level: DEBUG, INFO, WARNING, ERROR
+  level: "INFO"
+  # Log format
+  format: "[%(asctime)s] [%(levelname)s] %(name)s: %(message)s"
+
+watchdog:
+  # Enable/disable watchdog monitoring
+  enabled: true
+  # Health check interval in seconds
+  interval_seconds: 30
+  # Maximum allowed queue size before warning
+  max_queue_warning: 8
+  # Minimum FPS before warning
+  min_fps_warning: 2.0
+  # Auto-restart failed workers
+  auto_restart: true
+  # Maximum consecutive restart attempts
+  max_restart_attempts: 5
+  # Cooldown seconds between restart attempts
+  restart_cooldown_seconds: 10
+
+recognition:
+  # Path to trained model checkpoint
+  model_path: "runs/exp_001/best_model.pth"
+  # Gallery directory for enrolled identities
+  gallery_dir: "models/live_gallery"
+  # Recognition confidence threshold
+  threshold: 0.85
+  # Alert trigger threshold
+  alert_threshold: 0.90
+  # Security verification threshold
+  security_threshold: 0.90
+  # Number of GEI frames required
+  gei_frames: 15
+  # Frames between recognition attempts per track
+  recognition_interval: 10
+
+service:
+  # Service display name
+  name: "ARGUS AI Gait Recognition"
+  # Run headless (no GUI windows)
+  headless: false
+  # PID file location
+  pid_file: "outputs/argus.pid"
+  # Graceful shutdown timeout in seconds
+  shutdown_timeout: 10
