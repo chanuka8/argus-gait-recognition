@@ -2,9 +2,8 @@
 
 import time
 from threading import Lock
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
-import cv2
 import numpy as np
 
 from core.logger import setup_logger
@@ -49,7 +48,7 @@ class CameraPipeline:
     ) -> Dict[str, Any]:
         """
         Process single frame through full pipeline.
-        
+
         Returns detection results, tracks, GEI, and recognition results.
         """
         frame_start = time.perf_counter()
@@ -80,9 +79,7 @@ class CameraPipeline:
                     if stats["avg_detection_time_ms"] == 0.0:
                         stats["avg_detection_time_ms"] = det_time
                     else:
-                        stats["avg_detection_time_ms"] = (
-                            0.9 * stats["avg_detection_time_ms"] + 0.1 * det_time
-                        )
+                        stats["avg_detection_time_ms"] = 0.9 * stats["avg_detection_time_ms"] + 0.1 * det_time
 
                 results["detections"] = detections
 
@@ -114,9 +111,7 @@ class CameraPipeline:
                     if stats["avg_recognition_time_ms"] == 0.0:
                         stats["avg_recognition_time_ms"] = rec_time
                     else:
-                        stats["avg_recognition_time_ms"] = (
-                            0.9 * stats["avg_recognition_time_ms"] + 0.1 * rec_time
-                        )
+                        stats["avg_recognition_time_ms"] = 0.9 * stats["avg_recognition_time_ms"] + 0.1 * rec_time
 
             frame_time = (time.perf_counter() - frame_start) * 1000.0
             results["latency_ms"] = frame_time
