@@ -171,6 +171,38 @@ def _load_reid_config() -> dict:
     return merged
 
 
+def _load_fusion_config() -> dict:
+    """Load Dual-Modal Fusion config with safe defaults (disabled)."""
+    config_path = Path("configs/inference.yaml")
+
+    defaults = {
+        "enabled": False,
+        "gait_weight": 0.7,
+        "reid_weight": 0.3,
+    }
+
+    if not config_path.exists():
+        return defaults
+
+    try:
+        with open(config_path, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f) or {}
+    except Exception:
+        return defaults
+
+    fusion = data.get("fusion", {})
+
+    if not isinstance(fusion, dict):
+        return defaults
+
+    merged = {}
+
+    for key, default_value in defaults.items():
+        merged[key] = fusion.get(key, default_value)
+
+    return merged
+
+
 class LiveRecognitionPipeline:
 
     def __init__(
@@ -283,6 +315,20 @@ class LiveRecognitionPipeline:
             )
 
             print("[REID] ReID module enabled")
+
+        # Fusion module (optional dual-modal fusion)
+        self.fusion_config = _load_fusion_config()
+        self.fusion_engine = None
+
+        if self.fusion_config["enabled"]:
+            from intelligence.dual_modal_fusion import DualModalFusion
+
+            self.fusion_engine = DualModalFusion(
+                default_gait_weight=self.fusion_config["gait_weight"],
+                default_reid_weight=self.fusion_config["reid_weight"],
+            )
+            print("[FUSION] Dual-modal fusion enabled")
+
 
 
     def _load_model(
@@ -549,6 +595,21 @@ class LiveRecognitionPipeline:
                 if reid_embedding is not None:
                     result["reid_embedding"] = reid_embedding
                     result["reid_score"] = 0.0
+
+        # Dual-modal fusion (optional)
+        if self.fusion_engine is not None:
+            reid_score = result.get("reid_score")
+            reid_crop = self.reid_crops.get(track_id)
+            gei_buf = self.buffers.get(track_id)
+            gei_count = gei_buf.count if gei_buf is not None else 0
+
+            result["fusion"] = self.fusion_engine.fuse(
+                gait_score=gait_score,
+                reid_score=reid_score,
+                crop=reid_crop,
+                gei_frame_count=gei_count,
+                gei=gei,
+            )
 
         self.last_results[track_id] = result
 

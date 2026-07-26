@@ -71,3 +71,8 @@ reid:
   device: "auto"
   batch_size: 8
   similarity_threshold: 0.6
+
+fusion:
+  enabled: false
+  gait_weight: 0.7
+  reid_weight: 0.3
