@@ -76,3 +76,12 @@ fusion:
   enabled: false
   gait_weight: 0.7
   reid_weight: 0.3
+
+gei_quality:
+  enabled: true
+  quality_threshold: 0.6
+
+temporal_verification:
+  enabled: true
+  window_size: 3
+

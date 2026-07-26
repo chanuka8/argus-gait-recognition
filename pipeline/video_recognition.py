@@ -204,6 +204,68 @@ def _load_fusion_config() -> dict:
     return merged
 
 
+def _load_quality_config() -> dict:
+    """Load GEI Quality Estimator config."""
+    config_path = Path("configs/inference.yaml")
+
+    defaults = {
+        "enabled": True,
+        "quality_threshold": 0.6,
+    }
+
+    if not config_path.exists():
+        return defaults
+
+    try:
+        with open(config_path, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f) or {}
+    except Exception:
+        return defaults
+
+    quality = data.get("gei_quality", {})
+
+    if not isinstance(quality, dict):
+        return defaults
+
+    merged = {}
+
+    for key, default_value in defaults.items():
+        merged[key] = quality.get(key, default_value)
+
+    return merged
+
+
+def _load_temporal_config() -> dict:
+    """Load Temporal Gait Verification config."""
+    config_path = Path("configs/inference.yaml")
+
+    defaults = {
+        "enabled": True,
+        "window_size": 3,
+    }
+
+    if not config_path.exists():
+        return defaults
+
+    try:
+        with open(config_path, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f) or {}
+    except Exception:
+        return defaults
+
+    temporal = data.get("temporal_verification", {})
+
+    if not isinstance(temporal, dict):
+        return defaults
+
+    merged = {}
+
+    for key, default_value in defaults.items():
+        merged[key] = temporal.get(key, default_value)
+
+    return merged
+
+
 class VideoRecognitionPipeline:
 
 
@@ -324,6 +386,36 @@ class VideoRecognitionPipeline:
                 default_reid_weight=self.fusion_config["reid_weight"],
             )
             print("[FUSION] Dual-modal fusion enabled")
+
+        # Quality Estimator and Temporal Gait Verifier steps
+        self.quality_config = _load_quality_config()
+        self.quality_estimator = None
+
+        if self.quality_config["enabled"]:
+            from pipeline.steps.quality_estimator import QualityEstimator
+
+            self.quality_estimator = QualityEstimator(
+                quality_threshold=self.quality_config["quality_threshold"],
+            )
+            print(
+                f"[QUALITY] GEI Quality Estimator enabled (threshold={self.quality_config['quality_threshold']})"
+            )
+
+        self.temporal_config = _load_temporal_config()
+        self.temporal_verifier = None
+
+        if self.temporal_config["enabled"]:
+            from pipeline.steps.temporal_gait_verifier import (
+                TemporalGaitVerifier,
+            )
+
+            self.temporal_verifier = TemporalGaitVerifier(
+                window_size=self.temporal_config["window_size"],
+            )
+            print(
+                f"[TEMPORAL] Temporal Gait Verifier enabled (window_size={self.temporal_config['window_size']})"
+            )
+
 
 
 
@@ -483,6 +575,30 @@ class VideoRecognitionPipeline:
             threshold=self.threshold,
         )
 
+    def _match_single_embedding(
+        self,
+        embedding: np.ndarray,
+        gallery_features,
+        gallery_labels,
+        metadata: dict | None = None,
+    ) -> list[tuple[str, float]]:
+        matches = self.matcher.top_k_matches(
+            embedding,
+            gallery_features,
+            gallery_labels,
+            metadata,
+            k=1,
+        )
+        if not matches:
+            return [("UNKNOWN", 0.0)]
+        flat_identity, flat_score = matches[0][0], matches[0][1]
+        raw_identity, score, _ = self._adaptive_decision(
+            embedding=embedding,
+            flat_identity=flat_identity,
+            flat_score=flat_score,
+        )
+        return [(str(raw_identity), float(score))]
+
     def _recognize_track(
         self,
         track_id: int,
@@ -494,29 +610,47 @@ class VideoRecognitionPipeline:
         if gei is None:
             return None
 
-        embedding = self._gei_to_embedding(
-            gei,
-        )
+        # 1. Feature Quality Estimation
+        if self.quality_estimator is not None:
+            q_res = self.quality_estimator.evaluate(gei)
+            if not q_res["accepted"]:
+                print(
+                    f"[QUALITY_REJECT] Track {track_id}: {q_res['reason']}"
+                )
+                return None
 
-        # Flat matching first
-        matches = self.matcher.top_k_matches(
-            embedding,
-            self.gallery_features,
-            self.gallery_labels,
-            self.metadata,
-            k=1,
-        )
-        if not matches:
-            flat_identity, flat_score = "UNKNOWN", 0.0
+        # 2. Embedding Extraction & Match
+        embedding = self._gei_to_embedding(gei)
+
+        if self.temporal_verifier is not None:
+            self.temporal_verifier.add_embedding(track_id, embedding)
+            raw_identity, score, decision = (
+                self.temporal_verifier.verify_identity(
+                    track_id=track_id,
+                    matcher_func=self._match_single_embedding,
+                    gallery_features=self.gallery_features,
+                    gallery_labels=self.gallery_labels,
+                    metadata=self.metadata,
+                )
+            )
         else:
-            flat_identity, flat_score = matches[0][0], matches[0][1]
+            matches = self.matcher.top_k_matches(
+                embedding,
+                self.gallery_features,
+                self.gallery_labels,
+                self.metadata,
+                k=1,
+            )
+            if not matches:
+                flat_identity, flat_score = "UNKNOWN", 0.0
+            else:
+                flat_identity, flat_score = matches[0][0], matches[0][1]
 
-        # Adaptive decision
-        raw_identity, score, decision = self._adaptive_decision(
-            embedding=embedding,
-            flat_identity=flat_identity,
-            flat_score=flat_score,
-        )
+            raw_identity, score, decision = self._adaptive_decision(
+                embedding=embedding,
+                flat_identity=flat_identity,
+                flat_score=flat_score,
+            )
 
         stable_identity = self._final_identity(
             track_id=track_id,
@@ -903,6 +1037,8 @@ class VideoRecognitionPipeline:
                         self.smoother.history.pop(tid, None)
                         self.smoother.confirmed_identities.pop(tid, None)
                         self.reid_crops.pop(tid, None)
+                        if self.temporal_verifier is not None:
+                            self.temporal_verifier.clear_track(tid)
 
                     print(
                         f"[CROWD_CONTROL] Camera=default | "
