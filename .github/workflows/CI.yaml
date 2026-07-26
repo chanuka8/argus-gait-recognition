@@ -30,12 +30,15 @@ jobs:
         python -m pip install --upgrade pip
         pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
         pip install -r requirements.txt
+        python -m pip install --upgrade "ruff==0.15.20"
 
     - name: Code Compilation
       run: python -m compileall -q .
 
     - name: Run Linter
-      run: ruff check .
+      run: |
+        python -m ruff --version
+        python -m ruff check --config ./ruff.toml .
 
     - name: Run Tests
       env:
