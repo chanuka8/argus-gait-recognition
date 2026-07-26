@@ -64,3 +64,10 @@ reporting:
   report_tracking: false
   report_unknown: true
   report_confirmed: true
+
+reid:
+  enabled: false
+  model_path: "models/weights/osnet_x0_25.pth"
+  device: "auto"
+  batch_size: 8
+  similarity_threshold: 0.6

@@ -137,6 +137,40 @@ def _load_box_stability_config() -> dict:
     return merged
 
 
+def _load_reid_config() -> dict:
+    """Load ReID config with safe defaults (disabled)."""
+    config_path = Path("configs/inference.yaml")
+
+    defaults = {
+        "enabled": False,
+        "model_path": "models/weights/osnet_x0_25.pth",
+        "device": "auto",
+        "batch_size": 8,
+        "similarity_threshold": 0.6,
+    }
+
+    if not config_path.exists():
+        return defaults
+
+    try:
+        with open(config_path, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f) or {}
+    except Exception:
+        return defaults
+
+    reid = data.get("reid", {})
+
+    if not isinstance(reid, dict):
+        return defaults
+
+    merged = {}
+
+    for key, default_value in defaults.items():
+        merged[key] = reid.get(key, default_value)
+
+    return merged
+
+
 class LiveRecognitionPipeline:
 
     def __init__(
@@ -224,6 +258,31 @@ class LiveRecognitionPipeline:
         self.current_frame_index = 0
         self.interval_processed = 0
         self.interval_skipped = 0
+
+        # ReID module (optional, secondary biometric)
+        self.reid_config = _load_reid_config()
+        self.reid_extractor = None
+        self.reid_matcher = None
+        self.reid_crops: dict[int, np.ndarray] = {}
+
+        if self.reid_config["enabled"]:
+            from pipeline.steps.reid_feature_extraction import (
+                ReIDFeatureExtractionStep,
+            )
+            from pipeline.steps.reid_matching_step import (
+                ReIDMatchingStep,
+            )
+
+            self.reid_extractor = ReIDFeatureExtractionStep(
+                model_path=self.reid_config["model_path"],
+                device=self.reid_config["device"],
+            )
+
+            self.reid_matcher = ReIDMatchingStep(
+                threshold=self.reid_config["similarity_threshold"],
+            )
+
+            print("[REID] ReID module enabled")
 
 
     def _load_model(
@@ -471,7 +530,7 @@ class LiveRecognitionPipeline:
                 decision=decision,
             )
 
-        self.last_results[track_id] = {
+        result = {
             "identity": stable_identity,
             "raw_identity": raw_gait_identity,
             "score": score,
@@ -479,6 +538,19 @@ class LiveRecognitionPipeline:
             "severity": severity,
             "decision": decision,
         }
+
+        # ReID secondary scoring (does not affect gait decision)
+        if self.reid_extractor is not None:
+            reid_crop = self.reid_crops.get(track_id)
+            if reid_crop is not None:
+                reid_embedding = self.reid_extractor.extract(
+                    reid_crop,
+                )
+                if reid_embedding is not None:
+                    result["reid_embedding"] = reid_embedding
+                    result["reid_score"] = 0.0
+
+        self.last_results[track_id] = result
 
 
         if not self.cc_config.get("disable_debug_windows", True):
@@ -610,6 +682,9 @@ class LiveRecognitionPipeline:
                                     self.buffers[track_id] = LiveGEI(max_frames=self.gei_frames)
                                 self.buffers[track_id].add(silhouette)
 
+                            if self.reid_extractor is not None:
+                                self.reid_crops[track_id] = crop
+
                     if track_id in self.buffers and self.buffers[track_id].ready() and self._should_recognize(track_id):
                         if not (is_predicted and not self.buffers[track_id].ready()):
                             self._recognize_track(track_id, is_predicted)
@@ -669,6 +744,9 @@ class LiveRecognitionPipeline:
                                     self.buffers[track_id] = LiveGEI(max_frames=self.gei_frames)
                                 self.buffers[track_id].add(silhouette)
 
+                            if self.reid_extractor is not None:
+                                self.reid_crops[track_id] = crop
+
                     if track_id in self.buffers and self.buffers[track_id].ready() and self._should_recognize(track_id):
                         if not (is_predicted and not self.buffers[track_id].ready()):
                             not_rec_rec = self.current_frame_index - self.last_recognition_frame.get(track_id, 0)
@@ -725,6 +803,7 @@ class LiveRecognitionPipeline:
                         self.last_seen_frame.pop(tid, None)
                         self.smoother.history.pop(tid, None)
                         self.smoother.confirmed_identities.pop(tid, None)
+                        self.reid_crops.pop(tid, None)
 
                     print(
                         f"[CROWD_CONTROL] Camera=default | "

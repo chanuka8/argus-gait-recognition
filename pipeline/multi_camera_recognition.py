@@ -138,6 +138,40 @@ def _load_box_stability_config() -> dict:
     return merged
 
 
+def _load_reid_config() -> dict:
+    """Load ReID config with safe defaults (disabled)."""
+    config_path = Path("configs/inference.yaml")
+
+    defaults = {
+        "enabled": False,
+        "model_path": "models/weights/osnet_x0_25.pth",
+        "device": "auto",
+        "batch_size": 8,
+        "similarity_threshold": 0.6,
+    }
+
+    if not config_path.exists():
+        return defaults
+
+    try:
+        with open(config_path, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f) or {}
+    except Exception:
+        return defaults
+
+    reid = data.get("reid", {})
+
+    if not isinstance(reid, dict):
+        return defaults
+
+    merged = {}
+
+    for key, default_value in defaults.items():
+        merged[key] = reid.get(key, default_value)
+
+    return merged
+
+
 class CameraWorkerState:
 
     """
@@ -186,6 +220,7 @@ class CameraWorkerState:
         self.current_frame_index = 0
         self.interval_processed = 0
         self.interval_skipped = 0
+        self.reid_crops: dict[int, np.ndarray] = {}
 
 
 
@@ -335,6 +370,30 @@ class MultiCameraRecognitionPipeline:
 
         # Control flag
         self.running = False
+
+        # ReID module (optional, secondary biometric)
+        self.reid_config = _load_reid_config()
+        self.reid_extractor = None
+        self.reid_matcher = None
+
+        if self.reid_config["enabled"]:
+            from pipeline.steps.reid_feature_extraction import (
+                ReIDFeatureExtractionStep,
+            )
+            from pipeline.steps.reid_matching_step import (
+                ReIDMatchingStep,
+            )
+
+            self.reid_extractor = ReIDFeatureExtractionStep(
+                model_path=self.reid_config["model_path"],
+                device=self.reid_config["device"],
+            )
+
+            self.reid_matcher = ReIDMatchingStep(
+                threshold=self.reid_config["similarity_threshold"],
+            )
+
+            print("[REID] ReID module enabled")
 
     # Config loading
 
@@ -576,6 +635,17 @@ class MultiCameraRecognitionPipeline:
             "decision": decision,
         }
 
+        # ReID secondary scoring (does not affect gait decision)
+        if self.reid_extractor is not None:
+            reid_crop = worker.reid_crops.get(track_id)
+            if reid_crop is not None:
+                reid_embedding = self.reid_extractor.extract(
+                    reid_crop,
+                )
+                if reid_embedding is not None:
+                    worker.last_results[track_id]["reid_embedding"] = reid_embedding
+                    worker.last_results[track_id]["reid_score"] = 0.0
+
     # Drawing
 
     def _draw_track(
@@ -687,6 +757,9 @@ class MultiCameraRecognitionPipeline:
                                     worker.buffers[track_id] = LiveGEI(max_frames=worker.gei_frames)
                                 worker.buffers[track_id].add(silhouette)
 
+                            if self.reid_extractor is not None:
+                                worker.reid_crops[track_id] = crop
+
                     if track_id in worker.buffers and worker.buffers[track_id].ready() and self._should_recognize(worker, track_id):
                         if not (is_predicted and not worker.buffers[track_id].ready()):
                             self._recognize_track(worker, track_id, is_predicted)
@@ -740,6 +813,9 @@ class MultiCameraRecognitionPipeline:
                                     worker.buffers[track_id] = LiveGEI(max_frames=worker.gei_frames)
                                 worker.buffers[track_id].add(silhouette)
 
+                            if self.reid_extractor is not None:
+                                worker.reid_crops[track_id] = crop
+
                     if track_id in worker.buffers and worker.buffers[track_id].ready() and self._should_recognize(worker, track_id):
                         if not (is_predicted and not worker.buffers[track_id].ready()):
                             not_rec_rec = worker.current_frame_index - worker.last_recognition_frame.get(track_id, 0)
@@ -791,6 +867,7 @@ class MultiCameraRecognitionPipeline:
                         worker.last_seen_frame.pop(tid, None)
                         worker.smoother.history.pop(tid, None)
                         worker.smoother.confirmed_identities.pop(tid, None)
+                        worker.reid_crops.pop(tid, None)
 
                     print(
                         f"[CROWD_CONTROL] Camera={camera_id} | "
