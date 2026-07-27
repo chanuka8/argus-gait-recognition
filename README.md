@@ -347,7 +347,7 @@ pytest -q
 - [x] `MultiStreamEngine`, `WorkerPool`, `LoadBalancer`, and `Watchdog`
 - [x] ONVIF discovery & vendor adapters
 - [x] Secure RTSP credential storage & log URL sanitization ([security_layer/credentials.py](file:///e:/ARGUS_AI/security_layer/credentials.py))
-- [x] 224 automated unit and integration tests passing with 0 failures
+- [x] 224 automated tests passing with 0 failures
 
 ---
 
