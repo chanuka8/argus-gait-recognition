@@ -2,10 +2,12 @@
 
 import threading
 import unittest
+from unittest.mock import MagicMock, patch
 import numpy as np
 
 from intelligence.camera_transition_model import CameraTransitionModel
 from intelligence.cross_camera_tracker import CrossCameraTracker
+
 
 
 class MockClock:
@@ -267,10 +269,17 @@ class TestCameraTransitionModel(unittest.TestCase):
 
 
 class TestMultiCameraPipelineTransitionIntegration(unittest.TestCase):
+
     """Integration test verifying full multi-camera recognition pipeline wiring with CameraTransitionModel."""
 
-    def test_pipeline_integration_wiring(self) -> None:
-        """Verify MultiCameraRecognitionPipeline instantiates transition model and maps global IDs."""
+    @patch("pipeline.multi_camera_recognition.MultiCameraRecognitionPipeline._load_model")
+    @patch("pipeline.multi_camera_recognition.VectorStore")
+    @patch("pipeline.multi_camera_recognition.MultiStreamEngine")
+    def test_pipeline_integration_wiring(self, mock_stream_engine, mock_vector_store, mock_load_model) -> None:
+        """Verify MultiCameraRecognitionPipeline instantiates transition model and maps global IDs without external weights."""
+        mock_load_model.return_value = MagicMock()
+        mock_vector_store.return_value.load.return_value = None
+
         from pipeline.multi_camera_recognition import MultiCameraRecognitionPipeline
 
         pipeline = MultiCameraRecognitionPipeline(
@@ -299,10 +308,8 @@ class TestMultiCameraPipelineTransitionIntegration(unittest.TestCase):
 
         # Simulate track on camera_01
         worker1 = pipeline.workers.get("camera_01")
-        if not worker1:
-            worker1 = list(pipeline.workers.values())[0]
+        cam1_id = worker1.camera_id if worker1 else "camera_01"
 
-        cam1_id = worker1.camera_id
         gid1 = pipeline.cross_camera_tracker.get_or_create_global_id(
             camera_id=cam1_id,
             local_track_id=100,
@@ -317,10 +324,7 @@ class TestMultiCameraPipelineTransitionIntegration(unittest.TestCase):
         )
 
         # Simulate track entry on camera_02 after 5 seconds
-        if "camera_02" in pipeline.workers:
-            cam2_id = "camera_02"
-        else:
-            cam2_id = "camera_02"
+        cam2_id = "camera_02"
 
         gid2 = pipeline.cross_camera_tracker.get_or_create_global_id(
             camera_id=cam2_id,
@@ -330,4 +334,5 @@ class TestMultiCameraPipelineTransitionIntegration(unittest.TestCase):
 
         # Verify global track continuity via transition model
         self.assertEqual(gid1, gid2)
+
 
