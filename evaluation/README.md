@@ -14,16 +14,16 @@ The `evaluation` package implements scientific benchmarks, metrics evaluation, s
 <!-- BEGIN SYNC: KEY_MODULES -->
 | Module | Purpose |
 |---|---|
-| [cross_view_evaluator.py](file:///e:/ARGUS_AI/evaluation/cross_view_evaluator.py) | Evaluates cross-camera view angle invariance across CASIA-B viewing angles |
-| [dataset_split.py](file:///e:/ARGUS_AI/evaluation/dataset_split.py) | Partitions dataset subjects into subject-disjoint train, gallery, and probe splits |
-| [evaluator.py](file:///e:/ARGUS_AI/evaluation/evaluator.py) | Core evaluation harness running identification evaluation protocols |
-| [gallery_probe_builder.py](file:///e:/ARGUS_AI/evaluation/gallery_probe_builder.py) | Constructs gallery feature matrices and query probe vectors for test evaluation |
-| [leakage_validator.py](file:///e:/ARGUS_AI/evaluation/leakage_validator.py) | Asserts zero identity overlap between gallery and probe datasets |
-| [metrics.py](file:///e:/ARGUS_AI/evaluation/metrics.py) | Mathematical functions for Rank-k accuracy, EER, ROC AUC, FAR, and FRR |
-| [open_set_evaluator.py](file:///e:/ARGUS_AI/evaluation/open_set_evaluator.py) | Evaluates open-set rejection and unknown subject detection performance |
-| [roc.py](file:///e:/ARGUS_AI/evaluation/roc.py) | Computes Receiver Operating Characteristic (ROC) curve metrics |
-| [threshold_calibrator.py](file:///e:/ARGUS_AI/evaluation/threshold_calibrator.py) | Calibrates verification decision thresholds to target FAR/FRR metrics |
-| [visualizer.py](file:///e:/ARGUS_AI/evaluation/visualizer.py) | Generates evaluation plots and confusion matrices in `outputs/reports/evaluation/charts` |
+| [cross_view_evaluator.py](file:///E:/ARGUS_AI/evaluation/cross_view_evaluator.py) | Evaluates cross-camera view angle invariance across CASIA-B viewing angles |
+| [dataset_split.py](file:///E:/ARGUS_AI/evaluation/dataset_split.py) | Partitions dataset subjects into subject-disjoint train, gallery, and probe splits |
+| [evaluator.py](file:///E:/ARGUS_AI/evaluation/evaluator.py) | Core evaluation harness running identification evaluation protocols |
+| [gallery_probe_builder.py](file:///E:/ARGUS_AI/evaluation/gallery_probe_builder.py) | Constructs gallery feature matrices and query probe vectors for test evaluation |
+| [leakage_validator.py](file:///E:/ARGUS_AI/evaluation/leakage_validator.py) | Asserts zero identity overlap between gallery and probe datasets |
+| [metrics.py](file:///E:/ARGUS_AI/evaluation/metrics.py) | Mathematical functions for Rank-k accuracy, EER, ROC AUC, FAR, and FRR |
+| [open_set_evaluator.py](file:///E:/ARGUS_AI/evaluation/open_set_evaluator.py) | Evaluates open-set rejection and unknown subject detection performance |
+| [roc.py](file:///E:/ARGUS_AI/evaluation/roc.py) | Computes Receiver Operating Characteristic (ROC) curve metrics |
+| [threshold_calibrator.py](file:///E:/ARGUS_AI/evaluation/threshold_calibrator.py) | Calibrates verification decision thresholds to target FAR/FRR metrics |
+| [visualizer.py](file:///E:/ARGUS_AI/evaluation/visualizer.py) | Generates evaluation plots and confusion matrices in `outputs/reports/evaluation/charts` |
 <!-- END SYNC: KEY_MODULES -->
 
 ## Data Flow

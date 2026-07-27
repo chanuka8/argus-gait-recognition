@@ -14,9 +14,9 @@ The `events` package implements an in-memory publish-subscribe event bus and dis
 <!-- BEGIN SYNC: KEY_MODULES -->
 | Module | Purpose |
 |---|---|
-| [dispatcher.py](file:///e:/ARGUS_AI/events/dispatcher.py) | Asynchronous event dispatcher managing callback execution pools |
-| [event_bus.py](file:///e:/ARGUS_AI/events/event_bus.py) | Centralized thread-safe event bus for publishing and subscribing to topics |
-| [event_types.py](file:///e:/ARGUS_AI/events/event_types.py) | Data classes and enum definitions for system, recognition, and alert events |
+| [dispatcher.py](file:///E:/ARGUS_AI/events/dispatcher.py) | Asynchronous event dispatcher managing callback execution pools |
+| [event_bus.py](file:///E:/ARGUS_AI/events/event_bus.py) | Centralized thread-safe event bus for publishing and subscribing to topics |
+| [event_types.py](file:///E:/ARGUS_AI/events/event_types.py) | Data classes and enum definitions for system, recognition, and alert events |
 <!-- END SYNC: KEY_MODULES -->
 
 ## Data Flow

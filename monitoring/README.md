@@ -14,13 +14,13 @@ The `monitoring` package provides camera health monitoring, process watchdog fai
 <!-- BEGIN SYNC: KEY_MODULES -->
 | Module | Purpose |
 |---|---|
-| [camera_monitor.py](file:///e:/ARGUS_AI/monitoring/camera_monitor.py) | Periodically gathers camera stream stats and writes JSON summaries to `outputs/monitoring/camera_stats/` |
-| [crash_guard.py](file:///e:/ARGUS_AI/monitoring/crash_guard.py) | Process crash interception and graceful recovery guard |
-| [gpu_tuner.py](file:///e:/ARGUS_AI/monitoring/gpu_tuner.py) | Monitors CUDA memory utilization and tunes batch allocation parameters |
-| [logging_config.py](file:///e:/ARGUS_AI/monitoring/logging_config.py) | Multi-channel log router supporting 5 rotating log files (`system`, `camera`, `detection`, `error`, `watchdog`) |
-| [metrics_collector.py](file:///e:/ARGUS_AI/monitoring/metrics_collector.py) | Aggregates system resource utilization metrics (CPU, RAM, GPU, Queue Size, FPS) |
-| [performance_profiler.py](file:///e:/ARGUS_AI/monitoring/performance_profiler.py) | Measures execution latencies across pipeline steps |
-| [watchdog.py](file:///e:/ARGUS_AI/monitoring/watchdog.py) | Background watchdog checking component health and triggering worker auto-restarts |
+| [camera_monitor.py](file:///E:/ARGUS_AI/monitoring/camera_monitor.py) | Periodically gathers camera stream stats and writes JSON summaries to `outputs/monitoring/camera_stats/` |
+| [crash_guard.py](file:///E:/ARGUS_AI/monitoring/crash_guard.py) | Process crash interception and graceful recovery guard |
+| [gpu_tuner.py](file:///E:/ARGUS_AI/monitoring/gpu_tuner.py) | Monitors CUDA memory utilization and tunes batch allocation parameters |
+| [logging_config.py](file:///E:/ARGUS_AI/monitoring/logging_config.py) | Multi-channel log router supporting 5 rotating log files (`system`, `camera`, `detection`, `error`, `watchdog`) |
+| [metrics_collector.py](file:///E:/ARGUS_AI/monitoring/metrics_collector.py) | Aggregates system resource utilization metrics (CPU, RAM, GPU, Queue Size, FPS) |
+| [performance_profiler.py](file:///E:/ARGUS_AI/monitoring/performance_profiler.py) | Measures execution latencies across pipeline steps |
+| [watchdog.py](file:///E:/ARGUS_AI/monitoring/watchdog.py) | Background watchdog checking component health and triggering worker auto-restarts |
 <!-- END SYNC: KEY_MODULES -->
 
 ## Data Flow

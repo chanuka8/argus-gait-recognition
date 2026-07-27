@@ -14,13 +14,13 @@ The `services` package manages persistent system service lifecycle (NSSM Windows
 <!-- BEGIN SYNC: KEY_MODULES -->
 | Module | Purpose |
 |---|---|
-| [argus_service.py](file:///e:/ARGUS_AI/services/argus_service.py) | Main background service entrypoint handling process signals (SIGINT/SIGTERM) and PID tracking |
-| [camera_discovery.py](file:///e:/ARGUS_AI/services/camera_discovery.py) | Scans local IP subnets to discover active RTSP/USB video stream sources |
-| [camera_manager.py](file:///e:/ARGUS_AI/services/camera_manager.py) | Central manager coordinating multi-camera workers, stream status, and health metrics |
-| [camera_service.py](file:///e:/ARGUS_AI/services/camera_service.py) | High-level service facade wrapping camera capture, stream reconnects, and frame queueing |
-| [camera_worker.py](file:///e:/ARGUS_AI/services/camera_worker.py) | Dedicated background thread worker capturing frames from an individual camera stream |
-| [onvif_client.py](file:///e:/ARGUS_AI/services/onvif_client.py) | ONVIF protocol client querying network CCTV camera capabilities and RTSP stream URIs |
-| [vendor_adapters.py](file:///e:/ARGUS_AI/services/vendor_adapters.py) | Vendor-specific camera stream adapters (Hikvision, Dahua, Axis, generic RTSP) |
+| [argus_service.py](file:///E:/ARGUS_AI/services/argus_service.py) | Main background service entrypoint handling process signals (SIGINT/SIGTERM) and PID tracking |
+| [camera_discovery.py](file:///E:/ARGUS_AI/services/camera_discovery.py) | Scans local IP subnets to discover active RTSP/USB video stream sources |
+| [camera_manager.py](file:///E:/ARGUS_AI/services/camera_manager.py) | Central manager coordinating multi-camera workers, stream status, and health metrics |
+| [camera_service.py](file:///E:/ARGUS_AI/services/camera_service.py) | High-level service facade wrapping camera capture, stream reconnects, and frame queueing |
+| [camera_worker.py](file:///E:/ARGUS_AI/services/camera_worker.py) | Dedicated background thread worker capturing frames from an individual camera stream |
+| [onvif_client.py](file:///E:/ARGUS_AI/services/onvif_client.py) | ONVIF protocol client querying network CCTV camera capabilities and RTSP stream URIs |
+| [vendor_adapters.py](file:///E:/ARGUS_AI/services/vendor_adapters.py) | Vendor-specific camera stream adapters (Hikvision, Dahua, Axis, generic RTSP) |
 <!-- END SYNC: KEY_MODULES -->
 
 ## Data Flow

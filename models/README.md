@@ -12,17 +12,17 @@ The `models` package defines PyTorch neural network architectures, pre-trained w
 ## Key Modules
 
 <!-- BEGIN SYNC: KEY_MODULES -->
-| Module / Directory | Purpose |
+| Module | Purpose |
 |---|---|
-| [architectures/bygait_light.py](file:///e:/ARGUS_AI/models/architectures/bygait_light.py) | ByGaitLight 3-block lightweight CNN architecture mapping GEIs to 256-dim embeddings |
-| `active/` | Directory containing currently active production model weights |
-| `appearance_gallery/` | Directory storing enrolled person appearance ReID feature embeddings |
-| `candidates/` | Directory holding candidate model checkpoints undergoing validation |
-| `gallery/` | Directory storing baseline enrolled gait GEI feature matrix and identity metadata |
-| `live_gallery/` | Directory holding live enrolled identity templates |
-| `reid/` | Directory containing ReID appearance model checkpoints |
-| `rollback/` | Directory containing backup model weights for instant rollback |
-| `weights/` | Directory containing object detector weights (e.g. `yolov8n.pt`) |
+| `active/` | Module/resource file active/ |
+| `appearance_gallery/` | Module/resource file appearance_gallery/ |
+| [architectures/bygait_light.py](file:///E:/ARGUS_AI/models/architectures/bygait_light.py) | ByGaitLight 3-block lightweight CNN architecture mapping GEIs to 256-dim embeddings |
+| `candidates/` | Module/resource file candidates/ |
+| `gallery/` | Module/resource file gallery/ |
+| `live_gallery/` | Module/resource file live_gallery/ |
+| `reid/` | Module/resource file reid/ |
+| `rollback/` | Module/resource file rollback/ |
+| `weights/` | Module/resource file weights/ |
 <!-- END SYNC: KEY_MODULES -->
 
 ## Data Flow

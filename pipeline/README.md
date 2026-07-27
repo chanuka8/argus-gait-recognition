@@ -12,18 +12,23 @@ The `pipeline` package implements high-level recognition execution pipelines for
 ## Key Modules
 
 <!-- BEGIN SYNC: KEY_MODULES -->
-| Module / Subdirectory | Purpose |
+| Module | Purpose |
 |---|---|
-| [base_pipeline.py](file:///e:/ARGUS_AI/pipeline/base_pipeline.py) | Abstract base class defining pipeline lifecycle, hook interfaces, and step execution |
-| [cache_engine.py](file:///e:/ARGUS_AI/pipeline/cache_engine.py) | High-speed feature and silhouette caching engine for pipeline steps |
-| [folder_recognition.py](file:///e:/ARGUS_AI/pipeline/folder_recognition.py) | Executes recognition over folders of input video files or GEI images |
-| [inference_pipeline.py](file:///e:/ARGUS_AI/pipeline/inference_pipeline.py) | Core inference engine running end-to-end gait feature extraction |
-| [live_recognition.py](file:///e:/ARGUS_AI/pipeline/live_recognition.py) | Real-time live camera recognition pipeline handling frame queues and display overlay |
-| [multi_camera_recognition.py](file:///e:/ARGUS_AI/pipeline/multi_camera_recognition.py) | Multi-camera recognition pipeline orchestrating cross-camera tracking and evidence fusion |
-| [pipeline_factory.py](file:///e:/ARGUS_AI/pipeline/pipeline_factory.py) | Factory instantiating pipeline implementations based on source mode |
-| [speed_controller.py](file:///e:/ARGUS_AI/pipeline/speed_controller.py) | Controls frame processing rate to align with target FPS constraints |
-| [video_recognition.py](file:///e:/ARGUS_AI/pipeline/video_recognition.py) | Offline video file recognition pipeline for recorded video analysis |
-| `steps/` | Modular pipeline step implementations (`detection.py`, `tracking.py`, `silhouette_step.py`, `live_gei.py`, `matching_step.py`) |
+| [base_pipeline.py](file:///E:/ARGUS_AI/pipeline/base_pipeline.py) | Abstract base class defining pipeline lifecycle, hook interfaces, and step execution |
+| [cache_engine.py](file:///E:/ARGUS_AI/pipeline/cache_engine.py) | High-speed feature and silhouette caching engine for pipeline steps |
+| `camera/` | Module/resource file camera/ |
+| `detection/` | Module/resource file detection/ |
+| [folder_recognition.py](file:///E:/ARGUS_AI/pipeline/folder_recognition.py) | Executes recognition over folders of input video files or GEI images |
+| `gei/` | Module/resource file gei/ |
+| [inference_pipeline.py](file:///E:/ARGUS_AI/pipeline/inference_pipeline.py) | Core inference engine running end-to-end gait feature extraction |
+| [live_recognition.py](file:///E:/ARGUS_AI/pipeline/live_recognition.py) | Real-time live camera recognition pipeline handling frame queues and display overlay |
+| [multi_camera_recognition.py](file:///E:/ARGUS_AI/pipeline/multi_camera_recognition.py) | Multi-camera recognition pipeline orchestrating cross-camera tracking and evidence fusion |
+| [pipeline_factory.py](file:///E:/ARGUS_AI/pipeline/pipeline_factory.py) | Factory instantiating pipeline implementations based on source mode |
+| `silhouette/` | Module/resource file silhouette/ |
+| [speed_controller.py](file:///E:/ARGUS_AI/pipeline/speed_controller.py) | Controls frame processing rate to align with target FPS constraints |
+| `steps/` | Module/resource file steps/ |
+| `tracking/` | Module/resource file tracking/ |
+| [video_recognition.py](file:///E:/ARGUS_AI/pipeline/video_recognition.py) | Offline video file recognition pipeline for recorded video analysis |
 <!-- END SYNC: KEY_MODULES -->
 
 ## Data Flow

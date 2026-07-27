@@ -14,14 +14,14 @@ The `streaming` package provides high-throughput video stream ingestion, thread-
 <!-- BEGIN SYNC: KEY_MODULES -->
 | Module | Purpose |
 |---|---|
-| [buffer_queue.py](file:///e:/ARGUS_AI/streaming/buffer_queue.py) | Thread-safe bounded ring buffer queue with non-blocking put/get operations |
-| [camera_scheduler.py](file:///e:/ARGUS_AI/streaming/camera_scheduler.py) | Round-robin and priority scheduler distributing camera stream frame processing |
-| [frame_dropper.py](file:///e:/ARGUS_AI/streaming/frame_dropper.py) | Intelligent frame dropper maintaining target processing FPS under CPU congestion |
-| [load_balancer.py](file:///e:/ARGUS_AI/streaming/load_balancer.py) | Balances processing workload across multi-stream worker threads |
-| [multi_stream_engine.py](file:///e:/ARGUS_AI/streaming/multi_stream_engine.py) | Multi-stream acquisition engine handling concurrent CCTV streams |
-| [performance_optimizer.py](file:///e:/ARGUS_AI/streaming/performance_optimizer.py) | Dynamic performance optimizer adjusting frame queue sizes and capture rates |
-| [stream_engine.py](file:///e:/ARGUS_AI/streaming/stream_engine.py) | Core single-stream acquisition engine wrapping OpenCV `VideoCapture` |
-| [worker_pool.py](file:///e:/ARGUS_AI/streaming/worker_pool.py) | Thread worker pool executing concurrent stream capture tasks |
+| [buffer_queue.py](file:///E:/ARGUS_AI/streaming/buffer_queue.py) | Thread-safe bounded ring buffer queue with non-blocking put/get operations |
+| [camera_scheduler.py](file:///E:/ARGUS_AI/streaming/camera_scheduler.py) | Round-robin and priority scheduler distributing camera stream frame processing |
+| [frame_dropper.py](file:///E:/ARGUS_AI/streaming/frame_dropper.py) | Intelligent frame dropper maintaining target processing FPS under CPU congestion |
+| [load_balancer.py](file:///E:/ARGUS_AI/streaming/load_balancer.py) | Balances processing workload across multi-stream worker threads |
+| [multi_stream_engine.py](file:///E:/ARGUS_AI/streaming/multi_stream_engine.py) | Multi-stream acquisition engine handling concurrent CCTV streams |
+| [performance_optimizer.py](file:///E:/ARGUS_AI/streaming/performance_optimizer.py) | Dynamic performance optimizer adjusting frame queue sizes and capture rates |
+| [stream_engine.py](file:///E:/ARGUS_AI/streaming/stream_engine.py) | Core single-stream acquisition engine wrapping OpenCV `VideoCapture` |
+| [worker_pool.py](file:///E:/ARGUS_AI/streaming/worker_pool.py) | Thread worker pool executing concurrent stream capture tasks |
 <!-- END SYNC: KEY_MODULES -->
 
 ## Data Flow

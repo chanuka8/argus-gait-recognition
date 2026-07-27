@@ -16,18 +16,18 @@ The `utils` package provides general-purpose helpers for bounding box stabilizat
 <!-- BEGIN SYNC: KEY_MODULES -->
 | Module | Purpose |
 |---|---|
-| [alert_manager.py](file:///e:/ARGUS_AI/utils/alert_manager.py) | Manages threat alerts, cooldown deduplication, and `outputs/logs/events/alerts.csv` logging |
-| [box_stabilizer.py](file:///e:/ARGUS_AI/utils/box_stabilizer.py) | Exponential Moving Average (EMA) bounding box coordinate stabilizer |
-| [detection_reporter.py](file:///e:/ARGUS_AI/utils/detection_reporter.py) | Thread-safe reporter generating JSONL/CSV detection logs and snapshots in `outputs/media/detections/` |
-| [display_renderer.py](file:///e:/ARGUS_AI/utils/display_renderer.py) | Open-CV image renderer drawing bounding boxes, status color codes, and identity HUD labels |
-| [event_logger.py](file:///e:/ARGUS_AI/utils/event_logger.py) | Thread-safe CSV recognition logger writing events to `outputs/logs/events/recognition_log.csv` |
-| [helpers.py](file:///e:/ARGUS_AI/utils/helpers.py) | Miscellaneous helper functions for string formatting and filesystem operations |
-| [io_utils.py](file:///e:/ARGUS_AI/utils/io_utils.py) | File I/O helpers for JSON, YAML, and image file loading/saving |
-| [math_utils.py](file:///e:/ARGUS_AI/utils/math_utils.py) | Mathematical helper functions for IoU, vector normalization, and distance metrics |
-| [prediction_smoother.py](file:///e:/ARGUS_AI/utils/prediction_smoother.py) | Temporal sliding-window prediction smoother preventing identity flickering |
-| [queue_utils.py](file:///e:/ARGUS_AI/utils/queue_utils.py) | Queue utilities for safe multi-threaded data passing |
-| [video.py](file:///e:/ARGUS_AI/utils/video.py) | Video file reader/writer helper functions |
-| [zip_streamer.py](file:///e:/ARGUS_AI/utils/zip_streamer.py) | Utilities for zipping and streaming archived dataset/report artifacts |
+| [alert_manager.py](file:///E:/ARGUS_AI/utils/alert_manager.py) | Manages threat alerts, cooldown deduplication, and `outputs/logs/events/alerts.csv` logging |
+| [box_stabilizer.py](file:///E:/ARGUS_AI/utils/box_stabilizer.py) | Exponential Moving Average (EMA) bounding box coordinate stabilizer |
+| [detection_reporter.py](file:///E:/ARGUS_AI/utils/detection_reporter.py) | Thread-safe reporter generating JSONL/CSV detection logs and snapshots in `outputs/media/detections/` |
+| [display_renderer.py](file:///E:/ARGUS_AI/utils/display_renderer.py) | Open-CV image renderer drawing bounding boxes, status color codes, and identity HUD labels |
+| [event_logger.py](file:///E:/ARGUS_AI/utils/event_logger.py) | Thread-safe CSV recognition logger writing events to `outputs/logs/events/recognition_log.csv` |
+| [helpers.py](file:///E:/ARGUS_AI/utils/helpers.py) | Miscellaneous helper functions for string formatting and filesystem operations |
+| [io_utils.py](file:///E:/ARGUS_AI/utils/io_utils.py) | File I/O helpers for JSON, YAML, and image file loading/saving |
+| [math_utils.py](file:///E:/ARGUS_AI/utils/math_utils.py) | Mathematical helper functions for IoU, vector normalization, and distance metrics |
+| [prediction_smoother.py](file:///E:/ARGUS_AI/utils/prediction_smoother.py) | Temporal sliding-window prediction smoother preventing identity flickering |
+| [queue_utils.py](file:///E:/ARGUS_AI/utils/queue_utils.py) | Queue utilities for safe multi-threaded data passing |
+| [video.py](file:///E:/ARGUS_AI/utils/video.py) | Video file reader/writer helper functions |
+| [zip_streamer.py](file:///E:/ARGUS_AI/utils/zip_streamer.py) | Utilities for zipping and streaming archived dataset/report artifacts |
 <!-- END SYNC: KEY_MODULES -->
 
 ## Data Flow

@@ -15,12 +15,12 @@ The `storage` package manages data persistence, evidence retention policy enforc
 <!-- BEGIN SYNC: KEY_MODULES -->
 | Module | Purpose |
 |---|---|
-| [cache_manager.py](file:///e:/ARGUS_AI/storage/cache_manager.py) | General-purpose thread-safe key-value cache manager |
-| [data_manager.py](file:///e:/ARGUS_AI/storage/data_manager.py) | Central storage manager coordinating datasets, evidence, and vector stores |
-| [dataset_loader.py](file:///e:/ARGUS_AI/storage/dataset_loader.py) | Loads GEI image datasets and feature matrix caches from disk |
-| [evidence_manager.py](file:///e:/ARGUS_AI/storage/evidence_manager.py) | Saves evidence snapshots, GEIs, and JSON metadata with automated retention purging |
-| [lineage_tracker.py](file:///e:/ARGUS_AI/storage/lineage_tracker.py) | Tracks data processing operations and writes audit lineage records |
-| [vector_store.py](file:///e:/ARGUS_AI/storage/vector_store.py) | Vector store indexing 256-dim feature embeddings for fast cosine nearest-neighbor retrieval |
+| [cache_manager.py](file:///E:/ARGUS_AI/storage/cache_manager.py) | General-purpose thread-safe key-value cache manager |
+| [data_manager.py](file:///E:/ARGUS_AI/storage/data_manager.py) | Central storage manager coordinating datasets, evidence, and vector stores |
+| [dataset_loader.py](file:///E:/ARGUS_AI/storage/dataset_loader.py) | Loads GEI image datasets and feature matrix caches from disk |
+| [evidence_manager.py](file:///E:/ARGUS_AI/storage/evidence_manager.py) | Saves evidence snapshots, GEIs, and JSON metadata with automated retention purging |
+| [lineage_tracker.py](file:///E:/ARGUS_AI/storage/lineage_tracker.py) | Tracks data processing operations and writes audit lineage records |
+| [vector_store.py](file:///E:/ARGUS_AI/storage/vector_store.py) | Vector store indexing 256-dim feature embeddings for fast cosine nearest-neighbor retrieval |
 <!-- END SYNC: KEY_MODULES -->
 
 ## Data Flow

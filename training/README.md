@@ -15,13 +15,13 @@ The `training` package handles deep neural network model training, loss function
 <!-- BEGIN SYNC: KEY_MODULES -->
 | Module | Purpose |
 |---|---|
-| [callbacks.py](file:///e:/ARGUS_AI/training/callbacks.py) | Early stopping, model checkpointer, and `TrainingLogger` callbacks |
-| [checkpointer.py](file:///e:/ARGUS_AI/training/checkpointer.py) | Checkpoint saver and model state dictionary restorer |
-| [dataloader.py](file:///e:/ARGUS_AI/training/dataloader.py) | PyTorch DataLoader factory supporting balanced identity batch sampling |
-| [dataset.py](file:///e:/ARGUS_AI/training/dataset.py) | PyTorch Dataset class loading 64x128 GEI images and subject labels |
-| [loss_functions.py](file:///e:/ARGUS_AI/training/loss_functions.py) | Combined loss implementations: Triplet Loss with hard mining, Cross-Entropy, Margin Loss |
-| [optimizer.py](file:///e:/ARGUS_AI/training/optimizer.py) | Adam / SGD optimizer builder and Cosine Annealing learning rate schedulers |
-| [trainer.py](file:///e:/ARGUS_AI/training/trainer.py) | Main training loop coordinator executing forward/backward passes and validation checks |
+| [callbacks.py](file:///E:/ARGUS_AI/training/callbacks.py) | Early stopping, model checkpointer, and `TrainingLogger` callbacks |
+| [checkpointer.py](file:///E:/ARGUS_AI/training/checkpointer.py) | Checkpoint saver and model state dictionary restorer |
+| [dataloader.py](file:///E:/ARGUS_AI/training/dataloader.py) | PyTorch DataLoader factory supporting balanced identity batch sampling |
+| [dataset.py](file:///E:/ARGUS_AI/training/dataset.py) | PyTorch Dataset class loading 64x128 GEI images and subject labels |
+| [loss_functions.py](file:///E:/ARGUS_AI/training/loss_functions.py) | Combined loss implementations: Triplet Loss with hard mining, Cross-Entropy, Margin Loss |
+| [optimizer.py](file:///E:/ARGUS_AI/training/optimizer.py) | Adam / SGD optimizer builder and Cosine Annealing learning rate schedulers |
+| [trainer.py](file:///E:/ARGUS_AI/training/trainer.py) | Main training loop coordinator executing forward/backward passes and validation checks |
 <!-- END SYNC: KEY_MODULES -->
 
 ## Data Flow

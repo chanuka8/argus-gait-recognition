@@ -15,31 +15,31 @@ The `intelligence` package contains advanced biometric decision logic, open-set 
 <!-- BEGIN SYNC: KEY_MODULES -->
 | Module | Purpose |
 |---|---|
-| [alert_manager.py](file:///e:/ARGUS_AI/intelligence/alert_manager.py) | Threat alert throttling and priority alert dispatching |
-| [appearance_embedding.py](file:///e:/ARGUS_AI/intelligence/appearance_embedding.py) | Feature extractor and embedding generator for person appearance ReID |
-| [camera_topology_learner.py](file:///e:/ARGUS_AI/intelligence/camera_topology_learner.py) | Learns directed topology graphs and travel-time bounds across cameras |
-| [camera_transition_model.py](file:///e:/ARGUS_AI/intelligence/camera_transition_model.py) | Evaluates cross-camera travel times against learned probability bounds |
-| [confidence_scorer.py](file:///e:/ARGUS_AI/intelligence/confidence_scorer.py) | Multi-factor confidence scoring combining similarity, quality, and track length |
-| [cross_camera_tracker.py](file:///e:/ARGUS_AI/intelligence/cross_camera_tracker.py) | Tracks target identities across multi-camera topology networks |
-| [crowd_density_estimator.py](file:///e:/ARGUS_AI/intelligence/crowd_density_estimator.py) | Estimates crowd density and spatial clutter surrounding detected subjects |
-| [crowd_intelligence_system.py](file:///e:/ARGUS_AI/intelligence/crowd_intelligence_system.py) | Unified orchestrator for crowd-robust recognition and occlusion deferral |
-| [crowd_occlusion_analyzer.py](file:///e:/ARGUS_AI/intelligence/crowd_occlusion_analyzer.py) | Analyzes bounding box overlap and inter-person occlusion ratio |
-| [crowd_robustness_manager.py](file:///e:/ARGUS_AI/intelligence/crowd_robustness_manager.py) | Controls recognition threshold adaptation under heavy crowd congestion |
-| [decision_engine.py](file:///e:/ARGUS_AI/intelligence/decision_engine.py) | Tiered decision policy for identity classification and confidence assignment |
-| [dual_modal_fusion.py](file:///e:/ARGUS_AI/intelligence/dual_modal_fusion.py) | Adaptive fusion engine combining gait GEI and appearance ReID embeddings |
-| [fusion_weights.py](file:///e:/ARGUS_AI/intelligence/fusion_weights.py) | Quality-aware dynamic weight calculator for multi-modal similarity scores |
-| [human_review_decision.py](file:///e:/ARGUS_AI/intelligence/human_review_decision.py) | Manages human operator review queues for borderline verification decisions |
-| [identity_persistence.py](file:///e:/ARGUS_AI/intelligence/identity_persistence.py) | Applies temporal score decay and maintains track identity continuity |
-| [missing_person_workflow.py](file:///e:/ARGUS_AI/intelligence/missing_person_workflow.py) | Operational watchlist manager and missing person search workflow |
-| [multi_camera_evidence_fusion.py](file:///e:/ARGUS_AI/intelligence/multi_camera_evidence_fusion.py) | Aggregates multi-camera observations into unified identity probability scores |
-| [open_set_recognizer.py](file:///e:/ARGUS_AI/intelligence/open_set_recognizer.py) | Open-set recognition engine enforcing open-world rejection bounds |
-| [policy_engine.py](file:///e:/ARGUS_AI/intelligence/policy_engine.py) | Enforces operational security rules and alert escalation policies |
-| [quality_assessment.py](file:///e:/ARGUS_AI/intelligence/quality_assessment.py) | Assesses silhouette clarity, GEI resolution, and bounding box quality |
-| [recognition_deferral_engine.py](file:///e:/ARGUS_AI/intelligence/recognition_deferral_engine.py) | Defers recognition decisions under high occlusion until evidence accumulates |
-| [reid_cache.py](file:///e:/ARGUS_AI/intelligence/reid_cache.py) | Thread-safe LRU feature vector cache for fast ReID candidate lookup |
-| [score_normalizer.py](file:///e:/ARGUS_AI/intelligence/score_normalizer.py) | Normalizes raw similarity distributions into calibrated probability scores |
-| [track_recovery_manager.py](file:///e:/ARGUS_AI/intelligence/track_recovery_manager.py) | Recovers lost person tracks after extended occlusions or scene exits |
-| [track_reliability_scorer.py](file:///e:/ARGUS_AI/intelligence/track_reliability_scorer.py) | Scores temporal track consistency, motion smoothness, and bounding box stability |
+| [alert_manager.py](file:///E:/ARGUS_AI/intelligence/alert_manager.py) | Threat alert throttling and priority alert dispatching |
+| [appearance_embedding.py](file:///E:/ARGUS_AI/intelligence/appearance_embedding.py) | Feature extractor and embedding generator for person appearance ReID |
+| [camera_topology_learner.py](file:///E:/ARGUS_AI/intelligence/camera_topology_learner.py) | Learns directed topology graphs and travel-time bounds across cameras |
+| [camera_transition_model.py](file:///E:/ARGUS_AI/intelligence/camera_transition_model.py) | Evaluates cross-camera travel times against learned probability bounds |
+| [confidence_scorer.py](file:///E:/ARGUS_AI/intelligence/confidence_scorer.py) | Multi-factor confidence scoring combining similarity, quality, and track length |
+| [cross_camera_tracker.py](file:///E:/ARGUS_AI/intelligence/cross_camera_tracker.py) | Tracks target identities across multi-camera topology networks |
+| [crowd_density_estimator.py](file:///E:/ARGUS_AI/intelligence/crowd_density_estimator.py) | Estimates crowd density and spatial clutter surrounding detected subjects |
+| [crowd_intelligence_system.py](file:///E:/ARGUS_AI/intelligence/crowd_intelligence_system.py) | Unified orchestrator for crowd-robust recognition and occlusion deferral |
+| [crowd_occlusion_analyzer.py](file:///E:/ARGUS_AI/intelligence/crowd_occlusion_analyzer.py) | Analyzes bounding box overlap and inter-person occlusion ratio |
+| [crowd_robustness_manager.py](file:///E:/ARGUS_AI/intelligence/crowd_robustness_manager.py) | Controls recognition threshold adaptation under heavy crowd congestion |
+| [decision_engine.py](file:///E:/ARGUS_AI/intelligence/decision_engine.py) | Tiered decision policy for identity classification and confidence assignment |
+| [dual_modal_fusion.py](file:///E:/ARGUS_AI/intelligence/dual_modal_fusion.py) | Adaptive fusion engine combining gait GEI and appearance ReID embeddings |
+| [fusion_weights.py](file:///E:/ARGUS_AI/intelligence/fusion_weights.py) | Quality-aware dynamic weight calculator for multi-modal similarity scores |
+| [human_review_decision.py](file:///E:/ARGUS_AI/intelligence/human_review_decision.py) | Manages human operator review queues for borderline verification decisions |
+| [identity_persistence.py](file:///E:/ARGUS_AI/intelligence/identity_persistence.py) | Applies temporal score decay and maintains track identity continuity |
+| [missing_person_workflow.py](file:///E:/ARGUS_AI/intelligence/missing_person_workflow.py) | Operational watchlist manager and missing person search workflow |
+| [multi_camera_evidence_fusion.py](file:///E:/ARGUS_AI/intelligence/multi_camera_evidence_fusion.py) | Aggregates multi-camera observations into unified identity probability scores |
+| [open_set_recognizer.py](file:///E:/ARGUS_AI/intelligence/open_set_recognizer.py) | Open-set recognition engine enforcing open-world rejection bounds |
+| [policy_engine.py](file:///E:/ARGUS_AI/intelligence/policy_engine.py) | Enforces operational security rules and alert escalation policies |
+| [quality_assessment.py](file:///E:/ARGUS_AI/intelligence/quality_assessment.py) | Assesses silhouette clarity, GEI resolution, and bounding box quality |
+| [recognition_deferral_engine.py](file:///E:/ARGUS_AI/intelligence/recognition_deferral_engine.py) | Defers recognition decisions under high occlusion until evidence accumulates |
+| [reid_cache.py](file:///E:/ARGUS_AI/intelligence/reid_cache.py) | Thread-safe LRU feature vector cache for fast ReID candidate lookup |
+| [score_normalizer.py](file:///E:/ARGUS_AI/intelligence/score_normalizer.py) | Normalizes raw similarity distributions into calibrated probability scores |
+| [track_recovery_manager.py](file:///E:/ARGUS_AI/intelligence/track_recovery_manager.py) | Recovers lost person tracks after extended occlusions or scene exits |
+| [track_reliability_scorer.py](file:///E:/ARGUS_AI/intelligence/track_reliability_scorer.py) | Scores temporal track consistency, motion smoothness, and bounding box stability |
 <!-- END SYNC: KEY_MODULES -->
 
 ## Data Flow

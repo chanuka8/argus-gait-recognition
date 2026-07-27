@@ -3,8 +3,9 @@
 Validates and synchronizes package folder README.md files with the active source modules in each folder.
 
 Usage:
-    python scripts/sync_folder_readmes.py --check
-    python scripts/sync_folder_readmes.py --update
+    python scripts/sync_folder_readmes.py         # Automatically update folder READMEs and index
+    python scripts/sync_folder_readmes.py --check # Check if folder READMEs are synchronized (CI mode)
+    python scripts/sync_folder_readmes.py --update# Explicitly update folder READMEs
 """
 
 import argparse
@@ -113,6 +114,22 @@ def check_folder_readme(folder_path: Path) -> Tuple[bool, List[str]]:
     return len(issues) == 0, issues
 
 
+def check_readme_index(root_dir: Path) -> Tuple[bool, List[str]]:
+    """Check if docs/README_INDEX.md exists and contains links to all package READMEs."""
+    index_path = root_dir / "docs" / "README_INDEX.md"
+    issues = []
+
+    if not index_path.exists():
+        return False, [f"Missing {index_path}"]
+
+    content = index_path.read_text(encoding="utf-8")
+    for folder in TARGET_FOLDERS:
+        if f"{folder}/README.md" not in content:
+            issues.append(f"Missing entry for {folder}/README.md in docs/README_INDEX.md")
+
+    return len(issues) == 0, issues
+
+
 def update_folder_readme(folder_path: Path) -> bool:
     """Synchronize Key Modules section in folder README if comment markers are present."""
     readme_path = folder_path / "README.md"
@@ -137,7 +154,6 @@ def update_folder_readme(folder_path: Path) -> bool:
             if len(cols) >= 2:
                 mod_link = cols[0]
                 desc = cols[1]
-                # extract file name from link or text
                 m = re.search(r"\[(.*?)\]", mod_link)
                 key = m.group(1) if m else mod_link
                 desc_map[key] = desc
@@ -168,11 +184,13 @@ def update_folder_readme(folder_path: Path) -> bool:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Synchronize ARGUS AI folder README files.")
-    parser.add_argument("--check", action="store_true", help="Check if folder READMEs are synchronized.")
+    parser.add_argument("--check", action="store_true", help="Check if folder READMEs are synchronized (CI mode).")
     parser.add_argument("--update", action="store_true", help="Update folder README key modules tables.")
     parser.add_argument("--root-dir", default=".", help="Root workspace directory.")
     args = parser.parse_args()
 
+    # Default execution without flags triggers update mode automatically
+    should_update = args.update or not args.check
     root_dir = Path(args.root_dir)
     total_issues = 0
     updated_count = 0
@@ -184,7 +202,7 @@ def main() -> int:
         if not folder_path.exists():
             continue
 
-        if args.update:
+        if should_update:
             if update_folder_readme(folder_path):
                 print(f"[UPDATED] Synchronized {folder_name}/README.md")
                 updated_count += 1
@@ -196,6 +214,14 @@ def main() -> int:
                 print(f"[WARN] {issue}")
         else:
             print(f"[OK] {folder_name}/README.md is synchronized and valid.")
+
+    idx_valid, idx_issues = check_readme_index(root_dir)
+    if not idx_valid:
+        total_issues += len(idx_issues)
+        for issue in idx_issues:
+            print(f"[WARN] {issue}")
+    else:
+        print("[OK] docs/README_INDEX.md is valid.")
 
     if args.check and total_issues > 0:
         print(f"\n[FAIL] Synchronization check failed with {total_issues} issue(s).")

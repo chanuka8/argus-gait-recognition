@@ -14,9 +14,9 @@ The `security_layer` package implements security event classification, decision 
 <!-- BEGIN SYNC: KEY_MODULES -->
 | Module | Purpose |
 |---|---|
-| [credentials.py](file:///e:/ARGUS_AI/security_layer/credentials.py) | Encryption and credentials storage manager for RTSP stream passwords |
-| [security_engine.py](file:///e:/ARGUS_AI/security_layer/security_engine.py) | Security rule engine classifying recognition scores into severity decision tiers |
-| [security_logger.py](file:///e:/ARGUS_AI/security_layer/security_logger.py) | Thread-safe CSV logger persisting security audit events to `outputs/logs/security/security_events.csv` |
+| [credentials.py](file:///E:/ARGUS_AI/security_layer/credentials.py) | Encryption and credentials storage manager for RTSP stream passwords |
+| [security_engine.py](file:///E:/ARGUS_AI/security_layer/security_engine.py) | Security rule engine classifying recognition scores into severity decision tiers |
+| [security_logger.py](file:///E:/ARGUS_AI/security_layer/security_logger.py) | Thread-safe CSV logger persisting security audit events to `outputs/logs/security/security_events.csv` |
 <!-- END SYNC: KEY_MODULES -->
 
 ## Data Flow

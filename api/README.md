@@ -14,14 +14,11 @@ The `api` package provides RESTful HTTP endpoints and web server infrastructure 
 <!-- BEGIN SYNC: KEY_MODULES -->
 | Module | Purpose |
 |---|---|
-| [schemas.py](file:///e:/ARGUS_AI/api/schemas.py) | Pydantic request and response schemas for API data validation |
-| [server.py](file:///e:/ARGUS_AI/api/server.py) | FastAPI application factory, server lifecycle, and route mounting |
-| [routes/camera.py](file:///e:/ARGUS_AI/api/routes/camera.py) | HTTP endpoints for camera state, configuration, and stream statistics |
-| [routes/enrollment.py](file:///e:/ARGUS_AI/api/routes/enrollment.py) | HTTP endpoints for target identity enrollment requests |
-| [routes/health.py](file:///e:/ARGUS_AI/api/routes/health.py) | HTTP endpoints for system health, CPU/RAM/GPU telemetry, and watchdog status |
-| [routes/inference.py](file:///e:/ARGUS_AI/api/routes/inference.py) | HTTP endpoints for model inference and feature extraction triggers |
-| [routes/recognition.py](file:///e:/ARGUS_AI/api/routes/recognition.py) | HTTP endpoints for real-time recognition alerts, events, and query results |
-| [routes/status.py](file:///e:/ARGUS_AI/api/routes/status.py) | HTTP endpoints for operational status and system metrics |
+| [routes/enrollment.py](file:///E:/ARGUS_AI/api/routes/enrollment.py) | HTTP endpoints for target identity enrollment requests |
+| [routes/inference.py](file:///E:/ARGUS_AI/api/routes/inference.py) | HTTP endpoints for model inference and feature extraction triggers |
+| [routes/status.py](file:///E:/ARGUS_AI/api/routes/status.py) | HTTP endpoints for operational status and system metrics |
+| [schemas.py](file:///E:/ARGUS_AI/api/schemas.py) | Pydantic request and response schemas for API data validation |
+| [server.py](file:///E:/ARGUS_AI/api/server.py) | FastAPI application factory, server lifecycle, and route mounting |
 <!-- END SYNC: KEY_MODULES -->
 
 ## Data Flow
