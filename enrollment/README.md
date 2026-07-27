@@ -14,13 +14,13 @@ The `enrollment` package handles target identity registration, gallery database 
 <!-- BEGIN SYNC: KEY_MODULES -->
 | Module | Purpose |
 |---|---|
-| [appearance_gallery_updater.py](file:///E:/ARGUS_AI/enrollment/appearance_gallery_updater.py) | Updates appearance feature embeddings in the enrollment gallery |
-| [auto_enrollment_service.py](file:///E:/ARGUS_AI/enrollment/auto_enrollment_service.py) | Automated background service for target identity auto-registration |
-| [enrollment_manager.py](file:///E:/ARGUS_AI/enrollment/enrollment_manager.py) | Main enrollment facade handling target identity addition, deletion, and sync |
-| [enrollment_queue.py](file:///E:/ARGUS_AI/enrollment/enrollment_queue.py) | Thread-safe asynchronous queue for batch enrollment tasks |
-| [enrollment_validator.py](file:///E:/ARGUS_AI/enrollment/enrollment_validator.py) | Quality inspector verifying resolution, silhouette suitability, and GEI validity |
-| [folder_watcher.py](file:///E:/ARGUS_AI/enrollment/folder_watcher.py) | Filesystem observer monitoring designated directories for new enrollment files |
-| [gallery_updater.py](file:///E:/ARGUS_AI/enrollment/gallery_updater.py) | Computes and persists gait GEI feature embeddings into `models/gallery/` |
+| [appearance_gallery_updater.py](appearance_gallery_updater.py) | Updates appearance feature embeddings in the enrollment gallery |
+| [auto_enrollment_service.py](auto_enrollment_service.py) | Automated background service for target identity auto-registration |
+| [enrollment_manager.py](enrollment_manager.py) | Main enrollment facade handling target identity addition, deletion, and sync |
+| [enrollment_queue.py](enrollment_queue.py) | Thread-safe asynchronous queue for batch enrollment tasks |
+| [enrollment_validator.py](enrollment_validator.py) | Quality inspector verifying resolution, silhouette suitability, and GEI validity |
+| [folder_watcher.py](folder_watcher.py) | Filesystem observer monitoring designated directories for new enrollment files |
+| [gallery_updater.py](gallery_updater.py) | Computes and persists gait GEI feature embeddings into `models/gallery/` |
 <!-- END SYNC: KEY_MODULES -->
 
 ## Data Flow
@@ -29,21 +29,21 @@ Enrollment Files → `enrollment/folder_watcher.py` → `enrollment/enrollment_v
 
 ## Configuration
 
-- [configs/system.yaml](file:///e:/ARGUS_AI/configs/system.yaml): `recognition.gallery_dir`
-- [configs/inference.yaml](file:///e:/ARGUS_AI/configs/inference.yaml): matching policy thresholds
+- [configs/system.yaml](../configs/system.yaml): `recognition.gallery_dir`
+- [configs/inference.yaml](../configs/inference.yaml): matching policy thresholds
 
 ## Public Interfaces
 
-- `EnrollmentManager`: Primary facade for identity registration in [enrollment/enrollment_manager.py](file:///e:/ARGUS_AI/enrollment/enrollment_manager.py).
-- `AutoEnrollmentService`: Background registration worker in [enrollment/auto_enrollment_service.py](file:///e:/ARGUS_AI/enrollment/auto_enrollment_service.py).
-- `GalleryUpdater`: Feature extraction and matrix persistence engine in [enrollment/gallery_updater.py](file:///e:/ARGUS_AI/enrollment/gallery_updater.py).
+- `EnrollmentManager`: Primary facade for identity registration in [enrollment/enrollment_manager.py](enrollment_manager.py).
+- `AutoEnrollmentService`: Background registration worker in [enrollment/auto_enrollment_service.py](auto_enrollment_service.py).
+- `GalleryUpdater`: Feature extraction and matrix persistence engine in [enrollment/gallery_updater.py](gallery_updater.py).
 
 ## Tests
 
-- [tests/integration/test_dual_modal_pipeline.py](file:///e:/ARGUS_AI/tests/integration/test_dual_modal_pipeline.py)
-- [tests/test_watchlist_integration.py](file:///e:/ARGUS_AI/tests/test_watchlist_integration.py)
+- [tests/integration/test_dual_modal_pipeline.py](../tests/integration/test_dual_modal_pipeline.py)
+- [tests/test_watchlist_integration.py](../tests/test_watchlist_integration.py)
 
 ## Related Documentation
 
-- [Root README](file:///e:/ARGUS_AI/README.md)
-- [Intelligence Documentation](file:///e:/ARGUS_AI/intelligence/README.md)
+- [Root README](../README.md)
+- [Intelligence Documentation](../intelligence/README.md)

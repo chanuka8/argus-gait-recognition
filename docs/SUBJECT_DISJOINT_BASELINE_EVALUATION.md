@@ -69,7 +69,7 @@ The original evaluation methodology had the following critical flaws:
 | **Validation** | 063–074 | 12 | Threshold calibration only (never used for test evaluation) |
 | **Test** | 075–124 | 50 | Final evaluation (never used for training or threshold selection) |
 
-**Manifest File:** [`configs/subject_split.json`](file:///e:/ARGUS_AI/configs/subject_split.json)
+**Manifest File:** [`configs/subject_split.json`](../configs/subject_split.json)
 
 **Disjointness Verified Programmatically:** `evaluation/dataset_split.py::validate_disjoint_splits()` — raises `ValueError` if any identity overlap is detected.
 
@@ -106,7 +106,7 @@ The original evaluation methodology had the following critical flaws:
 
 **Leakage Check:** `assert_no_test_threshold_calibration()` verified zero overlap between calibration subjects (063–074) and test subjects (075–124).
 
-**Calibration File:** [`runs/exp_001/evaluation_subject_disjoint/threshold_calibration.json`](file:///e:/ARGUS_AI/runs/exp_001/evaluation_subject_disjoint/threshold_calibration.json)
+**Calibration File:** [`runs/exp_001/evaluation_subject_disjoint/threshold_calibration.json`](../runs/exp_001/evaluation_subject_disjoint/threshold_calibration.json)
 
 ---
 
@@ -154,7 +154,7 @@ The original evaluation methodology had the following critical flaws:
 | 15 | 96.54% |
 | 20 | 96.81% |
 
-**Report File:** [`runs/exp_001/evaluation_subject_disjoint/closed_set_eval_report.json`](file:///e:/ARGUS_AI/runs/exp_001/evaluation_subject_disjoint/closed_set_eval_report.json)
+**Report File:** [`runs/exp_001/evaluation_subject_disjoint/closed_set_eval_report.json`](../runs/exp_001/evaluation_subject_disjoint/closed_set_eval_report.json)
 
 ---
 
@@ -190,9 +190,9 @@ The original evaluation methodology had the following critical flaws:
 - Adjacent angles perform well (e.g., 036°→054° = 86.2%), distant angles degrade significantly
 
 **Report Files:**
-- [`cross_view_report.json`](file:///e:/ARGUS_AI/runs/exp_001/evaluation_subject_disjoint/cross_view_report.json)
-- [`cross_view_matrix.csv`](file:///e:/ARGUS_AI/runs/exp_001/evaluation_subject_disjoint/cross_view_matrix.csv)
-- [`cross_view_report.md`](file:///e:/ARGUS_AI/runs/exp_001/evaluation_subject_disjoint/cross_view_report.md)
+- [`cross_view_report.json`](../runs/exp_001/evaluation_subject_disjoint/cross_view_report.json)
+- [`cross_view_matrix.csv`](../runs/exp_001/evaluation_subject_disjoint/cross_view_matrix.csv)
+- [`cross_view_report.md`](../runs/exp_001/evaluation_subject_disjoint/cross_view_report.md)
 
 ---
 
@@ -236,7 +236,7 @@ The original evaluation methodology had the following critical flaws:
 - EER of 16.88% at threshold 0.9929 shows the system can achieve a reasonable false-accept/false-reject balance
 - At the min-EER calibrated threshold (0.9913), FAR is still high (36.75%) because the cosine similarity scores are very tightly clustered near 1.0 (range: 0.975–0.999), making fine threshold discrimination critical
 
-**Report File:** [`runs/exp_001/evaluation_subject_disjoint/open_set_report.json`](file:///e:/ARGUS_AI/runs/exp_001/evaluation_subject_disjoint/open_set_report.json)
+**Report File:** [`runs/exp_001/evaluation_subject_disjoint/open_set_report.json`](../runs/exp_001/evaluation_subject_disjoint/open_set_report.json)
 
 ---
 
@@ -249,7 +249,7 @@ The original evaluation methodology had the following critical flaws:
 | Full Pipeline Latency (Extraction + Matching) | 11.20 ms | CPU, 3,295 probes against 2,171 gallery |
 | Full Pipeline FPS | 89.32 | CPU |
 
-**Report File:** [`runs/exp_001/evaluation_subject_disjoint/inference_benchmark.json`](file:///e:/ARGUS_AI/runs/exp_001/evaluation_subject_disjoint/inference_benchmark.json)
+**Report File:** [`runs/exp_001/evaluation_subject_disjoint/inference_benchmark.json`](../runs/exp_001/evaluation_subject_disjoint/inference_benchmark.json)
 
 ---
 
@@ -347,32 +347,32 @@ All automated leakage checks **PASSED**:
 
 | File | Description |
 |------|-------------|
-| [`configs/subject_split.json`](file:///e:/ARGUS_AI/configs/subject_split.json) | Subject-disjoint split manifest |
-| [`closed_set_eval_report.json`](file:///e:/ARGUS_AI/runs/exp_001/evaluation_subject_disjoint/closed_set_eval_report.json) | Closed-set results with CMC |
-| [`cross_view_report.json`](file:///e:/ARGUS_AI/runs/exp_001/evaluation_subject_disjoint/cross_view_report.json) | 11×11 cross-view matrices |
-| [`cross_view_matrix.csv`](file:///e:/ARGUS_AI/runs/exp_001/evaluation_subject_disjoint/cross_view_matrix.csv) | Cross-view matrix in CSV |
-| [`cross_view_report.md`](file:///e:/ARGUS_AI/runs/exp_001/evaluation_subject_disjoint/cross_view_report.md) | Cross-view markdown report |
-| [`open_set_report.json`](file:///e:/ARGUS_AI/runs/exp_001/evaluation_subject_disjoint/open_set_report.json) | Open-set identification results |
-| [`open_set_report.csv`](file:///e:/ARGUS_AI/runs/exp_001/evaluation_subject_disjoint/open_set_report.csv) | Open-set CSV |
-| [`open_set_scores.json`](file:///e:/ARGUS_AI/runs/exp_001/evaluation_subject_disjoint/open_set_scores.json) | Per-probe score distributions |
-| [`threshold_calibration.json`](file:///e:/ARGUS_AI/runs/exp_001/evaluation_subject_disjoint/threshold_calibration.json) | Threshold calibration details |
-| [`inference_benchmark.json`](file:///e:/ARGUS_AI/runs/exp_001/evaluation_subject_disjoint/inference_benchmark.json) | Inference speed benchmark |
-| [`outputs/eval_reports/LEGACY_NOTICE.json`](file:///e:/ARGUS_AI/outputs/eval_reports/LEGACY_NOTICE.json) | Legacy results deprecation notice |
+| [`configs/subject_split.json`](../configs/subject_split.json) | Subject-disjoint split manifest |
+| [`closed_set_eval_report.json`](../runs/exp_001/evaluation_subject_disjoint/closed_set_eval_report.json) | Closed-set results with CMC |
+| [`cross_view_report.json`](../runs/exp_001/evaluation_subject_disjoint/cross_view_report.json) | 11×11 cross-view matrices |
+| [`cross_view_matrix.csv`](../runs/exp_001/evaluation_subject_disjoint/cross_view_matrix.csv) | Cross-view matrix in CSV |
+| [`cross_view_report.md`](../runs/exp_001/evaluation_subject_disjoint/cross_view_report.md) | Cross-view markdown report |
+| [`open_set_report.json`](../runs/exp_001/evaluation_subject_disjoint/open_set_report.json) | Open-set identification results |
+| [`open_set_report.csv`](../runs/exp_001/evaluation_subject_disjoint/open_set_report.csv) | Open-set CSV |
+| [`open_set_scores.json`](../runs/exp_001/evaluation_subject_disjoint/open_set_scores.json) | Per-probe score distributions |
+| [`threshold_calibration.json`](../runs/exp_001/evaluation_subject_disjoint/threshold_calibration.json) | Threshold calibration details |
+| [`inference_benchmark.json`](../runs/exp_001/evaluation_subject_disjoint/inference_benchmark.json) | Inference speed benchmark |
+| [`outputs/eval_reports/LEGACY_NOTICE.json`](../outputs/reports/evaluation/LEGACY_NOTICE.json) | Legacy results deprecation notice |
 
 ## Appendix B: New/Modified Source Files
 
 | File | Action | Purpose |
 |------|--------|---------|
-| [`evaluation/dataset_split.py`](file:///e:/ARGUS_AI/evaluation/dataset_split.py) | NEW | Subject-disjoint split generation and validation |
-| [`evaluation/gallery_probe_builder.py`](file:///e:/ARGUS_AI/evaluation/gallery_probe_builder.py) | NEW | Sequence-disjoint gallery/probe construction |
-| [`evaluation/threshold_calibrator.py`](file:///e:/ARGUS_AI/evaluation/threshold_calibrator.py) | NEW | Threshold calibration on validation data only |
-| [`evaluation/leakage_validator.py`](file:///e:/ARGUS_AI/evaluation/leakage_validator.py) | NEW | Programmatic leakage prevention assertions |
-| [`evaluation/evaluator.py`](file:///e:/ARGUS_AI/evaluation/evaluator.py) | MODIFIED | Refactored to `SubjectDisjointEvaluator` |
-| [`evaluation/cross_view_evaluator.py`](file:///e:/ARGUS_AI/evaluation/cross_view_evaluator.py) | MODIFIED | Full 11×11 cross-view matrix evaluator |
-| [`evaluation/open_set_evaluator.py`](file:///e:/ARGUS_AI/evaluation/open_set_evaluator.py) | MODIFIED | Disjoint known/unknown open-set evaluator |
-| [`evaluation/metrics.py`](file:///e:/ARGUS_AI/evaluation/metrics.py) | MODIFIED | Added biometric, CMC, ROC-AUC, EER functions |
-| [`scripts/evaluate_subject_disjoint.py`](file:///e:/ARGUS_AI/scripts/evaluate_subject_disjoint.py) | NEW | Master evaluation pipeline entry point |
-| [`tests/unit/test_metric_correctness.py`](file:///e:/ARGUS_AI/tests/unit/test_metric_correctness.py) | NEW | 13 metric correctness unit tests |
-| [`tests/test_leakage_prevention.py`](file:///e:/ARGUS_AI/tests/test_leakage_prevention.py) | NEW | 5 leakage detection CI tests |
-| [`configs/subject_split.json`](file:///e:/ARGUS_AI/configs/subject_split.json) | NEW | Deterministic split manifest |
-| [`outputs/eval_reports/LEGACY_NOTICE.json`](file:///e:/ARGUS_AI/outputs/eval_reports/LEGACY_NOTICE.json) | NEW | Legacy results deprecation marker |
+| [`evaluation/dataset_split.py`](../evaluation/dataset_split.py) | NEW | Subject-disjoint split generation and validation |
+| [`evaluation/gallery_probe_builder.py`](../evaluation/gallery_probe_builder.py) | NEW | Sequence-disjoint gallery/probe construction |
+| [`evaluation/threshold_calibrator.py`](../evaluation/threshold_calibrator.py) | NEW | Threshold calibration on validation data only |
+| [`evaluation/leakage_validator.py`](../evaluation/leakage_validator.py) | NEW | Programmatic leakage prevention assertions |
+| [`evaluation/evaluator.py`](../evaluation/evaluator.py) | MODIFIED | Refactored to `SubjectDisjointEvaluator` |
+| [`evaluation/cross_view_evaluator.py`](../evaluation/cross_view_evaluator.py) | MODIFIED | Full 11×11 cross-view matrix evaluator |
+| [`evaluation/open_set_evaluator.py`](../evaluation/open_set_evaluator.py) | MODIFIED | Disjoint known/unknown open-set evaluator |
+| [`evaluation/metrics.py`](../evaluation/metrics.py) | MODIFIED | Added biometric, CMC, ROC-AUC, EER functions |
+| [`scripts/evaluate_subject_disjoint.py`](../scripts/evaluate_subject_disjoint.py) | NEW | Master evaluation pipeline entry point |
+| [`tests/unit/test_metric_correctness.py`](../tests/unit/test_metric_correctness.py) | NEW | 13 metric correctness unit tests |
+| [`tests/test_leakage_prevention.py`](../tests/test_leakage_prevention.py) | NEW | 5 leakage detection CI tests |
+| [`configs/subject_split.json`](../configs/subject_split.json) | NEW | Deterministic split manifest |
+| [`outputs/eval_reports/LEGACY_NOTICE.json`](../outputs/reports/evaluation/LEGACY_NOTICE.json) | NEW | Legacy results deprecation marker |

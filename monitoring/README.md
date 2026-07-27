@@ -14,13 +14,13 @@ The `monitoring` package provides camera health monitoring, process watchdog fai
 <!-- BEGIN SYNC: KEY_MODULES -->
 | Module | Purpose |
 |---|---|
-| [camera_monitor.py](file:///E:/ARGUS_AI/monitoring/camera_monitor.py) | Periodically gathers camera stream stats and writes JSON summaries to `outputs/monitoring/camera_stats/` |
-| [crash_guard.py](file:///E:/ARGUS_AI/monitoring/crash_guard.py) | Process crash interception and graceful recovery guard |
-| [gpu_tuner.py](file:///E:/ARGUS_AI/monitoring/gpu_tuner.py) | Monitors CUDA memory utilization and tunes batch allocation parameters |
-| [logging_config.py](file:///E:/ARGUS_AI/monitoring/logging_config.py) | Multi-channel log router supporting 5 rotating log files (`system`, `camera`, `detection`, `error`, `watchdog`) |
-| [metrics_collector.py](file:///E:/ARGUS_AI/monitoring/metrics_collector.py) | Aggregates system resource utilization metrics (CPU, RAM, GPU, Queue Size, FPS) |
-| [performance_profiler.py](file:///E:/ARGUS_AI/monitoring/performance_profiler.py) | Measures execution latencies across pipeline steps |
-| [watchdog.py](file:///E:/ARGUS_AI/monitoring/watchdog.py) | Background watchdog checking component health and triggering worker auto-restarts |
+| [camera_monitor.py](camera_monitor.py) | Periodically gathers camera stream stats and writes JSON summaries to `outputs/monitoring/camera_stats/` |
+| [crash_guard.py](crash_guard.py) | Process crash interception and graceful recovery guard |
+| [gpu_tuner.py](gpu_tuner.py) | Monitors CUDA memory utilization and tunes batch allocation parameters |
+| [logging_config.py](logging_config.py) | Multi-channel log router supporting 5 rotating log files (`system`, `camera`, `detection`, `error`, `watchdog`) |
+| [metrics_collector.py](metrics_collector.py) | Aggregates system resource utilization metrics (CPU, RAM, GPU, Queue Size, FPS) |
+| [performance_profiler.py](performance_profiler.py) | Measures execution latencies across pipeline steps |
+| [watchdog.py](watchdog.py) | Background watchdog checking component health and triggering worker auto-restarts |
 <!-- END SYNC: KEY_MODULES -->
 
 ## Data Flow
@@ -29,21 +29,21 @@ Component Execution → `monitoring/logging_config.py` & `monitoring/metrics_col
 
 ## Configuration
 
-- [configs/system.yaml](file:///e:/ARGUS_AI/configs/system.yaml): `logging` and `watchdog` sections
+- [configs/system.yaml](../configs/system.yaml): `logging` and `watchdog` sections
 
 ## Public Interfaces
 
-- `CameraMonitor`: Camera health tracker in [monitoring/camera_monitor.py](file:///e:/ARGUS_AI/monitoring/camera_monitor.py).
-- `SystemWatchdog`: Watchdog coordinator in [monitoring/watchdog.py](file:///e:/ARGUS_AI/monitoring/watchdog.py).
-- `init_logging()`, `get_logger(channel: str)`: Logger initialization in [monitoring/logging_config.py](file:///e:/ARGUS_AI/monitoring/logging_config.py).
+- `CameraMonitor`: Camera health tracker in [monitoring/camera_monitor.py](camera_monitor.py).
+- `SystemWatchdog`: Watchdog coordinator in [monitoring/watchdog.py](watchdog.py).
+- `init_logging()`, `get_logger(channel: str)`: Logger initialization in [monitoring/logging_config.py](logging_config.py).
 
 ## Tests
 
-- [tests/test_logging.py](file:///e:/ARGUS_AI/tests/test_logging.py)
-- [tests/test_watchdog.py](file:///e:/ARGUS_AI/tests/test_watchdog.py)
-- [tests/unit/test_output_layout.py](file:///e:/ARGUS_AI/tests/unit/test_output_layout.py)
+- [tests/test_logging.py](../tests/test_logging.py)
+- [tests/test_watchdog.py](../tests/test_watchdog.py)
+- [tests/unit/test_output_layout.py](../tests/unit/test_output_layout.py)
 
 ## Related Documentation
 
-- [Root README](file:///e:/ARGUS_AI/README.md)
-- [Core Documentation](file:///e:/ARGUS_AI/core/README.md)
+- [Root README](../README.md)
+- [Core Documentation](../core/README.md)

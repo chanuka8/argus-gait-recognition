@@ -15,13 +15,13 @@ The `training` package handles deep neural network model training, loss function
 <!-- BEGIN SYNC: KEY_MODULES -->
 | Module | Purpose |
 |---|---|
-| [callbacks.py](file:///E:/ARGUS_AI/training/callbacks.py) | Early stopping, model checkpointer, and `TrainingLogger` callbacks |
-| [checkpointer.py](file:///E:/ARGUS_AI/training/checkpointer.py) | Checkpoint saver and model state dictionary restorer |
-| [dataloader.py](file:///E:/ARGUS_AI/training/dataloader.py) | PyTorch DataLoader factory supporting balanced identity batch sampling |
-| [dataset.py](file:///E:/ARGUS_AI/training/dataset.py) | PyTorch Dataset class loading 64x128 GEI images and subject labels |
-| [loss_functions.py](file:///E:/ARGUS_AI/training/loss_functions.py) | Combined loss implementations: Triplet Loss with hard mining, Cross-Entropy, Margin Loss |
-| [optimizer.py](file:///E:/ARGUS_AI/training/optimizer.py) | Adam / SGD optimizer builder and Cosine Annealing learning rate schedulers |
-| [trainer.py](file:///E:/ARGUS_AI/training/trainer.py) | Main training loop coordinator executing forward/backward passes and validation checks |
+| [callbacks.py](callbacks.py) | Early stopping, model checkpointer, and `TrainingLogger` callbacks |
+| [checkpointer.py](checkpointer.py) | Checkpoint saver and model state dictionary restorer |
+| [dataloader.py](dataloader.py) | PyTorch DataLoader factory supporting balanced identity batch sampling |
+| [dataset.py](dataset.py) | PyTorch Dataset class loading 64x128 GEI images and subject labels |
+| [loss_functions.py](loss_functions.py) | Combined loss implementations: Triplet Loss with hard mining, Cross-Entropy, Margin Loss |
+| [optimizer.py](optimizer.py) | Adam / SGD optimizer builder and Cosine Annealing learning rate schedulers |
+| [trainer.py](trainer.py) | Main training loop coordinator executing forward/backward passes and validation checks |
 <!-- END SYNC: KEY_MODULES -->
 
 ## Data Flow
@@ -30,23 +30,23 @@ GEI Training Dataset → `training/dataset.py` & `training/dataloader.py` → `m
 
 ## Configuration
 
-- [configs/train.yaml](file:///e:/ARGUS_AI/configs/train.yaml): hyper-parameters, batch size, learning rate, epoch count
-- [configs/auto_train.yaml](file:///e:/ARGUS_AI/configs/auto_train.yaml): automated re-training parameters
+- [configs/train.yaml](../configs/train.yaml): hyper-parameters, batch size, learning rate, epoch count
+- [configs/auto_train.yaml](../configs/auto_train.yaml): automated re-training parameters
 
 ## Public Interfaces
 
-- `GaitTrainer`: Training coordinator in [training/trainer.py](file:///e:/ARGUS_AI/training/trainer.py).
-- `GaitDataset`: PyTorch Dataset in [training/dataset.py](file:///e:/ARGUS_AI/training/dataset.py).
-- `TrainingLogger`: Logging callback in [training/callbacks.py](file:///e:/ARGUS_AI/training/callbacks.py).
-- `CombinedLoss`: Loss function in [training/loss_functions.py](file:///e:/ARGUS_AI/training/loss_functions.py).
+- `GaitTrainer`: Training coordinator in [training/trainer.py](trainer.py).
+- `GaitDataset`: PyTorch Dataset in [training/dataset.py](dataset.py).
+- `TrainingLogger`: Logging callback in [training/callbacks.py](callbacks.py).
+- `CombinedLoss`: Loss function in [training/loss_functions.py](loss_functions.py).
 
 ## Tests
 
-- [tests/unit/test_output_layout.py](file:///e:/ARGUS_AI/tests/unit/test_output_layout.py)
-- [scripts/evaluate_model.py](file:///e:/ARGUS_AI/scripts/evaluate_model.py)
+- [tests/unit/test_output_layout.py](../tests/unit/test_output_layout.py)
+- [scripts/evaluate_model.py](../scripts/evaluate_model.py)
 
 ## Related Documentation
 
-- [Root README](file:///e:/ARGUS_AI/README.md)
-- [Models Documentation](file:///e:/ARGUS_AI/models/README.md)
-- [Evaluation Documentation](file:///e:/ARGUS_AI/evaluation/README.md)
+- [Root README](../README.md)
+- [Models Documentation](../models/README.md)
+- [Evaluation Documentation](../evaluation/README.md)

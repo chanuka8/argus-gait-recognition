@@ -163,11 +163,11 @@ def update_folder_readme(folder_path: Path) -> bool:
     for f in active_files:
         desc = desc_map.get(f, f"Module/resource file {f}")
         if "/" in f and not f.endswith("/"):
-            link = f"[{f}](file:///{folder_path.resolve().as_posix()}/{f})"
+            link = f"[{f}]({f})"
         elif f.endswith("/"):
             link = f"`{f}`"
         else:
-            link = f"[{f}](file:///{folder_path.resolve().as_posix()}/{f})"
+            link = f"[{f}]({f})"
         new_lines.append(f"| {link} | {desc} |")
 
     new_table_str = "\n".join(new_lines)

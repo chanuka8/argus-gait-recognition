@@ -15,12 +15,12 @@ The `storage` package manages data persistence, evidence retention policy enforc
 <!-- BEGIN SYNC: KEY_MODULES -->
 | Module | Purpose |
 |---|---|
-| [cache_manager.py](file:///E:/ARGUS_AI/storage/cache_manager.py) | General-purpose thread-safe key-value cache manager |
-| [data_manager.py](file:///E:/ARGUS_AI/storage/data_manager.py) | Central storage manager coordinating datasets, evidence, and vector stores |
-| [dataset_loader.py](file:///E:/ARGUS_AI/storage/dataset_loader.py) | Loads GEI image datasets and feature matrix caches from disk |
-| [evidence_manager.py](file:///E:/ARGUS_AI/storage/evidence_manager.py) | Saves evidence snapshots, GEIs, and JSON metadata with automated retention purging |
-| [lineage_tracker.py](file:///E:/ARGUS_AI/storage/lineage_tracker.py) | Tracks data processing operations and writes audit lineage records |
-| [vector_store.py](file:///E:/ARGUS_AI/storage/vector_store.py) | Vector store indexing 256-dim feature embeddings for fast cosine nearest-neighbor retrieval |
+| [cache_manager.py](cache_manager.py) | General-purpose thread-safe key-value cache manager |
+| [data_manager.py](data_manager.py) | Central storage manager coordinating datasets, evidence, and vector stores |
+| [dataset_loader.py](dataset_loader.py) | Loads GEI image datasets and feature matrix caches from disk |
+| [evidence_manager.py](evidence_manager.py) | Saves evidence snapshots, GEIs, and JSON metadata with automated retention purging |
+| [lineage_tracker.py](lineage_tracker.py) | Tracks data processing operations and writes audit lineage records |
+| [vector_store.py](vector_store.py) | Vector store indexing 256-dim feature embeddings for fast cosine nearest-neighbor retrieval |
 <!-- END SYNC: KEY_MODULES -->
 
 ## Data Flow
@@ -29,20 +29,20 @@ Detection Output → `storage/evidence_manager.py` → `outputs/media/detections
 
 ## Configuration
 
-- [configs/system.yaml](file:///e:/ARGUS_AI/configs/system.yaml): `recognition.gallery_dir`
+- [configs/system.yaml](../configs/system.yaml): `recognition.gallery_dir`
 
 ## Public Interfaces
 
-- `EvidenceManager`: Evidence persistence manager in [storage/evidence_manager.py](file:///e:/ARGUS_AI/storage/evidence_manager.py).
-- `LineageTracker`: Operations tracker in [storage/lineage_tracker.py](file:///e:/ARGUS_AI/storage/lineage_tracker.py).
-- `VectorStore`: Embedding vector index in [storage/vector_store.py](file:///e:/ARGUS_AI/storage/vector_store.py).
+- `EvidenceManager`: Evidence persistence manager in [storage/evidence_manager.py](evidence_manager.py).
+- `LineageTracker`: Operations tracker in [storage/lineage_tracker.py](lineage_tracker.py).
+- `VectorStore`: Embedding vector index in [storage/vector_store.py](vector_store.py).
 
 ## Tests
 
-- [tests/unit/test_output_layout.py](file:///e:/ARGUS_AI/tests/unit/test_output_layout.py)
-- [tests/integration/test_dual_modal_pipeline.py](file:///e:/ARGUS_AI/tests/integration/test_dual_modal_pipeline.py)
+- [tests/unit/test_output_layout.py](../tests/unit/test_output_layout.py)
+- [tests/integration/test_dual_modal_pipeline.py](../tests/integration/test_dual_modal_pipeline.py)
 
 ## Related Documentation
 
-- [Root README](file:///e:/ARGUS_AI/README.md)
-- [Security Layer Documentation](file:///e:/ARGUS_AI/security_layer/README.md)
+- [Root README](../README.md)
+- [Security Layer Documentation](../security_layer/README.md)

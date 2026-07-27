@@ -29,7 +29,7 @@ CNN Embedding → Gallery Matching → Adaptive Decision →
 Prediction Smoothing → Security Logging → Detection Reporting
 ```
 
-**Full details:** [03_gait_pipeline.md](file:///e:/ARGUS_AI/docs/thesis_audit/03_gait_pipeline.md)
+**Full details:** [03_gait_pipeline.md](03_gait_pipeline.md)
 
 ---
 
@@ -48,7 +48,7 @@ Prediction Smoothing → Security Logging → Detection Reporting
 | Optimizer | Adam (lr=1e-4, CosineAnnealing) |
 | Best Val Accuracy | 80.14% (on all 124 classes — not subject-disjoint) |
 
-**Full details:** [04_model_architecture.md](file:///e:/ARGUS_AI/docs/thesis_audit/04_model_architecture.md)
+**Full details:** [04_model_architecture.md](04_model_architecture.md)
 
 ---
 
@@ -94,7 +94,7 @@ Prediction Smoothing → Security Logging → Detection Reporting
 > [!CAUTION]
 > All accuracy metrics above are preliminary due to the model being trained on all 124 subjects. Re-run evaluation after training on subjects 001-074 only.
 
-**Full details:** [10_performance_metrics.md](file:///e:/ARGUS_AI/docs/thesis_audit/10_performance_metrics.md), [15_cross_view_and_openset.md](file:///e:/ARGUS_AI/docs/thesis_audit/15_cross_view_and_openset.md)
+**Full details:** [10_performance_metrics.md](10_performance_metrics.md), [15_cross_view_and_openset.md](15_cross_view_and_openset.md)
 
 ---
 
@@ -109,7 +109,7 @@ Prediction Smoothing → Security Logging → Detection Reporting
 | Clean Checkpoint | **Does not exist** — must be retrained |
 | Threshold Calibration | Val-only (063-074), θ=0.9913 at min-EER |
 
-**Full details:** [05_dataset_and_preprocessing.md](file:///e:/ARGUS_AI/docs/thesis_audit/05_dataset_and_preprocessing.md)
+**Full details:** [05_dataset_and_preprocessing.md](05_dataset_and_preprocessing.md)
 
 ---
 
@@ -127,7 +127,7 @@ Prediction Smoothing → Security Logging → Detection Reporting
 
 Plus temporal prediction smoothing (voting window=10, min votes=3).
 
-**Full details:** [06_gallery_and_matching.md](file:///e:/ARGUS_AI/docs/thesis_audit/06_gallery_and_matching.md)
+**Full details:** [06_gallery_and_matching.md](06_gallery_and_matching.md)
 
 ---
 
@@ -153,7 +153,7 @@ Plus temporal prediction smoothing (voting window=10, min votes=3).
 | Biometric template protection | ❌ |
 | Adversarial robustness | ❌ |
 
-**Full details:** [08_security_and_privacy.md](file:///e:/ARGUS_AI/docs/thesis_audit/08_security_and_privacy.md)
+**Full details:** [08_security_and_privacy.md](08_security_and_privacy.md)
 
 ---
 
@@ -169,7 +169,7 @@ Plus temporal prediction smoothing (voting window=10, min votes=3).
 | C6 | Structured security audit logging | Engineering |
 | C7 | Missing person surveillance workflow | Integration |
 
-**Full details:** [12_research_contributions.md](file:///e:/ARGUS_AI/docs/thesis_audit/12_research_contributions.md)
+**Full details:** [12_research_contributions.md](12_research_contributions.md)
 
 ---
 
@@ -227,21 +227,21 @@ The ARGUS AI system is a **well-engineered undergraduate thesis project** with s
 
 | Report File | Content |
 |---|---|
-| [01_repository_audit.md](file:///e:/ARGUS_AI/docs/thesis_audit/01_repository_audit.md) | Repository structure, environment, dependencies |
-| [02_system_architecture.md](file:///e:/ARGUS_AI/docs/thesis_audit/02_system_architecture.md) | Architecture diagrams and technology stack |
-| [03_gait_pipeline.md](file:///e:/ARGUS_AI/docs/thesis_audit/03_gait_pipeline.md) | 13-stage pipeline analysis |
-| [04_model_architecture.md](file:///e:/ARGUS_AI/docs/thesis_audit/04_model_architecture.md) | CNN architecture and training details |
-| [05_dataset_and_preprocessing.md](file:///e:/ARGUS_AI/docs/thesis_audit/05_dataset_and_preprocessing.md) | Dataset, split, and leakage analysis |
-| [06_gallery_and_matching.md](file:///e:/ARGUS_AI/docs/thesis_audit/06_gallery_and_matching.md) | Gallery, matching, and decision logic |
-| [07_multi_camera_architecture.md](file:///e:/ARGUS_AI/docs/thesis_audit/07_multi_camera_architecture.md) | Multi-camera and surveillance systems |
-| [08_security_and_privacy.md](file:///e:/ARGUS_AI/docs/thesis_audit/08_security_and_privacy.md) | Security controls and STRIDE threat model |
-| [09_testing_and_code_quality.md](file:///e:/ARGUS_AI/docs/thesis_audit/09_testing_and_code_quality.md) | Tests, CI/CD, code quality |
-| [10_performance_metrics.md](file:///e:/ARGUS_AI/docs/thesis_audit/10_performance_metrics.md) | All evaluation results |
-| [11_objective_rq_mapping.md](file:///e:/ARGUS_AI/docs/thesis_audit/11_objective_rq_mapping.md) | Objective and research question mapping |
-| [12_research_contributions.md](file:///e:/ARGUS_AI/docs/thesis_audit/12_research_contributions.md) | 7 research contributions |
-| [13_limitations_and_gaps.md](file:///e:/ARGUS_AI/docs/thesis_audit/13_limitations_and_gaps.md) | 18 limitations, 12 research gaps |
-| [14_reproducibility.md](file:///e:/ARGUS_AI/docs/thesis_audit/14_reproducibility.md) | Evidence chains and traceability |
-| [15_cross_view_and_openset.md](file:///e:/ARGUS_AI/docs/thesis_audit/15_cross_view_and_openset.md) | Cross-view and open-set analysis |
-| [16_algorithm_reference.md](file:///e:/ARGUS_AI/docs/thesis_audit/16_algorithm_reference.md) | Mathematical formulas |
-| [17_thesis_writing_guide.md](file:///e:/ARGUS_AI/docs/thesis_audit/17_thesis_writing_guide.md) | Chapter mapping and writing guide |
+| [01_repository_audit.md](01_repository_audit.md) | Repository structure, environment, dependencies |
+| [02_system_architecture.md](02_system_architecture.md) | Architecture diagrams and technology stack |
+| [03_gait_pipeline.md](03_gait_pipeline.md) | 13-stage pipeline analysis |
+| [04_model_architecture.md](04_model_architecture.md) | CNN architecture and training details |
+| [05_dataset_and_preprocessing.md](05_dataset_and_preprocessing.md) | Dataset, split, and leakage analysis |
+| [06_gallery_and_matching.md](06_gallery_and_matching.md) | Gallery, matching, and decision logic |
+| [07_multi_camera_architecture.md](07_multi_camera_architecture.md) | Multi-camera and surveillance systems |
+| [08_security_and_privacy.md](08_security_and_privacy.md) | Security controls and STRIDE threat model |
+| [09_testing_and_code_quality.md](09_testing_and_code_quality.md) | Tests, CI/CD, code quality |
+| [10_performance_metrics.md](10_performance_metrics.md) | All evaluation results |
+| [11_objective_rq_mapping.md](11_objective_rq_mapping.md) | Objective and research question mapping |
+| [12_research_contributions.md](12_research_contributions.md) | 7 research contributions |
+| [13_limitations_and_gaps.md](13_limitations_and_gaps.md) | 18 limitations, 12 research gaps |
+| [14_reproducibility.md](14_reproducibility.md) | Evidence chains and traceability |
+| [15_cross_view_and_openset.md](15_cross_view_and_openset.md) | Cross-view and open-set analysis |
+| [16_algorithm_reference.md](16_algorithm_reference.md) | Mathematical formulas |
+| [17_thesis_writing_guide.md](17_thesis_writing_guide.md) | Chapter mapping and writing guide |
 | FINAL_THESIS_TECHNICAL_REPORT.md | This master summary |

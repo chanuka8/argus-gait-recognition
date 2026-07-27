@@ -21,7 +21,7 @@
 - **Simulation?** NO
 - **Hardcoded?** NO
 - **Evidence:**
-  - **File:** [services/camera_service.py](file:///e:/ARGUS_AI/services/camera_service.py#L204-L210)
+  - **File:** [services/camera_service.py](../services/camera_service.py#L204-L210)
   - **Function:** `CameraService._capture_loop()`
   - **Line Numbers:** L204–L210 (`self._fps = (self._frame_count - self._last_fps_count) / elapsed`)
   - **Validation File:** `tests/test_multi_camera.py:test_pipeline_fps` (L137–L150)
@@ -60,7 +60,7 @@
 - **Simulation?** NO
 - **Hardcoded?** NO
 - **Evidence:**
-  - **File:** [monitoring/watchdog.py](file:///e:/ARGUS_AI/monitoring/watchdog.py#L36-L38)
+  - **File:** [monitoring/watchdog.py](../monitoring/watchdog.py#L36-L38)
   - **Function:** `Watchdog._collect_resource_usage()`
   - **Line Numbers:** L36–L38 (`import psutil; process = psutil.Process(); metrics["cpu_percent"] = process.cpu_percent(interval=0.1)`)
 - **Verdict:** **REAL RUNTIME MEASURED** — Direct OS process sampling via `psutil.Process().cpu_percent()`. Sums multi-threaded CPU core utilization.
@@ -79,7 +79,7 @@
 - **Simulation?** NO
 - **Hardcoded?** NO
 - **Evidence:**
-  - **File:** [monitoring/watchdog.py](file:///e:/ARGUS_AI/monitoring/watchdog.py#L48-L53)
+  - **File:** [monitoring/watchdog.py](../monitoring/watchdog.py#L48-L53)
   - **Function:** `Watchdog._collect_resource_usage()`
   - **Line Numbers:** L48–L53 (`import torch; torch.cuda.is_available(); torch.cuda.memory_allocated(0)`)
 - **Verdict:** **REAL RUNTIME MEASURED** — Queries PyTorch CUDA runtime API (`torch.cuda.memory_allocated(0)`). Reflects active CPU execution fallback when CUDA GPU is unavailable.
@@ -98,7 +98,7 @@
 - **Simulation?** NO
 - **Hardcoded?** NO
 - **Evidence:**
-  - **File:** [monitoring/watchdog.py](file:///e:/ARGUS_AI/monitoring/watchdog.py#L39-L41)
+  - **File:** [monitoring/watchdog.py](../monitoring/watchdog.py#L39-L41)
   - **Line Numbers:** L39–L41 (`mem_info = process.memory_info(); metrics["ram_used_mb"] = round(mem_info.rss / (1024 * 1024), 1)`)
   - **Validation File:** `tests/test_multi_camera.py:test_memory_stability` (L174–L193)
 - **Verdict:** **REAL RUNTIME HARNESS MEASURED** — Sampled from CPython memory allocator RSS via `psutil.Process().memory_info().rss` before and after 10,000 GEI sliding window frame operations.
@@ -117,7 +117,7 @@
 - **Simulation?** NO
 - **Hardcoded?** NO
 - **Evidence:**
-  - **File:** [services/camera_service.py](file:///e:/ARGUS_AI/services/camera_service.py#L30)
+  - **File:** [services/camera_service.py](../services/camera_service.py#L30)
   - **Line Numbers:** L30 (`self._queue = Queue(maxsize=self._max_queue_size)`), L272–L273 (`return self._queue.qsize()`)
 - **Verdict:** **REAL RUNTIME MEASURED** — Direct query of standard library `queue.Queue.qsize()`.
 
@@ -154,9 +154,9 @@
 - **Simulation?** NO
 - **Hardcoded?** NO
 - **Evidence:**
-  - **File:** [monitoring/watchdog.py](file:///e:/ARGUS_AI/monitoring/watchdog.py#L124-L148)
+  - **File:** [monitoring/watchdog.py](../monitoring/watchdog.py#L124-L148)
   - **Function:** `Watchdog._handle_failure()`
-  - **File:** [services/argus_service.py](file:///e:/ARGUS_AI/services/argus_service.py#L218-L228)
+  - **File:** [services/argus_service.py](../services/argus_service.py#L218-L228)
   - **Function:** `ArgusService.restart_recognition()`
 - **Verdict:** **REAL RUNTIME MEASURED** — State machine detects dead worker threads and spawns a replacement `threading.Thread(target=self._recognition_worker)` process.
 

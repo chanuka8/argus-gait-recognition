@@ -14,9 +14,9 @@ The `security_layer` package implements security event classification, decision 
 <!-- BEGIN SYNC: KEY_MODULES -->
 | Module | Purpose |
 |---|---|
-| [credentials.py](file:///E:/ARGUS_AI/security_layer/credentials.py) | Encryption and credentials storage manager for RTSP stream passwords |
-| [security_engine.py](file:///E:/ARGUS_AI/security_layer/security_engine.py) | Security rule engine classifying recognition scores into severity decision tiers |
-| [security_logger.py](file:///E:/ARGUS_AI/security_layer/security_logger.py) | Thread-safe CSV logger persisting security audit events to `outputs/logs/security/security_events.csv` |
+| [credentials.py](credentials.py) | Encryption and credentials storage manager for RTSP stream passwords |
+| [security_engine.py](security_engine.py) | Security rule engine classifying recognition scores into severity decision tiers |
+| [security_logger.py](security_logger.py) | Thread-safe CSV logger persisting security audit events to `outputs/logs/security/security_events.csv` |
 <!-- END SYNC: KEY_MODULES -->
 
 ## Data Flow
@@ -25,22 +25,22 @@ Recognition Match Output → `security_layer/security_engine.py` → Security De
 
 ## Configuration
 
-- [configs/system.yaml](file:///e:/ARGUS_AI/configs/system.yaml): `recognition.security_threshold`
-- [configs/cameras.yaml](file:///e:/ARGUS_AI/configs/cameras.yaml): RTSP camera credentials
+- [configs/system.yaml](../configs/system.yaml): `recognition.security_threshold`
+- [configs/cameras.yaml](../configs/cameras.yaml): RTSP camera credentials
 
 ## Public Interfaces
 
-- `SecurityEngine`: Security rule evaluator in [security_layer/security_engine.py](file:///e:/ARGUS_AI/security_layer/security_engine.py).
-- `SecurityLogger`: Audit logger in [security_layer/security_logger.py](file:///e:/ARGUS_AI/security_layer/security_logger.py).
-- `CredentialsManager`: Credentials manager in [security_layer/credentials.py](file:///e:/ARGUS_AI/security_layer/credentials.py).
+- `SecurityEngine`: Security rule evaluator in [security_layer/security_engine.py](security_engine.py).
+- `SecurityLogger`: Audit logger in [security_layer/security_logger.py](security_logger.py).
+- `CredentialsManager`: Credentials manager in [security_layer/credentials.py](credentials.py).
 
 ## Tests
 
-- [tests/test_audit_verification.py](file:///e:/ARGUS_AI/tests/test_audit_verification.py)
-- [tests/test_rtsp_credentials.py](file:///e:/ARGUS_AI/tests/test_rtsp_credentials.py)
-- [tests/unit/test_output_layout.py](file:///e:/ARGUS_AI/tests/unit/test_output_layout.py)
+- [tests/test_audit_verification.py](../tests/test_audit_verification.py)
+- [tests/test_rtsp_credentials.py](../tests/test_rtsp_credentials.py)
+- [tests/unit/test_output_layout.py](../tests/unit/test_output_layout.py)
 
 ## Related Documentation
 
-- [Root README](file:///e:/ARGUS_AI/README.md)
-- [Monitoring Documentation](file:///e:/ARGUS_AI/monitoring/README.md)
+- [Root README](../README.md)
+- [Monitoring Documentation](../monitoring/README.md)
