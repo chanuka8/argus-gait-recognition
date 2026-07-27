@@ -274,16 +274,6 @@ pytest -q
 - [x] ONVIF discovery & vendor adapters
 - [x] 152 automated unit and integration tests passing with 0 failures
 
-### In Progress
-- [ ] Field evaluation on physical outdoor CCTV hardware streams
-- [ ] Spatial-temporal transition parameter tuning across multi-building camera networks
-
-### Planned
-- [ ] Full FastAPI REST endpoint integration with `ArgusService` engine
-- [ ] RTSP credential encryption and environment variable injection
-- [ ] Model export to ONNX Runtime and TensorRT execution providers
-- [ ] Web-based React/Next.js monitoring dashboard UI
-
 ---
 
 ## Repository Statistics
