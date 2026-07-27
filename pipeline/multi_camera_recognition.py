@@ -7,6 +7,8 @@ import numpy as np
 import torch
 import yaml
 
+from intelligence.camera_transition_model import CameraTransitionModel
+from intelligence.cross_camera_tracker import CrossCameraTracker
 from models.architectures.bygait_light import ByGaitLight
 from pipeline.steps.centroid_matching_step import CentroidMatchingStep
 from pipeline.steps.live_gei import LiveGEI
@@ -22,6 +24,7 @@ from utils.prediction_smoother import PredictionSmoother
 from utils.box_stabilizer import BoxStabilizer
 from utils.display_renderer import DetectionDisplayRenderer, load_display_config
 from utils.detection_reporter import DetectionReporter, load_reporting_config
+
 
 
 def _load_matching_policy() -> dict:
@@ -266,6 +269,49 @@ def _load_temporal_config() -> dict:
     return merged
 
 
+
+
+
+def _load_transition_config() -> dict:
+    """Load Camera Transition Model config with safe defaults."""
+    config_path = Path("configs/inference.yaml")
+
+    defaults = {
+        "enabled": True,
+        "similarity_threshold": 0.50,
+        "max_history_seconds": 300.0,
+        "allow_same_camera": False,
+        "weights": {
+            "identity_similarity": 0.60,
+            "transition_probability": 0.20,
+            "travel_time_likelihood": 0.20,
+        },
+        "camera_transitions": {},
+    }
+
+    if not config_path.exists():
+        return defaults
+
+    try:
+        with open(config_path, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f) or {}
+    except Exception:
+        return defaults
+
+    trans = data.get("camera_transitions", {})
+
+    if not isinstance(trans, dict):
+        return defaults
+
+    merged = defaults.copy()
+    for key, default_val in defaults.items():
+        if key in trans:
+            merged[key] = trans[key]
+
+    return merged
+
+
+
 class CameraWorkerState:
 
     """
@@ -342,9 +388,13 @@ class MultiCameraRecognitionPipeline:
             cameras_config_path,
         )
 
-        self.camera_list = self.cameras_config.get(
-            "cameras", [],
-        )
+        raw_cameras = self.cameras_config.get("cameras", [])
+        if isinstance(raw_cameras, dict):
+            self.camera_list = list(raw_cameras.values())
+        elif isinstance(raw_cameras, list):
+            self.camera_list = raw_cameras
+        else:
+            self.camera_list = []
 
         self.orchestrator_config = self.cameras_config.get(
             "orchestrator", {},
@@ -357,8 +407,9 @@ class MultiCameraRecognitionPipeline:
 
         self.camera_list = [
             cam for cam in self.camera_list
-            if cam.get("enabled", True)
+            if isinstance(cam, dict) and cam.get("enabled", True)
         ][:max_cameras]
+
 
         if not self.camera_list:
             raise RuntimeError(
@@ -530,6 +581,14 @@ class MultiCameraRecognitionPipeline:
             print(
                 f"[TEMPORAL] Temporal Gait Verifier enabled (window_size={self.temporal_config['window_size']})"
             )
+
+        # Camera Transition Model & Cross-Camera Tracker
+        self.transition_config = _load_transition_config()
+        self.transition_model = CameraTransitionModel(config=self.transition_config)
+        self.cross_camera_tracker = CrossCameraTracker(transition_model=self.transition_model)
+        if self.transition_model.is_enabled():
+            print("[TRANSITION] Camera Transition Model enabled with directed topology")
+
 
 
 
@@ -805,15 +864,25 @@ class MultiCameraRecognitionPipeline:
             camera_id=worker.camera_id,
         )
 
+        # Global identity tracking via CrossCameraTracker and CameraTransitionModel
+        global_id = self.cross_camera_tracker.get_or_create_global_id(
+            camera_id=worker.camera_id,
+            local_track_id=track_id,
+            identity=stable_identity if stable_identity != "UNKNOWN" else None,
+            feature_vector=embedding,
+        )
+
         # Store result in per-camera state
         worker.last_results[track_id] = {
             "identity": stable_identity,
             "raw_identity": raw_identity,
+            "global_id": global_id,
             "score": score,
             "gait_score": float(score),
             "severity": severity,
             "decision": decision,
         }
+
 
         # ReID secondary scoring (does not affect gait decision)
         if self.reid_extractor is not None:
@@ -1056,6 +1125,12 @@ class MultiCameraRecognitionPipeline:
                             inactive_tracks.append(tid)
 
                     for tid in inactive_tracks:
+                        last_res = worker.last_results.get(tid, {})
+                        self.cross_camera_tracker.record_track_exit(
+                            camera_id=camera_id,
+                            local_track_id=tid,
+                            identity=last_res.get("identity") if last_res.get("identity") != "UNKNOWN" else None,
+                        )
                         worker.buffers.pop(tid, None)
                         worker.frame_counters.pop(tid, None)
                         worker.last_results.pop(tid, None)
@@ -1067,6 +1142,7 @@ class MultiCameraRecognitionPipeline:
                         worker.reid_crops.pop(tid, None)
                         if self.temporal_verifier is not None:
                             self.temporal_verifier.clear_track(tid)
+
 
                     print(
                         f"[CROWD_CONTROL] Camera={camera_id} | "
