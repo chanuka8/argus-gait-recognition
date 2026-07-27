@@ -79,6 +79,13 @@ fusion:
   gait_weight: 0.7
   reid_weight: 0.3
 
+dual_modal_fusion:
+  enabled: false
+  gait_weight: 0.70
+  appearance_weight: 0.30
+  adaptive_weighting: true
+  appearance_update_interval: 8
+
 gei_quality:
   enabled: true
   quality_threshold: 0.6

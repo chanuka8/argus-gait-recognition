@@ -3,10 +3,11 @@ Dual-Modal Biometric Fusion (Gait + ReID).
 
 Combines Gait score and OSNet ReID score using quality-adaptive dynamic weighting.
 Handles single-modality fallback automatically if one modality is unavailable.
+Reuses existing QualityEstimator, TrackReliabilityScorer, CrowdOcclusionAnalyzer,
+CrowdDensityEstimator, and RecognitionDeferralEngine inputs.
 """
 
-from typing import Any, Dict, Tuple
-
+from typing import Any, Dict, Optional, Tuple
 import numpy as np
 
 from intelligence.fusion_weights import DynamicFusionWeights
@@ -50,8 +51,8 @@ class DualModalFusion:
         g_min_max = tuple(cfg.get("gait_min_max", (0.0, 1.0)))
         r_min_max = tuple(cfg.get("reid_min_max", (-1.0, 1.0)))
         return cls(
-            default_gait_weight=float(cfg.get("gait_weight", 0.7)),
-            default_reid_weight=float(cfg.get("reid_weight", 0.3)),
+            default_gait_weight=float(cfg.get("gait_weight", 0.70)),
+            default_reid_weight=float(cfg.get("appearance_weight", cfg.get("reid_weight", 0.30))),
             gait_min_max=(float(g_min_max[0]), float(g_min_max[1])),
             reid_min_max=(float(r_min_max[0]), float(r_min_max[1])),
             enabled=bool(cfg.get("enabled", False)),
@@ -59,9 +60,9 @@ class DualModalFusion:
 
     @staticmethod
     def compute_cosine_similarity(
-        vec1: np.ndarray | None,
-        vec2: np.ndarray | None,
-    ) -> float | None:
+        vec1: Optional[np.ndarray],
+        vec2: Optional[np.ndarray],
+    ) -> Optional[float]:
         """Compute cosine similarity between two feature embedding vectors."""
         if vec1 is None or vec2 is None:
             return None
@@ -75,19 +76,26 @@ class DualModalFusion:
 
     def fuse(
         self,
-        gait_score: float | None = None,
-        reid_score: float | None = None,
-        crop: np.ndarray | None = None,
+        gait_score: Optional[float] = None,
+        reid_score: Optional[float] = None,
+        crop: Optional[np.ndarray] = None,
         gei_frame_count: int = 0,
-        gei: np.ndarray | None = None,
+        gei: Optional[np.ndarray] = None,
         confidence: float = 1.0,
-        gait_embedding: np.ndarray | None = None,
-        gait_gallery_embedding: np.ndarray | None = None,
-        reid_embedding: np.ndarray | None = None,
-        reid_gallery_embedding: np.ndarray | None = None,
+        gait_embedding: Optional[np.ndarray] = None,
+        gait_gallery_embedding: Optional[np.ndarray] = None,
+        reid_embedding: Optional[np.ndarray] = None,
+        reid_gallery_embedding: Optional[np.ndarray] = None,
+        crowd_density: float = 0.0,
+        occlusion_score: float = 0.0,
+        track_reliability: float = 1.0,
     ) -> Dict[str, Any]:
         """
         Perform dual-modal fusion of Gait and ReID scores or embeddings.
+
+        Automatically adapts weights based on gait quality, crop quality,
+        crowd density, occlusion ratio, and track reliability.
+        Falls back to gait-only mode if appearance embedding or score is absent.
         """
         # Compute cosine similarity if raw scores are None but embeddings provided
         if gait_score is None and gait_embedding is not None and gait_gallery_embedding is not None:
@@ -124,11 +132,20 @@ class DualModalFusion:
             else 0.0
         )
 
+        # Dynamic context adjustments:
+        # High gait quality & high track reliability -> boost gait quality factor
+        adjusted_gait_q = gait_quality * max(0.2, track_reliability)
+        # Heavy crowd & high occlusion -> penalty on gait quality factor, boost appearance weight
+        crowd_occlusion_factor = max(0.0, min(1.0, 0.5 * crowd_density + 0.5 * occlusion_score))
+        if crowd_occlusion_factor > 0.3:
+            adjusted_gait_q = adjusted_gait_q * (1.0 - 0.5 * crowd_occlusion_factor)
+            reid_quality = min(1.0, reid_quality * (1.0 + 0.5 * crowd_occlusion_factor))
+
         if g_present and r_present:
             w_gait, w_reid = self.weight_allocator.compute_weights(
                 gait_available=True,
                 reid_available=True,
-                gait_quality=gait_quality,
+                gait_quality=adjusted_gait_q,
                 reid_quality=reid_quality,
             )
             final_score = w_gait * norm_gait + w_reid * norm_reid
@@ -146,14 +163,23 @@ class DualModalFusion:
             w_gait, w_reid = self.weight_allocator.base_gait_weight, self.weight_allocator.base_reid_weight
             active = []
 
+        gait_val = float(norm_gait) if norm_gait is not None else 0.0
+        reid_val = float(norm_reid) if norm_reid is not None else 0.0
+        final_val = float(max(0.0, min(1.0, final_score)))
+
         return {
-            "final_score": float(max(0.0, min(1.0, final_score))),
+            "final_score": final_val,
+            "fusion_score": final_val,
+            "gait_score": gait_val,
+            "appearance_score": reid_val,
             "gait_score_norm": norm_gait,
             "reid_score_norm": norm_reid,
             "gait_weight": float(w_gait),
             "reid_weight": float(w_reid),
+            "fusion_weight_gait": float(w_gait),
+            "fusion_weight_appearance": float(w_reid),
             "gait_quality": float(gait_quality),
             "reid_quality": float(reid_quality),
+            "appearance_quality": float(reid_quality),
             "active_modalities": active,
         }
-

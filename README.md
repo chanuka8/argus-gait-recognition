@@ -96,8 +96,10 @@ graph TD
         EMA --> SIL[Silhouette Extraction]
         SIL --> GEI[Live GEI Accumulator]
         GEI --> QUA[Quality Estimator]
-        QUA --> FEA[CNN Feature Extraction - ByGaitLight]
-        FEA --> MAT[Gallery Search - VectorStore]
+        QUA --> FEA[Gait Embedding - ByGaitLight]
+        FEA --> APP[Appearance ReID Embedding - OSNet]
+        APP --> FUS[Dual-Modal Score Fusion]
+        FUS --> MAT[Gallery Search - VectorStore]
     end
 
     MAT --> OSR[Open-Set Recognition]

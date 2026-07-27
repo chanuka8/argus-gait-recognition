@@ -1,5 +1,6 @@
 """ARGUS AI Intelligence Package."""
 
+from intelligence.appearance_embedding import AppearanceEmbeddingExtractor
 from intelligence.camera_topology_learner import CameraTopologyLearner, LearnedEdgeStats
 from intelligence.camera_transition_model import CameraTransitionModel
 from intelligence.confidence_scorer import ConfidenceScorer
@@ -20,6 +21,7 @@ from intelligence.track_recovery_manager import LostTrackRecord, TrackRecoveryMa
 from intelligence.track_reliability_scorer import TrackReliabilityScorer
 
 __all__ = [
+    "AppearanceEmbeddingExtractor",
     "CameraTopologyLearner",
     "CameraTransitionModel",
     "ConfidenceScorer",

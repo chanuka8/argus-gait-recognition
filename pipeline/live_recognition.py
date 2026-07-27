@@ -179,8 +179,10 @@ def _load_fusion_config() -> dict:
 
     defaults = {
         "enabled": False,
-        "gait_weight": 0.7,
-        "reid_weight": 0.3,
+        "gait_weight": 0.70,
+        "appearance_weight": 0.30,
+        "adaptive_weighting": True,
+        "appearance_update_interval": 8,
     }
 
     if not config_path.exists():
@@ -192,7 +194,7 @@ def _load_fusion_config() -> dict:
     except Exception:
         return defaults
 
-    fusion = data.get("fusion", {})
+    fusion = data.get("dual_modal_fusion", data.get("fusion", {}))
 
     if not isinstance(fusion, dict):
         return defaults
@@ -529,15 +531,21 @@ class LiveRecognitionPipeline:
         # Fusion module (optional dual-modal fusion)
         self.fusion_config = _load_fusion_config()
         self.fusion_engine = None
+        self.appearance_extractor = None
 
         if self.fusion_config["enabled"]:
+            from intelligence.appearance_embedding import AppearanceEmbeddingExtractor
             from intelligence.dual_modal_fusion import DualModalFusion
 
-            self.fusion_engine = DualModalFusion(
-                default_gait_weight=self.fusion_config["gait_weight"],
-                default_reid_weight=self.fusion_config["reid_weight"],
+            self.appearance_extractor = AppearanceEmbeddingExtractor(
+                update_interval=self.fusion_config.get("appearance_update_interval", 8),
             )
-            print("[FUSION] Dual-modal fusion enabled")
+            self.fusion_engine = DualModalFusion(
+                default_gait_weight=self.fusion_config.get("gait_weight", 0.70),
+                default_reid_weight=self.fusion_config.get("appearance_weight", self.fusion_config.get("reid_weight", 0.30)),
+                enabled=True,
+            )
+            print("[DUAL_MODAL] Dual-Modal ReID + Gait Fusion enabled")
 
         # Quality Estimator and Temporal Gait Verifier steps
         self.quality_config = _load_quality_config()
@@ -940,19 +948,30 @@ class LiveRecognitionPipeline:
                     result["reid_score"] = 0.0
 
         # Dual-modal fusion (optional)
-        if self.fusion_engine is not None:
-            reid_score = result.get("reid_score")
+        if self.fusion_engine is not None and self.appearance_extractor is not None:
             reid_crop = self.reid_crops.get(track_id)
+            track_rel = result.get("track_reliability", 1.0)
+            app_emb = self.appearance_extractor.extract(
+                crop=reid_crop,
+                track_id=track_id,
+                frame_index=self.current_frame_index,
+                track_reliable=(float(track_rel) >= 0.5),
+                recognition_deferred=False,
+            )
             gei_buf = self.buffers.get(track_id)
             gei_count = gei_buf.count if gei_buf is not None else 0
 
-            result["fusion"] = self.fusion_engine.fuse(
+            fusion_res = self.fusion_engine.fuse(
                 gait_score=gait_score,
-                reid_score=reid_score,
+                reid_embedding=app_emb,
                 crop=reid_crop,
                 gei_frame_count=gei_count,
                 gei=gei,
+                track_reliability=float(track_rel),
             )
+            result["fusion"] = fusion_res
+            if self.fusion_config.get("enabled", False) and "final_score" in fusion_res:
+                result["score"] = round(float(fusion_res["final_score"]), 4)
 
         self.last_results[track_id] = result
 
@@ -1004,6 +1023,21 @@ class LiveRecognitionPipeline:
         # Auto-report (cooldown-gated, status-filtered)
         status = self.renderer.get_status(decision)
         bbox = list(map(int, box))
+
+        extra_kwargs = {}
+        if "fusion" in result and isinstance(result["fusion"], dict):
+            f_dict = result["fusion"]
+            for key in [
+                "gait_score",
+                "appearance_score",
+                "fusion_score",
+                "fusion_weight_gait",
+                "fusion_weight_appearance",
+                "appearance_quality",
+            ]:
+                if key in f_dict:
+                    extra_kwargs[key] = f_dict[key]
+
         self.reporter.report(
             camera_id=self.camera_id,
             location=self.camera_location,

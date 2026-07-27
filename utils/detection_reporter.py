@@ -258,6 +258,12 @@ class DetectionReporter:
             "fusion_state",
             "contributing_cameras",
             "topology_observation_accepted",
+            "gait_score",
+            "appearance_score",
+            "fusion_score",
+            "fusion_weight_gait",
+            "fusion_weight_appearance",
+            "appearance_quality",
         ]:
             if extra_key in kwargs:
                 record[extra_key] = kwargs[extra_key]
