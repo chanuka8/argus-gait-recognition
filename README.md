@@ -13,7 +13,7 @@ A modular spatial-temporal gait recognition, multi-object tracking, and multi-ca
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-EE4C2C.svg)](https://pytorch.org/)
 [![OpenCV](https://img.shields.io/badge/OpenCV-4.8%2B-5C3EE8.svg)](https://opencv.org/)
 [![Ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
-[![Pytest](https://img.shields.io/badge/tests-152%20passed-brightgreen.svg)](file:///e:/ARGUS_AI/tests)
+[![Pytest](https://img.shields.io/badge/tests-162%20passed-brightgreen.svg)](file:///e:/ARGUS_AI/tests)
 [![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](file:///e:/ARGUS_AI/VERSION)
 
 ---
@@ -30,11 +30,13 @@ A modular spatial-temporal gait recognition, multi-object tracking, and multi-ca
 - **Gallery Vector Search**: Fast cosine similarity metric indexing against target biometric templates ([storage/vector_store.py](file:///e:/ARGUS_AI/storage/vector_store.py)).
 
 ### Intelligence Layer
-- **Cross-Camera Tracking**: Global track assignment (`GTRACK-XXXX`) and multi-stream trajectory management ([intelligence/cross_camera_tracker.py](file:///e:/ARGUS_AI/intelligence/cross_camera_tracker.py)).
+- **Open-Set Recognition**: Three-state open-set identity classification (`KNOWN`, `UNKNOWN`, `UNCERTAIN`) evaluating top-1 similarity thresholds (`known_threshold=0.85`, floor `unknown_threshold=0.70`) and top-1 vs top-2 candidate margin constraints (`margin_threshold=0.05`) ([intelligence/open_set_recognizer.py](file:///e:/ARGUS_AI/intelligence/open_set_recognizer.py)).
+- **Track Reliability Scoring (Advisory)**: Multi-source evidence scoring producing a normalized reliability index in $[0.0, 1.0]$. Explicitly separates **Identity Confidence** (temporal + open-set) from **Track Stability** (quality + observation + detection). Advisory and disabled by default (`enabled: false`) to ensure zero default behavior changes ([intelligence/track_reliability_scorer.py](file:///e:/ARGUS_AI/intelligence/track_reliability_scorer.py)).
 - **Camera Transition Model**: Spatial-temporal directed topology modeling enforcing expected travel-time windows $[T_{min}, T_{max}]$, transition probabilities, entry/exit zones, and deterministic candidate tie resolution ([intelligence/camera_transition_model.py](file:///e:/ARGUS_AI/intelligence/camera_transition_model.py)).
+- **Cross-Camera Tracking**: Global track assignment (`GTRACK-XXXX`) and multi-stream trajectory management ([intelligence/cross_camera_tracker.py](file:///e:/ARGUS_AI/intelligence/cross_camera_tracker.py)).
 - **Identity Persistence & Cooldown**: Accumulated score decay ($\alpha=0.90$) and duplicate alert suppression ([intelligence/identity_persistence.py](file:///e:/ARGUS_AI/intelligence/identity_persistence.py)).
 - **GEI Quality Estimation**: Area, symmetry, and sharpness evaluation to gate low-quality silhouettes ([pipeline/steps/quality_estimator.py](file:///e:/ARGUS_AI/pipeline/steps/quality_estimator.py)).
-- **Temporal Verification**: Sliding window vote smoothing to prevent transient misclassifications ([pipeline/steps/temporal_gait_verifier.py](file:///e:/ARGUS_AI/pipeline/steps/temporal_gait_verifier.py)).
+- **Temporal Verification**: Sliding window vote smoothing over consecutive frames to prevent transient misclassifications ([pipeline/steps/temporal_gait_verifier.py](file:///e:/ARGUS_AI/pipeline/steps/temporal_gait_verifier.py)).
 - **Missing Person Search Workflow**: Watchlist registration and priority match notifications ([intelligence/missing_person_workflow.py](file:///e:/ARGUS_AI/intelligence/missing_person_workflow.py)).
 
 ### Streaming & Infrastructure
@@ -69,8 +71,10 @@ graph TD
         FEA --> MAT[MatchingStep - VectorStore Gallery]
     end
 
-    MAT --> TGV[Temporal Gait Verifier]
-    TGV --> CCT[CrossCameraTracker]
+    MAT --> OSR[OpenSetRecognizer]
+    OSR --> TGV[Temporal Gait Verifier]
+    TGV --> TRS[TrackReliabilityScorer - Advisory]
+    TRS --> CCT[CrossCameraTracker]
     CCT --> CTM[CameraTransitionModel]
     CTM --> IDP[IdentityPersistence Engine]
     IDP --> REP[DetectionReporter / Renderer / EvidenceManager]
@@ -90,10 +94,12 @@ The end-to-end processing pipeline transforms raw camera video frames into valid
 6. **Quality Gate**: `QualityEstimator` measures GEI area, lateral symmetry, and sharpness, gating low-quality silhouettes from downstream matching.
 7. **Embedding Generation**: The 2D GEI is processed through the lightweight `ByGaitLight` CNN to produce a 256-dimensional L2-normalized gait embedding vector.
 8. **Vector Gallery Matching**: Cosine similarity is computed against target gallery embeddings in `VectorStore`. If enabled, secondary ReID features are combined via `DualModalFusion`.
-9. **Temporal Verification**: `TemporalGaitVerifier` applies a sliding-window majority vote over consecutive frames to confirm target identities.
-10. **Cross-Camera Transition Modeling**: `CrossCameraTracker` queries `CameraTransitionModel` to evaluate directed topology graphs, travel-time bounds $[T_{min}, T_{max}]$, and weighted transition probabilities:
+9. **Open-Set Decision**: `OpenSetRecognizer` evaluates candidate scores into `KNOWN`, `UNKNOWN`, or `UNCERTAIN` states using configured similarity floors and candidate margin thresholds.
+10. **Temporal Verification**: `TemporalGaitVerifier` applies a sliding-window majority vote over consecutive frames to confirm target identities.
+11. **Track Reliability Scoring**: `TrackReliabilityScorer` (advisory) computes multi-source evidence reliability scores in $[0.0, 1.0]$, explicitly decoupling identity confidence from physical track stability.
+12. **Cross-Camera Transition Modeling**: `CrossCameraTracker` queries `CameraTransitionModel` to evaluate directed topology graphs, travel-time bounds $[T_{min}, T_{max}]$, and weighted transition probabilities:
     $$\text{final\_score} = w_{id} \cdot s_{id} + w_{prob} \cdot P_{trans} + w_{time} \cdot L_{time}$$
-11. **Identity Persistence & Output**: `IdentityPersistence` applies temporal score decay, checks alert cooldowns, and emits outputs to `DetectionReporter` (JSONL/CSV logs and snapshot images) and `DetectionDisplayRenderer` overlays.
+13. **Identity Persistence & Output**: `IdentityPersistence` applies temporal score decay, checks alert cooldowns, and emits outputs to `DetectionReporter` (JSONL/CSV logs and snapshot images) and `DetectionDisplayRenderer` overlays.
 
 ---
 
@@ -104,7 +110,7 @@ ARGUS_AI/
 ├── api/                   # FastAPI server stubs and request schemas
 ├── configs/               # System, inference, camera, and GEI YAML configurations
 ├── evaluation/            # Open-set, cross-view, dataset split, and leakage evaluators
-├── intelligence/          # Cross-camera tracking, transition model, persistence, fusion
+├── intelligence/          # Open-set recognizer, track reliability scorer, transition model, persistence, fusion
 ├── models/                # ByGaitLight CNN, OSNet ReID backbone, loss functions, gallery storage
 ├── monitoring/            # Camera health monitor, watchdog daemon, logging infrastructure
 ├── pipeline/              # Live, multi-camera, video, and folder recognition orchestrators
@@ -113,7 +119,7 @@ ARGUS_AI/
 ├── services/              # Camera discovery, ONVIF client, worker threads, service manager
 ├── storage/               # Vector store, evidence manager, dataset loader
 ├── streaming/             # Multi-stream engine, load balancer, buffer queue, camera scheduler
-├── tests/                 # 152 automated unit and integration test files
+├── tests/                 # 162 automated unit and integration test files
 └── utils/                 # Display renderer, detection reporter, alert manager, box stabilizer
 ```
 
@@ -149,9 +155,27 @@ pip install -r requirements.txt
 System operations are configured via YAML files in `configs/`:
 
 - **[configs/cameras.yaml](file:///e:/ARGUS_AI/configs/cameras.yaml)**: Defines RTSP camera endpoints, resolution, framerates, worker pool limits, and ONVIF discovery parameters.
-- **[configs/inference.yaml](file:///e:/ARGUS_AI/configs/inference.yaml)**: Controls matching policy thresholds, crowd control limits, box stability EMA, ReID settings, GEI quality parameters, temporal verification windows, and camera transition topology:
+- **[configs/inference.yaml](file:///e:/ARGUS_AI/configs/inference.yaml)**: Controls matching policy thresholds, open-set recognition parameters, track reliability scoring, crowd control limits, box stability EMA, ReID settings, GEI quality parameters, temporal verification windows, and camera transition topology:
 
 ```yaml
+matching_policy:
+  confirmed_threshold: 0.92
+  verify_low: 0.85
+  verify_high: 0.92
+  unknown_ceiling: 0.70
+  margin: 0.05
+
+track_reliability:
+  enabled: false
+  target_observation_frames: 15
+  min_reliability_threshold: 0.50
+  weights:
+    quality: 0.25
+    temporal: 0.25
+    open_set: 0.25
+    observation: 0.15
+    detection: 0.10
+
 camera_transitions:
   enabled: true
   similarity_threshold: 0.50
@@ -213,7 +237,7 @@ Verification is enforced via automated test suites and linting checks:
 
 ```bash
 # 1. Bytecode compilation check
-python -m compileall intelligence tests
+python -m compileall -x "venv|\.venv" .
 
 # 2. Linting and code style verification
 ruff check .
@@ -221,7 +245,7 @@ ruff check .
 # 3. Focused Camera Transition Model test suite
 pytest -q tests/test_camera_transition_model.py
 
-# 4. Full repository test suite (152 tests)
+# 4. Full repository test suite (162 tests)
 pytest -q
 ```
 
@@ -229,10 +253,10 @@ pytest -q
 
 ## Development & Code Quality
 
-- **Code Style**: Checked using `ruff`. Run `ruff check .` to verify formatting compliance.
+- **Code Style**: Checked using `ruff`. Run `ruff check .` to verify formatting compliance (`All checks passed!`).
 - **Type Annotations**: Comprehensive type hints used across `intelligence/`, `pipeline/`, `services/`, and `storage/`.
 - **Thread Safety**: Mutable shared state objects use `threading.Lock()` wrappers to guarantee thread-safe operations across multi-camera worker threads.
-- **Modular Pipeline Design**: Custom processing steps implement explicit `step` interfaces to maintain low coupling.
+- **Modular Pipeline Design**: Custom processing steps implement explicit step interfaces to maintain low coupling.
 
 ---
 
@@ -240,12 +264,14 @@ pytest -q
 
 ### Implemented Code-Level Optimizations
 - **Sequence Compression**: 30 video frames aggregated into a single $64 \times 128$ 2D GEI representation, reducing downstream network compute by ~30x.
-- **Lightweight CNN Architecture**: `ByGaitLight` designed with minimal parameter footprint for fast CPU/GPU inference.
+- **Lightweight CNN Architecture**: `ByGaitLight` designed with minimal parameter footprint (126,144 parameters) for fast CPU/GPU inference.
 - **Backpressure Frame Dropping**: `FrameDropper` drops oldest frames under queue congestion to preserve real-time streaming latency.
 - **EMA Coordinate Smoothing**: `BoxStabilizer` reduces detection jitter without full model re-detection on every sub-frame.
 
-### Benchmarking Requirements
-- Multi-camera FPS scaling across 16+ concurrent 1080p RTSP feeds requires physical multi-GPU hardware benchmarking.
+### Benchmarking & Measured Latencies
+Based on benchmark runs logged to `outputs/reports/benchmark_report.json`:
+- **Gallery Search Load**: `17.79 ms` for 13,544 enrolled feature embeddings across 124 subjects.
+- **Steady-State Single Frame Inference**: `62.57 ms` average latency per frame on CPU (~15.98 FPS).
 
 ---
 
@@ -270,9 +296,11 @@ pytest -q
 - [x] Directed `CameraTransitionModel` with travel-time window scoring
 - [x] `IdentityPersistence` score decay & alert suppression
 - [x] `QualityEstimator` & `TemporalGaitVerifier` filtering steps
+- [x] Open-Set Recognition (`KNOWN`, `UNKNOWN`, `UNCERTAIN` states with candidate margin logic)
+- [x] Advisory Track Reliability Scorer (`TrackReliabilityScorer` multi-evidence integration)
 - [x] `MultiStreamEngine`, `WorkerPool`, `LoadBalancer`, and `Watchdog`
 - [x] ONVIF discovery & vendor adapters
-- [x] 152 automated unit and integration tests passing with 0 failures
+- [x] 162 automated unit and integration tests passing with 0 failures
 
 ---
 
@@ -280,7 +308,7 @@ pytest -q
 
 - **Primary Language**: Python (100%)
 - **Core Packages**: `pipeline`, `intelligence`, `models`, `services`, `streaming`, `storage`, `monitoring`, `evaluation`, `security_layer`, `utils`, `api` (11 core packages)
-- **Automated Tests**: **152 passing tests** across 16 test modules
+- **Automated Tests**: **162 passing tests** across 17 test modules
 - **Linter Status**: **0 errors** (`ruff check .` compliant)
 
 ---
