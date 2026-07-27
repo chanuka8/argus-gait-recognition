@@ -306,6 +306,38 @@ def _load_track_reliability_config() -> dict:
     return merged
 
 
+def _load_watchlist_config() -> dict:
+    """Load Watchlist config."""
+    config_path = Path("configs/inference.yaml")
+
+    defaults = {
+        "enabled": False,
+        "alert_threshold": 0.85,
+        "cooldown_seconds": 10.0,
+    }
+
+    if not config_path.exists():
+        return defaults
+
+    try:
+        with open(config_path, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f) or {}
+    except Exception:
+        return defaults
+
+    section = data.get("watchlist", {})
+
+    if not isinstance(section, dict):
+        return defaults
+
+    merged = {}
+
+    for key, default_value in defaults.items():
+        merged[key] = section.get(key, default_value)
+
+    return merged
+
+
 class LiveRecognitionPipeline:
 
     def __init__(
@@ -337,10 +369,17 @@ class LiveRecognitionPipeline:
         self.camera_id = "cam_00"
         self.camera_location = "Unknown Location"
 
+        self.watchlist_config = _load_watchlist_config()
+        from intelligence.missing_person_workflow import MissingPersonWorkflow
+        self.watchlist_manager = MissingPersonWorkflow(
+            alert_threshold=self.watchlist_config.get("alert_threshold", alert_threshold),
+            cooldown_seconds=self.watchlist_config.get("cooldown_seconds", 10.0),
+        )
 
         self.matcher = MatchingStep(
             threshold=threshold,
         )
+
 
         self.open_set_recognizer = OpenSetRecognizer(
             known_threshold=threshold,
@@ -815,6 +854,25 @@ class LiveRecognitionPipeline:
                 observation_count=self.frame_counters.get(track_id, 1),
             )
             result["track_reliability"] = round(float(track_rel_score), 4)
+
+        if (self.watchlist_config.get("enabled", False) or len(self.watchlist_manager.get_active_targets()) > 0) and stable_identity != "UNKNOWN":
+            w_match = self.watchlist_manager.process_match(
+                identity=stable_identity,
+                confidence_score=float(score),
+                camera_id=self.camera_id,
+                track_id=track_id,
+            )
+            if w_match:
+                result["watchlist_match"] = w_match
+                if w_match.get("alert_enabled", True):
+                    self.alert_manager.create_alert(
+                        track_id=track_id,
+                        identity=stable_identity,
+                        score=float(score),
+                        alert_type=str(w_match.get("event_type", "WATCHLIST_MATCH")),
+                        camera_id=self.camera_id,
+                    )
+
 
 
         # ReID secondary scoring (does not affect gait decision)
