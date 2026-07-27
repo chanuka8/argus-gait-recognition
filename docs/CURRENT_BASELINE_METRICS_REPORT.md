@@ -24,7 +24,7 @@ This report documents every baseline evaluation metric currently implemented in 
 | **Best Value** | 0.7934 (79.34%) |
 | **Unit** | Percentage (%) / Decimal |
 | **Status** | Fully Implemented |
-| **Calculation Location** | [evaluation/evaluator.py](evaluation/evaluator.py#L283) |
+| **Calculation Location** | [evaluation/evaluator.py](file:///e:/ARGUS_AI/evaluation/evaluator.py#L104) |
 | **Function** | `SplitEvaluator.evaluate()` |
 | **Line Numbers** | L283-L284 |
 | **Data Source** | [outputs/eval_reports/split_eval_report_0.85.json](outputs/eval_reports/split_eval_report_0.85.json) |
@@ -43,7 +43,7 @@ This report documents every baseline evaluation metric currently implemented in 
 | **Best Value** | 0.9377 (93.77%) |
 | **Unit** | Percentage (%) / Decimal |
 | **Status** | Fully Implemented |
-| **Calculation Location** | [evaluation/evaluator.py](evaluation/evaluator.py#L290) |
+| **Calculation Location** | [evaluation/evaluator.py](file:///e:/ARGUS_AI/evaluation/evaluator.py#L122) |
 | **Function** | `SplitEvaluator.evaluate()` |
 | **Line Numbers** | L290-L291 |
 | **Data Source** | [outputs/eval_reports/split_eval_report_0.85.json](outputs/eval_reports/split_eval_report_0.85.json) |
@@ -62,7 +62,7 @@ This report documents every baseline evaluation metric currently implemented in 
 | **Best Value** | 0.9666 (96.66%) |
 | **Unit** | Percentage (%) / Decimal |
 | **Status** | Fully Implemented |
-| **Calculation Location** | [evaluation/evaluator.py](evaluation/evaluator.py#L295) |
+| **Calculation Location** | [evaluation/evaluator.py](file:///e:/ARGUS_AI/evaluation/evaluator.py#L167) |
 | **Function** | `SplitEvaluator.evaluate()` |
 | **Line Numbers** | L295-L296 |
 | **Data Source** | [outputs/eval_reports/split_eval_report_0.85.json](outputs/eval_reports/split_eval_report_0.85.json) |
@@ -85,7 +85,7 @@ This report documents every baseline evaluation metric currently implemented in 
 | **Best Value** | 0.7988 (79.88%) |
 | **Unit** | Decimal / Percentage (%) |
 | **Status** | Fully Implemented |
-| **Calculation Location** | [evaluation/metrics.py](evaluation/metrics.py#L34-L52) |
+| **Calculation Location** | [evaluation/metrics.py](file:///e:/ARGUS_AI/evaluation/metrics.py#L34-L52) |
 | **Function** | `EvaluationMetrics._compute_precision_recall_f1()` |
 | **Line Numbers** | L34-L52 |
 | **Data Source** | [outputs/eval_reports/split_eval_report_0.85.json](outputs/eval_reports/split_eval_report_0.85.json) |
@@ -103,7 +103,7 @@ This report documents every baseline evaluation metric currently implemented in 
 | **Best Value** | 0.7934 (79.34%) |
 | **Unit** | Decimal / Percentage (%) |
 | **Status** | Fully Implemented |
-| **Calculation Location** | [evaluation/metrics.py](evaluation/metrics.py#L34-L52) |
+| **Calculation Location** | [evaluation/metrics.py](file:///e:/ARGUS_AI/evaluation/metrics.py#L34-L52) |
 | **Function** | `EvaluationMetrics._compute_precision_recall_f1()` |
 | **Line Numbers** | L34-L52 |
 | **Data Source** | [outputs/eval_reports/split_eval_report_0.85.json](outputs/eval_reports/split_eval_report_0.85.json) |
@@ -121,7 +121,7 @@ This report documents every baseline evaluation metric currently implemented in 
 | **Best Value** | 0.7896 |
 | **Unit** | Decimal (0.0-1.0) |
 | **Status** | Fully Implemented |
-| **Calculation Location** | [evaluation/metrics.py](evaluation/metrics.py#L34-L52) |
+| **Calculation Location** | [evaluation/metrics.py](file:///e:/ARGUS_AI/evaluation/metrics.py#L34-L52) |
 | **Function** | `EvaluationMetrics._compute_precision_recall_f1()` |
 | **Line Numbers** | L34-L52 |
 | **Data Source** | [outputs/eval_reports/split_eval_report_0.85.json](outputs/eval_reports/split_eval_report_0.85.json) |
@@ -143,7 +143,7 @@ This report documents every baseline evaluation metric currently implemented in 
 | **Best Value** | 0.7805 |
 | **Unit** | Decimal (0.0-1.0) |
 | **Status** | Fully Implemented |
-| **Calculation Location** | [evaluation/roc.py](evaluation/roc.py#L140-L155) |
+| **Calculation Location** | [evaluation/roc.py](file:///e:/ARGUS_AI/evaluation/roc.py#L140-L155) |
 | **Function** | `ROCAnalyzer.compute()` |
 | **Line Numbers** | L140-L155 |
 | **Data Source** | [outputs/eval_reports/split_eval_report_0.85.json](outputs/eval_reports/split_eval_report_0.85.json) |
@@ -161,7 +161,7 @@ This report documents every baseline evaluation metric currently implemented in 
 | **Best Value** | 0.2929 (29.29%) |
 | **Unit** | Decimal / Percentage (%) |
 | **Status** | Fully Implemented |
-| **Calculation Location** | [evaluation/roc.py](evaluation/roc.py#L156-L172) |
+| **Calculation Location** | [evaluation/roc.py](file:///e:/ARGUS_AI/evaluation/roc.py#L156-L172) |
 | **Function** | `ROCAnalyzer.compute()` |
 | **Line Numbers** | L156-L172 |
 | **Data Source** | [outputs/eval_reports/split_eval_report_0.85.json](outputs/eval_reports/split_eval_report_0.85.json) |
@@ -183,7 +183,7 @@ This report documents every baseline evaluation metric currently implemented in 
 | **Best Value** | 0.2066 (20.66%) |
 | **Unit** | Decimal / Percentage (%) |
 | **Status** | Fully Implemented |
-| **Calculation Location** | [evaluation/evaluator.py](evaluation/evaluator.py#L301-L302) |
+| **Calculation Location** | [evaluation/evaluator.py](file:///e:/ARGUS_AI/evaluation/evaluator.py#L169) |
 | **Function** | `SplitEvaluator.evaluate()` |
 | **Line Numbers** | L301-L302 |
 | **Data Source** | [outputs/eval_reports/split_eval_report_0.85.json](outputs/eval_reports/split_eval_report_0.85.json) |
@@ -202,7 +202,7 @@ This report documents every baseline evaluation metric currently implemented in 
 | **Best Value** | 0.0 (0.0%) |
 | **Unit** | Decimal / Percentage (%) |
 | **Status** | Fully Implemented |
-| **Calculation Location** | [evaluation/evaluator.py](evaluation/evaluator.py#L303-L304) |
+| **Calculation Location** | [evaluation/evaluator.py](file:///e:/ARGUS_AI/evaluation/evaluator.py#L169) |
 | **Function** | `SplitEvaluator.evaluate()` |
 | **Line Numbers** | L303-L304 |
 | **Data Source** | [outputs/eval_reports/split_eval_report_0.85.json](outputs/eval_reports/split_eval_report_0.85.json) |
@@ -225,7 +225,7 @@ This report documents every baseline evaluation metric currently implemented in 
 | **Best Value** | N/A (Structural metric) |
 | **Unit** | Count matrix |
 | **Status** | Fully Implemented |
-| **Calculation Location** | [evaluation/metrics.py](evaluation/metrics.py#L28-L39) |
+| **Calculation Location** | [evaluation/metrics.py](file:///e:/ARGUS_AI/evaluation/metrics.py#L28-L39) |
 | **Function** | `EvaluationMetrics.update()` and `confusion_dict()` |
 | **Line Numbers** | L28-L39, L43-L49 |
 | **Data Source** | [outputs/eval_reports/confusion_matrix.json](outputs/eval_reports/confusion_matrix.json) |
@@ -247,7 +247,7 @@ This report documents every baseline evaluation metric currently implemented in 
 | **Best Value** | 0.1881 ms (at threshold=0.85) |
 | **Unit** | Milliseconds (ms) |
 | **Status** | Fully Implemented |
-| **Calculation Location** | [evaluation/evaluator.py](evaluation/evaluator.py#L305-L311) |
+| **Calculation Location** | [evaluation/evaluator.py](file:///e:/ARGUS_AI/evaluation/evaluator.py#L171-L172) |
 | **Function** | `SplitEvaluator.evaluate()` |
 | **Line Numbers** | L305-L311 |
 | **Data Source** | [outputs/eval_reports/threshold_sweep.json](outputs/eval_reports/threshold_sweep.json) (threshold=0.85) |
@@ -266,7 +266,7 @@ This report documents every baseline evaluation metric currently implemented in 
 | **Best Value** | 5317.39 FPS (at threshold=0.85) |
 | **Unit** | Frames per second (FPS) |
 | **Status** | Fully Implemented |
-| **Calculation Location** | [evaluation/evaluator.py](evaluation/evaluator.py#L312-L316) |
+| **Calculation Location** | [evaluation/evaluator.py](file:///e:/ARGUS_AI/evaluation/evaluator.py#L172) |
 | **Function** | `SplitEvaluator.evaluate()` |
 | **Line Numbers** | L312-L316 |
 | **Data Source** | [outputs/eval_reports/threshold_sweep.json](outputs/eval_reports/threshold_sweep.json) (threshold=0.85) |
@@ -285,7 +285,7 @@ This report documents every baseline evaluation metric currently implemented in 
 | **Best Value** | 125.4482 ms |
 | **Unit** | Milliseconds (ms) |
 | **Status** | Fully Implemented |
-| **Calculation Location** | [scripts/benchmark.py](scripts/benchmark.py#L50-L70) |
+| **Calculation Location** | [scripts/benchmark.py](file:///e:/ARGUS_AI/scripts/benchmark.py#L50-L70) |
 | **Function** | `benchmark_single_inference()` |
 | **Line Numbers** | L50-L70 |
 | **Data Source** | [outputs/reports/benchmark_report.json](outputs/reports/benchmark_report.json) |
@@ -304,7 +304,7 @@ This report documents every baseline evaluation metric currently implemented in 
 | **Best Value** | 7.97 FPS |
 | **Unit** | Frames per second (FPS) |
 | **Status** | Fully Implemented |
-| **Calculation Location** | [scripts/benchmark.py](scripts/benchmark.py#L50-L70) |
+| **Calculation Location** | [scripts/benchmark.py](file:///e:/ARGUS_AI/scripts/benchmark.py#L50-L70) |
 | **Function** | `benchmark_single_inference()` |
 | **Line Numbers** | L50-L70 |
 | **Data Source** | [outputs/reports/benchmark_report.json](outputs/reports/benchmark_report.json) |
@@ -323,7 +323,7 @@ This report documents every baseline evaluation metric currently implemented in 
 | **Worst Value** | 131.6266 ms (maximum observed) |
 | **Unit** | Milliseconds (ms) |
 | **Status** | Fully Implemented |
-| **Calculation Location** | [scripts/benchmark.py](scripts/benchmark.py#L73-L89) |
+| **Calculation Location** | [scripts/benchmark.py](file:///e:/ARGUS_AI/scripts/benchmark.py#L73-L89) |
 | **Function** | `benchmark_single_inference()` - 10 iteration loop |
 | **Line Numbers** | L73-L89 |
 | **Data Source** | [outputs/reports/benchmark_report.json](outputs/reports/benchmark_report.json) |
@@ -341,7 +341,7 @@ This report documents every baseline evaluation metric currently implemented in 
 | **Current Value** | 11.67 FPS |
 | **Unit** | Frames per second (FPS) |
 | **Status** | Fully Implemented |
-| **Calculation Location** | [scripts/benchmark.py](scripts/benchmark.py#L73-L89) |
+| **Calculation Location** | [scripts/benchmark.py](file:///e:/ARGUS_AI/scripts/benchmark.py#L73-L89) |
 | **Function** | `benchmark_single_inference()` - 10 iteration loop |
 | **Line Numbers** | L73-L89 |
 | **Data Source** | [outputs/reports/benchmark_report.json](outputs/reports/benchmark_report.json) |
@@ -362,7 +362,7 @@ This report documents every baseline evaluation metric currently implemented in 
 | **Current Value** | 256 |
 | **Unit** | Dimensions |
 | **Status** | Fully Implemented |
-| **Definition Location** | [models/architectures/bygait_light.py](models/architectures/bygait_light.py#L7) |
+| **Definition Location** | [models/architectures/bygait_light.py](file:///e:/ARGUS_AI/models/architectures/bygait_light.py#L7) |
 | **Parameter Name** | `embedding_dim` |
 | **Line Numbers** | L7 (default parameter) |
 | **Model** | ByGaitLight CNN |
@@ -379,7 +379,7 @@ This report documents every baseline evaluation metric currently implemented in 
 | **Current Value** | 3 Conv blocks + 1 Embedding layer |
 | **Unit** | Structural count |
 | **Status** | Fully Implemented |
-| **Definition Location** | [models/architectures/bygait_light.py](models/architectures/bygait_light.py) |
+| **Definition Location** | [models/architectures/bygait_light.py](file:///e:/ARGUS_AI/models/architectures/bygait_light.py) |
 | **Layer Details** | |
 | **  - Block 1** | Conv2d(1→32, k=3) + BatchNorm + ReLU + MaxPool(2) |
 | **  - Block 2** | Conv2d(32→64, k=3) + BatchNorm + ReLU + MaxPool(2) |
@@ -401,7 +401,7 @@ This report documents every baseline evaluation metric currently implemented in 
 | **Best Value** | Varies by epoch (see progression below) |
 | **Unit** | Scalar loss value |
 | **Status** | Fully Implemented |
-| **Calculation Location** | [training/trainer.py](training/trainer.py) |
+| **Calculation Location** | [training/trainer.py](file:///e:/ARGUS_AI/training/trainer.py) |
 | **Data Source** | [runs/exp_001/metrics.json](runs/exp_001/metrics.json) |
 | **Epochs Tracked** | 20 epochs |
 | **Trend** | Decreasing from epoch 1 (26.95) to epoch 20 (10.41) |
@@ -417,7 +417,7 @@ This report documents every baseline evaluation metric currently implemented in 
 | **Trend** | Increasing from epoch 1 (0.0132 / 1.32%) |
 | **Unit** | Decimal (0.0-1.0) / Percentage (%) |
 | **Status** | Fully Implemented |
-| **Calculation Location** | [training/trainer.py](training/trainer.py) |
+| **Calculation Location** | [training/trainer.py](file:///e:/ARGUS_AI/training/trainer.py) |
 | **Data Source** | [runs/exp_001/metrics.json](runs/exp_001/metrics.json) |
 | **Epochs Tracked** | 20 epochs |
 | **Measurement Type** | Real Runtime Training |
@@ -432,7 +432,7 @@ This report documents every baseline evaluation metric currently implemented in 
 | **Best Value** | Varies by epoch |
 | **Unit** | Scalar loss value |
 | **Status** | Fully Implemented |
-| **Calculation Location** | [training/trainer.py](training/trainer.py) |
+| **Calculation Location** | [training/trainer.py](file:///e:/ARGUS_AI/training/trainer.py) |
 | **Data Source** | [runs/exp_001/metrics.json](runs/exp_001/metrics.json) |
 | **Epochs Tracked** | 20 epochs |
 | **Trend** | Decreasing from epoch 1 (26.39) to epoch 20 (10.06) |
@@ -448,7 +448,7 @@ This report documents every baseline evaluation metric currently implemented in 
 | **Best Value** | 0.1458 (14.58%) |
 | **Unit** | Decimal (0.0-1.0) / Percentage (%) |
 | **Status** | Fully Implemented |
-| **Calculation Location** | [training/trainer.py](training/trainer.py) |
+| **Calculation Location** | [training/trainer.py](file:///e:/ARGUS_AI/training/trainer.py) |
 | **Data Source** | [runs/exp_001/metrics.json](runs/exp_001/metrics.json) |
 | **Epochs Tracked** | 20 epochs |
 | **Peak Epoch** | Epoch 20 (0.1458) |
@@ -467,13 +467,13 @@ This report documents every baseline evaluation metric currently implemented in 
 | **Current Value** | 15.53 FPS |
 | **Unit** | Frames per second |
 | **Status** | Fully Implemented |
-| **Calculation Location** | [services/camera_service.py](services/camera_service.py#L204-L210) |
+| **Calculation Location** | [services/camera_service.py](file:///e:/ARGUS_AI/services/camera_service.py#L204-L210) |
 | **Function** | `CameraService._capture_loop()` |
 | **Line Numbers** | L204-L210 |
 | **Measurement Type** | Real Runtime (Validation Harness) |
 | **Full Pipeline** | Detection → Tracking → Silhouette → GEI → Feature Extraction → Matching |
 | **Measurement Method** | Frame counting over elapsed time |
-| **Validation Source** | [scripts/validate_phase2.py](scripts/validate_phase2.py#L137-L150) - `test_11_pipeline_fps()` |
+| **Validation Source** | [tests/test_multi_camera.py](tests/test_multi_camera.py#L20-L40) - `test_11_pipeline_fps()` |
 | **Notes** | End-to-end vision pipeline throughput on CPU |
 
 ### 9.2 Pipeline Latency (Real-time Processing)
@@ -484,7 +484,7 @@ This report documents every baseline evaluation metric currently implemented in 
 | **Current Value** | 69.3 ms |
 | **Unit** | Milliseconds (ms) |
 | **Status** | Fully Implemented |
-| **Measurement Location** | [scripts/validate_phase2.py](scripts/validate_phase2.py#L151-L162) |
+| **Measurement Location** | [tests/test_multi_camera.py](tests/test_multi_camera.py#L41-L60) |
 | **Function** | `TestPhase2Validation.test_12_pipeline_latency()` |
 | **Line Numbers** | L151-L162 |
 | **Measurement Type** | Validation Harness Benchmark |
@@ -503,7 +503,7 @@ This report documents every baseline evaluation metric currently implemented in 
 | **Range** | 0.0% - 600%+ (observed) |
 | **Unit** | Percentage (%) |
 | **Status** | Fully Implemented |
-| **Measurement Location** | [monitoring/watchdog.py](monitoring/watchdog.py#L36-L38) |
+| **Measurement Location** | [monitoring/watchdog.py](file:///e:/ARGUS_AI/monitoring/watchdog.py#L36-L38) |
 | **Function** | `Watchdog._collect_resource_usage()` |
 | **Line Numbers** | L36-L38 |
 | **Measurement Type** | Real Runtime (Production Monitoring) |
@@ -519,7 +519,7 @@ This report documents every baseline evaluation metric currently implemented in 
 | **Current Value** | 0.0 MB |
 | **Unit** | Megabytes (MB) |
 | **Status** | Fully Implemented |
-| **Measurement Location** | [monitoring/watchdog.py](monitoring/watchdog.py#L48-L53) |
+| **Measurement Location** | [monitoring/watchdog.py](file:///e:/ARGUS_AI/monitoring/watchdog.py#L48-L53) |
 | **Function** | `Watchdog._collect_resource_usage()` |
 | **Line Numbers** | L48-L53 |
 | **GPU Availability** | N/A (GPU not available in test environment) |
@@ -535,12 +535,12 @@ This report documents every baseline evaluation metric currently implemented in 
 | **Measurement Duration** | Over 10,000 frames |
 | **Unit** | Megabytes (MB) |
 | **Status** | Fully Implemented |
-| **Measurement Location** | [monitoring/watchdog.py](monitoring/watchdog.py#L39-L41) |
+| **Measurement Location** | [monitoring/watchdog.py](file:///e:/ARGUS_AI/monitoring/watchdog.py#L39-L41) |
 | **Function** | `Watchdog._collect_resource_usage()` |
 | **Line Numbers** | L39-L41 |
 | **Measurement Type** | Real Runtime (Validation Harness) |
 | **Measurement Method** | `psutil.Process().memory_info().rss / (1024*1024)` |
-| **Validation Source** | [scripts/validate_phase2.py](scripts/validate_phase2.py#L174-L193) - `test_15_memory_stability()` |
+| **Validation Source** | [tests/test_multi_camera.py](tests/test_multi_camera.py#L61-L85) - `test_15_memory_stability()` |
 | **Growth Rate** | ~0.72 KB per 1,000 frames |
 | **Notes** | RSS (Resident Set Size) memory growth measured before/after 10,000 GEI operations |
 
@@ -553,7 +553,7 @@ This report documents every baseline evaluation metric currently implemented in 
 | **Maximum Allowed** | 10 |
 | **Unit** | Count (frames) |
 | **Status** | Fully Implemented |
-| **Measurement Location** | [services/camera_service.py](services/camera_service.py#L30) |
+| **Measurement Location** | [services/camera_service.py](file:///e:/ARGUS_AI/services/camera_service.py#L30) |
 | **Property** | `CameraService.queue_size` |
 | **Line Numbers** | L30 (definition), L272-L273 (getter) |
 | **Measurement Type** | Real Runtime (Production Monitoring) |
@@ -572,7 +572,7 @@ This report documents every baseline evaluation metric currently implemented in 
 | **Current Value** | 0.0323 seconds |
 | **Unit** | Seconds |
 | **Status** | Fully Implemented |
-| **Measurement Location** | [scripts/benchmark.py](scripts/benchmark.py#L16-L35) |
+| **Measurement Location** | [scripts/benchmark.py](file:///e:/ARGUS_AI/scripts/benchmark.py#L16-L35) |
 | **Function** | `benchmark_gallery_load()` |
 | **Line Numbers** | L16-L35 |
 | **Data Source** | [outputs/reports/benchmark_report.json](outputs/reports/benchmark_report.json) |
@@ -653,7 +653,7 @@ This report documents every baseline evaluation metric currently implemented in 
 | **Current Value** | 0.0424 seconds |
 | **Unit** | Seconds |
 | **Status** | Fully Implemented |
-| **Measurement Location** | [scripts/benchmark.py](scripts/benchmark.py#L50-L70) |
+| **Measurement Location** | [scripts/benchmark.py](file:///e:/ARGUS_AI/scripts/benchmark.py#L50-L70) |
 | **Function** | `benchmark_single_inference()` |
 | **Line Numbers** | L52-L56 |
 | **Data Source** | [outputs/reports/benchmark_report.json](outputs/reports/benchmark_report.json) |
@@ -775,13 +775,13 @@ This report documents every baseline evaluation metric currently implemented in 
 
 | Component | Implementation File | Key Functions |
 |-----------|-------------------|----------------|
-| Rank Metrics | [evaluation/metrics.py](evaluation/metrics.py) | `EvaluationMetrics._compute_precision_recall_f1()` |
+| Rank Metrics | [evaluation/metrics.py](file:///e:/ARGUS_AI/evaluation/metrics.py) | `EvaluationMetrics._compute_precision_recall_f1()` |
 | Evaluator | [evaluation/evaluator.py](evaluation/evaluator.py) | `SplitEvaluator.evaluate()` |
-| ROC Analysis | [evaluation/roc.py](evaluation/roc.py) | `ROCAnalyzer.compute()` |
-| Benchmark | [scripts/benchmark.py](scripts/benchmark.py) | `benchmark_single_inference()`, `benchmark_gallery_load()` |
-| Training | [training/trainer.py](training/trainer.py) | Training loop with metric tracking |
-| Monitoring | [monitoring/watchdog.py](monitoring/watchdog.py) | `Watchdog._collect_resource_usage()` |
-| Pipeline | [services/camera_service.py](services/camera_service.py) | `CameraService._capture_loop()` |
+| ROC Analysis | [evaluation/roc.py](file:///e:/ARGUS_AI/evaluation/roc.py) | `ROCAnalyzer.compute()` |
+| Benchmark | [scripts/benchmark.py](file:///e:/ARGUS_AI/scripts/benchmark.py) | `benchmark_single_inference()`, `benchmark_gallery_load()` |
+| Training | [training/trainer.py](file:///e:/ARGUS_AI/training/trainer.py) | Training loop with metric tracking |
+| Monitoring | [monitoring/watchdog.py](file:///e:/ARGUS_AI/monitoring/watchdog.py) | `Watchdog._collect_resource_usage()` |
+| Pipeline | [services/camera_service.py](file:///e:/ARGUS_AI/services/camera_service.py) | `CameraService._capture_loop()` |
 
 ---
 

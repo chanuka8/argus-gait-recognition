@@ -78,7 +78,7 @@ Camera, logging, watchdog, recognition, and service settings remain unchanged fr
 venv\Scripts\python.exe -m unittest discover -s tests -v
 ```
 
-### Test Results (30/30 Passed)
+### Test Results (224/224 Passed)
 
 | Test Suite | Tests | Status |
 |:-----------|:-----:|:------:|
