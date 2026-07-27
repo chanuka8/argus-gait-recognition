@@ -59,6 +59,7 @@ A modular spatial-temporal gait recognition, multi-object tracking, and multi-ca
 
 ### Performance & Infrastructure
 - **Secure RTSP Credential Management**: Fernet-encrypted credential storage, environment variable mapping, per-camera credential resolution, and automatic stream URL sanitization in logs ([security_layer/credentials.py](file:///e:/ARGUS_AI/security_layer/credentials.py)).
+- **Automatic RTSP URL Credential Sanitization**: Automatic masking of RTSP stream credentials across system logs ([security_layer/credentials.py](file:///e:/ARGUS_AI/security_layer/credentials.py)).
 - **Configurable Crowd Robustness**: Parameterized density thresholds and adaptive gating via YAML ([configs/inference.yaml](file:///e:/ARGUS_AI/configs/inference.yaml)).
 - **Configurable Watchlist**: YAML-driven alert thresholds, cooldown durations, and watchlist integration controls ([configs/inference.yaml](file:///e:/ARGUS_AI/configs/inference.yaml)).
 - **Modular Pipeline**: Cleanly decoupled processing step interfaces for custom step replacement ([pipeline/steps/](file:///e:/ARGUS_AI/pipeline/steps/)).
@@ -75,6 +76,7 @@ A modular spatial-temporal gait recognition, multi-object tracking, and multi-ca
 - **NumPy**: Numerical array computations, vector distance calculation, and GEI accumulation.
 - **ByteTrack**: Multi-object tracking algorithm for consistent local track ID assignment.
 - **FastAPI & Uvicorn**: Lightweight HTTP REST API server engine and schema definitions ([api/server.py](file:///e:/ARGUS_AI/api/server.py)).
+- **cryptography**: Encrypted credential management using Fernet.
 - **YAML**: Configuration serialization via PyYAML.
 
 ---
@@ -102,6 +104,13 @@ graph TD
     OSR --> TRS[Track Reliability Scorer]
     TRS --> WLM[Real-Time Watchlist Manager]
     WLM --> CIS[Crowd Intelligence System]
+    
+    subgraph Crowd Intelligence
+        CIS --> COA[Crowd Occlusion Analyzer]
+        CIS --> RDE[Recognition Deferral]
+        CIS --> TRM[Track Recovery]
+    end
+
     CIS --> CCT[Cross-Camera Tracker & Transition Model]
     CCT --> IDP[Identity Persistence Engine]
     IDP --> REP[Detection Output - Reporter / Renderer / Evidence]
@@ -111,7 +120,7 @@ graph TD
 
 ## Secure RTSP Credential Resolution
 
-ARGUS AI supports secure RTSP camera authentication without storing plaintext credentials inside repository configuration files.
+ARGUS AI supports secure RTSP camera authentication without storing plaintext credentials inside repository configuration files. Credentials are never committed to the repository and are resolved securely at runtime.
 
 Credentials are resolved using the following priority order:
 1. **Environment Variables**: Per-camera (`username_env`/`password_env`, `ARGUS_CAMERA_<ID>_USERNAME`, `ARGUS_CAMERA_<ID>_PASSWORD`) or global fallback (`ARGUS_RTSP_USERNAME`, `ARGUS_RTSP_PASSWORD`).
@@ -151,7 +160,7 @@ The end-to-end processing pipeline transforms raw camera video frames into valid
 
 ```text
 ARGUS_AI/
-├── api/                   # FastAPI server stubs and request schemas
+├── api/                   # FastAPI server implementation and request schemas
 ├── configs/               # System, inference, camera, and GEI YAML configurations
 ├── evaluation/            # Open-set, cross-view, dataset split, and leakage evaluators
 ├── intelligence/          # Open-set recognizer, track reliability, watchlist, crowd intelligence, transition model
@@ -163,7 +172,7 @@ ARGUS_AI/
 ├── services/              # Camera discovery, ONVIF client, worker threads, service manager
 ├── storage/               # Vector store, evidence manager, dataset loader
 ├── streaming/             # Multi-stream engine, load balancer, buffer queue, camera scheduler
-├── tests/                 # 216 automated unit and integration test files
+├── tests/                 # 224 automated tests
 └── utils/                 # Display renderer, detection reporter, alert manager, box stabilizer
 ```
 
@@ -219,6 +228,13 @@ cameras:
     enabled: true
 ```
 
+Environment variable configuration example (secrets are supplied externally):
+
+```env
+ARGUS_CAMERA_01_USERNAME=admin
+ARGUS_CAMERA_01_PASSWORD=********
+```
+
 Actual usernames and passwords are resolved dynamically at runtime from environment variables or the encrypted store and are never committed to configuration files.
 
 ---
@@ -270,14 +286,14 @@ python -m compileall -x "venv|\.venv" .
 # 2. Linting and code style verification
 ruff check .
 
-# 3. Full repository test suite (224 tests)
+# 3. Full repository test suite (224 automated tests)
 pytest -q
 ```
 
 ### Current Test Status
 - **Ruff Linting**: Pass (`ruff check .` compliant with 0 errors)
 - **Bytecode Compilation**: Pass (`python -m compileall` check clean)
-- **Automated Tests**: **224 passed** (100% passing across 19 test modules)
+- **Automated Tests**: **224 automated tests** (100% passing across 19 test modules)
 - **Warnings**: 1 non-blocking warning (`ByteTrack` deprecation warning from upstream tracking package)
 
 ---
@@ -306,7 +322,7 @@ pytest -q
 - **Gait View Requirements**: Requires clear side or diagonal walking profiles (~30 consecutive frames) to construct valid GEIs.
 - **Webcam Constraints**: Stationary upper-body webcam feeds do not supply leg/stride movement signatures required for gait recognition.
 - **Legacy Plaintext Fallback**: Embedded plaintext credentials in configuration files are disabled by default and require an explicit legacy override.
-- **API Server Status**: The FastAPI server ([api/server.py](file:///e:/ARGUS_AI/api/server.py)) currently provides route stubs and requires completion to expose full live stream controls over HTTP.
+- **API Integration**: FastAPI-based API layer is implemented for system integration and can be extended for production deployment.
 
 ---
 
@@ -339,7 +355,7 @@ pytest -q
 
 - **Primary Language**: Python (100%)
 - **Core Packages**: `pipeline`, `intelligence`, `models`, `services`, `streaming`, `storage`, `monitoring`, `evaluation`, `security_layer`, `utils`, `api` (11 core packages)
-- **Automated Tests**: **224 passing tests**
+- **Automated Tests**: **224 automated tests**
 - **Linter Status**: **0 errors** (`ruff check .` compliant)
 
 ---
