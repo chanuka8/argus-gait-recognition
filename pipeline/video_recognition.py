@@ -13,6 +13,7 @@ from pipeline.steps.live_gei import LiveGEI
 from pipeline.steps.matching_step import MatchingStep
 from pipeline.steps.silhouette_step import SilhouetteStep
 from pipeline.steps.tracking import TrackingStep
+from intelligence.open_set_recognizer import OpenSetRecognizer
 from security_layer.security_engine import SecurityEngine
 from storage.vector_store import VectorStore
 from utils.alert_manager import AlertManager
@@ -300,11 +301,18 @@ class VideoRecognitionPipeline:
 
         self.matcher = MatchingStep(threshold=threshold)
 
+        self.open_set_recognizer = OpenSetRecognizer(
+            known_threshold=threshold,
+            unknown_threshold=self.policy.get("unknown_ceiling", 0.70),
+            margin_threshold=self.policy.get("margin", 0.05),
+        )
+
         self.centroid_matcher = CentroidMatchingStep(
             threshold=self.policy["centroid_threshold"],
             margin=self.policy["margin"],
             top_k=self.policy["top_k"],
         )
+
 
         self.model = self._load_model(model_path)
 
@@ -704,7 +712,12 @@ class VideoRecognitionPipeline:
             "accepted": str(stable_identity) != "UNKNOWN",
             "severity": severity,
             "decision": decision,
+            "open_set_state": self.open_set_recognizer.evaluate_open_set_decision(
+                top_matches=[(raw_identity, score)],
+                temporal_decision=decision,
+            ).state.value,
         }
+
 
         # ReID secondary scoring (does not affect gait decision)
         if self.reid_extractor is not None:

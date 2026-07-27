@@ -49,7 +49,8 @@ display:
   colors:
     detection: [0, 0, 255]
     tracking: [0, 165, 255]
-    unknown: [0, 255, 0]
+    unknown: [0, 0, 255]
+    uncertain: [0, 215, 255]
     confirmed: [0, 255, 0]
 
 reporting:
@@ -63,6 +64,7 @@ reporting:
   report_detection: false
   report_tracking: false
   report_unknown: true
+  report_uncertain: true
   report_confirmed: true
 
 reid:
@@ -84,4 +86,12 @@ gei_quality:
 temporal_verification:
   enabled: true
   window_size: 3
+
+open_set:
+  enabled: true
+  known_threshold: 0.85
+  unknown_threshold: 0.70
+  margin_threshold: 0.05
+  quality_threshold: 0.60
+
 

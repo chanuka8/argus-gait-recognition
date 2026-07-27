@@ -25,7 +25,9 @@ import yaml
 STATUS_DETECTION = "DETECTION"
 STATUS_TRACKING = "TRACKING"
 STATUS_UNKNOWN = "UNKNOWN"
+STATUS_UNCERTAIN = "UNCERTAIN"
 STATUS_CONFIRMED = "CONFIRMED"
+
 
 
 # ---------------------------------------------------------------------------
@@ -106,8 +108,8 @@ def _map_decision_to_status(decision: str) -> str:
         return STATUS_DETECTION
     if decision == "TRACKING":
         return STATUS_TRACKING
-    if decision in ("REVIEW_REQUIRED", "LOW_CONFIDENCE"):
-        return STATUS_TRACKING
+    if decision in ("REVIEW_REQUIRED", "LOW_CONFIDENCE", "UNCERTAIN", "UNCERTAIN_PERSON"):
+        return STATUS_UNCERTAIN
     if decision == "UNKNOWN_PERSON":
         return STATUS_UNKNOWN
     if decision in ("CONFIRMED_MATCH", "VERIFIED_MATCH"):
@@ -141,9 +143,11 @@ class DetectionDisplayRenderer:
         self._colors: dict[str, tuple[int, int, int]] = {
             STATUS_DETECTION: tuple(colors_raw.get("detection", [0, 0, 255])),
             STATUS_TRACKING: tuple(colors_raw.get("tracking", [0, 165, 255])),
-            STATUS_UNKNOWN: tuple(colors_raw.get("unknown", [0, 255, 0])),
+            STATUS_UNKNOWN: tuple(colors_raw.get("unknown", [0, 0, 255])),
+            STATUS_UNCERTAIN: tuple(colors_raw.get("uncertain", [0, 215, 255])),
             STATUS_CONFIRMED: tuple(colors_raw.get("confirmed", [0, 255, 0])),
         }
+
 
         self._thickness: int = int(self.cfg.get("line_thickness", 2))
         self._font_scale: float = float(self.cfg.get("font_scale", 0.6))

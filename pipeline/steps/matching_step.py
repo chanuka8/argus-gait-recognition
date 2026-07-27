@@ -219,3 +219,28 @@ class MatchingStep:
             )
             for index in indices
         ]
+
+    def match_open_set(
+        self,
+        query_feature,
+        gallery_features,
+        gallery_labels,
+        metadata: dict | None = None,
+        open_set_recognizer=None,
+        quality_score: float = 1.0,
+    ):
+        matches = self.top_k_matches(
+            query_feature,
+            gallery_features,
+            gallery_labels,
+            metadata=metadata,
+            k=5,
+        )
+        if open_set_recognizer is None:
+            from intelligence.open_set_recognizer import OpenSetRecognizer
+            open_set_recognizer = OpenSetRecognizer(known_threshold=self.threshold)
+
+        return open_set_recognizer.evaluate_open_set_decision(
+            top_matches=matches,
+            quality_score=quality_score,
+        )

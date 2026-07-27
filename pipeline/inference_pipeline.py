@@ -57,6 +57,13 @@ class InferencePipeline:
             )
         )
 
+        open_set_res = self.matcher.match_open_set(
+            embedding,
+            self.gallery_features,
+            self.gallery_labels,
+            self.metadata,
+        )
+
         identity, score = (
             self.matcher.match(
                 embedding,
@@ -69,4 +76,5 @@ class InferencePipeline:
         return {
             "identity": identity,
             "score": score,
-        }
+            "open_set_state": open_set_res.state.value,
+        }

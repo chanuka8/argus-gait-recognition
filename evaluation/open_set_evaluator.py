@@ -13,6 +13,7 @@ from evaluation.evaluator import SubjectDisjointEvaluator
 from evaluation.gallery_probe_builder import build_gallery_and_probe_sets
 from evaluation.leakage_validator import assert_gallery_probe_disjointness
 from evaluation.metrics import compute_biometric_rates, compute_roc_auc_eer
+from intelligence.open_set_recognizer import OpenSetRecognizer
 
 
 class SubjectDisjointOpenSetEvaluator(SubjectDisjointEvaluator):
@@ -38,6 +39,11 @@ class SubjectDisjointOpenSetEvaluator(SubjectDisjointEvaluator):
             report_dir=report_dir,
         )
         self.known_ratio = known_ratio
+        self.open_set_recognizer = OpenSetRecognizer(
+            known_threshold=threshold,
+            unknown_threshold=0.70,
+            margin_threshold=0.05,
+        )
 
     def evaluate_open_set_protocol(self) -> dict:
         test_subjects = sorted(self.split_manifest["test_subjects"])
@@ -88,8 +94,11 @@ class SubjectDisjointOpenSetEvaluator(SubjectDisjointEvaluator):
                 gallery_features=gal_features,
                 gallery_labels=gal_labels,
                 metadata=metadata,
-                k=1,
+                k=5,
             )
+
+            open_set_decision = self.open_set_recognizer.evaluate_open_set_decision(top_matches=matches)
+            open_set_state = open_set_decision.state.value
 
             best_id, best_score = matches[0] if matches else ("UNKNOWN", 0.0)
             scores.append(best_score)
@@ -103,6 +112,7 @@ class SubjectDisjointOpenSetEvaluator(SubjectDisjointEvaluator):
                 "is_known_subject": actual_id in known_set,
                 "predicted_id": best_id,
                 "score": best_score,
+                "open_set_state": open_set_state,
                 "is_genuine_match": is_gen,
             })
 
@@ -131,12 +141,18 @@ class SubjectDisjointOpenSetEvaluator(SubjectDisjointEvaluator):
             "total_probe_count": len(probe_items),
             "known_probe_count": sum(1 for p in probe_details if p["is_known_subject"]),
             "unknown_probe_count": sum(1 for p in probe_details if not p["is_known_subject"]),
+            "open_set_state_counts": {
+                "KNOWN": sum(1 for p in probe_details if p["open_set_state"] == "KNOWN"),
+                "UNKNOWN": sum(1 for p in probe_details if p["open_set_state"] == "UNKNOWN"),
+                "UNCERTAIN": sum(1 for p in probe_details if p["open_set_state"] == "UNCERTAIN"),
+            },
             "ROC_AUC": round(roc_results["roc_auc"], 4),
             "EER": round(roc_results["eer"], 4),
             "EER_threshold": round(roc_results["eer_threshold"], 4),
             "operating_metrics": operating_rates,
             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
         }
+
 
         # Save report JSON
         json_path = self.report_dir / "open_set_report.json"

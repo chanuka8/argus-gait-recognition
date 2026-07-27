@@ -143,7 +143,23 @@ class TemporalGaitVerifier:
 
         return final_identity, mean_score, decision
 
+    def get_open_set_state(
+        self,
+        final_identity: str,
+        score: float,
+        decision_type: str,
+        unknown_ceiling: float = 0.70,
+    ) -> str:
+        """Map temporal verification outcome to 3-state open-set classification (KNOWN, UNKNOWN, UNCERTAIN)."""
+        if final_identity != "UNKNOWN" and decision_type in ("MAJORITY_VOTE", "SINGLE_MATCH"):
+            return "KNOWN"
+        elif final_identity == "UNKNOWN" and score < unknown_ceiling:
+            return "UNKNOWN"
+        else:
+            return "UNCERTAIN"
+
     def clear_track(
+
         self,
         track_id: int,
     ) -> None:

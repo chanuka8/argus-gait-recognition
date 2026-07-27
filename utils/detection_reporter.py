@@ -48,6 +48,7 @@ def load_reporting_config() -> dict:
         "report_detection": False,
         "report_tracking": False,
         "report_unknown": True,
+        "report_uncertain": True,
         "report_confirmed": True,
     }
 
@@ -127,8 +128,10 @@ class DetectionReporter:
             "DETECTION": bool(self.cfg.get("report_detection", False)),
             "TRACKING": bool(self.cfg.get("report_tracking", False)),
             "UNKNOWN": bool(self.cfg.get("report_unknown", True)),
+            "UNCERTAIN": bool(self.cfg.get("report_uncertain", True)),
             "CONFIRMED": bool(self.cfg.get("report_confirmed", True)),
         }
+
 
         # Output paths
         output_dir = Path(self.cfg.get("output_dir", "outputs/detection_reports"))
