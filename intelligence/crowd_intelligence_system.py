@@ -116,7 +116,7 @@ class CrowdIntelligenceSystem:
             return defaults
 
         try:
-            with open(config_path, "r", encoding="utf-8") as f:
+            with open(config_path, encoding="utf-8") as f:
                 data = yaml.safe_load(f) or {}
                 ci_section = data.get("crowd_intelligence", {})
                 if isinstance(ci_section, dict):

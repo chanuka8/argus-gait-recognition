@@ -2,23 +2,35 @@
 Integration tests for Crowd Robustness in Pipeline Components.
 """
 
+from unittest.mock import MagicMock, patch
+
 from intelligence.crowd_density_estimator import CrowdDensityLevel
 from intelligence.crowd_robustness_manager import CrowdRobustnessManager
 from pipeline.live_recognition import LiveRecognitionPipeline
 from pipeline.video_recognition import VideoRecognitionPipeline, _load_crowd_robustness_config
 
 
-def test_pipeline_crowd_robustness_initialization():
+@patch("pipeline.live_recognition.StreamEngine")
+@patch("pipeline.live_recognition.VectorStore")
+@patch("pipeline.live_recognition.LiveRecognitionPipeline._load_model", return_value=MagicMock())
+@patch("pipeline.video_recognition.VectorStore")
+@patch("pipeline.video_recognition.VideoRecognitionPipeline._load_model", return_value=MagicMock())
+def test_pipeline_crowd_robustness_initialization(
+    mock_vid_model, mock_vid_store, mock_live_model, mock_live_store, mock_stream
+):
+    mock_vid_store.return_value.load.return_value = (MagicMock(), MagicMock(), {})
+    mock_live_store.return_value.load.return_value = (MagicMock(), MagicMock(), {})
+
     cfg = _load_crowd_robustness_config()
     assert "enabled" in cfg
     assert cfg["enabled"] is False  # Must be disabled by default
 
-    # Verify VideoRecognitionPipeline instantiates manager safely
+    # Verify VideoRecognitionPipeline instantiates manager safely without checkpoint dependency
     pipe = VideoRecognitionPipeline()
     assert hasattr(pipe, "crowd_robustness_manager")
     assert pipe.crowd_robustness_manager.is_enabled() is False
 
-    # Verify LiveRecognitionPipeline instantiates manager safely
+    # Verify LiveRecognitionPipeline instantiates manager safely without checkpoint dependency
     live_pipe = LiveRecognitionPipeline()
     assert hasattr(live_pipe, "crowd_robustness_manager")
     assert live_pipe.crowd_robustness_manager.is_enabled() is False

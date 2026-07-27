@@ -36,7 +36,7 @@ class PersonDetector:
             return defaults
 
         try:
-            with open(path, "r", encoding="utf-8") as file:
+            with open(path, encoding="utf-8") as file:
                 data = yaml.safe_load(file) or {}
                 for key, val in defaults.items():
                     data.setdefault(key, val)

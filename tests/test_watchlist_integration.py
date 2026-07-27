@@ -128,9 +128,9 @@ class TestWatchlistManager(unittest.TestCase):
 class TestWatchlistPipelineIntegration(unittest.TestCase):
     """Test pipeline initialization and watchlist matching hooks."""
 
+    @patch("pipeline.video_recognition.VideoRecognitionPipeline._load_model", return_value=MagicMock())
     @patch("pipeline.video_recognition.VectorStore")
-    @patch("pipeline.video_recognition.ByGaitLight")
-    def test_video_pipeline_watchlist_initialization(self, mock_model, mock_store):
+    def test_video_pipeline_watchlist_initialization(self, mock_store, mock_load_model):
         mock_store.return_value.load.return_value = (MagicMock(), MagicMock(), {})
         from pipeline.video_recognition import VideoRecognitionPipeline
 

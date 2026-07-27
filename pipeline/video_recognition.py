@@ -47,7 +47,7 @@ def _load_matching_policy() -> dict:
         return defaults
 
     try:
-        with open(config_path, "r", encoding="utf-8") as f:
+        with open(config_path, encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
     except Exception:
         return defaults
@@ -85,7 +85,7 @@ def _load_crowd_control_config() -> dict:
         return defaults
 
     try:
-        with open(config_path, "r", encoding="utf-8") as f:
+        with open(config_path, encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
     except Exception:
         return defaults
@@ -122,7 +122,7 @@ def _load_box_stability_config() -> dict:
         return defaults
 
     try:
-        with open(config_path, "r", encoding="utf-8") as f:
+        with open(config_path, encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
     except Exception:
         return defaults
@@ -156,7 +156,7 @@ def _load_reid_config() -> dict:
         return defaults
 
     try:
-        with open(config_path, "r", encoding="utf-8") as f:
+        with open(config_path, encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
     except Exception:
         return defaults
@@ -188,7 +188,7 @@ def _load_fusion_config() -> dict:
         return defaults
 
     try:
-        with open(config_path, "r", encoding="utf-8") as f:
+        with open(config_path, encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
     except Exception:
         return defaults
@@ -219,7 +219,7 @@ def _load_quality_config() -> dict:
         return defaults
 
     try:
-        with open(config_path, "r", encoding="utf-8") as f:
+        with open(config_path, encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
     except Exception:
         return defaults
@@ -250,7 +250,7 @@ def _load_temporal_config() -> dict:
         return defaults
 
     try:
-        with open(config_path, "r", encoding="utf-8") as f:
+        with open(config_path, encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
     except Exception:
         return defaults
@@ -289,7 +289,7 @@ def _load_track_reliability_config() -> dict:
         return defaults
 
     try:
-        with open(config_path, "r", encoding="utf-8") as f:
+        with open(config_path, encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
     except Exception:
         return defaults
@@ -321,7 +321,7 @@ def _load_watchlist_config() -> dict:
         return defaults
 
     try:
-        with open(config_path, "r", encoding="utf-8") as f:
+        with open(config_path, encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
     except Exception:
         return defaults
