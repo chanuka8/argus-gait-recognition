@@ -46,9 +46,17 @@ class WatchlistEntry:
 class MissingPersonWorkflow:
     """Automates missing person target monitoring, watchlist management, alert throttling, and evidence trigger generation."""
 
-    def __init__(self, alert_threshold: float = 0.85, cooldown_seconds: float = 60.0) -> None:
+    def __init__(
+        self,
+        alert_threshold: float = 0.85,
+        cooldown_seconds: float = 60.0,
+        output_dir: str = "outputs/watchlist",
+    ) -> None:
+        from pathlib import Path
         self.alert_threshold = alert_threshold
         self.cooldown_seconds = cooldown_seconds
+        self.output_dir = Path(output_dir)
+        self.output_dir.mkdir(parents=True, exist_ok=True)
         self._logger = get_logger("missing_person_workflow")
         self._lock = Lock()
 
@@ -183,6 +191,15 @@ class MissingPersonWorkflow:
         """Return all logged missing person match events."""
         with self._lock:
             return self._events.copy()
+
+    def export_watchlist_events(self, filename: str = "watchlist_events.json"):
+        """Export watchlist match events to output directory."""
+        import json
+        with self._lock:
+            target_path = self.output_dir / filename
+            with open(target_path, "w", encoding="utf-8") as f:
+                json.dump(self._events, f, indent=2)
+            return target_path
 
 
 WatchlistManager = MissingPersonWorkflow

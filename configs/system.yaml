@@ -23,7 +23,7 @@ camera:
 
 logging:
   # Directory for all log files
-  log_dir: "outputs/logs"
+  log_dir: "outputs/logs/system"
   # Maximum log file size in bytes (10MB)
   max_bytes: 10485760
   # Number of rotated backup files to keep
@@ -71,6 +71,6 @@ service:
   # Run headless (no GUI windows)
   headless: false
   # PID file location
-  pid_file: "outputs/argus.pid"
+  pid_file: "outputs/temporary/argus.pid"
   # Graceful shutdown timeout in seconds
   shutdown_timeout: 10

@@ -3,7 +3,7 @@ from pathlib import Path
 
 
 def setup_logger(name: str = "ARGUS") -> logging.Logger:
-    log_dir = Path("outputs/reports")
+    log_dir = Path("outputs/logs/system")
     log_dir.mkdir(parents=True, exist_ok=True)
 
     logger = logging.getLogger(name)

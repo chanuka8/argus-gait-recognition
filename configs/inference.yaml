@@ -55,11 +55,11 @@ display:
 
 reporting:
   enabled: true
-  output_dir: outputs/detection_reports
+  output_dir: outputs/media/detections
   save_jsonl: true
   save_csv: true
   save_snapshots: true
-  snapshot_dir: outputs/detection_reports/snapshots
+  snapshot_dir: outputs/media/detections/snapshots
   cooldown_seconds: 10
   report_detection: false
   report_tracking: false
@@ -173,4 +173,4 @@ crowd_intelligence:
     shadow_mode: true
     minimum_samples: 20
     maximum_travel_seconds: 600
-    export_path: outputs/learned_camera_topology.yaml
+    export_path: outputs/reports/exports/learned_camera_topology.yaml

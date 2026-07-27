@@ -84,8 +84,8 @@ def main() -> None:
     print(f"False Accept Rate (FAR): {results['false_accept_rate'] * 100:.2f}%")
     print(f"False Reject Rate (FRR): {results['false_reject_rate'] * 100:.2f}%")
     print("-" * 40)
-    print("Saved JSON Report -> outputs/eval_reports/open_set_report.json")
-    print("Saved CSV Report -> outputs/eval_reports/open_set_report.csv")
+    print("Saved JSON Report -> outputs/reports/evaluation/open_set_report.json")
+    print("Saved CSV Report -> outputs/reports/evaluation/open_set_report.csv")
 
 
 if __name__ == "__main__":

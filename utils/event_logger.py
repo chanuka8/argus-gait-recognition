@@ -8,7 +8,7 @@ class EventLogger:
 
     def __init__(
         self,
-        log_file="outputs/events/recognition_log.csv"
+        log_file="outputs/logs/events/recognition_log.csv"
     ):
 
         self.log_file = Path(log_file)

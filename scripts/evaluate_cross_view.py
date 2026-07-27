@@ -55,8 +55,8 @@ def main() -> None:
         print(f"{angle:<12} | {metrics['correct']:<8} | {metrics['total']:<8} | {metrics['accuracy'] * 100:.2f}%")
     print("-" * 45)
     print(f"Fallback view parsing used: {results['fallback_used']}")
-    print("Saved JSON Report -> outputs/eval_reports/cross_view_report.json")
-    print("Saved CSV Report -> outputs/eval_reports/cross_view_report.csv")
+    print("Saved JSON Report -> outputs/reports/evaluation/cross_view_report.json")
+    print("Saved CSV Report -> outputs/reports/evaluation/cross_view_report.csv")
 
 
 if __name__ == "__main__":

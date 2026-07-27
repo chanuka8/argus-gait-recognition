@@ -10,7 +10,7 @@ class AlertManager:
 
     def __init__(
         self,
-        alert_file="outputs/events/alerts.csv",
+        alert_file="outputs/logs/events/alerts.csv",
         confidence_threshold=0.75,
     ):
 

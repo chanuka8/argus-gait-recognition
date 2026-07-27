@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 class EvaluationVisualizer:
     def __init__(
         self,
-        output_dir="outputs/evaluation_charts",
+        output_dir="outputs/reports/evaluation/charts",
     ):
         self.output_dir = Path(output_dir)
 

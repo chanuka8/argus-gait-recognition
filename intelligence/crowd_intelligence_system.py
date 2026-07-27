@@ -115,7 +115,7 @@ class CrowdIntelligenceSystem:
                 "minimum_samples": 20,
                 "maximum_travel_seconds": 600.0,
                 "sync_interval_seconds": 30.0,
-                "export_path": "outputs/learned_camera_topology.yaml",
+                "export_path": "outputs/reports/exports/learned_camera_topology.yaml",
             },
         }
 

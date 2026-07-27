@@ -288,7 +288,7 @@ def main() -> None:
         reverse=True,
     )
 
-    output_dir = Path("outputs/eval_reports")
+    output_dir = Path("outputs/reports/evaluation")
     output_dir.mkdir(parents=True, exist_ok=True)
 
     json_path = output_dir / "threshold_sweep.json"

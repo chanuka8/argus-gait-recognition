@@ -26,7 +26,7 @@ class TestLoggingConfig(unittest.TestCase):
         logger = get_logger("system")
         logger.info("Test log entry for unit test verification.")
 
-        log_file = Path("outputs/logs/system.log")
+        log_file = Path("outputs/logs/system/system.log")
         self.assertTrue(log_file.exists())
 
         content = log_file.read_text(encoding="utf-8")

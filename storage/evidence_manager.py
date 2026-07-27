@@ -15,7 +15,7 @@ from monitoring.logging_config import get_logger
 class EvidenceManager:
     """Manages creation, organized folder structure, and retention policy for evidence files."""
 
-    def __init__(self, base_evidence_dir: str = "outputs/evidence", max_age_days: int = 30) -> None:
+    def __init__(self, base_evidence_dir: str = "outputs/media/detections", max_age_days: int = 30) -> None:
         self.base_dir = Path(base_evidence_dir)
         self.max_age_seconds = max_age_days * 86400.0
         self._logger = get_logger("evidence_manager")

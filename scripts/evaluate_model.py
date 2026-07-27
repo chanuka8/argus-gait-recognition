@@ -43,7 +43,7 @@ def main() -> None:
         print(f"{key}: {value}")
 
     report_dir = Path(
-        "outputs/eval_reports"
+        "outputs/reports/evaluation"
     )
 
     report_dir.mkdir(

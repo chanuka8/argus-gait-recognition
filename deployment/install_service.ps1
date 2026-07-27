@@ -73,7 +73,7 @@ $ServiceScript = Join-Path $ProjectRoot "services\argus_service.py"
 & $NssmPath set $ServiceName AppRestartDelay 5000
 
 # Configure logging redirect in NSSM
-$LogDir = Join-Path $ProjectRoot "outputs\logs"
+$LogDir = Join-Path $ProjectRoot "outputs\logs\system"
 if (-not (Test-Path $LogDir)) {
     New-Item -ItemType Directory -Path $LogDir | Out-Null
 }
