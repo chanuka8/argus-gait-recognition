@@ -4,10 +4,22 @@ Unit tests for Stage 4: Automatic Camera Topology Learning.
 
 from pathlib import Path
 from intelligence.camera_topology_learner import CameraTopologyLearner
+from intelligence.camera_transition_model import CameraTransitionModel
 
 
 def test_valid_observation_accepted_and_bounds():
-    learner = CameraTopologyLearner({"enabled": True, "minimum_samples": 2})
+    model = CameraTransitionModel()
+    learner = CameraTopologyLearner(
+        {
+            "enabled": True,
+            "shadow_mode": True,
+            "minimum_samples": 2,
+            "maximum_travel_seconds": 600.0,
+            "sync_interval_seconds": 30.0,
+        },
+        transition_model=model,
+    )
+    learner.set_transition_model(model)
 
     # Record exit at cam_A at t=10.0
     learner.record_camera_exit("cam_A", "Person_10", reliability=0.90, occlusion=0.10, timestamp=10.0)
@@ -30,7 +42,19 @@ def test_valid_observation_accepted_and_bounds():
 
 
 def test_low_reliability_and_occlusion_rejected():
-    learner = CameraTopologyLearner({"enabled": True})
+    model = CameraTransitionModel()
+    learner = CameraTopologyLearner(
+        {
+            "enabled": True,
+            "shadow_mode": True,
+            "minimum_samples": 1,
+            "maximum_travel_seconds": 600.0,
+            "sync_interval_seconds": 30.0,
+        },
+        transition_model=model,
+    )
+    learner.set_transition_model(model)
+
     learner.record_camera_exit("cam_A", "Person_11", reliability=0.90, occlusion=0.10, timestamp=10.0)
 
     # Low reliability observation at destination
@@ -46,7 +70,19 @@ def test_low_reliability_and_occlusion_rejected():
 
 
 def test_invalid_travel_time_rejected():
-    learner = CameraTopologyLearner({"enabled": True, "maximum_travel_seconds": 60.0})
+    model = CameraTransitionModel()
+    learner = CameraTopologyLearner(
+        {
+            "enabled": True,
+            "shadow_mode": True,
+            "minimum_samples": 1,
+            "maximum_travel_seconds": 60.0,
+            "sync_interval_seconds": 30.0,
+        },
+        transition_model=model,
+    )
+    learner.set_transition_model(model)
+
     learner.record_camera_exit("cam_A", "Person_12", reliability=0.90, occlusion=0.10, timestamp=10.0)
 
     # Travel time = 100s (> max 60s)
@@ -62,7 +98,18 @@ def test_invalid_travel_time_rejected():
 
 
 def test_minimum_samples_and_probability_normalization():
-    learner = CameraTopologyLearner({"enabled": True, "minimum_samples": 3})
+    model = CameraTransitionModel()
+    learner = CameraTopologyLearner(
+        {
+            "enabled": True,
+            "shadow_mode": True,
+            "minimum_samples": 3,
+            "maximum_travel_seconds": 600.0,
+            "sync_interval_seconds": 30.0,
+        },
+        transition_model=model,
+    )
+    learner.set_transition_model(model)
 
     # Add 2 transitions cam_A -> cam_B
     for i in range(2):
@@ -90,7 +137,19 @@ def test_minimum_samples_and_probability_normalization():
 
 def test_shadow_mode_export_and_reset(tmp_path):
     export_file = tmp_path / "learned_topology.yaml"
-    learner = CameraTopologyLearner({"enabled": True, "shadow_mode": True, "minimum_samples": 1, "export_path": str(export_file)})
+    model = CameraTransitionModel()
+    learner = CameraTopologyLearner(
+        {
+            "enabled": True,
+            "shadow_mode": True,
+            "minimum_samples": 1,
+            "maximum_travel_seconds": 600.0,
+            "sync_interval_seconds": 10.0,
+            "export_path": str(export_file),
+        },
+        transition_model=model,
+    )
+    learner.set_transition_model(model)
 
     learner.record_camera_exit("cam_1", "User_X", 0.95, 0.05, timestamp=1.0)
     learner.observe_transition("cam_1", "cam_2", "User_X", 0.95, 0.05, timestamp=10.0)
@@ -99,8 +158,6 @@ def test_shadow_mode_export_and_reset(tmp_path):
     assert Path(exported_path).exists()
 
     # In shadow_mode=True, update_transition_model MUST NOT mutate active transition model
-    from intelligence.camera_transition_model import CameraTransitionModel
-    model = CameraTransitionModel()
     count_shadow = learner.update_transition_model(model)
     assert count_shadow == 0
     assert not model.is_enabled()
@@ -115,12 +172,23 @@ def test_shadow_mode_export_and_reset(tmp_path):
     learner.reset()
     assert len(learner.learned_edges) == 0
     assert len(learner.exit_events) == 0
+    assert learner.last_sync_time == -float("inf")
 
 
 def test_maybe_sync_transition_model_bounded_interval():
-    from intelligence.camera_transition_model import CameraTransitionModel
     model = CameraTransitionModel()
-    learner = CameraTopologyLearner({"enabled": True, "shadow_mode": False, "minimum_samples": 1, "sync_interval_seconds": 10.0}, transition_model=model)
+    learner = CameraTopologyLearner(
+        {
+            "enabled": True,
+            "shadow_mode": False,
+            "minimum_samples": 1,
+            "maximum_travel_seconds": 600.0,
+            "sync_interval_seconds": 10.0,
+        },
+        transition_model=model,
+    )
+    learner.set_transition_model(model)
+    assert not model.is_enabled()
 
     learner.record_camera_exit("cam_A", "User_Z", 0.90, 0.05, timestamp=1.0)
     learner.observe_transition("cam_A", "cam_B", "User_Z", 0.90, 0.05, timestamp=5.0)
@@ -128,6 +196,7 @@ def test_maybe_sync_transition_model_bounded_interval():
     # First sync at t=5.0 should succeed
     synced1 = learner.maybe_sync_transition_model(timestamp=5.0)
     assert synced1 == 1
+    assert model.is_enabled()
 
     # Second sync at t=8.0 (< 10s interval) should skip sync
     synced2 = learner.maybe_sync_transition_model(timestamp=8.0)

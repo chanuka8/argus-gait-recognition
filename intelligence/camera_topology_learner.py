@@ -312,6 +312,7 @@ class CameraTopologyLearner:
         """Reset learned statistics."""
         self.learned_edges.clear()
         self.exit_events.clear()
+        self.last_sync_time = -float("inf")
 
     def cleanup_inactive(self, max_idle_seconds: float = 3600.0, current_time: Optional[float] = None) -> None:
         """Clean expired exit events."""

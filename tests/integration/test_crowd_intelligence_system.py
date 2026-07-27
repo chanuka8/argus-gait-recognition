@@ -124,14 +124,27 @@ def test_runtime_topology_model_sync():
     active_model = CameraTransitionModel()
     config = {
         "enabled": True,
+        "occlusion": {
+            "enabled": True,
+        },
+        "recognition_deferral": {
+            "enabled": True,
+            "minimum_confirmations": 1,
+            "minimum_reliability": 0.70,
+        },
+        "multi_camera_fusion": {
+            "enabled": True,
+        },
         "topology_learning": {
             "enabled": True,
             "shadow_mode": False,  # Live mode enabled
             "minimum_samples": 1,
+            "maximum_travel_seconds": 600.0,
             "sync_interval_seconds": 1.0,
         },
     }
     system = CrowdIntelligenceSystem(config, transition_model=active_model)
+    system.set_transition_model(active_model)
     assert not active_model.is_enabled()
 
     # Record exit at cam_01
