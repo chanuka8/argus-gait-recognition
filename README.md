@@ -16,7 +16,7 @@ A modular spatial-temporal gait recognition, multi-object tracking, and multi-ca
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-EE4C2C.svg)](https://pytorch.org/)
 [![OpenCV](https://img.shields.io/badge/OpenCV-4.8%2B-5C3EE8.svg)](https://opencv.org/)
 [![Ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
-[![Pytest](https://img.shields.io/badge/tests-210%20passed-brightgreen.svg)](file:///e:/ARGUS_AI/tests)
+[![Pytest](https://img.shields.io/badge/tests-224%20passed-brightgreen.svg)](file:///e:/ARGUS_AI/tests)
 [![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](file:///e:/ARGUS_AI/VERSION)
 
 ---
@@ -58,6 +58,7 @@ A modular spatial-temporal gait recognition, multi-object tracking, and multi-ca
 - **Crowd Intelligence System**: High-level coordinator unifying crowd density, occlusion analysis, deferral, and multi-camera evidence fusion ([intelligence/crowd_intelligence_system.py](file:///e:/ARGUS_AI/intelligence/crowd_intelligence_system.py)).
 
 ### Performance & Infrastructure
+- **Secure RTSP Credential Management**: Fernet-encrypted credential storage, environment variable mapping, per-camera credential resolution, and automatic stream URL sanitization in logs ([security_layer/credentials.py](file:///e:/ARGUS_AI/security_layer/credentials.py)).
 - **Configurable Crowd Robustness**: Parameterized density thresholds and adaptive gating via YAML ([configs/inference.yaml](file:///e:/ARGUS_AI/configs/inference.yaml)).
 - **Configurable Watchlist**: YAML-driven alert thresholds, cooldown durations, and watchlist integration controls ([configs/inference.yaml](file:///e:/ARGUS_AI/configs/inference.yaml)).
 - **Modular Pipeline**: Cleanly decoupled processing step interfaces for custom step replacement ([pipeline/steps/](file:///e:/ARGUS_AI/pipeline/steps/)).
@@ -105,6 +106,24 @@ graph TD
     CCT --> IDP[Identity Persistence Engine]
     IDP --> REP[Detection Output - Reporter / Renderer / Evidence]
 ```
+
+---
+
+## Secure RTSP Credential Resolution
+
+ARGUS AI supports secure RTSP camera authentication without storing plaintext credentials inside repository configuration files.
+
+Credentials are resolved using the following priority order:
+1. **Environment Variables**: Per-camera (`username_env`/`password_env`, `ARGUS_CAMERA_<ID>_USERNAME`, `ARGUS_CAMERA_<ID>_PASSWORD`) or global fallback (`ARGUS_RTSP_USERNAME`, `ARGUS_RTSP_PASSWORD`).
+2. **Encrypted Credential Store**: Local credential store (`configs/credentials.enc`) encrypted using Fernet (`cryptography` library) with key loaded from `ARGUS_CREDENTIALS_KEY` or derived via PBKDF2HMAC.
+3. **Legacy Plaintext**: Plaintext configuration fallback, which is disabled by default and requires explicit legacy override (`ARGUS_LEGACY_ALLOW_PLAINTEXT_CREDS=true`).
+
+Key security capabilities include:
+- ✓ **Fernet Encrypted Credential Storage**: Fernet cipher securing stored credentials.
+- ✓ **Environment Variable Support**: Dynamic environment variable mapping for usernames and passwords.
+- ✓ **Plaintext Credential Protection**: Rejection of plaintext credentials in configuration by default.
+- ✓ **Log Sanitization**: Automatic masking of RTSP URL credentials (`rtsp://***:***@host:port/path`) across all logs.
+- ✓ **Multi-Camera Credential Isolation**: Independent per-camera credential resolution.
 
 ---
 
@@ -179,8 +198,28 @@ pip install -r requirements.txt
 
 System operations are configured via YAML files in `configs/`:
 
-- **[configs/cameras.yaml](file:///e:/ARGUS_AI/configs/cameras.yaml)**: Defines RTSP camera endpoints, resolution, framerates, worker pool limits, and ONVIF discovery parameters.
+- **[configs/cameras.yaml](file:///e:/ARGUS_AI/configs/cameras.yaml)**: Defines RTSP camera endpoints (`host`, `port`, `path`), environment variable credentials (`username_env`, `password_env`), resolution, framerates, worker pool limits, and ONVIF discovery parameters.
 - **[configs/inference.yaml](file:///e:/ARGUS_AI/configs/inference.yaml)**: Controls matching policy thresholds, open-set recognition, track reliability scoring, watchlist integration, crowd robustness, crowd intelligence, box stability EMA, ReID settings, GEI quality parameters, temporal verification, and camera transition topology.
+
+### Camera Configuration Example
+
+Camera endpoints are specified using structured parameters rather than embedding plaintext `rtsp://username:password@...` URLs in YAML:
+
+```yaml
+cameras:
+  camera_01:
+    id: "camera_01"
+    name: "Main Entrance"
+    type: "rtsp"
+    host: "192.168.1.10"
+    port: 554
+    path: "/Streaming/Channels/101"
+    username_env: "ARGUS_CAMERA_01_USERNAME"
+    password_env: "ARGUS_CAMERA_01_PASSWORD"
+    enabled: true
+```
+
+Actual usernames and passwords are resolved dynamically at runtime from environment variables or the encrypted store and are never committed to configuration files.
 
 ---
 
@@ -231,14 +270,14 @@ python -m compileall -x "venv|\.venv" .
 # 2. Linting and code style verification
 ruff check .
 
-# 3. Full repository test suite (216 tests)
+# 3. Full repository test suite (224 tests)
 pytest -q
 ```
 
 ### Current Test Status
 - **Ruff Linting**: Pass (`ruff check .` compliant with 0 errors)
 - **Bytecode Compilation**: Pass (`python -m compileall` check clean)
-- **Automated Tests**: **216 passed** (100% passing across 18 test modules)
+- **Automated Tests**: **224 passed** (100% passing across 19 test modules)
 - **Warnings**: 1 non-blocking warning (`ByteTrack` deprecation warning from upstream tracking package)
 
 ---
@@ -266,7 +305,7 @@ pytest -q
 
 - **Gait View Requirements**: Requires clear side or diagonal walking profiles (~30 consecutive frames) to construct valid GEIs.
 - **Webcam Constraints**: Stationary upper-body webcam feeds do not supply leg/stride movement signatures required for gait recognition.
-- **Plain-Text Credentials**: RTSP stream passwords in `configs/cameras.yaml` are stored unencrypted in plain text.
+- **Legacy Plaintext Fallback**: Embedded plaintext credentials in configuration files are disabled by default and require an explicit legacy override.
 - **API Server Status**: The FastAPI server ([api/server.py](file:///e:/ARGUS_AI/api/server.py)) currently provides route stubs and requires completion to expose full live stream controls over HTTP.
 
 ---
@@ -291,7 +330,8 @@ pytest -q
 - [x] `QualityEstimator` & `TemporalGaitVerifier` filtering steps
 - [x] `MultiStreamEngine`, `WorkerPool`, `LoadBalancer`, and `Watchdog`
 - [x] ONVIF discovery & vendor adapters
-- [x] 216 automated unit and integration tests passing with 0 failures
+- [x] Secure RTSP credential storage & log URL sanitization ([security_layer/credentials.py](file:///e:/ARGUS_AI/security_layer/credentials.py))
+- [x] 224 automated unit and integration tests passing with 0 failures
 
 ---
 
@@ -299,7 +339,7 @@ pytest -q
 
 - **Primary Language**: Python (100%)
 - **Core Packages**: `pipeline`, `intelligence`, `models`, `services`, `streaming`, `storage`, `monitoring`, `evaluation`, `security_layer`, `utils`, `api` (11 core packages)
-- **Automated Tests**: **216 passing tests**
+- **Automated Tests**: **224 passing tests**
 - **Linter Status**: **0 errors** (`ruff check .` compliant)
 
 ---
