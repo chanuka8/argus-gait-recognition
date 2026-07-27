@@ -6,7 +6,12 @@ A modular spatial-temporal gait recognition, multi-object tracking, and multi-ca
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](file:///e:/ARGUS_AI/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](file:///e:/ARGUS_AI/LICENSE)
+[![Build](https://img.shields.io/github/actions/workflow/status/chanuka8/argus-gait-recognition/CI.yaml?branch=main)](https://github.com/chanuka8/argus-gait-recognition/actions/workflows/CI.yaml)
 [![Platform: Windows / Linux](https://img.shields.io/badge/platform-Windows%20%7C%20Linux-lightgrey.svg)](file:///e:/ARGUS_AI/)
+[![Multi-Camera](https://img.shields.io/badge/multi--camera-supported-blue.svg)](file:///e:/ARGUS_AI/pipeline/multi_camera_recognition.py)
+[![YOLO](https://img.shields.io/badge/YOLO-v8-blue.svg)](https://github.com/ultralytics/ultralytics)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-EE4C2C.svg)](https://pytorch.org/)
+[![OpenCV](https://img.shields.io/badge/OpenCV-4.8%2B-5C3EE8.svg)](https://opencv.org/)
 [![Ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 [![Pytest](https://img.shields.io/badge/tests-152%20passed-brightgreen.svg)](file:///e:/ARGUS_AI/tests)
 [![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](file:///e:/ARGUS_AI/VERSION)
