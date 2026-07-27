@@ -28,7 +28,9 @@ class DualModalFusion:
         default_reid_weight: float = 0.3,
         gait_min_max: Tuple[float, float] = (0.0, 1.0),
         reid_min_max: Tuple[float, float] = (-1.0, 1.0),
+        enabled: bool = False,
     ) -> None:
+        self.enabled = bool(enabled)
         self.normalizer = ScoreNormalizer(
             gait_min_max=gait_min_max,
             reid_min_max=reid_min_max,
@@ -39,37 +41,61 @@ class DualModalFusion:
             default_reid_weight=default_reid_weight,
         )
 
+    def is_enabled(self) -> bool:
+        return self.enabled
+
+    @classmethod
+    def from_config(cls, config: Dict[str, Any] | None = None) -> "DualModalFusion":
+        cfg = config or {}
+        g_min_max = tuple(cfg.get("gait_min_max", (0.0, 1.0)))
+        r_min_max = tuple(cfg.get("reid_min_max", (-1.0, 1.0)))
+        return cls(
+            default_gait_weight=float(cfg.get("gait_weight", 0.7)),
+            default_reid_weight=float(cfg.get("reid_weight", 0.3)),
+            gait_min_max=(float(g_min_max[0]), float(g_min_max[1])),
+            reid_min_max=(float(r_min_max[0]), float(r_min_max[1])),
+            enabled=bool(cfg.get("enabled", False)),
+        )
+
+    @staticmethod
+    def compute_cosine_similarity(
+        vec1: np.ndarray | None,
+        vec2: np.ndarray | None,
+    ) -> float | None:
+        """Compute cosine similarity between two feature embedding vectors."""
+        if vec1 is None or vec2 is None:
+            return None
+        v1 = np.asarray(vec1, dtype=np.float32).ravel()
+        v2 = np.asarray(vec2, dtype=np.float32).ravel()
+        norm1 = float(np.linalg.norm(v1))
+        norm2 = float(np.linalg.norm(v2))
+        if norm1 == 0.0 or norm2 == 0.0:
+            return 0.0
+        return float(np.dot(v1, v2) / (norm1 * norm2))
+
     def fuse(
         self,
-        gait_score: float | None,
-        reid_score: float | None,
+        gait_score: float | None = None,
+        reid_score: float | None = None,
         crop: np.ndarray | None = None,
         gei_frame_count: int = 0,
         gei: np.ndarray | None = None,
         confidence: float = 1.0,
+        gait_embedding: np.ndarray | None = None,
+        gait_gallery_embedding: np.ndarray | None = None,
+        reid_embedding: np.ndarray | None = None,
+        reid_gallery_embedding: np.ndarray | None = None,
     ) -> Dict[str, Any]:
         """
-        Perform dual-modal fusion of Gait and ReID scores.
-
-        Args:
-            gait_score: Raw Gait matching cosine score or None.
-            reid_score: Raw ReID matching cosine score or None.
-            crop: BGR person crop for ReID quality assessment.
-            gei_frame_count: Number of frames in GEI buffer for Gait quality.
-            gei: GEI numpy array for Gait quality assessment.
-            confidence: Object detection confidence.
-
-        Returns:
-            Dict containing:
-                - final_score: Fused similarity score [0.0, 1.0]
-                - gait_score_norm: Normalized Gait score
-                - reid_score_norm: Normalized ReID score
-                - gait_weight: Applied Gait weight
-                - reid_weight: Applied ReID weight
-                - gait_quality: Evaluated Gait quality score
-                - reid_quality: Evaluated ReID quality score
-                - active_modalities: List of active modality names
+        Perform dual-modal fusion of Gait and ReID scores or embeddings.
         """
+        # Compute cosine similarity if raw scores are None but embeddings provided
+        if gait_score is None and gait_embedding is not None and gait_gallery_embedding is not None:
+            gait_score = self.compute_cosine_similarity(gait_embedding, gait_gallery_embedding)
+
+        if reid_score is None and reid_embedding is not None and reid_gallery_embedding is not None:
+            reid_score = self.compute_cosine_similarity(reid_embedding, reid_gallery_embedding)
+
         # Normalize scores
         norm_gait = self.normalizer.normalize_gait(gait_score)
         norm_reid = self.normalizer.normalize_reid(reid_score)

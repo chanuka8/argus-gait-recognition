@@ -68,3 +68,14 @@ def test_expired_evidence_ignored():
     res = engine.fuse_evidence("global_103", current_time=21.0)
     assert res.fusion_state == FusionState.DEFERRED
     assert len(res.contributing_cameras) == 1
+
+
+def test_duplicate_suppression_and_from_config():
+    engine = MultiCameraEvidenceFusion.from_config({"enabled": True, "minimum_cameras": 2})
+
+    # Add duplicate observation from same camera at same timestamp
+    engine.add_observation("cam_01", 1, "global_104", "Person_A", gait_similarity=0.90, timestamp=1.0)
+    engine.add_observation("cam_01", 1, "global_104", "Person_A", gait_similarity=0.90, timestamp=1.0)
+
+    obs = engine.observations.get("global_104", [])
+    assert len(obs) == 1

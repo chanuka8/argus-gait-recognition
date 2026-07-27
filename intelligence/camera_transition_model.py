@@ -169,6 +169,33 @@ class CameraTransitionModel:
         with self._lock:
             return len(self._topology) > 0
 
+    def add_or_update_rule(
+        self,
+        source_camera: str,
+        destination_camera: str,
+        min_travel_seconds: float,
+        max_travel_seconds: float,
+        probability: float,
+        entry_zone: str | None = None,
+        exit_zone: str | None = None,
+    ) -> None:
+        """Add or dynamically update a directed transition topology rule online."""
+        if not source_camera or not destination_camera:
+            return
+        with self._lock:
+            if source_camera not in self._topology:
+                self._topology[source_camera] = {}
+            rule = CameraTransitionRule(
+                source_camera=str(source_camera),
+                destination_camera=str(destination_camera),
+                min_travel_seconds=float(max(0.0, min_travel_seconds)),
+                max_travel_seconds=float(max(min_travel_seconds, max_travel_seconds)),
+                probability=float(max(0.0, min(1.0, probability))),
+                entry_zone=str(entry_zone) if entry_zone else None,
+                exit_zone=str(exit_zone) if exit_zone else None,
+            )
+            self._topology[source_camera][destination_camera] = rule
+
     def record_exit(
         self,
         camera_id: str,

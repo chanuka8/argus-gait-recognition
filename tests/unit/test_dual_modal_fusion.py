@@ -112,3 +112,36 @@ class TestDualModalFusion:
         assert result["gait_weight"] == 1.0
         assert result["reid_weight"] == 0.0
         assert result["active_modalities"] == ["gait"]
+
+    def test_cosine_similarity_computation(self):
+        v1 = np.array([1.0, 0.0, 0.0], dtype=np.float32)
+        v2 = np.array([1.0, 0.0, 0.0], dtype=np.float32)
+        v3 = np.array([0.0, 1.0, 0.0], dtype=np.float32)
+
+        assert DualModalFusion.compute_cosine_similarity(v1, v2) == pytest.approx(1.0)
+        assert DualModalFusion.compute_cosine_similarity(v1, v3) == pytest.approx(0.0)
+        assert DualModalFusion.compute_cosine_similarity(v1, None) is None
+
+    def test_fusion_with_embeddings(self):
+        fusion = DualModalFusion(default_gait_weight=0.5, default_reid_weight=0.5)
+        g1 = np.array([1.0, 0.0], dtype=np.float32)
+        g2 = np.array([1.0, 0.0], dtype=np.float32)
+        r1 = np.array([0.0, 1.0], dtype=np.float32)
+        r2 = np.array([0.0, 1.0], dtype=np.float32)
+
+        res = fusion.fuse(
+            gait_embedding=g1,
+            gait_gallery_embedding=g2,
+            reid_embedding=r1,
+            reid_gallery_embedding=r2,
+        )
+        assert res["gait_score_norm"] == pytest.approx(1.0)
+        assert res["reid_score_norm"] == pytest.approx(1.0)
+        assert res["final_score"] == pytest.approx(1.0)
+
+    def test_from_config_and_is_enabled(self):
+        cfg = {"enabled": True, "gait_weight": 0.8, "reid_weight": 0.2}
+        fusion = DualModalFusion.from_config(cfg)
+        assert fusion.is_enabled() is True
+        assert fusion.weight_allocator.base_gait_weight == pytest.approx(0.8)
+        assert fusion.weight_allocator.base_reid_weight == pytest.approx(0.2)

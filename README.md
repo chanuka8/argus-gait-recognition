@@ -35,6 +35,7 @@ A modular spatial-temporal gait recognition, multi-object tracking, and multi-ca
 
 ### Recognition Intelligence
 - **Open-Set Recognition**: Three-state identity classification (`KNOWN`, `UNKNOWN`, `UNCERTAIN`) evaluating top-1 similarity thresholds (`known_threshold=0.85`, floor `unknown_threshold=0.70`) and candidate margin constraints (`margin_threshold=0.05`) ([intelligence/open_set_recognizer.py](file:///e:/ARGUS_AI/intelligence/open_set_recognizer.py)).
+- **Dual-Modal ReID & Gait Fusion**: Combines gait embeddings with optional appearance (ReID) embeddings using configurable weighted score fusion. Automatically falls back to gait-only recognition when ReID is unavailable or disabled ([intelligence/dual_modal_fusion.py](file:///e:/ARGUS_AI/intelligence/dual_modal_fusion.py)).
 - **Track Reliability Score**: Multi-source evidence scoring producing a normalized index in $[0.0, 1.0]$, explicitly decoupling identity confidence from physical track stability ([intelligence/track_reliability_scorer.py](file:///e:/ARGUS_AI/intelligence/track_reliability_scorer.py)).
 - **Quality-Aware Recognition**: Area, symmetry, and sharpness evaluation to gate low-quality silhouettes before feature extraction ([pipeline/steps/quality_estimator.py](file:///e:/ARGUS_AI/pipeline/steps/quality_estimator.py), [intelligence/quality_assessment.py](file:///e:/ARGUS_AI/intelligence/quality_assessment.py)).
 - **Temporal Verification**: Sliding-window majority vote verification over consecutive frames to prevent transient misclassifications ([pipeline/steps/temporal_gait_verifier.py](file:///e:/ARGUS_AI/pipeline/steps/temporal_gait_verifier.py)).
@@ -43,6 +44,8 @@ A modular spatial-temporal gait recognition, multi-object tracking, and multi-ca
 ### Multi-Camera
 - **Multi-Camera Tracking**: Global track assignment (`GTRACK-XXXX`) and multi-stream trajectory management ([intelligence/cross_camera_tracker.py](file:///e:/ARGUS_AI/intelligence/cross_camera_tracker.py)).
 - **Camera Transition Modeling**: Directed topology graph enforcing expected travel-time windows $[T_{min}, T_{max}]$, transition probabilities, entry/exit zones, and candidate tie resolution ([intelligence/camera_transition_model.py](file:///e:/ARGUS_AI/intelligence/camera_transition_model.py)).
+- **Spatial-Temporal Camera Topology Auto-Learning**: Learns camera transition statistics from validated cross-camera observations and safely synchronizes qualified learned routes into the active CameraTransitionModel using bounded synchronization with shadow-mode protection ([intelligence/camera_topology_learner.py](file:///e:/ARGUS_AI/intelligence/camera_topology_learner.py)).
+- **Multi-Camera Evidence Fusion**: Accumulates observations across multiple cameras, suppresses duplicate evidence, and produces a unified cross-camera identity confidence using temporal, transition, reliability, and recognition evidence ([intelligence/multi_camera_evidence_fusion.py](file:///e:/ARGUS_AI/intelligence/multi_camera_evidence_fusion.py)).
 - **Cross-Camera Identity Persistence**: Accumulated score decay ($\alpha=0.90$) and duplicate alert suppression across streams ([intelligence/identity_persistence.py](file:///e:/ARGUS_AI/intelligence/identity_persistence.py)).
 - **Crowd-Robust Detection**: Adaptive gating, IoU tuning, and threshold adjustments under high spatial density ([intelligence/crowd_robustness_manager.py](file:///e:/ARGUS_AI/intelligence/crowd_robustness_manager.py)).
 
@@ -141,7 +144,7 @@ ARGUS_AI/
 ├── services/              # Camera discovery, ONVIF client, worker threads, service manager
 ├── storage/               # Vector store, evidence manager, dataset loader
 ├── streaming/             # Multi-stream engine, load balancer, buffer queue, camera scheduler
-├── tests/                 # 210 automated unit and integration test files
+├── tests/                 # 216 automated unit and integration test files
 └── utils/                 # Display renderer, detection reporter, alert manager, box stabilizer
 ```
 
@@ -228,14 +231,14 @@ python -m compileall -x "venv|\.venv" .
 # 2. Linting and code style verification
 ruff check .
 
-# 3. Full repository test suite (210 tests)
+# 3. Full repository test suite (216 tests)
 pytest -q
 ```
 
 ### Current Test Status
 - **Ruff Linting**: Pass (`ruff check .` compliant with 0 errors)
 - **Bytecode Compilation**: Pass (`python -m compileall` check clean)
-- **Automated Tests**: **210 passed** (100% passing across 18 test modules)
+- **Automated Tests**: **216 passed** (100% passing across 18 test modules)
 - **Warnings**: 1 non-blocking warning (`ByteTrack` deprecation warning from upstream tracking package)
 
 ---
@@ -281,21 +284,14 @@ pytest -q
 - [x] Real-Time Watchlist Integration (`WatchlistManager` / `MissingPersonWorkflow`)
 - [x] Crowd Intelligence System (Crowd Density Estimator, Occlusion Analyzer, Recognition Deferral Engine, Track Recovery)
 - [x] `CrossCameraTracker` global track ID management & directed `CameraTransitionModel` topology
+- [x] Dual-Modal ReID & Gait Fusion (`intelligence/dual_modal_fusion.py`)
+- [x] Multi-Camera Evidence Fusion (`intelligence/multi_camera_evidence_fusion.py`)
+- [x] Spatial-Temporal Camera Topology Auto-Learning (`intelligence/camera_topology_learner.py`)
 - [x] `IdentityPersistence` score decay & alert cooldown suppression
 - [x] `QualityEstimator` & `TemporalGaitVerifier` filtering steps
 - [x] `MultiStreamEngine`, `WorkerPool`, `LoadBalancer`, and `Watchdog`
 - [x] ONVIF discovery & vendor adapters
-- [x] 210 automated unit and integration tests passing with 0 failures
-
-### Experimental
-- [ ] Dual-Modal ReID & Gait score fusion (`intelligence/dual_modal_fusion.py`)
-- [ ] Spatial-Temporal Camera Topology Auto-Learning (`intelligence/camera_topology_learner.py`)
-- [ ] Multi-Camera Evidence Fusion (`intelligence/multi_camera_evidence_fusion.py`)
-
-### Planned
-- [ ] Complete HTTP REST API endpoints for full camera stream controls
-- [ ] Web-based GUI Dashboard for live multi-camera monitoring
-- [ ] Encrypted credentials storage for RTSP stream security
+- [x] 216 automated unit and integration tests passing with 0 failures
 
 ---
 
@@ -303,7 +299,7 @@ pytest -q
 
 - **Primary Language**: Python (100%)
 - **Core Packages**: `pipeline`, `intelligence`, `models`, `services`, `streaming`, `storage`, `monitoring`, `evaluation`, `security_layer`, `utils`, `api` (11 core packages)
-- **Automated Tests**: **210 passing tests**
+- **Automated Tests**: **216 passing tests**
 - **Linter Status**: **0 errors** (`ruff check .` compliant)
 
 ---

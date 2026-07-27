@@ -82,6 +82,11 @@ class MultiCameraEvidenceFusion:
     def is_enabled(self) -> bool:
         return self.enabled
 
+    @classmethod
+    def from_config(cls, config: Dict[str, Any] | None = None) -> "MultiCameraEvidenceFusion":
+        """Factory method to instantiate from config dictionary."""
+        return cls(config=config)
+
     def add_observation(
         self,
         camera_id: str,
