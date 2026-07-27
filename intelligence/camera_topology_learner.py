@@ -45,7 +45,7 @@ class CameraTopologyLearner:
         self.minimum_samples = int(cfg.get("minimum_samples", 20))
         self.maximum_travel_seconds = float(cfg.get("maximum_travel_seconds", 600.0))
         self.sync_interval_seconds = float(cfg.get("sync_interval_seconds", 30.0))
-        self.export_path = str(cfg.get("export_path", "outputs/learned_camera_topology.yaml"))
+        self.export_path = str(cfg.get("export_path", "outputs/reports/exports/learned_camera_topology.yaml"))
         self.transition_model = transition_model
         self.last_sync_time = -float("inf")
 

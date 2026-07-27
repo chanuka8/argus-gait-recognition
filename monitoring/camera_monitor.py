@@ -15,7 +15,7 @@ class CameraMonitor:
     def __init__(
         self,
         camera_manager: Any,
-        stats_dir: str = "outputs/camera_stats",
+        stats_dir: str = "outputs/monitoring/camera_stats",
         collection_interval: int = 30,
     ) -> None:
         self.camera_manager = camera_manager

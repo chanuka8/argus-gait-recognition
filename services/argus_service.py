@@ -212,13 +212,13 @@ class ArgusService:
         self._logger.info("Camera service restarted.")
 
     def _write_pid(self) -> None:
-        pid_path = Path(self._config.get("service", {}).get("pid_file", "outputs/argus.pid"))
+        pid_path = Path(self._config.get("service", {}).get("pid_file", "outputs/temporary/argus.pid"))
         pid_path.parent.mkdir(parents=True, exist_ok=True)
         pid_path.write_text(str(os.getpid()), encoding="utf-8")
         self._logger.info(f"PID {os.getpid()} written to {pid_path}")
 
     def _remove_pid(self) -> None:
-        pid_path = Path(self._config.get("service", {}).get("pid_file", "outputs/argus.pid"))
+        pid_path = Path(self._config.get("service", {}).get("pid_file", "outputs/temporary/argus.pid"))
 
         try:
             if pid_path.exists():

@@ -9,7 +9,7 @@ ARGUS AI runs as a persistent system background service utilizing **NSSM (Non-Su
 Key Features:
 - **Automatic System Boot Start**: Starts automatically when Windows boots up without requiring user login.
 - **Crash Recovery**: Automatic restart on worker or process failures.
-- **Log Management**: Redirects stdout/stderr to standard rotating log files in `outputs/logs/`.
+- **Log Management**: Redirects stdout/stderr to standard rotating log files in `outputs/logs/system/`.
 
 ---
 
@@ -88,11 +88,11 @@ Run PowerShell as **Administrator**:
 
 ## Service Log Files
 
-All logs are continuously written to `outputs/logs/`:
-- `system.log`: General system events and startup lifecycle.
-- `camera.log`: RTSP/USB camera status, connections, and reconnect events.
-- `detection.log`: Recognition match outputs and tracking statistics.
-- `error.log`: Component warnings, tracebacks, and exceptions.
-- `watchdog.log`: Periodic health metrics (CPU, RAM, GPU, queue size, FPS) and health warnings.
-- `service_stdout.log`: Console stdout captured by NSSM.
-- `service_stderr.log`: Console stderr captured by NSSM.
+All system logs are continuously written to `outputs/logs/system/` (and camera logs to `outputs/logs/camera/`):
+- `outputs/logs/system/system.log`: General system events and startup lifecycle.
+- `outputs/logs/camera/camera.log`: RTSP/USB camera status, connections, and reconnect events.
+- `outputs/logs/system/detection.log`: Recognition match outputs and tracking statistics.
+- `outputs/logs/system/error.log`: Component warnings, tracebacks, and exceptions.
+- `outputs/logs/system/watchdog.log`: Periodic health metrics (CPU, RAM, GPU, queue size, FPS) and health warnings.
+- `outputs/logs/system/service_stdout.log`: Console stdout captured by NSSM.
+- `outputs/logs/system/service_stderr.log`: Console stderr captured by NSSM.

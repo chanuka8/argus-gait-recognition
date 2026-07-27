@@ -39,11 +39,11 @@ def load_reporting_config() -> dict:
 
     defaults: dict = {
         "enabled": True,
-        "output_dir": "outputs/detection_reports",
+        "output_dir": "outputs/media/detections",
         "save_jsonl": True,
         "save_csv": True,
         "save_snapshots": True,
-        "snapshot_dir": "outputs/detection_reports/snapshots",
+        "snapshot_dir": "outputs/media/detections/snapshots",
         "cooldown_seconds": 10,
         "report_detection": False,
         "report_tracking": False,
@@ -134,13 +134,13 @@ class DetectionReporter:
 
 
         # Output paths
-        output_dir = Path(self.cfg.get("output_dir", "outputs/detection_reports"))
+        output_dir = Path(self.cfg.get("output_dir", "outputs/media/detections"))
         output_dir.mkdir(parents=True, exist_ok=True)
 
         self._jsonl_path: Path = output_dir / "detections.jsonl"
         self._csv_path: Path = output_dir / "detections.csv"
         self._snapshot_dir: Path = Path(
-            self.cfg.get("snapshot_dir", "outputs/detection_reports/snapshots"),
+            self.cfg.get("snapshot_dir", "outputs/media/detections/snapshots"),
         )
 
         if self._save_snapshots:

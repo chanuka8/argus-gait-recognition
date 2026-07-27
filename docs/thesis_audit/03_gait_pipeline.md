@@ -177,7 +177,7 @@
 | **Main Files** | `security_layer/security_engine.py`, `security_layer/security_logger.py` |
 | **Algorithm** | Rule-based: UNKNOWN → SECURITY_ALERT, score < threshold → REVIEW_REQUIRED |
 | **Log Fields** | timestamp, track_id, identity, score, severity, decision, camera_id |
-| **Storage** | Thread-safe CSV at `outputs/security_logs/security_events.csv` |
+| **Storage** | Thread-safe CSV at `outputs/logs/security/security_events.csv` |
 | **Verified by tests** | `tests/test_audit_verification.py` |
 
 ### Stage 13: Detection Reporting
@@ -188,7 +188,7 @@
 | **Input** | Camera ID, location, track ID, identity, status, score, bounding box, frame |
 | **Output** | JSONL + CSV reports, cropped snapshots |
 | **Main Files** | `utils/detection_reporter.py` |
-| **Parameters** | `output_dir: outputs/detection_reports`, `cooldown_seconds: 10`, report filtering by status |
+| **Parameters** | `output_dir: outputs/media/detections`, `cooldown_seconds: 10`, report filtering by status |
 
 ## 3.2 Pipeline Summary Table
 

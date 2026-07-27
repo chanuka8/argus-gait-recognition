@@ -73,7 +73,7 @@ def main() -> None:
                 "false_reject_rate": res["false_reject_rate"],
             })
 
-    output_dir = Path("outputs/eval_reports")
+    output_dir = Path("outputs/reports/evaluation")
     output_dir.mkdir(parents=True, exist_ok=True)
 
     json_path = output_dir / "open_set_threshold_sweep.json"

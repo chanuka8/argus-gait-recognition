@@ -52,7 +52,8 @@ def security_log_path():
     return (
         PROJECT_ROOT
         / "outputs"
-        / "security_logs"
+        / "logs"
+        / "security"
         / "security_events.csv"
     )
 
@@ -63,5 +64,6 @@ def benchmark_report_path():
         PROJECT_ROOT
         / "outputs"
         / "reports"
+        / "benchmark"
         / "benchmark_report.json"
     )

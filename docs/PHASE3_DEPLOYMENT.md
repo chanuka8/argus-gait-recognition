@@ -275,7 +275,7 @@ from monitoring.camera_monitor import CameraMonitor
 
 monitor = CameraMonitor(
     camera_manager=manager,
-    stats_dir="outputs/camera_stats",
+    stats_dir="outputs/monitoring/camera_stats",
     collection_interval=30,  # seconds
 )
 
@@ -300,7 +300,7 @@ monitor.clear_alerts("camera_01")
 monitor.stop()
 ```
 
-**Statistics Saved:** JSON files saved to `outputs/camera_stats/` every 30 seconds.
+**Statistics Saved:** JSON files saved to `outputs/monitoring/camera_stats/` every 30 seconds.
 
 **Alerts Generated For:**
 - Worker crashes

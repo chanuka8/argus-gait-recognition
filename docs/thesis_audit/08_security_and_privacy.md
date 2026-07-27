@@ -42,9 +42,9 @@
 | Gait Embeddings (256-dim) | HIGH | Gallery `.npy` files, in-memory |
 | Identity Records | HIGH | Gallery metadata, security logs |
 | Gallery Templates | HIGH | `models/gallery/` and `models/live_gallery/` |
-| Audit Logs | HIGH | `outputs/security_logs/security_events.csv` |
-| Investigation Evidence | HIGH | `outputs/evidence/` |
-| Detection Reports | MEDIUM | `outputs/detection_reports/` |
+| Audit Logs | HIGH | `outputs/logs/security/security_events.csv` |
+| Investigation Evidence | HIGH | `outputs/media/detections/` |
+| Detection Reports | MEDIUM | `outputs/media/detections/` |
 | Model Checkpoint | MEDIUM | `runs/exp_001/best_model.pth` |
 | Credentials (RTSP) | HIGH | `configs/cameras.yaml` (plaintext) |
 | Configuration Files | LOW | `configs/` |

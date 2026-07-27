@@ -6,7 +6,7 @@ import json
 class LineageTracker:
     def __init__(
         self,
-        output_file="outputs/lineage/lineage.json"
+        output_file="outputs/reports/explainable/lineage.json"
     ):
         self.output_file = Path(output_file)
 

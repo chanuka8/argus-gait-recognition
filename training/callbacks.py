@@ -29,7 +29,7 @@ class EarlyStopping:
 
 
 class TrainingLogger:
-    def __init__(self, log_file: str = "outputs/reports/training_log.txt") -> None:
+    def __init__(self, log_file: str = "outputs/reports/benchmark/training_log.txt") -> None:
         self.log_file = Path(log_file)
         self.log_file.parent.mkdir(parents=True, exist_ok=True)
 

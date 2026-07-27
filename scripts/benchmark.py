@@ -87,7 +87,7 @@ def benchmark_single_inference(
 
 
 def save_report(report: dict) -> Path:
-    output_dir = Path("outputs/reports")
+    output_dir = Path("outputs/reports/benchmark")
     output_dir.mkdir(parents=True, exist_ok=True)
 
     output_file = output_dir / "benchmark_report.json"

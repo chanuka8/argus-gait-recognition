@@ -5,7 +5,7 @@ from pathlib import Path
 import yaml
 
 
-_DEFAULT_LOG_DIR = "outputs/logs"
+_DEFAULT_LOG_DIR = "outputs/logs/system"
 _DEFAULT_MAX_BYTES = 10 * 1024 * 1024
 _DEFAULT_BACKUP_COUNT = 5
 _DEFAULT_LEVEL = "INFO"
@@ -75,8 +75,15 @@ def init_logging() -> None:
         logger.setLevel(level)
         logger.propagate = False
 
+        if logger_name == "ARGUS.Camera":
+            target_dir = log_dir.parent / "camera" if log_dir.name == "system" else log_dir
+        else:
+            target_dir = log_dir
+
+        target_dir.mkdir(parents=True, exist_ok=True)
+
         file_handler = RotatingFileHandler(
-            log_dir / filename,
+            target_dir / filename,
             maxBytes=int(config["max_bytes"]),
             backupCount=int(config["backup_count"]),
             encoding="utf-8",

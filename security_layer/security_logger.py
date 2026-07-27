@@ -8,7 +8,7 @@ class SecurityLogger:
 
     def __init__(
         self,
-        log_file="outputs/security_logs/security_events.csv",
+        log_file="outputs/logs/security/security_events.csv",
     ):
 
         self.log_file = Path(log_file)
