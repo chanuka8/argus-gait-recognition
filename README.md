@@ -298,3 +298,16 @@ pytest -q
 ## License
 
 This project is licensed under the [MIT License](file:///e:/ARGUS_AI/LICENSE).
+
+---
+
+## Maintainer
+
+**Chanuka Sandun**
+
+Undergraduate in Cyber Security
+
+Developer of the ARGUS AI Gait Recognition Module
+
+- GitHub: https://github.com/chanuka8
+- LinkedIn: https://www.linkedin.com/in/chanukasandun/
