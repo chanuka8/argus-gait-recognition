@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Optional
 import cv2
 
 from monitoring.logging_config import get_logger
+from security_layer.credentials import resolve_camera_config
 
 
 
@@ -53,7 +54,14 @@ class CameraDiscoveryService:
     def discover_from_config(self, cameras_config: Dict[str, Dict[str, Any]]) -> List[DiscoveredCamera]:
         """Discover cameras from a cameras.yaml-style config dict."""
         discovered: List[DiscoveredCamera] = []
-        for cam_id, cam_cfg in cameras_config.items():
+        for cam_id, raw_cfg in cameras_config.items():
+            cfg_dict = dict(raw_cfg) if isinstance(raw_cfg, dict) else {}
+            cfg_dict.setdefault("id", cam_id)
+            try:
+                cam_cfg = resolve_camera_config(cfg_dict)
+            except Exception:
+                cam_cfg = cfg_dict
+
             url = cam_cfg.get("url", "")
             vendor = cam_cfg.get("vendor", "generic")
             host, port = self._parse_rtsp_url(url)

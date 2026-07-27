@@ -5,6 +5,7 @@ from typing import Dict, Optional
 import yaml
 
 from core.logger import setup_logger
+from security_layer.credentials import resolve_camera_config
 from services.camera_worker import CameraWorker
 
 
@@ -51,7 +52,26 @@ class CameraManager:
             with open(self.config_path, "r", encoding="utf-8") as f:
                 config = yaml.safe_load(f) or {}
 
-            self.cameras_config = config.get("cameras", {})
+            raw_cameras = config.get("cameras", {})
+            resolved_cameras = {}
+            if isinstance(raw_cameras, dict):
+                for cid, ccfg in raw_cameras.items():
+                    c_dict = dict(ccfg) if isinstance(ccfg, dict) else {}
+                    c_dict.setdefault("id", cid)
+                    try:
+                        resolved_cameras[cid] = resolve_camera_config(c_dict)
+                    except Exception:
+                        resolved_cameras[cid] = c_dict
+            elif isinstance(raw_cameras, list):
+                for ccfg in raw_cameras:
+                    if isinstance(ccfg, dict):
+                        cid = str(ccfg.get("id", "cam"))
+                        try:
+                            resolved_cameras[cid] = resolve_camera_config(ccfg)
+                        except Exception:
+                            resolved_cameras[cid] = ccfg
+
+            self.cameras_config = resolved_cameras
             self.defaults = {**self.defaults, **config.get("defaults", {})}
             self.multi_camera_config = config.get("multi_camera", {})
 
@@ -67,10 +87,11 @@ class CameraManager:
         try:
             config = {**self.defaults, **camera_config}
             config["id"] = camera_id
+            resolved_config = resolve_camera_config(config)
 
             worker = CameraWorker(
                 camera_id=camera_id,
-                camera_config=config,
+                camera_config=resolved_config,
                 inference_pipeline=self._inference_pipeline,
                 detection_processor=self._detection_processor,
             )

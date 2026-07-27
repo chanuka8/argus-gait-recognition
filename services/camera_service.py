@@ -8,11 +8,16 @@ import numpy as np
 import yaml
 
 from monitoring.logging_config import get_logger
+from security_layer.credentials import resolve_camera_config, sanitize_rtsp_url
 
 
 class CameraService:
     def __init__(self, config: dict | None = None) -> None:
-        self._config = config or self._load_config()
+        raw_config = config or self._load_config()
+        try:
+            self._config = resolve_camera_config(raw_config)
+        except Exception:
+            self._config = raw_config
         self._logger = get_logger("camera")
 
         self._source_type: str = self._config.get("type", "usb")
@@ -89,12 +94,13 @@ class CameraService:
     def _open_capture(self) -> bool:
         try:
             source = self._resolve_source()
-            self._logger.info(f"Opening camera source: {source} (type={self._source_type})")
+            safe_source = sanitize_rtsp_url(str(source))
+            self._logger.info(f"Opening camera source: {safe_source} (type={self._source_type})")
 
             self._capture = cv2.VideoCapture(source)
 
             if not self._capture.isOpened():
-                self._logger.error(f"Failed to open camera source: {source}")
+                self._logger.error(f"Failed to open camera source: {safe_source}")
                 self._capture = None
                 return False
 
@@ -106,7 +112,7 @@ class CameraService:
                 self._capture.set(cv2.CAP_PROP_BUFFERSIZE, 1)
 
             self._connected = True
-            self._logger.info(f"Camera connected: {source}")
+            self._logger.info(f"Camera connected: {safe_source}")
 
             return True
 

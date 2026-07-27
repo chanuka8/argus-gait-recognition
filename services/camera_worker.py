@@ -6,6 +6,7 @@ import cv2
 import numpy as np
 
 from monitoring.logging_config import get_logger
+from security_layer.credentials import sanitize_rtsp_url
 
 
 class CameraWorker:
@@ -75,12 +76,13 @@ class CameraWorker:
     def _open_capture(self) -> bool:
         try:
             source = self._resolve_source()
-            self._logger.info(f"Opening camera source: {source}")
+            safe_source = sanitize_rtsp_url(str(source))
+            self._logger.info(f"Opening camera source: {safe_source}")
 
             self._capture = cv2.VideoCapture(source)
 
             if not self._capture.isOpened():
-                self._logger.error(f"Failed to open camera source: {source}")
+                self._logger.error(f"Failed to open camera source: {safe_source}")
                 self._capture = None
                 return False
 

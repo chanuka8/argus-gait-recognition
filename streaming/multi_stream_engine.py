@@ -12,6 +12,7 @@ import threading
 from queue import Queue, Full, Empty
 
 import cv2
+from security_layer.credentials import resolve_camera_config, sanitize_rtsp_url
 
 
 class CameraStream:
@@ -46,9 +47,10 @@ class CameraStream:
         self.cap = cv2.VideoCapture(self.source)
 
         if not self.cap.isOpened():
+            safe_source = sanitize_rtsp_url(str(self.source))
             self.error = (
                 f"Camera {self.camera_id}: "
-                f"Failed to open source {self.source}"
+                f"Failed to open source {safe_source}"
             )
             return False
 
@@ -140,7 +142,7 @@ class CameraStream:
         """Return stream statistics."""
         return {
             "camera_id": self.camera_id,
-            "source": self.source,
+            "source": sanitize_rtsp_url(str(self.source)),
             "frames_read": self.frames_read,
             "frames_dropped": self.frames_dropped,
             "is_running": self.running,
@@ -164,12 +166,19 @@ class MultiStreamEngine:
     ) -> None:
         self.streams: dict[str, CameraStream] = {}
 
-        for cam_cfg in camera_configs:
-            camera_id = str(cam_cfg["id"])
+        for raw_cfg in camera_configs:
+            cam_cfg = dict(raw_cfg) if isinstance(raw_cfg, dict) else {}
+            camera_id = str(cam_cfg.get("id", "cam"))
+            try:
+                cam_cfg = resolve_camera_config(cam_cfg)
+            except Exception:
+                pass
+
+            source = cam_cfg.get("url") or cam_cfg.get("source", 0)
 
             self.streams[camera_id] = CameraStream(
                 camera_id=camera_id,
-                source=cam_cfg.get("source", 0),
+                source=source,
                 width=cam_cfg.get("width", 640),
                 height=cam_cfg.get("height", 480),
                 target_fps=cam_cfg.get("target_fps", 5),

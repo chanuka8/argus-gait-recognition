@@ -1,8 +1,13 @@
-<<<<<<< HEAD
 __pycache__/
 *.pyc
 venv/
 .env
+.env.local
+.credentials.enc
+.credentials.key
+*.pem
+*.key
+secrets/
 .vscode/
 data/*.zip
 data/**/*.zip
@@ -23,7 +28,7 @@ data/
 runs/
 outputs/
 *.pth
-=======
+
 # Logs
 logs
 *.log
@@ -48,4 +53,3 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
->>>>>>> 273722b659f71997c3e6fbe6ba7143977042e882

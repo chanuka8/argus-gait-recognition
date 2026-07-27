@@ -1,13 +1,17 @@
 # ARGUS Multi-Camera CCTV Configuration
 # Production-grade multi-camera surveillance system
-# Each camera runs independently with dedicated worker thread, queue, and recognition pipeline
+# Credentials resolved via environment variables (username_env, password_env) or encrypted credential store.
 
 cameras:
   camera_01:
     id: "camera_01"
     name: "Main Entrance"
     type: "rtsp"
-    url: "rtsp://admin:password@192.168.1.100:554/stream1"
+    host: "192.168.1.100"
+    port: 554
+    path: "/stream1"
+    username_env: "ARGUS_CAMERA_01_USERNAME"
+    password_env: "ARGUS_CAMERA_01_PASSWORD"
     device_index: 0
     enabled: true
     priority: 1
@@ -22,7 +26,11 @@ cameras:
     id: "camera_02"
     name: "Side Entrance"
     type: "rtsp"
-    url: "rtsp://admin:password@192.168.1.101:554/stream1"
+    host: "192.168.1.101"
+    port: 554
+    path: "/stream1"
+    username_env: "ARGUS_CAMERA_02_USERNAME"
+    password_env: "ARGUS_CAMERA_02_PASSWORD"
     device_index: 0
     enabled: true
     priority: 2
@@ -37,7 +45,11 @@ cameras:
     id: "camera_03"
     name: "Parking Lot"
     type: "rtsp"
-    url: "rtsp://admin:password@192.168.1.102:554/stream1"
+    host: "192.168.1.102"
+    port: 554
+    path: "/stream1"
+    username_env: "ARGUS_CAMERA_03_USERNAME"
+    password_env: "ARGUS_CAMERA_03_PASSWORD"
     device_index: 0
     enabled: false
     priority: 3
@@ -69,4 +81,3 @@ multi_camera:
   enable_camera_logs: true
   log_rotation_size: 10485760
   log_backup_count: 5
-

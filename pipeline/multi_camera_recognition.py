@@ -17,6 +17,7 @@ from pipeline.steps.silhouette_step import SilhouetteStep
 from pipeline.steps.tracking import TrackingStep
 from intelligence.open_set_recognizer import OpenSetRecognizer
 from intelligence.track_reliability_scorer import TrackReliabilityScorer
+from security_layer.credentials import resolve_camera_config
 from security_layer.security_engine import SecurityEngine
 from storage.vector_store import VectorStore
 from streaming.multi_stream_engine import MultiStreamEngine
@@ -755,7 +756,30 @@ class MultiCameraRecognitionPipeline:
             )
 
         with open(path, "r", encoding="utf-8") as f:
-            return yaml.safe_load(f) or {}
+            cfg = yaml.safe_load(f) or {}
+
+        raw_cams = cfg.get("cameras", {})
+        resolved_cams = {}
+        if isinstance(raw_cams, dict):
+            for cid, ccfg in raw_cams.items():
+                c_dict = dict(ccfg) if isinstance(ccfg, dict) else {}
+                c_dict.setdefault("id", cid)
+                try:
+                    resolved_cams[cid] = resolve_camera_config(c_dict)
+                except Exception:
+                    resolved_cams[cid] = c_dict
+            cfg["cameras"] = resolved_cams
+        elif isinstance(raw_cams, list):
+            resolved_list = []
+            for ccfg in raw_cams:
+                if isinstance(ccfg, dict):
+                    try:
+                        resolved_list.append(resolve_camera_config(ccfg))
+                    except Exception:
+                        resolved_list.append(ccfg)
+            cfg["cameras"] = resolved_list
+
+        return cfg
 
     def _load_model(
         self,
