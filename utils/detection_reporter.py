@@ -14,7 +14,7 @@ modified or referenced by this module.
 
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 import csv
 import json
@@ -172,6 +172,7 @@ class DetectionReporter:
         score: float,
         bbox: list[int],
         frame: Optional[np.ndarray] = None,
+        **kwargs: Any,
     ) -> bool:
         """Record a detection event if it passes status and cooldown filters.
 
@@ -242,6 +243,25 @@ class DetectionReporter:
             "snapshot_path": snapshot_path,
         }
 
+        # Include optional crowd-intelligence extra fields if provided
+        for extra_key in [
+            "crowd_density_level",
+            "crowd_density_score",
+            "track_occlusion_score",
+            "clean_frame_ratio",
+            "recognition_state",
+            "recognition_deferred",
+            "defer_reason",
+            "accumulated_evidence_count",
+            "fused_identity",
+            "fused_score",
+            "fusion_state",
+            "contributing_cameras",
+            "topology_observation_accepted",
+        ]:
+            if extra_key in kwargs:
+                record[extra_key] = kwargs[extra_key]
+
         with self._lock:
             if self._save_jsonl:
                 self._write_jsonl(record)
@@ -260,10 +280,21 @@ class DetectionReporter:
 
     def _write_csv(self, record: dict) -> None:
         row = dict(record)
-        # Serialise bbox list to string for CSV
-        row["bbox"] = str(row["bbox"])
+        # Serialise bbox list and complex objects to string for CSV
+        for k, v in row.items():
+            if isinstance(v, (list, dict)):
+                row[k] = str(v)
+
+        fieldnames = list(_CSV_FIELDS)
+        for k in row.keys():
+            if k not in fieldnames:
+                fieldnames.append(k)
+
+        write_header = not self._csv_path.exists() or self._csv_path.stat().st_size == 0
         with open(self._csv_path, "a", newline="", encoding="utf-8") as f:
-            writer = csv.DictWriter(f, fieldnames=_CSV_FIELDS)
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            if write_header:
+                writer.writeheader()
             writer.writerow(row)
 
     def _save_snapshot(

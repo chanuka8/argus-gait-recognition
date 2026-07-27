@@ -1,0 +1,78 @@
+"""
+Integration tests for Crowd Robustness in Pipeline Components.
+"""
+
+from intelligence.crowd_density_estimator import CrowdDensityLevel
+from intelligence.crowd_robustness_manager import CrowdRobustnessManager
+from pipeline.live_recognition import LiveRecognitionPipeline
+from pipeline.video_recognition import VideoRecognitionPipeline, _load_crowd_robustness_config
+
+
+def test_pipeline_crowd_robustness_initialization():
+    cfg = _load_crowd_robustness_config()
+    assert "enabled" in cfg
+    assert cfg["enabled"] is False  # Must be disabled by default
+
+    # Verify VideoRecognitionPipeline instantiates manager safely
+    pipe = VideoRecognitionPipeline()
+    assert hasattr(pipe, "crowd_robustness_manager")
+    assert pipe.crowd_robustness_manager.is_enabled() is False
+
+    # Verify LiveRecognitionPipeline instantiates manager safely
+    live_pipe = LiveRecognitionPipeline()
+    assert hasattr(live_pipe, "crowd_robustness_manager")
+    assert live_pipe.crowd_robustness_manager.is_enabled() is False
+
+
+def test_crowd_robustness_end_to_end_simulation():
+    # Enable manager programmatically to simulate dense crowd processing
+    config = {
+        "enabled": True,
+        "strong_overlap_iou": 0.25,
+        "occlusion_overlap_threshold": 0.30,
+        "density_thresholds": {
+            "moderate_count": 3,
+            "high_count": 6,
+            "severe_count": 10,
+        },
+    }
+    mgr = CrowdRobustnessManager(config)
+    assert mgr.is_enabled() is True
+
+    # Simulate 8 detections with overlaps
+    detections = []
+    for i in range(8):
+        detections.append({
+            "track_id": i + 1,
+            "bbox": [100 + (i % 3) * 15, 100 + (i % 3) * 15, 200 + (i % 3) * 15, 300 + (i % 3) * 15],
+            "confidence": 0.85,
+        })
+
+    density_res = mgr.process_frame_density(detections, (1080, 1920))
+    assert density_res.person_count == 8
+    assert density_res.level in (CrowdDensityLevel.HIGH, CrowdDensityLevel.SEVERE, CrowdDensityLevel.MODERATE)
+
+    occluded_ids, overlap_map = mgr.identify_occluded_tracks(detections)
+    assert len(occluded_ids) > 0
+
+
+def test_inference_skipping_when_evidence_insufficient():
+    from intelligence.crowd_intelligence_system import CrowdIntelligenceSystem
+    system = CrowdIntelligenceSystem({"enabled": True, "recognition_deferral": {"enabled": True, "minimum_confirmations": 3}})
+
+    # First observation should defer
+    res = system.evaluate_track_recognition(
+        camera_id="cam_00",
+        track_id=1,
+        identity_candidate="Subject_Test",
+        similarity=0.90,
+        quality=0.80,
+        open_set_state="KNOWN",
+        temporal_decision="MAJORITY_VOTE",
+        reliability=0.85,
+        occlusion_score=0.10,
+        timestamp=1.0,
+    )
+    # Deferral state is returned directly, avoiding unneeded identity confirmation or alert trigger
+    assert res.recognition_state == "DEFERRED_INSUFFICIENT_EVIDENCE"
+    assert res.should_alert is False

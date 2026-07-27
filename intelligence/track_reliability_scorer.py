@@ -145,6 +145,8 @@ class TrackReliabilityScorer:
         persistence_score: Optional[float] = None,
         transition_score: Optional[float] = None,
         stability_score: Optional[float] = None,
+        occlusion_score: Optional[float] = None,
+        clean_frame_ratio: Optional[float] = None,
     ) -> float:
         """
         Compute normalized track reliability score in [0.0, 1.0].
@@ -173,6 +175,15 @@ class TrackReliabilityScorer:
         if transition_score is not None:
             t_score = float(np.clip(transition_score, 0.0, 1.0))
             reliability = 0.85 * reliability + 0.15 * t_score
+
+        # Incorporate Optional Crowd Occlusion & Clean Frame Evidence
+        if occlusion_score is not None:
+            occ_penalty = float(np.clip(occlusion_score, 0.0, 1.0))
+            reliability *= (1.0 - 0.3 * occ_penalty)
+
+        if clean_frame_ratio is not None:
+            clean_factor = float(np.clip(clean_frame_ratio, 0.0, 1.0))
+            reliability *= (0.7 + 0.3 * clean_factor)
 
         final_score = float(np.clip(reliability, 0.0, 1.0))
         return final_score

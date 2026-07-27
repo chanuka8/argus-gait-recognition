@@ -109,3 +109,61 @@ watchlist:
   enabled: false
   alert_threshold: 0.85
   cooldown_seconds: 10.0
+
+crowd_robustness:
+  enabled: false
+  strong_overlap_iou: 0.25
+  occlusion_overlap_threshold: 0.35
+  density_thresholds:
+    moderate_count: 5
+    high_count: 12
+    severe_count: 20
+    moderate_overlap_count: 1
+    high_overlap_count: 4
+    severe_overlap_count: 8
+    moderate_area_ratio: 0.15
+    high_area_ratio: 0.30
+    severe_area_ratio: 0.50
+  adaptive_gating:
+    high_density_quality_penalty: 0.10
+    severe_density_margin_boost: 0.05
+
+crowd_intelligence:
+  enabled: false
+
+  occlusion:
+    enabled: false
+    smoothing_window: 5
+    moderate_threshold: 0.35
+    high_threshold: 0.60
+    severe_threshold: 0.80
+    minimum_clean_frames: 18
+    minimum_clean_ratio: 0.70
+
+  recognition_deferral:
+    enabled: false
+    evidence_window: 5
+    minimum_confirmations: 3
+    minimum_reliability: 0.70
+    evidence_ttl_seconds: 10
+    identity_ttl_seconds: 5
+
+  multi_camera_fusion:
+    enabled: false
+    evidence_ttl_seconds: 15
+    minimum_cameras: 2
+    minimum_fused_score: 0.85
+    weights:
+      gait: 0.30
+      appearance: 0.15
+      open_set: 0.15
+      temporal: 0.15
+      reliability: 0.15
+      transition: 0.10
+
+  topology_learning:
+    enabled: false
+    shadow_mode: true
+    minimum_samples: 20
+    maximum_travel_seconds: 600
+    export_path: outputs/learned_camera_topology.yaml

@@ -338,6 +338,53 @@ def _load_watchlist_config() -> dict:
     return merged
 
 
+def _load_crowd_robustness_config() -> dict:
+    """Load Crowd Robustness config."""
+    config_path = Path("configs/inference.yaml")
+
+    defaults = {
+        "enabled": False,
+        "strong_overlap_iou": 0.25,
+        "occlusion_overlap_threshold": 0.35,
+        "density_thresholds": {
+            "moderate_count": 5,
+            "high_count": 12,
+            "severe_count": 20,
+            "moderate_overlap_count": 1,
+            "high_overlap_count": 4,
+            "severe_overlap_count": 8,
+            "moderate_area_ratio": 0.15,
+            "high_area_ratio": 0.30,
+            "severe_area_ratio": 0.50,
+        },
+        "adaptive_gating": {
+            "high_density_quality_penalty": 0.10,
+            "severe_density_margin_boost": 0.05,
+        },
+    }
+
+    if not config_path.exists():
+        return defaults
+
+    try:
+        with open(config_path, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f) or {}
+    except Exception:
+        return defaults
+
+    section = data.get("crowd_robustness", {})
+
+    if not isinstance(section, dict):
+        return defaults
+
+    merged = {}
+
+    for key, default_value in defaults.items():
+        merged[key] = section.get(key, default_value)
+
+    return merged
+
+
 class LiveRecognitionPipeline:
 
     def __init__(
@@ -359,6 +406,12 @@ class LiveRecognitionPipeline:
         self.cc_config = _load_crowd_control_config()
         self.box_stability_config = _load_box_stability_config()
         self.box_stabilizer = BoxStabilizer(self.box_stability_config)
+
+        self.crowd_robustness_config = _load_crowd_robustness_config()
+        from intelligence.crowd_robustness_manager import CrowdRobustnessManager
+        from intelligence.track_recovery_manager import TrackRecoveryManager
+        self.crowd_robustness_manager = CrowdRobustnessManager(self.crowd_robustness_config)
+        self.track_recovery_manager = TrackRecoveryManager(max_lost_seconds=3.0)
 
         # CCTV display renderer and detection reporter
         self.renderer = DetectionDisplayRenderer(load_display_config())
