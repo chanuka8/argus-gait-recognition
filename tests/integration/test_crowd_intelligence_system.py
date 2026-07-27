@@ -116,3 +116,41 @@ def test_full_crowd_intelligence_pipeline_enabled(tmp_path):
 
     # Topology learning observation accepted
     assert eval3.topology_observation_accepted is True
+
+
+def test_runtime_topology_model_sync():
+    from intelligence.camera_transition_model import CameraTransitionModel
+
+    active_model = CameraTransitionModel()
+    config = {
+        "enabled": True,
+        "topology_learning": {
+            "enabled": True,
+            "shadow_mode": False,  # Live mode enabled
+            "minimum_samples": 1,
+            "sync_interval_seconds": 1.0,
+        },
+    }
+    system = CrowdIntelligenceSystem(config, transition_model=active_model)
+    assert not active_model.is_enabled()
+
+    # Record exit at cam_01
+    system.topology_learner.record_camera_exit("cam_01", "User_X", 0.90, 0.05, timestamp=1.0)
+
+    # Cross-camera observation at cam_02
+    eval_res = system.evaluate_track_recognition(
+        camera_id="cam_02",
+        track_id=10,
+        identity_candidate="User_X",
+        similarity=0.90,
+        quality=0.85,
+        open_set_state="KNOWN",
+        temporal_decision="MAJORITY_VOTE",
+        reliability=0.85,
+        source_camera="cam_01",
+        timestamp=10.0,
+    )
+
+    assert eval_res.topology_observation_accepted is True
+    # Active CameraTransitionModel now has rule cam_01 -> cam_02 applied online
+    assert active_model.is_enabled() is True

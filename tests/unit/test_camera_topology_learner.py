@@ -90,7 +90,7 @@ def test_minimum_samples_and_probability_normalization():
 
 def test_shadow_mode_export_and_reset(tmp_path):
     export_file = tmp_path / "learned_topology.yaml"
-    learner = CameraTopologyLearner({"enabled": True, "minimum_samples": 1, "export_path": str(export_file)})
+    learner = CameraTopologyLearner({"enabled": True, "shadow_mode": True, "minimum_samples": 1, "export_path": str(export_file)})
 
     learner.record_camera_exit("cam_1", "User_X", 0.95, 0.05, timestamp=1.0)
     learner.observe_transition("cam_1", "cam_2", "User_X", 0.95, 0.05, timestamp=10.0)
@@ -98,7 +98,41 @@ def test_shadow_mode_export_and_reset(tmp_path):
     exported_path = learner.export_learned_topology()
     assert Path(exported_path).exists()
 
+    # In shadow_mode=True, update_transition_model MUST NOT mutate active transition model
+    from intelligence.camera_transition_model import CameraTransitionModel
+    model = CameraTransitionModel()
+    count_shadow = learner.update_transition_model(model)
+    assert count_shadow == 0
+    assert not model.is_enabled()
+
+    # Disabling shadow_mode allows update_transition_model to sync rules
+    learner.shadow_mode = False
+    count_active = learner.update_transition_model(model)
+    assert count_active == 1
+    assert model.is_enabled()
+
     # Reset
     learner.reset()
     assert len(learner.learned_edges) == 0
     assert len(learner.exit_events) == 0
+
+
+def test_maybe_sync_transition_model_bounded_interval():
+    from intelligence.camera_transition_model import CameraTransitionModel
+    model = CameraTransitionModel()
+    learner = CameraTopologyLearner({"enabled": True, "shadow_mode": False, "minimum_samples": 1, "sync_interval_seconds": 10.0}, transition_model=model)
+
+    learner.record_camera_exit("cam_A", "User_Z", 0.90, 0.05, timestamp=1.0)
+    learner.observe_transition("cam_A", "cam_B", "User_Z", 0.90, 0.05, timestamp=5.0)
+
+    # First sync at t=5.0 should succeed
+    synced1 = learner.maybe_sync_transition_model(timestamp=5.0)
+    assert synced1 == 1
+
+    # Second sync at t=8.0 (< 10s interval) should skip sync
+    synced2 = learner.maybe_sync_transition_model(timestamp=8.0)
+    assert synced2 == 0
+
+    # Third sync at t=16.0 (>= 10s interval) should succeed
+    synced3 = learner.maybe_sync_transition_model(timestamp=16.0)
+    assert synced3 == 1

@@ -37,19 +37,26 @@ class CameraTopologyLearner:
     and travel time bounds from observation data.
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, config: Optional[Dict[str, Any]] = None, transition_model: Optional[Any] = None) -> None:
         self.logger = get_logger("camera_topology_learner")
         cfg = config or {}
         self.enabled = bool(cfg.get("enabled", False))
         self.shadow_mode = bool(cfg.get("shadow_mode", True))
         self.minimum_samples = int(cfg.get("minimum_samples", 20))
         self.maximum_travel_seconds = float(cfg.get("maximum_travel_seconds", 600.0))
+        self.sync_interval_seconds = float(cfg.get("sync_interval_seconds", 30.0))
         self.export_path = str(cfg.get("export_path", "outputs/learned_camera_topology.yaml"))
+        self.transition_model = transition_model
+        self.last_sync_time = -float("inf")
 
         # (source_camera, destination_camera) -> LearnedEdgeStats
         self.learned_edges: Dict[Tuple[str, str], LearnedEdgeStats] = {}
         # (camera_id, identity) -> (exit_timestamp, reliability, occlusion)
         self.exit_events: Dict[Tuple[str, str], Tuple[float, float, float]] = {}
+
+    def set_transition_model(self, transition_model: Any) -> None:
+        """Register active CameraTransitionModel instance for online topology synchronization."""
+        self.transition_model = transition_model
 
     def is_enabled(self) -> bool:
         return self.enabled
@@ -214,6 +221,92 @@ class CameraTopologyLearner:
             yaml.dump(export_data, f, default_flow_style=False, sort_keys=False)
 
         return str(target_path)
+
+    def load_learned_topology(self, input_path: Optional[str] = None) -> bool:
+        """Load previously exported camera topology suggestions from YAML file."""
+        target_path = Path(input_path or self.export_path)
+        if not target_path.exists():
+            return False
+
+        try:
+            with open(target_path, "r", encoding="utf-8") as f:
+                data = yaml.safe_load(f) or {}
+
+            transitions = data.get("suggested_transitions", {})
+            for key, tdata in transitions.items():
+                src = tdata.get("source_camera")
+                dst = tdata.get("destination_camera")
+                if not src or not dst:
+                    continue
+                edge_key = (src, dst)
+                count = int(tdata.get("transition_count", 0))
+                prob = float(tdata.get("learned_probability", 0.0))
+                mean_t = float(tdata.get("mean_travel_seconds", 0.0))
+                median_t = float(tdata.get("median_travel_seconds", mean_t))
+                min_t = float(tdata.get("min_travel_seconds", 0.5))
+                max_t = float(tdata.get("max_travel_seconds", self.maximum_travel_seconds))
+
+                self.learned_edges[edge_key] = LearnedEdgeStats(
+                    source_camera=src,
+                    destination_camera=dst,
+                    transition_count=count,
+                    travel_time_samples=[mean_t] * min(count, 10),
+                    mean_travel_time=mean_t,
+                    median_travel_time=median_t,
+                    robust_lower_bound=min_t,
+                    robust_upper_bound=max_t,
+                    learned_transition_probability=prob,
+                )
+            return True
+        except Exception as e:
+            self.logger.warning(f"Failed to load learned topology from {target_path}: {e}")
+            return False
+
+    def update_transition_model(self, transition_model: Optional[Any] = None) -> int:
+        """Update a CameraTransitionModel instance with online learned transitions if shadow_mode is disabled."""
+        target = transition_model or self.transition_model
+        if target is None or self.shadow_mode or not self.enabled:
+            return 0
+
+        updated_count = 0
+        for (src, dst), edge in self.learned_edges.items():
+            if edge.transition_count >= self.minimum_samples:
+                if hasattr(target, "add_or_update_rule"):
+                    target.add_or_update_rule(
+                        source_camera=src,
+                        destination_camera=dst,
+                        min_travel_seconds=edge.robust_lower_bound,
+                        max_travel_seconds=edge.robust_upper_bound,
+                        probability=edge.learned_transition_probability,
+                    )
+                    updated_count += 1
+        return updated_count
+
+    def maybe_sync_transition_model(
+        self,
+        transition_model: Optional[Any] = None,
+        timestamp: Optional[float] = None,
+    ) -> int:
+        """Synchronize learned topology edges to active CameraTransitionModel if bounded sync interval has elapsed."""
+        if self.shadow_mode or not self.enabled:
+            return 0
+
+        target = transition_model or self.transition_model
+        if target is None:
+            return 0
+
+        now = timestamp if timestamp is not None else time.monotonic()
+        if (now - self.last_sync_time) < self.sync_interval_seconds:
+            return 0
+
+        count = self.update_transition_model(target)
+        self.last_sync_time = now
+        return count
+
+    @classmethod
+    def from_config(cls, config: Optional[Dict[str, Any]] = None) -> "CameraTopologyLearner":
+        """Factory method to instantiate from config dictionary."""
+        return cls(config=config)
 
     def reset(self) -> None:
         """Reset learned statistics."""

@@ -46,11 +46,12 @@ class CrowdIntelligenceSystem:
     Unified Orchestrator for Crowd-Intelligence Features across single-camera and multi-camera pipelines.
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, config: Optional[Dict[str, Any]] = None, transition_model: Optional[Any] = None) -> None:
         self.logger = get_logger("crowd_intelligence")
         cfg = config or self._load_default_config()
 
         self.enabled = bool(cfg.get("enabled", False))
+        self.transition_model = transition_model
 
         # Component configurations
         occ_cfg = cfg.get("occlusion", {})
@@ -62,7 +63,12 @@ class CrowdIntelligenceSystem:
         self.occlusion_analyzer = CrowdOcclusionAnalyzer(occ_cfg)
         self.deferral_engine = RecognitionDeferralEngine(def_cfg)
         self.fusion_engine = MultiCameraEvidenceFusion(fus_cfg)
-        self.topology_learner = CameraTopologyLearner(top_cfg)
+        self.topology_learner = CameraTopologyLearner(top_cfg, transition_model=transition_model)
+
+    def set_transition_model(self, transition_model: Any) -> None:
+        """Register active CameraTransitionModel instance for online topology updates."""
+        self.transition_model = transition_model
+        self.topology_learner.set_transition_model(transition_model)
 
     def is_enabled(self) -> bool:
         return self.enabled
@@ -253,6 +259,8 @@ class CrowdIntelligenceSystem:
                     is_temporally_confirmed=(temporal_decision in ("MAJORITY_VOTE", "CONFIRMED")),
                     timestamp=now,
                 )
+                if topology_accepted:
+                    self.topology_learner.maybe_sync_transition_model(timestamp=now)
 
         return CrowdIntelligenceEvaluation(
             crowd_density_level="MODERATE" if occlusion_score > 0.35 else "LOW",
