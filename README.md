@@ -1,3 +1,5 @@
+<img src="assets/github/Gitrepo_profilepic.png" alt="ARGUS AI Gait Recognition Banner" width="100%" />
+
 # ARGUS AI
 
 A modular spatial-temporal gait recognition, multi-object tracking, and multi-camera surveillance intelligence framework.
