@@ -19,7 +19,7 @@ def parse_filename_meta(image_path: Path) -> dict:
     """
     stem = image_path.stem
     parts = stem.split("_")
-    
+
     subject_id = parts[0] if len(parts) >= 1 else "unknown"
     seq = parts[1] if len(parts) >= 2 else "unknown"
     angle = parts[2] if len(parts) >= 3 else "unknown"

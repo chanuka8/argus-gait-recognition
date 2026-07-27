@@ -61,7 +61,7 @@ def load_display_config() -> dict:
         return defaults
 
     try:
-        with open(config_path, "r", encoding="utf-8") as f:
+        with open(config_path, encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
     except Exception:
         return defaults

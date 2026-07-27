@@ -28,7 +28,7 @@ class AlertManager:
         try:
             config_path = Path("configs/inference.yaml")
             if config_path.exists():
-                with open(config_path, "r", encoding="utf-8") as f:
+                with open(config_path, encoding="utf-8") as f:
                     data = yaml.safe_load(f) or {}
                 self.alert_cooldown_seconds = float(data.get("crowd_control", {}).get("alert_cooldown_seconds", 5.0))
         except Exception:

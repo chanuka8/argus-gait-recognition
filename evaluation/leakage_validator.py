@@ -47,7 +47,7 @@ def assert_gallery_probe_disjointness(
 
     if train_subjects is not None:
         train_set = set(str(s) for s in train_subjects)
-        
+
         # Check gallery does not contain training subjects
         gal_train_overlap = [p for p in gal_path_set if any(f"/{ts}/" in p.replace("\\", "/") or f"_{ts}_" in p for ts in train_set)]
         if gal_train_overlap:

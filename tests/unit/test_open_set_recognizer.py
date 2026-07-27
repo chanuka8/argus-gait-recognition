@@ -5,11 +5,11 @@ from intelligence.open_set_recognizer import OpenSetDecisionResult, OpenSetRecog
 
 def test_open_set_recognizer_known():
     recognizer = OpenSetRecognizer(known_threshold=0.85, unknown_threshold=0.70, margin_threshold=0.05)
-    
+
     # High score, high margin -> KNOWN
     top_matches = [("subject_001", 0.92), ("subject_002", 0.70)]
     res = recognizer.evaluate_open_set_decision(top_matches)
-    
+
     assert isinstance(res, OpenSetDecisionResult)
     assert res.state == OpenSetState.KNOWN
     assert res.identity == "subject_001"
@@ -18,11 +18,11 @@ def test_open_set_recognizer_known():
 
 def test_open_set_recognizer_unknown():
     recognizer = OpenSetRecognizer(known_threshold=0.85, unknown_threshold=0.70, margin_threshold=0.05)
-    
+
     # Score below unknown_threshold -> UNKNOWN
     top_matches = [("subject_001", 0.55), ("subject_002", 0.50)]
     res = recognizer.evaluate_open_set_decision(top_matches)
-    
+
     assert res.state == OpenSetState.UNKNOWN
     assert res.identity == "UNKNOWN"
     assert res.score == 0.55
@@ -35,18 +35,18 @@ def test_open_set_recognizer_unknown():
 
 def test_open_set_recognizer_uncertain():
     recognizer = OpenSetRecognizer(known_threshold=0.85, unknown_threshold=0.70, margin_threshold=0.05)
-    
+
     # Score in gray zone (0.70 <= score < 0.85) -> UNCERTAIN
     top_matches_gray = [("subject_001", 0.78), ("subject_002", 0.60)]
     res_gray = recognizer.evaluate_open_set_decision(top_matches_gray)
-    
+
     assert res_gray.state == OpenSetState.UNCERTAIN
     assert res_gray.identity == "subject_001"
-    
+
     # High score but low candidate margin (< 0.05) -> UNCERTAIN
     top_matches_tight = [("subject_001", 0.90), ("subject_002", 0.88)]
     res_tight = recognizer.evaluate_open_set_decision(top_matches_tight)
-    
+
     assert res_tight.state == OpenSetState.UNCERTAIN
     assert res_tight.identity == "subject_001"
 

@@ -103,7 +103,7 @@ class ThresholdCalibrator:
             # Genuine query rejected (score < th) => False Reject
             # Impostor query (or genuine with wrong match) accepted (score >= th) => False Accept
             # Impostor query rejected (score < th) => True Reject
-            
+
             tp = int(np.sum(accepted & is_genuine))
             fn = total_genuine_queries - tp
             fp = int(np.sum(accepted & (~is_genuine)))

@@ -20,7 +20,7 @@ def test_unknown_open_set_mapping():
 
 def test_known_uncertain_unknown_ordering():
     scorer = TrackReliabilityScorer(enabled=True)
-    
+
     score_known = scorer.compute_reliability(
         quality_score=1.0,
         temporal_decision="MAJORITY_VOTE",
@@ -47,7 +47,7 @@ def test_known_uncertain_unknown_ordering():
 
 def test_track_reliability_score_bounds():
     scorer = TrackReliabilityScorer(enabled=True)
-    
+
     # Best-case evidence
     high_score = scorer.compute_reliability(
         quality_score=1.0,

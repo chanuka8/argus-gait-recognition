@@ -5,6 +5,8 @@ from threading import Lock
 import time
 from typing import Any, Callable, Dict, Optional, Tuple
 
+import numpy as np
+
 from monitoring.logging_config import get_logger
 
 
@@ -309,8 +311,6 @@ class CameraTransitionModel:
         """Compute normalized similarity score in [0.0, 1.0]."""
         if candidate_feature is not None and exit_feature is not None:
             try:
-                import numpy as np
-
                 f1 = np.asarray(candidate_feature, dtype=np.float32).flatten()
                 f2 = np.asarray(exit_feature, dtype=np.float32).flatten()
                 norm1 = float(np.linalg.norm(f1))

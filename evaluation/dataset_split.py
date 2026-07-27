@@ -26,7 +26,7 @@ def generate_subject_split_manifest(
     seed: int = 42,
 ) -> dict:
     data_path = Path(data_dir)
-    
+
     train_subjects = [format_subject_id(i) for i in range(train_range[0], train_range[1] + 1)]
     val_subjects = [format_subject_id(i) for i in range(val_range[0], val_range[1] + 1)]
     test_subjects = [format_subject_id(i) for i in range(test_range[0], test_range[1] + 1)]
