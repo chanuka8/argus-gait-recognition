@@ -94,4 +94,16 @@ open_set:
   margin_threshold: 0.05
   quality_threshold: 0.60
 
+track_reliability:
+  enabled: false
+  target_observation_frames: 15
+  min_reliability_threshold: 0.50
+  weights:
+    quality: 0.25
+    temporal: 0.25
+    open_set: 0.25
+    observation: 0.15
+    detection: 0.10
+
+
 

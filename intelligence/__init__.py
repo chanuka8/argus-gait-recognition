@@ -8,6 +8,7 @@ from intelligence.fusion_weights import DynamicFusionWeights
 from intelligence.open_set_recognizer import OpenSetDecisionResult, OpenSetRecognizer, OpenSetState
 from intelligence.quality_assessment import QualityAssessment
 from intelligence.score_normalizer import ScoreNormalizer
+from intelligence.track_reliability_scorer import TrackReliabilityScorer
 
 __all__ = [
     "CameraTransitionModel",
@@ -20,6 +21,7 @@ __all__ = [
     "OpenSetState",
     "QualityAssessment",
     "ScoreNormalizer",
+    "TrackReliabilityScorer",
 ]
 
 

@@ -16,6 +16,7 @@ from pipeline.steps.matching_step import MatchingStep
 from pipeline.steps.silhouette_step import SilhouetteStep
 from pipeline.steps.tracking import TrackingStep
 from intelligence.open_set_recognizer import OpenSetRecognizer
+from intelligence.track_reliability_scorer import TrackReliabilityScorer
 from security_layer.security_engine import SecurityEngine
 from storage.vector_store import VectorStore
 from streaming.multi_stream_engine import MultiStreamEngine
@@ -312,6 +313,45 @@ def _load_transition_config() -> dict:
     return merged
 
 
+def _load_track_reliability_config() -> dict:
+    """Load Track Reliability Scorer config."""
+    config_path = Path("configs/inference.yaml")
+
+    defaults = {
+        "enabled": False,
+        "target_observation_frames": 15,
+        "min_reliability_threshold": 0.50,
+        "weights": {
+            "quality": 0.25,
+            "temporal": 0.25,
+            "open_set": 0.25,
+            "observation": 0.15,
+            "detection": 0.10,
+        },
+    }
+
+    if not config_path.exists():
+        return defaults
+
+    try:
+        with open(config_path, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f) or {}
+    except Exception:
+        return defaults
+
+    section = data.get("track_reliability", {})
+
+    if not isinstance(section, dict):
+        return defaults
+
+    merged = {}
+
+    for key, default_value in defaults.items():
+        merged[key] = section.get(key, default_value)
+
+    return merged
+
+
 
 class CameraWorkerState:
 
@@ -597,6 +637,14 @@ class MultiCameraRecognitionPipeline:
         if self.transition_model.is_enabled():
             print("[TRANSITION] Camera Transition Model enabled with directed topology")
 
+        self.tr_config = _load_track_reliability_config()
+        self.track_reliability_scorer = TrackReliabilityScorer(
+            enabled=self.tr_config.get("enabled", False),
+            weights=self.tr_config.get("weights"),
+            target_observation_frames=self.tr_config.get("target_observation_frames", 15),
+            min_reliability_threshold=self.tr_config.get("min_reliability_threshold", 0.50),
+        )
+
 
 
 
@@ -880,8 +928,13 @@ class MultiCameraRecognitionPipeline:
             feature_vector=embedding,
         )
 
+        open_set_res = self.open_set_recognizer.evaluate_open_set_decision(
+            top_matches=[(raw_identity, float(score))],
+            temporal_decision=decision,
+        )
+
         # Store result in per-camera state
-        worker.last_results[track_id] = {
+        res_dict = {
             "identity": stable_identity,
             "raw_identity": raw_identity,
             "global_id": global_id,
@@ -889,11 +942,23 @@ class MultiCameraRecognitionPipeline:
             "gait_score": float(score),
             "severity": severity,
             "decision": decision,
-            "open_set_state": self.open_set_recognizer.evaluate_open_set_decision(
-                top_matches=[(raw_identity, float(score))],
-                temporal_decision=decision,
-            ).state.value,
+            "open_set_state": open_set_res.state.value,
         }
+
+        if self.tr_config.get("enabled", False):
+            q_score = 1.0
+            if self.quality_estimator is not None and 'q_res' in locals():
+                q_score = q_res.get("overall_quality", 1.0)
+
+            track_rel_score = self.track_reliability_scorer.compute_reliability(
+                quality_score=q_score,
+                temporal_decision=decision,
+                open_set_state=open_set_res.state.value,
+                observation_count=worker.frame_counters.get(track_id, 1),
+            )
+            res_dict["track_reliability"] = round(float(track_rel_score), 4)
+
+        worker.last_results[track_id] = res_dict
 
 
 
