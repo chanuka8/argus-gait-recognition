@@ -199,25 +199,70 @@ def test_cpu_only_onnx_provider_selection_emits_no_cuda_warning(tmp_path: Path, 
 
 
 def test_pytorch_fallback_parity_is_exact(tmp_path: Path):
-    from scripts.benchmark_inference_backends import benchmark_backend
+    """
+    Verify that a TensorRT->PyTorch fallback backend produces bit-identical
+    output to a direct PyTorch reference backend, given identical model weights
+    and identical input tensors.
 
+    Root-cause context: ByGaitLight() initializes Conv2d/BatchNorm/Linear layers
+    with random weights when no checkpoint is loaded.  Two separate calls to
+    get_inference_backend() construct two independent ByGaitLight() instances.
+    Unless torch's RNG is re-seeded to the same value before each construction,
+    the weights diverge and the outputs differ.  On Windows the global RNG state
+    happened to be identical between the two constructions; on Linux/macOS
+    (GitHub Actions) intervening library work shifted the RNG, causing failure.
+
+    Fix: seed torch (and numpy) to the same value immediately before each
+    backend construction so that ByGaitLight()'s random parameter init is
+    deterministic and identical for both instances.
+    """
+
+    # --- Deterministic input generation ----------------------------------------
     np.random.seed(42)
     sample_inputs = [np.random.randn(1, 1, 64, 128).astype(np.float32) for _ in range(5)]
 
-    ref_res = benchmark_backend("pytorch", sample_inputs=sample_inputs, device="cpu", precision="fp32")
-    ref_outputs = ref_res.pop("outputs")
-
-    fb_res = benchmark_backend(
-        "tensorrt",
-        sample_inputs=sample_inputs,
-        device="cpu",
-        precision="fp32",
-        reference_embeddings=ref_outputs,
+    # --- Reference: direct PyTorch backend ------------------------------------
+    _seed_all(42)
+    ref_backend = PyTorchBackend(
+        config={"backend": "pytorch", "device": "cpu", "precision": "fp32", "warmup_iterations": 0},
     )
-    assert fb_res["fallback_used"] is True
-    assert fb_res["active_backend"] == "pytorch"
-    assert fb_res["parity_passed"] is True
-    assert fb_res["max_abs_difference"] < 1e-4
+    ref_outputs = [ref_backend.predict(inp) for inp in sample_inputs]
+
+    # --- Fallback: request TensorRT (unavailable) → falls back to PyTorch -----
+    _seed_all(42)   # re-seed to get identical ByGaitLight weights
+    fb_backend = get_inference_backend(config={
+        "backend": "tensorrt",
+        "engine_path": str(tmp_path / "missing.engine"),
+        "allow_fallback": True,
+        "device": "cpu",
+        "precision": "fp32",
+        "warmup_iterations": 0,
+    })
+
+    assert fb_backend.fallback_used is True
+    assert fb_backend.active_backend == "pytorch"
+
+    fb_outputs = [fb_backend.predict(inp) for inp in sample_inputs]
+
+    # --- Parity assertions ----------------------------------------------------
+    for i, (ref, fb) in enumerate(zip(ref_outputs, fb_outputs)):
+        max_diff = float(np.max(np.abs(ref - fb)))
+        assert max_diff == 0.0, (
+            f"Sample {i}: max_abs_diff={max_diff} (expected 0.0). "
+            "Identical seeds + identical inputs + identical architecture must produce identical outputs."
+        )
+
+
+def _seed_all(seed: int = 42) -> None:
+    """Set all RNG seeds to ensure deterministic PyTorch weight initialization."""
+    import random
+    import torch
+
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
 
 
 def test_tensorrt_failure_emits_single_warning():
