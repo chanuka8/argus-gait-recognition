@@ -1,83 +1,103 @@
 <#
 .SYNOPSIS
-    ARGUS AI — Automatic Python virtual environment activation.
+    ARGUS AI - Automatic Python virtual environment activation.
 
 .DESCRIPTION
     Activates the project venv when a terminal is opened inside
-    the ARGUS AI repository.  Designed to be launched via:
+    the ARGUS AI repository. Designed to be launched via:
 
         powershell -NoExit -ExecutionPolicy Bypass -File activate_venv.ps1
 
     Safety guarantees:
-      • Skips activation when the correct venv is already active in session.
-      • Deactivates a foreign venv before activating the project one.
-      • Warns (but stays open) when the venv directory or interpreter
+      - Skips activation when the correct venv is already active.
+      - Deactivates a foreign venv before activating the project venv.
+      - Warns but keeps the terminal open when the venv or interpreter
         is missing.
-      • Performs NO network, testing, linting, compilation, git, or
+      - Performs no network, testing, linting, compilation, Git, or
         package-installation operations.
 #>
 
-# ── Resolve repository root (parent of the scripts/ directory) ──────────
-$RepoRoot = Split-Path -Parent (Split-Path -Parent $PSCommandPath)
+$ErrorActionPreference = 'Stop'
 
-# Normalise to a fully-qualified path so string comparisons are reliable.
+# Resolve repository root: parent directory of scripts/
+$RepoRoot = Split-Path -Parent (Split-Path -Parent $PSCommandPath)
 $RepoRoot = [System.IO.Path]::GetFullPath($RepoRoot)
 
-# Set the working directory to the repository root.
+# Start terminal in the repository root
 Set-Location -LiteralPath $RepoRoot
 
-# ── Derive venv paths ───────────────────────────────────────────────────
-$VenvDir        = Join-Path $RepoRoot 'venv'
-$ActivateScript = Join-Path $VenvDir  'Scripts\Activate.ps1'
-$PythonExe      = Join-Path $VenvDir  'Scripts\python.exe'
+# Derive virtual environment paths
+$VenvDir = Join-Path $RepoRoot 'venv'
+$ActivateScript = Join-Path $VenvDir 'Scripts\Activate.ps1'
+$PythonExe = Join-Path $VenvDir 'Scripts\python.exe'
 
-# ── Guard: venv directory must exist ────────────────────────────────────
+# Validate venv directory
 if (-not (Test-Path -LiteralPath $VenvDir -PathType Container)) {
-    Write-Warning "[ARGUS] Virtual environment not found at: $VenvDir"
-    Write-Warning "[ARGUS] Create it with:  python -m venv `"$VenvDir`""
-    return   # terminal stays open (-NoExit)
+    Write-Warning "[ARGUS] Virtual environment not found: $VenvDir"
+    Write-Warning "[ARGUS] Create it with: python -m venv `"$VenvDir`""
+    return
 }
 
-# ── Guard: Activate.ps1 must exist ─────────────────────────────────────
+# Validate activation script
 if (-not (Test-Path -LiteralPath $ActivateScript -PathType Leaf)) {
-    Write-Warning "[ARGUS] Activation script missing: $ActivateScript"
+    Write-Warning "[ARGUS] Activation script not found: $ActivateScript"
     return
 }
 
-# ── Guard: python.exe must exist ───────────────────────────────────────
+# Validate Python interpreter
 if (-not (Test-Path -LiteralPath $PythonExe -PathType Leaf)) {
-    Write-Warning "[ARGUS] Python interpreter missing: $PythonExe"
+    Write-Warning "[ARGUS] Python interpreter not found: $PythonExe"
     return
 }
 
-# ── Check if already activated in current PowerShell session ─────────────
-$NormTarget = [System.IO.Path]::GetFullPath($VenvDir)
+$TargetVenv = [System.IO.Path]::GetFullPath($VenvDir)
 
+# Skip only when this exact environment is already fully activated
 if ($global:__ARGUS_VENV_ACTIVATED -and $env:VIRTUAL_ENV) {
-    $NormCurrent = [System.IO.Path]::GetFullPath($env:VIRTUAL_ENV)
-    if ($NormCurrent -eq $NormTarget) {
-        # Already fully activated in this session
-        return
-    }
-}
+    try {
+        $CurrentVenv = [System.IO.Path]::GetFullPath($env:VIRTUAL_ENV)
 
-# ── If a different venv is active, deactivate it first ──────────────────
-if ($env:VIRTUAL_ENV) {
-    $NormCurrent = [System.IO.Path]::GetFullPath($env:VIRTUAL_ENV)
-    if ($NormCurrent -ne $NormTarget) {
-        if (Get-Command deactivate -ErrorAction SilentlyContinue) {
-            deactivate
+        if ($CurrentVenv -eq $TargetVenv) {
+            return
         }
     }
+    catch {
+        # Invalid inherited VIRTUAL_ENV path; continue with normal activation.
+    }
 }
 
-# ── Activate ────────────────────────────────────────────────────────────
+# Deactivate a different active virtual environment
+if ($env:VIRTUAL_ENV) {
+    try {
+        $CurrentVenv = [System.IO.Path]::GetFullPath($env:VIRTUAL_ENV)
+
+        if ($CurrentVenv -ne $TargetVenv) {
+            $DeactivateCommand = Get-Command deactivate -ErrorAction SilentlyContinue
+
+            if ($DeactivateCommand) {
+                deactivate
+            }
+            else {
+                Remove-Item Env:VIRTUAL_ENV -ErrorAction SilentlyContinue
+            }
+        }
+    }
+    catch {
+        Remove-Item Env:VIRTUAL_ENV -ErrorAction SilentlyContinue
+    }
+}
+
+# Activate the ARGUS virtual environment
 try {
     . $ActivateScript
+
     $global:__ARGUS_VENV_ACTIVATED = $true
-    $PyVer = (& $PythonExe --version 2>&1).ToString().Replace('Python ', '')
-    Write-Host ('[ARGUS] venv activated  —  Python ' + $PyVer) -ForegroundColor Green
+
+    $PythonVersion = (& $PythonExe --version 2>&1).ToString().Trim()
+
+    Write-Host "[ARGUS] venv activated - $PythonVersion" -ForegroundColor Green
 }
 catch {
-    Write-Warning ('[ARGUS] Activation failed: ' + $_.Exception.Message)
+    $global:__ARGUS_VENV_ACTIVATED = $false
+    Write-Warning "[ARGUS] Activation failed: $($_.Exception.Message)"
 }
