@@ -30,6 +30,7 @@ Below is the complete list of package-level documentation files for all major co
 | **`monitoring/`** | Camera health monitor, system watchdog, multi-channel rotating logger, and GPU tuner | [monitoring/README.md](../monitoring/README.md) |
 | **`pipeline/`** | Live camera, video file, and multi-camera CCTV execution pipelines | [pipeline/README.md](../pipeline/README.md) |
 | **`preprocessing/`** | Silhouette extraction (Otsu + morphology), GEI synthesis, dataset building, and augmentation | [preprocessing/README.md](../preprocessing/README.md) |
+| **`scripts/`** | Project maintenance, automation, development, validation, and repository utility scripts | [scripts/README.md](../scripts/README.md) |
 | **`security_layer/`** | Security decision engine (ALLOW/SECURITY_ALERT/REVIEW_REQUIRED), audit logger, and credentials | [security_layer/README.md](../security_layer/README.md) |
 | **`services/`** | Argus OS background service, RTSP/USB camera acquisition workers, and ONVIF discovery | [services/README.md](../services/README.md) |
 | **`storage/`** | Evidence snapshot persistence, retention policy enforcement, lineage tracking, and vector store | [storage/README.md](../storage/README.md) |
