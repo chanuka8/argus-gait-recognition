@@ -1,6 +1,6 @@
-<img src="assets/github/Gitrepo_profilepic.png" alt="ARGUS AI Gait Recognition Banner" width="100%" />
-
 # ARGUS AI
+
+![ARGUS AI Gait Recognition Banner](assets/github/Gitrepo_profilepic.png)
 
 A modular spatial-temporal gait recognition, multi-object tracking, and multi-camera surveillance intelligence framework.
 
@@ -24,7 +24,7 @@ A modular spatial-temporal gait recognition, multi-object tracking, and multi-ca
 ## Capabilities & Implementation Matrix
 
 | Capability | Implementation Status | Default State | Reference Source |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **PyTorch Inference Backend** | Implemented | Enabled (Default) | [models/inference/pytorch_backend.py](models/inference/pytorch_backend.py) |
 | **ONNX Runtime Backend** | Implemented & CPU-Validated | Optional | [models/inference/onnx_backend.py](models/inference/onnx_backend.py) |
 | **TensorRT Inference Backend** | Framework Implemented (HW Validation Pending) | Optional | [models/inference/tensorrt_backend.py](models/inference/tensorrt_backend.py) |
@@ -39,6 +39,7 @@ A modular spatial-temporal gait recognition, multi-object tracking, and multi-ca
 ## Features
 
 ### Core Recognition
+
 - **YOLOv8 Person Detection**: Deep learning bounding box localization ([pipeline/detection/person_detector.py](pipeline/detection/person_detector.py)).
 - **ByteTrack Multi-Object Tracking**: Track ID assignment using ByteTrack and IoU algorithms ([pipeline/steps/tracking.py](pipeline/steps/tracking.py)).
 - **EMA Bounding Box Stabilization**: Exponential Moving Average coordinate filter eliminating detection jitter ([utils/box_stabilizer.py](utils/box_stabilizer.py)).
@@ -49,6 +50,7 @@ A modular spatial-temporal gait recognition, multi-object tracking, and multi-ca
 - **Cosine Similarity Matching**: Cosine distance evaluation between live embeddings and gallery candidates ([storage/vector_store.py](storage/vector_store.py)).
 
 ### Recognition Intelligence
+
 - **Open-Set Recognition**: Three-state identity classification (`KNOWN`, `UNKNOWN`, `UNCERTAIN`) evaluating top-1 similarity thresholds (`known_threshold=0.85`, floor `unknown_threshold=0.70`) and candidate margin constraints (`margin_threshold=0.05`) ([intelligence/open_set_recognizer.py](intelligence/open_set_recognizer.py)).
 - **Dual-Modal ReID & Gait Fusion**: Combines gait embeddings with optional appearance (ReID) embeddings using configurable weighted score fusion. Automatically falls back to gait-only recognition when ReID is unavailable or disabled ([intelligence/dual_modal_fusion.py](intelligence/dual_modal_fusion.py)).
 - **Track Reliability Score**: Multi-source evidence scoring producing a normalized index in $[0.0, 1.0]$, explicitly decoupling identity confidence from physical track stability ([intelligence/track_reliability_scorer.py](intelligence/track_reliability_scorer.py)).
@@ -57,6 +59,7 @@ A modular spatial-temporal gait recognition, multi-object tracking, and multi-ca
 - **Prediction Smoothing**: Temporal history aggregation preventing rapid state oscillation ([pipeline/steps/temporal_gait_verifier.py](pipeline/steps/temporal_gait_verifier.py)).
 
 ### Multi-Camera & Crowd Intelligence
+
 - **Multi-Camera Tracking**: Global track assignment (`GTRACK-XXXX`) and multi-stream trajectory management ([intelligence/cross_camera_tracker.py](intelligence/cross_camera_tracker.py)).
 - **Camera Transition Modeling**: Directed topology graph enforcing expected travel-time windows $[T_{min}, T_{max}]$, transition probabilities, entry/exit zones, and candidate tie resolution ([intelligence/camera_transition_model.py](intelligence/camera_transition_model.py)).
 - **Spatial-Temporal Camera Topology Auto-Learning**: Learns camera transition statistics from validated cross-camera observations and synchronizes qualified learned routes into active transition models ([intelligence/camera_topology_learner.py](intelligence/camera_topology_learner.py)).
@@ -65,6 +68,7 @@ A modular spatial-temporal gait recognition, multi-object tracking, and multi-ca
 - **Crowd-Robust Detection**: Adaptive gating, IoU tuning, and threshold adjustments under high spatial density ([intelligence/crowd_robustness_manager.py](intelligence/crowd_robustness_manager.py)).
 
 ### Operational Intelligence & Forensic Trace Analysis
+
 - **Explainable Recognition Reports**: Generates JSON, CSV, and Markdown trace reports detailing identity decision logic, similarity scores, candidate margins, track reliability, quality metrics, and deferral flags ([intelligence/explainable_recognition_report.py](intelligence/explainable_recognition_report.py)).
 - **Event Timeline Reconstruction**: Cross-camera chronological event trajectory accumulator for global tracks and watchlist targets ([intelligence/event_timeline_reconstructor.py](intelligence/event_timeline_reconstructor.py)).
 - **Real-Time Watchlist Integration**: Dynamic target identity registration, priority category routing, and instant match notification triggers ([intelligence/missing_person_workflow.py](intelligence/missing_person_workflow.py)).
@@ -72,6 +76,7 @@ A modular spatial-temporal gait recognition, multi-object tracking, and multi-ca
 - **Recognition Deferral & Track Recovery**: Deferring low-confidence or heavily occluded decisions and recovering lost tracks ([intelligence/recognition_deferral_engine.py](intelligence/recognition_deferral_engine.py), [intelligence/track_recovery_manager.py](intelligence/track_recovery_manager.py)).
 
 ### Performance, Security & Infrastructure
+
 - **Pluggable Inference Backends**: Unified factory (`get_inference_backend()`) supporting PyTorch (reference), ONNX Runtime, and TensorRT with automatic PyTorch fallback, attempted backend chain reporting, and sanitized log warnings ([models/inference/backend.py](models/inference/backend.py)).
 - **Hardened Vector Store**: Complete security remediation enforcing `allow_pickle=False`, rejecting object arrays, and validating numeric dtypes, dimensions, and shape consistency ([storage/vector_store.py](storage/vector_store.py)).
 - **Secure RTSP Credential Management**: Fernet-encrypted credential storage, environment variable mapping, per-camera credential resolution, and automatic stream URL sanitization in logs ([security_layer/credentials.py](security_layer/credentials.py)).
@@ -136,14 +141,19 @@ graph TD
 ## Security Infrastructure
 
 ### Secure RTSP Credential Resolution
+
 ARGUS AI supports secure RTSP camera authentication without storing plaintext credentials inside repository configuration files. Credentials are resolved dynamically at runtime in priority order:
+
 1. **Environment Variables**: Per-camera (`ARGUS_CAMERA_<ID>_USERNAME`, `ARGUS_CAMERA_<ID>_PASSWORD`) or global fallback (`ARGUS_RTSP_USERNAME`, `ARGUS_RTSP_PASSWORD`).
 2. **Encrypted Credential Store**: Local credential store (`configs/credentials.enc`) encrypted using Fernet (`cryptography` library).
 3. **Legacy Plaintext**: Plaintext fallback (disabled by default; requires `ARGUS_LEGACY_ALLOW_PLAINTEXT_CREDS=true`).
+
 - **Log Sanitization**: Automatic masking of RTSP credentials (`rtsp://***:***@host:port/path`) across all system logs.
 
 ### Hardened Vector Store Deserialization
+
 Biometric gallery storage in `VectorStore` ([storage/vector_store.py](storage/vector_store.py)) has been fully hardened against arbitrary code execution vulnerabilities:
+
 - **`allow_pickle=False` Enforcement**: All `np.load()` calls strictly prohibit pickle deserialization.
 - **Object-Array Rejection**: Rejects any array containing object dtypes (`dtype == object` or `kind == "O"`).
 - **Strict Data Validation**: Validates numeric feature dtypes (`np.issubdtype(dtype, np.number)`), 2D feature matrix dimensions `(N, D)`, 1D label vector shape `(N,)`, feature-to-label count parity, and file corruption.
@@ -153,14 +163,18 @@ Biometric gallery storage in `VectorStore` ([storage/vector_store.py](storage/ve
 ## Explainability & Event Timeline Reconstruction
 
 ### Explainable Recognition Reports
+
 `ExplainableRecognitionReporter` ([intelligence/explainable_recognition_report.py](intelligence/explainable_recognition_report.py)) generates operational trace reports explaining identity decisions.
+
 - **Triggers**: Confirmed identity, deferred recognition, watchlist match, identity change, or manual export.
 - **Export Formats**: JSON, CSV, and Markdown saved under `outputs/reports/explainable/`.
 - **Privacy & Security**: Excludes raw 256D feature vectors and system credentials.
 - **Default State**: Disabled by default (`explainable_reports.enabled: false` in `configs/inference.yaml`).
 
 ### Event Timeline Reconstruction
+
 `EventTimelineReconstructor` ([intelligence/event_timeline_reconstructor.py](intelligence/event_timeline_reconstructor.py)) tracks multi-camera spatial-temporal target journeys.
+
 - **Triggers**: Track creation, camera enter/exit, identity change, watchlist match, track recovery, and track close.
 - **Export Paths**: Formatted JSON/CSV timelines saved under `outputs/reports/timelines/`.
 - **Default State**: Disabled by default (`event_timeline.enabled: false` in `configs/inference.yaml`).
@@ -172,13 +186,16 @@ Biometric gallery storage in `VectorStore` ([storage/vector_store.py](storage/ve
 ## Inference Backends & Benchmark Scope
 
 ### Pluggable Inference Framework
+
 The framework ([models/inference/backend.py](models/inference/backend.py)) allows seamless backend selection via `configs/inference.yaml`:
+
 - **PyTorch (`pytorch`)**: Default reference backend executing `ByGaitLight` PyTorch model directly.
 - **ONNX Runtime (`onnxruntime`)**: Optional backend executing exported ONNX model (`scripts/export_bygait_onnx.py`).
 - **TensorRT (`tensorrt`)**: Optional engine framework (`scripts/build_tensorrt_engine.py`). Hardware execution is pending target CUDA/TensorRT environment validation.
 - **Auto Selection (`auto`)**: Attempts TensorRT $\rightarrow$ ONNX Runtime $\rightarrow$ PyTorch, recording selection chains (`attempted_backends`, `selection_fallback_used`, `fallback_reason`).
 
 ### Benchmark Scope & Scope Disclaimer
+
 `scripts/benchmark_inference_backends.py` provides backend throughput and numerical parity evaluation against the PyTorch reference:
 
 > **Benchmark Scope Disclaimer**: Benchmark FPS and latency metrics measure core model forward embedding inference on synthetic $64 \times 128$ GEI tensors only (`measurement_scope: "embedding_only_synthetic_gei"`). They exclude video decoding, YOLO person detection, ByteTrack tracking, silhouette segmentation, vector gallery matching, report generation, and multi-stream pipeline overhead. Fallback measurements reflect active backend (PyTorch) execution.
@@ -188,10 +205,11 @@ The framework ([models/inference/backend.py](models/inference/backend.py)) allow
 ## Documentation Automation & Git Hooks
 
 ARGUS AI maintains automated folder-level documentation across all 18 core package directories:
+
 - **Folder README Sync (`scripts/sync_folder_readmes.py`)**: Automatically scans Python modules and updates the `Key Modules` section between `<!-- BEGIN SYNC: KEY_MODULES -->` markers.
 - **Manual Content Preservation**: Preserves all manual prose, headings, and data flow sections outside markers.
 - **Atomic Writes**: Uses temporary files and `os.replace()` to ensure zero file corruption on interrupted runs.
-- **Central Index (`docs/README_INDEX.md`)**: Maintains relative relative links for all package READMEs.
+- **Central Index (`docs/README_INDEX.md`)**: Maintains relative links for all package READMEs.
 - **Git Pre-Commit Hook (`scripts/install_git_hooks.py`)**: Automatically syncs and stages README changes prior to commits. Supports both Windows (`venv/Scripts/python.exe`) and POSIX (`venv/bin/python`) environments.
 - **CI Freshness Workflow (`.github/workflows/readme_sync_check.yml`)**: Read-only GitHub Actions workflow enforcing documentation alignment on PRs and main branch pushes.
 
@@ -249,6 +267,7 @@ ARGUS_AI/
 ## Installation
 
 ### Prerequisites
+
 - **Python**: 3.11 or higher
 - **OS**: Windows 10/11 or Linux (Ubuntu 20.04+)
 - **GPU** (Optional): CUDA-compatible GPU for accelerated PyTorch/ONNX execution
@@ -256,6 +275,7 @@ ARGUS_AI/
 ### Virtual Environment Setup
 
 #### Windows (PowerShell)
+
 ```powershell
 python -m venv venv
 .\venv\Scripts\Activate.ps1
@@ -264,6 +284,7 @@ python scripts/install_git_hooks.py
 ```
 
 #### Linux / macOS (Bash)
+
 ```bash
 python3 -m venv venv
 source venv/bin/activate
@@ -287,31 +308,37 @@ System operations are configured via YAML files in `configs/`:
 All primary workflows are accessible via [cli.py](cli.py).
 
 ### System Health Check
+
 ```bash
 python cli.py --mode health
 ```
 
 ### Multi-Camera Recognition Stream
+
 ```bash
 python cli.py --mode multi-camera
 ```
 
 ### Video File Recognition
+
 ```bash
 python cli.py --mode recognize-video --video "path/to/sample.mp4"
 ```
 
 ### Build Biometric Gallery
+
 ```bash
 python cli.py --mode gallery
 ```
 
 ### Run Inference Backend Benchmark
+
 ```bash
 python scripts/benchmark_inference_backends.py --samples 50
 ```
 
 ### Synchronize Documentation READMEs
+
 ```bash
 python scripts/sync_folder_readmes.py --check
 ```
@@ -337,6 +364,7 @@ pytest -q
 ```
 
 ### Current Test & Quality Status
+
 - **Ruff Linting**: Pass (`ruff check .` compliant with 0 errors)
 - **Bytecode Compilation**: Pass (`python -m compileall` check clean)
 - **Documentation Alignment**: Pass (`sync_folder_readmes.py --check` clean across all 18 package folders)
@@ -366,6 +394,7 @@ pytest -q
 ## Project Status
 
 ### Implemented
+
 - [x] YOLOv8 person detection & ByteTrack multi-object tracking
 - [x] Exponential Moving Average (EMA) bounding box coordinate stabilization
 - [x] Silhouette segmentation and Live GEI 30-frame sequence builder
@@ -408,11 +437,11 @@ This project is licensed under the [MIT License](LICENSE).
 
 ## Maintainer
 
-**Chanuka Sandun**
+### Chanuka Sandun
 
 Undergraduate in Cyber Security
 
 Developer of the ARGUS AI Gait Recognition Module
 
-- GitHub: https://github.com/chanuka8
-- LinkedIn: https://www.linkedin.com/in/chanukasandun/
+- GitHub: [github.com/chanuka8](https://github.com/chanuka8)
+- LinkedIn: [linkedin.com/in/chanukasandun](https://www.linkedin.com/in/chanukasandun/)
