@@ -317,13 +317,10 @@ class TestSyncCheckMode(unittest.TestCase):
 
     def test_check_does_not_modify_files(self):
         root = Path(__file__).resolve().parent.parent.parent
-        result = subprocess.run(
-            ["git", "status", "--porcelain"],
-            capture_output=True, text=True, cwd=str(root),
-        )
-        # Filter only README-related changes
-        readme_changes = [line for line in result.stdout.splitlines() if "README" in line]
-        self.assertEqual(len(readme_changes), 0, f"--check modified files: {readme_changes}")
+        before = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True, cwd=str(root)).stdout
+        subprocess.run([sys.executable, "scripts/sync_folder_readmes.py", "--check"], capture_output=True, text=True, cwd=str(root))
+        after = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True, cwd=str(root)).stdout
+        self.assertEqual(before, after, "--check modified working tree state")
 
 
 class TestAllFolderReadmesSynchronized(unittest.TestCase):
