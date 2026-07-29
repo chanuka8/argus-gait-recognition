@@ -7,17 +7,26 @@ import torch
 from models.architectures.bygait_light import ByGaitLight
 
 
+from models.inference.backend import get_inference_backend, load_inference_backend_config
+
+
 class FeatureExtractionStep:
     def __init__(
         self,
         model_path: str = "runs/exp_001/best_model.pth",
         image_size: tuple[int, int] = (64, 128),
         binary_threshold: int = 20,
+        backend_config: dict = None,
     ) -> None:
         self.model_path = Path(model_path)
         self.image_size = image_size
         self.binary_threshold = binary_threshold
-        self.model = self._load_model()
+        self.backend_config = backend_config or load_inference_backend_config()
+        self.backend = get_inference_backend(
+            config=self.backend_config,
+            model_path=str(self.model_path) if self.model_path.exists() else None,
+        )
+        self.model = getattr(self.backend, "model", None)
 
     def _load_model(
         self,
@@ -100,23 +109,7 @@ class FeatureExtractionStep:
             path,
         )
 
-        tensor = torch.from_numpy(
-            image,
-        ).unsqueeze(0).unsqueeze(0)
-
-        with torch.no_grad():
-            embedding = self.model(
-                tensor,
-            ).cpu().numpy().flatten()
-
-        norm = np.linalg.norm(
-            embedding,
-        )
-
-        embedding = embedding / (
-            norm + 1e-8
-        )
-
+        embedding = self.backend.predict(image).flatten()
         return embedding.astype(
             np.float32,
         )
