@@ -9,8 +9,10 @@ Usage:
 """
 
 import argparse
+import os
 import re
 import sys
+import tempfile
 from pathlib import Path
 from typing import Dict, List, Tuple
 
@@ -176,7 +178,22 @@ def update_folder_readme(folder_path: Path) -> bool:
 
     new_content = re.sub(pattern, replacement, content, flags=re.DOTALL)
     if new_content != content:
-        readme_path.write_text(new_content, encoding="utf-8")
+        # Atomic write: write to temp file, then replace destination
+        fd, tmp_path = tempfile.mkstemp(
+            dir=str(readme_path.parent), suffix=".tmp", prefix=".readme_sync_"
+        )
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as tmp_f:
+                tmp_f.write(new_content)
+                tmp_f.flush()
+            os.replace(tmp_path, str(readme_path))
+        except BaseException:
+            # Clean up temp file on any failure
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
+            raise
         return True
 
     return False

@@ -17,6 +17,8 @@ echo "[pre-commit] Automatically synchronizing ARGUS AI package documentation...
 # Detect Python interpreter
 if [ -f "./venv/Scripts/python.exe" ]; then
     PYTHON_CMD="./venv/Scripts/python.exe"
+elif [ -f "./venv/bin/python" ]; then
+    PYTHON_CMD="./venv/bin/python"
 elif command -v python3 >/dev/null 2>&1; then
     PYTHON_CMD="python3"
 elif command -v python >/dev/null 2>&1; then
