@@ -174,3 +174,38 @@ crowd_intelligence:
     minimum_samples: 20
     maximum_travel_seconds: 600
     export_path: outputs/reports/exports/learned_camera_topology.yaml
+
+explainable_reporting:
+  enabled: false
+  output_dir: outputs/reports/explainable
+  formats:
+    - json
+    - csv
+    - markdown
+  report_confirmed: true
+  report_deferred: true
+  report_watchlist: true
+  duplicate_cooldown_seconds: 10
+
+event_timeline:
+  enabled: false
+  output_dir: outputs/reports/timelines
+  formats:
+    - json
+    - csv
+    - markdown
+  export_on_track_close: true
+  export_on_watchlist: true
+  retention_seconds: 3600
+  maximum_events_per_track: 500
+
+inference_backend:
+  backend: pytorch
+  device: auto
+  precision: fp32
+  engine_path: models/engines/bygait_light_fp16.engine
+  onnx_path: models/engines/bygait_light.onnx
+  allow_fallback: true
+  warmup_iterations: 3
+  dynamic_batch: false
+  max_batch_size: 1

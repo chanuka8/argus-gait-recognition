@@ -37,6 +37,7 @@ Input GEI Tensor (1×1×128×64) → `models/architectures/bygait_light.py` (`By
 ## Public Interfaces
 
 - `ByGaitLight`: PyTorch neural network model in [models/architectures/bygait_light.py](architectures/bygait_light.py).
+- `get_inference_backend`: Pluggable inference backend factory (PyTorch, ONNX, TensorRT) in [models/inference/backend.py](inference/backend.py).
 
 ## Tests
 

@@ -646,6 +646,10 @@ class MultiCameraRecognitionPipeline:
             config=load_reporting_config(),
             source_mode="multi-camera",
         )
+        from intelligence.explainable_recognition_report import ExplainableRecognitionReporter
+        from intelligence.event_timeline_reconstructor import EventTimelineReconstructor
+        self.explainable_reporter = ExplainableRecognitionReporter()
+        self.timeline_reconstructor = EventTimelineReconstructor()
 
         # Per-camera location lookup (fallback: "Unknown Location")
         self.camera_locations: dict[str, str] = {}
@@ -1143,6 +1147,37 @@ class MultiCameraRecognitionPipeline:
             res["fusion"] = fusion_res
             if self.fusion_config.get("enabled", False) and "final_score" in fusion_res:
                 res["score"] = round(float(fusion_res["final_score"]), 4)
+
+        res_final = worker.last_results[track_id]
+        if getattr(self, "explainable_reporter", None) is not None and self.explainable_reporter.enabled:
+            from intelligence.explainable_recognition_report import RecognitionEvidence
+            ev_obj = RecognitionEvidence(
+                camera_id=worker.camera_id,
+                local_track_id=track_id,
+                global_track_id=global_id,
+                predicted_identity=str(raw_identity),
+                final_identity=str(stable_identity),
+                final_decision=decision,
+                open_set_state=open_set_res.state.value,
+                gait_similarity=float(score),
+                fusion_score=float(res_final.get("score", score)),
+                track_reliability=res_final.get("track_reliability"),
+                watchlist_matched="watchlist_match" in res_final,
+            )
+            self.explainable_reporter.generate_report(ev_obj)
+
+        if getattr(self, "timeline_reconstructor", None) is not None and self.timeline_reconstructor.enabled:
+            evt = "WATCHLIST_MATCH" if "watchlist_match" in res_final else ("IDENTITY_CONFIRMED" if str(stable_identity) != "UNKNOWN" else "UNKNOWN")
+            self.timeline_reconstructor.record_event(
+                event_type=evt,
+                camera_id=worker.camera_id,
+                local_track_id=track_id,
+                global_track_id=global_id,
+                identity_id=str(stable_identity),
+                confidence=float(res_final.get("score", score)),
+                reliability=res_final.get("track_reliability"),
+                reason=f"Decision: {decision}",
+            )
 
 
     # Drawing

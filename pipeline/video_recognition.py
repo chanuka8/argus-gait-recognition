@@ -422,6 +422,10 @@ class VideoRecognitionPipeline:
             config=load_reporting_config(),
             source_mode="video",
         )
+        from intelligence.explainable_recognition_report import ExplainableRecognitionReporter
+        from intelligence.event_timeline_reconstructor import EventTimelineReconstructor
+        self.explainable_reporter = ExplainableRecognitionReporter()
+        self.timeline_reconstructor = EventTimelineReconstructor()
         self.camera_id = "cam_00"
         self.camera_location = "Unknown Location"
 
@@ -939,6 +943,34 @@ class VideoRecognitionPipeline:
                 result["score"] = round(float(fusion_res["final_score"]), 4)
 
         self.last_results[track_id] = result
+
+        if getattr(self, "explainable_reporter", None) is not None and self.explainable_reporter.enabled:
+            from intelligence.explainable_recognition_report import RecognitionEvidence
+            ev_obj = RecognitionEvidence(
+                camera_id=self.camera_id,
+                local_track_id=track_id,
+                predicted_identity=str(raw_identity),
+                final_identity=str(stable_identity),
+                final_decision=decision,
+                open_set_state=open_set_res.state.value,
+                gait_similarity=float(score),
+                fusion_score=float(result.get("score", score)),
+                track_reliability=result.get("track_reliability"),
+                watchlist_matched="watchlist_match" in result,
+            )
+            self.explainable_reporter.generate_report(ev_obj)
+
+        if getattr(self, "timeline_reconstructor", None) is not None and self.timeline_reconstructor.enabled:
+            evt = "WATCHLIST_MATCH" if "watchlist_match" in result else ("IDENTITY_CONFIRMED" if str(stable_identity) != "UNKNOWN" else "UNKNOWN")
+            self.timeline_reconstructor.record_event(
+                event_type=evt,
+                camera_id=self.camera_id,
+                local_track_id=track_id,
+                identity_id=str(stable_identity),
+                confidence=float(result.get("score", score)),
+                reliability=result.get("track_reliability"),
+                reason=f"Decision: {decision}",
+            )
 
         return result
 

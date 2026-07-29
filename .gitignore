@@ -16,6 +16,7 @@ models/active/*
 models/candidates/*
 models/rollback/*
 models/gallery/*
+models/engines/*
 outputs/*
 runs/*
 !**/.gitkeep

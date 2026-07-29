@@ -50,6 +50,8 @@ A modular spatial-temporal gait recognition, multi-object tracking, and multi-ca
 - **Crowd-Robust Detection**: Adaptive gating, IoU tuning, and threshold adjustments under high spatial density ([intelligence/crowd_robustness_manager.py](intelligence/crowd_robustness_manager.py)).
 
 ### Operational Intelligence
+- **Explainable Recognition Reports**: Evidence-driven report generator explaining identity decision trace, similarity scores, quality metrics, and deferral flags into JSON, CSV, and Markdown formats ([intelligence/explainable_recognition_report.py](intelligence/explainable_recognition_report.py)).
+- **Event Timeline Reconstruction**: Cross-camera chronological event trajectory accumulator for global tracks and watchlist targets ([intelligence/event_timeline_reconstructor.py](intelligence/event_timeline_reconstructor.py)).
 - **Real-Time Watchlist Integration**: Dynamic target identity registration, priority category routing, and instant match notification triggers ([intelligence/missing_person_workflow.py](intelligence/missing_person_workflow.py)).
 - **Crowd Density Estimation**: Real-time person count, area occupancy calculation, and density level classification (`LOW`, `MODERATE`, `HIGH`, `SEVERE`) ([intelligence/crowd_density_estimator.py](intelligence/crowd_density_estimator.py)).
 - **Crowd Occlusion Analysis**: Overlap ratio assessment and occlusion status tracking across crowded scenes ([intelligence/crowd_occlusion_analyzer.py](intelligence/crowd_occlusion_analyzer.py)).
@@ -58,6 +60,7 @@ A modular spatial-temporal gait recognition, multi-object tracking, and multi-ca
 - **Crowd Intelligence System**: High-level coordinator unifying crowd density, occlusion analysis, deferral, and multi-camera evidence fusion ([intelligence/crowd_intelligence_system.py](intelligence/crowd_intelligence_system.py)).
 
 ### Performance & Infrastructure
+- **Pluggable Inference Backends**: Configurable model execution engine supporting PyTorch (default reference), ONNX Runtime, and optional TensorRT with automatic PyTorch fallback ([models/inference/backend.py](models/inference/backend.py)).
 - **Secure RTSP Credential Management**: Fernet-encrypted credential storage, environment variable mapping, per-camera credential resolution, and automatic stream URL sanitization in logs ([security_layer/credentials.py](security_layer/credentials.py)).
 - **Automatic RTSP URL Credential Sanitization**: Automatic masking of RTSP stream credentials across system logs ([security_layer/credentials.py](security_layer/credentials.py)).
 - **Configurable Crowd Robustness**: Parameterized density thresholds and adaptive gating via YAML ([configs/inference.yaml](configs/inference.yaml)).

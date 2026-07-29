@@ -27,6 +27,8 @@ The `intelligence` package contains advanced biometric decision logic, open-set 
 | [crowd_robustness_manager.py](crowd_robustness_manager.py) | Controls recognition threshold adaptation under heavy crowd congestion |
 | [decision_engine.py](decision_engine.py) | Tiered decision policy for identity classification and confidence assignment |
 | [dual_modal_fusion.py](dual_modal_fusion.py) | Adaptive fusion engine combining gait GEI and appearance ReID embeddings |
+| [event_timeline_reconstructor.py](event_timeline_reconstructor.py) | Module/resource file event_timeline_reconstructor.py |
+| [explainable_recognition_report.py](explainable_recognition_report.py) | Module/resource file explainable_recognition_report.py |
 | [fusion_weights.py](fusion_weights.py) | Quality-aware dynamic weight calculator for multi-modal similarity scores |
 | [human_review_decision.py](human_review_decision.py) | Manages human operator review queues for borderline verification decisions |
 | [identity_persistence.py](identity_persistence.py) | Applies temporal score decay and maintains track identity continuity |
