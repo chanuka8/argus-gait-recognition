@@ -23,6 +23,7 @@ class ONNXBackend(BaseInferenceBackend):
         model_path: Optional[str] = None,
     ) -> None:
         super().__init__(config=config)
+        self.backend_name = "onnxruntime"
         self.onnx_path = Path(self.config.get("onnx_path", "models/engines/bygait_light.onnx"))
         self.session = None
         self.input_name = None
@@ -38,21 +39,32 @@ class ONNXBackend(BaseInferenceBackend):
             if not self.onnx_path.exists():
                 raise FileNotFoundError(f"ONNX model file not found: {self.onnx_path}")
 
-            providers = ["CUDAExecutionProvider", "CPUExecutionProvider"]
-            if self.device_str == "cpu":
-                providers = ["CPUExecutionProvider"]
+            available_providers = ort.get_available_providers()
+            providers = []
+            if self.device_str != "cpu" and "CUDAExecutionProvider" in available_providers:
+                providers.append("CUDAExecutionProvider")
+            providers.append("CPUExecutionProvider")
 
             self.session = ort.InferenceSession(str(self.onnx_path), providers=providers)
             self.input_name = self.session.get_inputs()[0].name
+            active_providers = self.session.get_providers() if hasattr(self.session, "get_providers") else providers
+            self.execution_provider = active_providers[0] if active_providers else "CPUExecutionProvider"
             self._initialized = True
+            self._fallback_used = False
+            self._fallback_reason = None
             self.warmup()
         except Exception as e:
             self._initialized = False
+            reason = str(e)
+            self.fallback_reason = reason
             if self.allow_fallback:
-                self.logger.warning(f"ONNX initialization failed ({e}). Falling back to PyTorch.")
+                self.fallback_used = True
                 from models.inference.pytorch_backend import PyTorchBackend
 
                 self._fallback_backend = PyTorchBackend(config=self.config, model_path=model_path)
+                self._fallback_backend.requested_backend = self.requested_backend
+                self._fallback_backend.fallback_used = True
+                self._fallback_backend.fallback_reason = reason
 
     def is_available(self) -> bool:
         """Check if ONNX session initialized successfully."""

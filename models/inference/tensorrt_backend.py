@@ -23,6 +23,7 @@ class TensorRTBackend(BaseInferenceBackend):
         model_path: Optional[str] = None,
     ) -> None:
         super().__init__(config=config)
+        self.backend_name = "tensorrt"
         self.engine_path = Path(self.config.get("engine_path", "models/engines/bygait_light_fp16.engine"))
         self.engine = None
         self.context = None
@@ -43,15 +44,23 @@ class TensorRTBackend(BaseInferenceBackend):
                 self.engine = runtime.deserialize_cuda_engine(f.read())
                 if self.engine is not None:
                     self.context = self.engine.create_execution_context()
+                    self.execution_provider = "TensorRT-CUDA"
                     self._initialized = True
+                    self._fallback_used = False
+                    self._fallback_reason = None
                     self.warmup()
         except Exception as e:
             self._initialized = False
+            reason = str(e)
+            self.fallback_reason = reason
             if self.allow_fallback:
-                self.logger.warning(f"TensorRT initialization failed ({e}). Falling back to PyTorch.")
+                self.fallback_used = True
                 from models.inference.pytorch_backend import PyTorchBackend
 
                 self._fallback_backend = PyTorchBackend(config=self.config, model_path=model_path)
+                self._fallback_backend.requested_backend = self.requested_backend
+                self._fallback_backend.fallback_used = True
+                self._fallback_backend.fallback_reason = reason
 
     def is_available(self) -> bool:
         """Check if TensorRT engine initialized successfully."""
