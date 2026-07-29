@@ -32,7 +32,7 @@ A modular spatial-temporal gait recognition, multi-object tracking, and multi-ca
 | **Event Timeline Reconstruction** | Implemented | Disabled by default | [intelligence/event_timeline_reconstructor.py](intelligence/event_timeline_reconstructor.py) |
 | **VectorStore Deserialization Security** | Implemented (`allow_pickle=False`) | Enabled | [storage/vector_store.py](storage/vector_store.py) |
 | **Secure RTSP Credential Resolution** | Implemented (Fernet & Env Vars) | Enabled | [security_layer/credentials.py](security_layer/credentials.py) |
-| **Documentation Synchronization** | Implemented (18 Package READMEs) | Pre-Commit Hook | [scripts/sync_folder_readmes.py](scripts/sync_folder_readmes.py) |
+| **Documentation Synchronization** | Implemented (19 Folder & Script READMEs) | Pre-Commit Hook | [scripts/sync_folder_readmes.py](scripts/sync_folder_readmes.py) |
 
 ---
 
@@ -80,7 +80,7 @@ A modular spatial-temporal gait recognition, multi-object tracking, and multi-ca
 - **Pluggable Inference Backends**: Unified factory (`get_inference_backend()`) supporting PyTorch (reference), ONNX Runtime, and TensorRT with automatic PyTorch fallback, attempted backend chain reporting, and sanitized log warnings ([models/inference/backend.py](models/inference/backend.py)).
 - **Hardened Vector Store**: Complete security remediation enforcing `allow_pickle=False`, rejecting object arrays, and validating numeric dtypes, dimensions, and shape consistency ([storage/vector_store.py](storage/vector_store.py)).
 - **Secure RTSP Credential Management**: Fernet-encrypted credential storage, environment variable mapping, per-camera credential resolution, and automatic stream URL sanitization in logs ([security_layer/credentials.py](security_layer/credentials.py)).
-- **Automated Documentation Synchronization**: Automated package README table synchronization (`scripts/sync_folder_readmes.py`), atomic writes, cross-platform pre-commit hook installer (`scripts/install_git_hooks.py`), and CI freshness check ([.github/workflows/readme_sync_check.yml](.github/workflows/readme_sync_check.yml)).
+- **Automated Documentation Synchronization**: Automated README table synchronization (`scripts/sync_folder_readmes.py`) covering all 19 package folders including `scripts/README.md` (CLI reference, metadata tables, dependency graph, execution order, change impact, safety classification), atomic writes, cross-platform pre-commit hook installer (`scripts/install_git_hooks.py`), and CI freshness check ([.github/workflows/readme_sync_check.yml](.github/workflows/readme_sync_check.yml)).
 
 ---
 
@@ -202,16 +202,17 @@ The framework ([models/inference/backend.py](models/inference/backend.py)) allow
 
 ---
 
-## Documentation Automation & Git Hooks
+## Documentation Automation & Scripts Reference
 
-ARGUS AI maintains automated folder-level documentation across all 18 core package directories:
+ARGUS AI maintains automated folder-level documentation across all 19 package and tool directories:
 
-- **Folder README Sync (`scripts/sync_folder_readmes.py`)**: Automatically scans Python modules and updates the `Key Modules` section between `<!-- BEGIN SYNC: KEY_MODULES -->` markers.
-- **Manual Content Preservation**: Preserves all manual prose, headings, and data flow sections outside markers.
+- **Folder README Sync (`scripts/sync_folder_readmes.py`)**: Automatically scans source files and updates markdown tables between `<!-- BEGIN SYNC: KEY_MODULES -->` comment markers across all package directories.
+- **First-Class Scripts Module (`scripts/README.md`)**: Automatically generated and self-maintaining documentation module for the `scripts/` folder ([scripts/README.md](scripts/README.md)). Includes script inventory (43 active scripts), CLI Reference (collapsible tables for 20 CLI-enabled scripts), script metadata table, Mermaid dependency graph, execution pipeline order, change impact outputs, safety classifications, and cross-references.
+- **Manual Content Preservation**: Preserves all manual prose, headings, architecture diagrams, and data flow sections outside markers.
 - **Atomic Writes**: Uses temporary files and `os.replace()` to ensure zero file corruption on interrupted runs.
-- **Central Index (`docs/README_INDEX.md`)**: Maintains relative links for all package READMEs.
+- **Central Index (`docs/README_INDEX.md`)**: Maintains relative links for all package and utility READMEs.
 - **Git Pre-Commit Hook (`scripts/install_git_hooks.py`)**: Automatically syncs and stages README changes prior to commits. Supports both Windows (`venv/Scripts/python.exe`) and POSIX (`venv/bin/python`) environments.
-- **CI Freshness Workflow (`.github/workflows/readme_sync_check.yml`)**: Read-only GitHub Actions workflow enforcing documentation alignment on PRs and main branch pushes.
+- **CI Freshness Workflow (`.github/workflows/readme_sync_check.yml`)**: Read-only GitHub Actions workflow enforcing documentation alignment on PRs and main branch pushes (`python scripts/sync_folder_readmes.py --check`).
 
 > **Developer Note**: Run `python scripts/install_git_hooks.py` once after cloning to activate local pre-commit documentation synchronization.
 
@@ -272,18 +273,32 @@ ARGUS_AI/
 - **OS**: Windows 10/11 or Linux (Ubuntu 20.04+)
 - **GPU** (Optional): CUDA-compatible GPU for accelerated PyTorch/ONNX execution
 
-### Virtual Environment Setup
+### Virtual Environment & Interpreter Setup
 
-#### Windows (PowerShell)
+The workspace is preconfigured via `.vscode/settings.json` (`"python.defaultInterpreterPath": "${workspaceFolder}/venv/Scripts/python.exe"`). Launching a new PowerShell terminal inside VS Code automatically activates the repository virtual environment (`Python 3.11.9`).
+
+#### Automatic Activation (PowerShell)
+
+The tracked activation script (`scripts/activate_venv.ps1`) handles environment setup:
+- Resolves workspace paths cleanly.
+- Validates the `venv` interpreter (`venv/Scripts/python.exe`).
+- Deactivates foreign virtual environments if present.
+- Sets prompt context cleanly without side effects.
+
+#### Manual Activation Commands
+
+##### Windows (PowerShell)
 
 ```powershell
 python -m venv venv
-.\venv\Scripts\Activate.ps1
+& .\venv\Scripts\Activate.ps1
+# Or using the auto-activation script directly:
+powershell -ExecutionPolicy Bypass -File scripts/activate_venv.ps1
 pip install -r requirements.txt
 python scripts/install_git_hooks.py
 ```
 
-#### Linux / macOS (Bash)
+##### Linux / macOS (Bash)
 
 ```bash
 python3 -m venv venv
@@ -367,7 +382,7 @@ pytest -q
 
 - **Ruff Linting**: Pass (`ruff check .` compliant with 0 errors)
 - **Bytecode Compilation**: Pass (`python -m compileall` check clean)
-- **Documentation Alignment**: Pass (`sync_folder_readmes.py --check` clean across all 18 package folders)
+- **Documentation Alignment**: Pass (`sync_folder_readmes.py --check` clean across all 19 package & script folders)
 - **Automated Tests**: **313 automated tests** (100% passing across unit, integration, and security suites)
 - **Warnings**: 1 non-blocking warning (`ByteTrack` deprecation warning from upstream tracking package)
 
@@ -415,7 +430,7 @@ pytest -q
 - [x] `MultiStreamEngine`, `WorkerPool`, `LoadBalancer`, and `Watchdog`
 - [x] ONVIF discovery & vendor adapters
 - [x] Secure RTSP credential storage & log URL sanitization ([security_layer/credentials.py](security_layer/credentials.py))
-- [x] Automated README Documentation Synchronization & Pre-Commit Hook (`scripts/sync_folder_readmes.py`)
+- [x] Automated README Documentation Synchronization & Pre-Commit Hook (`scripts/sync_folder_readmes.py` covering all 19 folders including `scripts/README.md`)
 - [x] 313 automated tests passing with 0 failures
 
 ---
@@ -423,7 +438,7 @@ pytest -q
 ## Repository Statistics
 
 - **Primary Language**: Python (100%)
-- **Core Packages**: `pipeline`, `intelligence`, `models`, `services`, `streaming`, `storage`, `monitoring`, `evaluation`, `security_layer`, `utils`, `api` (11 core packages)
+- **Core Packages & Tooling**: `pipeline`, `intelligence`, `models`, `services`, `streaming`, `storage`, `monitoring`, `evaluation`, `security_layer`, `utils`, `api`, `scripts` (12 packages/folders)
 - **Automated Tests**: **313 automated tests**
 - **Linter Status**: **0 errors** (`ruff check .` compliant)
 
