@@ -18,6 +18,7 @@ Covers:
 """
 
 import subprocess
+import sys
 import tempfile
 import textwrap
 import unittest
@@ -309,7 +310,7 @@ class TestSyncCheckMode(unittest.TestCase):
 
     def test_check_exits_zero_when_current(self):
         result = subprocess.run(
-            [str(Path("venv/Scripts/python.exe")), "scripts/sync_folder_readmes.py", "--check"],
+            [sys.executable, "scripts/sync_folder_readmes.py", "--check"],
             capture_output=True, text=True, cwd=str(Path(__file__).resolve().parent.parent.parent),
         )
         self.assertEqual(result.returncode, 0, f"--check failed:\n{result.stdout}\n{result.stderr}")
@@ -414,7 +415,7 @@ class TestNoRuntimeSideEffects(unittest.TestCase):
     def test_sync_script_compiles(self):
         path = Path(__file__).resolve().parent.parent.parent / "scripts" / "sync_folder_readmes.py"
         result = subprocess.run(
-            [str(Path("venv/Scripts/python.exe")), "-m", "py_compile", str(path)],
+            [sys.executable, "-m", "py_compile", str(path)],
             capture_output=True, text=True,
             cwd=str(Path(__file__).resolve().parent.parent.parent),
         )
