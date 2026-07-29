@@ -666,8 +666,8 @@ def docs_check(args=None) -> int:
         num_templates = 0
         num_subjects = 0
         if gallery_feat_path.exists() and gallery_lbl_path.exists():
-            _features = np.load(str(gallery_feat_path))
-            labels = np.load(str(gallery_lbl_path))
+            _features = np.load(str(gallery_feat_path), allow_pickle=False)
+            labels = np.load(str(gallery_lbl_path), allow_pickle=False)
             num_templates = len(labels)
             num_subjects = len(np.unique(labels))
 

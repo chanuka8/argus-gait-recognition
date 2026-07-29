@@ -96,18 +96,63 @@ class VectorStore:
             )
 
     def load(self):
-        if not self.features_file.exists():
+        if not self.features_file.exists() or not self.labels_file.exists():
             return None
 
-        features = np.load(
-            self.features_file,
-            allow_pickle=True,
-        )
+        try:
+            features = np.load(
+                self.features_file,
+                allow_pickle=False,
+            )
+        except Exception as err:
+            err_msg = str(err)
+            if "pickle" in err_msg.lower() or "object arrays" in err_msg.lower():
+                raise ValueError(
+                    f"Gallery features file '{self.features_file}' requires pickle deserialization, which is prohibited."
+                ) from err
+            raise ValueError(f"Failed to load gallery features file '{self.features_file}': {err}") from err
 
-        labels = np.load(
-            self.labels_file,
-            allow_pickle=True,
-        )
+        try:
+            labels = np.load(
+                self.labels_file,
+                allow_pickle=False,
+            )
+        except Exception as err:
+            err_msg = str(err)
+            if "pickle" in err_msg.lower() or "object arrays" in err_msg.lower():
+                raise ValueError(
+                    f"Gallery labels file '{self.labels_file}' requires pickle deserialization, which is prohibited."
+                ) from err
+            raise ValueError(f"Failed to load gallery labels file '{self.labels_file}': {err}") from err
+
+        # Security & Validation Checks
+        if features.dtype == object or features.dtype.kind == "O":
+            raise ValueError(
+                f"Gallery features array in '{self.features_file}' has invalid object dtype ({features.dtype}). Only numeric dtypes are allowed."
+            )
+
+        if labels.dtype == object or labels.dtype.kind == "O":
+            raise ValueError(
+                f"Gallery labels array in '{self.labels_file}' has invalid object dtype ({labels.dtype}). Only string or numeric dtypes are allowed."
+            )
+
+        if not np.issubdtype(features.dtype, np.number):
+            raise ValueError(f"Gallery features array must be numeric, got {features.dtype}.")
+
+        if features.ndim != 2:
+            raise ValueError(
+                f"Gallery features array must be 2-dimensional (N, D), got shape {features.shape}."
+            )
+
+        if labels.ndim != 1:
+            raise ValueError(
+                f"Gallery labels array must be 1-dimensional (N,), got shape {labels.shape}."
+            )
+
+        if len(features) != len(labels):
+            raise ValueError(
+                f"Mismatch between features length ({len(features)}) and labels length ({len(labels)})."
+            )
 
         if self.metadata_file.exists():
             with open(
