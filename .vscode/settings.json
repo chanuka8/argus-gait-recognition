@@ -1,0 +1,98 @@
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/venv/Scripts/python.exe",
+  "python.terminal.activateEnvironment": true,
+  "python.terminal.activateEnvInCurrentTerminal": true,
+  "terminal.integrated.defaultProfile.windows": "PowerShell",
+  "terminal.integrated.profiles.windows": {
+    "PowerShell": {
+      "path": [
+        "${env:windir}\\Sysnative\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "${env:windir}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
+      ],
+      "args": [
+        "-NoExit",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\scripts\\activate_venv.ps1"
+      ],
+      "icon": "terminal-powershell"
+    },
+    "ARGUS PowerShell": {
+      "path": [
+        "${env:windir}\\Sysnative\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "${env:windir}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
+      ],
+      "args": [
+        "-NoExit",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\scripts\\activate_venv.ps1"
+      ],
+      "icon": "terminal-powershell"
+    }
+  },
+  "terminal.integrated.env.windows": {
+    "VIRTUAL_ENV": "${workspaceFolder}\\venv",
+    "PATH": "${workspaceFolder}\\venv\\Scripts;${env:PATH}"
+  },
+  "python.analysis.exclude": [
+    "**/venv/**",
+    "**/.venv/**",
+    "**/outputs/**",
+    "**/__pycache__/**",
+    "**/.pytest_cache/**"
+  ],
+  "files.watcherExclude": {
+    "**/venv/**": true,
+    "**/.venv/**": true,
+    "**/outputs/**": true,
+    "**/__pycache__/**": true,
+    "**/.pytest_cache/**": true
+  },
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/.pytest_cache": true
+  },
+  "cSpell.words": [
+    "ARGUS",
+    "ByGaitLight",
+    "ByteTrack",
+    "ReID",
+    "GEI",
+    "ONVIF",
+    "RTSP",
+    "CASIA",
+    "Ultralytics",
+    "tracklet",
+    "tracklets",
+    "Otsu",
+    "Fernet",
+    "pydantic",
+    "uvicorn",
+    "fastapi",
+    "OpenCV",
+    "supervision",
+    "disjointness",
+    "multi-camera",
+    "spatio-temporal",
+    "watchlist",
+    "PyTorch"
+  ],
+  "cSpell.ignorePaths": [
+    "**/venv/**",
+    "**/.venv/**",
+    "**/outputs/**",
+    "**/docs/thesis_audit/**",
+    "**/*.json"
+  ],
+  "markdownlint.ignore": [
+    "docs/thesis_audit/**",
+    "outputs/**",
+    "venv/**",
+    ".venv/**"
+  ],
+  "problems.decorations.enabled": true,
+  "problems.showCurrentInStatus": true
+}
