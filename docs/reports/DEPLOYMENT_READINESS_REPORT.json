@@ -1,0 +1,65 @@
+{
+  "report_metadata": {
+    "title": "ARGUS AI Deployment Readiness Audit Report",
+    "timestamp": "2026-07-30T10:37:00+05:30",
+    "commit_hash": "d9aefed6c95def63f01cd3fc4ad2f718cdd1ea13",
+    "working_tree_status": "Dirty (Uncommitted documentation/report suite additions)",
+    "policy": "Zero False Positive Evidence-Based Reporting Policy"
+  },
+  "deployment_verdict": {
+    "official_label": "READY_FOR_CONTROLLED_CCTV_TESTING",
+    "doctor_exit_code": 0,
+    "blocking_issues_count": 0,
+    "warnings_count": 0,
+    "verification_status": "Verified"
+  },
+  "doctor_checks_summary": {
+    "total_checks": 16,
+    "passed_checks": 16,
+    "failed_checks": 0,
+    "checks": [
+      { "name": "python_version", "status": "PASS" },
+      { "name": "import_torch", "status": "PASS" },
+      { "name": "import_onnx", "status": "PASS" },
+      { "name": "import_onnxruntime", "status": "PASS" },
+      { "name": "import_cv2", "status": "PASS" },
+      { "name": "import_numpy", "status": "PASS" },
+      { "name": "import_yaml", "status": "PASS" },
+      { "name": "pytorch_checkpoint_exists", "status": "PASS" },
+      { "name": "onnx_model_exists", "status": "PASS" },
+      { "name": "onnx_model_integrity", "status": "PASS" },
+      { "name": "backend_initialization", "status": "PASS" },
+      { "name": "gallery_integrity", "status": "PASS" },
+      { "name": "configuration_files", "status": "PASS" },
+      { "name": "storage_writability", "status": "PASS" },
+      { "name": "disk_space", "status": "PASS" },
+      { "name": "logging_initialization", "status": "PASS" }
+    ]
+  },
+  "onnx_export_validation": {
+    "export_script": "scripts/export_bygait_onnx.py",
+    "atomic_replacement": true,
+    "structural_check": "PASSED",
+    "numerical_parity_check": "PASSED",
+    "max_abs_diff": 0.0,
+    "cosine_similarity": 1.0,
+    "engine_file": "models/engines/bygait_light.onnx",
+    "verification_status": "Verified"
+  },
+  "backend_status": {
+    "requested_backend": "auto",
+    "active_backend": "pytorch",
+    "execution_provider": "PyTorch-CPU",
+    "pytorch_readiness": "PASS",
+    "onnx_readiness": "PASS",
+    "tensorrt_status": "DEFERRED",
+    "fallback_used": true,
+    "fallback_reason": "No module named 'tensorrt'",
+    "verification_status": "Verified"
+  },
+  "unable_to_verify_items": [
+    "Live RTSP Connectivity (requires physical RTSP camera stream)",
+    "Long-duration 24/7 continuous operation stability",
+    "TensorRT GPU acceleration pipeline"
+  ]
+}

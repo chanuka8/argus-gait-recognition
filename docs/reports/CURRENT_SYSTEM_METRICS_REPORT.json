@@ -1,0 +1,118 @@
+{
+  "report_metadata": {
+    "title": "ARGUS AI Complete Master Metrics Audit Report",
+    "timestamp": "2026-07-30T10:37:00+05:30",
+    "commit_hash": "d9aefed6c95def63f01cd3fc4ad2f718cdd1ea13",
+    "working_tree_status": "Dirty (Uncommitted documentation/report suite additions)",
+    "policy": "Zero False Positive Evidence-Based Reporting Policy",
+    "report_suite_index": [
+      "MODEL_ARCHITECTURE_REPORT.json",
+      "BENCHMARK_REPORT.json",
+      "EVALUATION_REPORT.json",
+      "DEPLOYMENT_READINESS_REPORT.json",
+      "BACKEND_REPORT.json",
+      "TEST_SUMMARY_REPORT.json",
+      "SECURITY_INTEGRITY_REPORT.json"
+    ]
+  },
+  "system_info": {
+    "operating_system": "Windows-10-10.0.26200-SP0",
+    "python_version": "3.11.9",
+    "pytorch_version": "2.12.0+cpu",
+    "onnx_runtime_version": "1.28.0",
+    "cuda_available": false,
+    "tensorrt_available": false,
+    "cpu_model": "Intel64 Family 6 Model 186 Stepping 2, GenuineIntel",
+    "cpu_cores": { "physical": 8, "logical": 12 },
+    "system_ram_gb": 7.73,
+    "verification_status": "Verified"
+  },
+  "model_info": {
+    "architecture": "ByGaitLight",
+    "embedding_dimension": 128,
+    "input_tensor_shape": [1, 1, 64, 64],
+    "output_type": "128-d L2-Normalized Vector",
+    "macs": 39886976,
+    "flops": 79773952,
+    "profiling_tool": "thop v2.0.20",
+    "loss_function": "ArcFace (s=30.0, m=0.50)",
+    "checkpoint_path": "runs/exp_001/best_model.pth",
+    "checkpoint_size_mb": 0.73,
+    "onnx_size_mb": 0.48,
+    "total_checkpoint_params": 190207,
+    "trainable_params_total": 189756,
+    "backbone_embedder_params": 126144,
+    "verification_status": "Verified"
+  },
+  "recognition_metrics": {
+    "evaluation_dataset": "CASIA-B Gait Dataset",
+    "evaluation_protocol": "Subject-Disjoint Test Set (50 Unseen Subjects: 075 to 124)",
+    "calibrated_operating_threshold": 0.9913,
+    "closed_set_identification": {
+      "rank1_accuracy": 0.86889,
+      "rank5_accuracy": 0.93961,
+      "rank10_accuracy": 0.95751,
+      "condition_rank1_accuracy": {
+        "NM_normal_walking": 0.96818,
+        "BG_bag_carrying": 0.91233,
+        "CL_coat_wearing": 0.72636
+      },
+      "precision": 0.90017,
+      "recall_tar": 0.95110,
+      "f1_score": 0.92493,
+      "far": 0.69907,
+      "frr": 0.04890
+    },
+    "open_set_verification": {
+      "roc_auc": 0.9150,
+      "equal_error_rate_eer": 0.1688,
+      "eer_threshold": 0.9929,
+      "far_at_operating_threshold": 0.36755,
+      "frr_at_operating_threshold": 0.06271,
+      "tar_at_operating_threshold": 0.93729,
+      "tnr_at_operating_threshold": 0.63245,
+      "precision": 0.67607,
+      "f1_score": 0.78553
+    },
+    "cross_view_evaluation": {
+      "same_view_avg_accuracy": 0.8653,
+      "cross_view_avg_accuracy": 0.7117,
+      "overall_matrix_avg_accuracy": 0.7257
+    },
+    "verification_status": "Verified"
+  },
+  "deployment_metrics": {
+    "requested_backend": "auto",
+    "active_backend": "pytorch",
+    "execution_provider": "PyTorch-CPU",
+    "doctor_status": "READY_FOR_CONTROLLED_CCTV_TESTING",
+    "doctor_exit_code": 0,
+    "onnx_export_parity": "PASSED",
+    "gallery_integrity": "PASSED",
+    "verification_status": "Verified"
+  },
+  "performance_metrics": {
+    "onnx_embedding_latency_ms": { "mean": 0.851, "fps": 1173.82 },
+    "pytorch_embedding_latency_ms": { "mean": 4.331, "fps": 230.77 },
+    "subject_disjoint_bulk_latency_ms": { "mean": 0.270, "fps": 3712.01 },
+    "full_pipeline_latency_ms": { "mean": 90.36, "fps": 11.07 },
+    "crowd_overhead_ms": { "mean": 3.314 },
+    "person_detection_latency_ms": "UNABLE_TO_VERIFY",
+    "person_tracking_latency_ms": "UNABLE_TO_VERIFY"
+  },
+  "test_coverage": {
+    "total_executed": 342,
+    "passed": 341,
+    "skipped": 1,
+    "failed": 0,
+    "warnings": 17,
+    "active_pass_rate_percentage": 100.0,
+    "code_coverage_percentage": "UNABLE_TO_VERIFY"
+  },
+  "security_audit": {
+    "allow_pickle_false": "VERIFIED",
+    "rtsp_credential_sanitization": "VERIFIED",
+    "live_rtsp_stream_security": "UNABLE_TO_VERIFY"
+  },
+  "final_verdict": "READY_FOR_CONTROLLED_CCTV_TESTING"
+}

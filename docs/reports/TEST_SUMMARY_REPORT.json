@@ -1,0 +1,47 @@
+{
+  "report_metadata": {
+    "title": "ARGUS AI Test Summary Audit Report",
+    "timestamp": "2026-07-30T10:37:00+05:30",
+    "commit_hash": "d9aefed6c95def63f01cd3fc4ad2f718cdd1ea13",
+    "working_tree_status": "Dirty (Uncommitted documentation/report suite additions)",
+    "policy": "Zero False Positive Evidence-Based Reporting Policy"
+  },
+  "execution_summary": {
+    "command": ".\\venv\\Scripts\\python.exe -m pytest -q --tb=short",
+    "duration_seconds": 23.45,
+    "total_collected": 342,
+    "total_executed": 342,
+    "passed": 341,
+    "skipped": 1,
+    "failed": 0,
+    "warnings": 17,
+    "active_pass_rate_percentage": 100.0,
+    "pass_rate_formula": "passed / (passed + failed)",
+    "verification_status": "Verified"
+  },
+  "category_breakdown": {
+    "unit_tests_passed": 260,
+    "integration_tests_passed": 65,
+    "security_tests_passed": 16,
+    "deployment_readiness_tests_passed": true,
+    "inference_backend_tests_passed": true,
+    "onnx_export_tests_passed": true,
+    "configuration_tests_passed": true,
+    "doctor_tests_passed": true
+  },
+  "skipped_tests": [
+    {
+      "name": "test_rtsp_reconnection_resilience",
+      "location": "tests/integration/test_pipeline_performance.py",
+      "reason": "Physical network RTSP camera stream unavailable in test environment"
+    }
+  ],
+  "warning_summary": {
+    "bytetrack_deprecation_count": 1,
+    "torchscript_onnx_deprecation_count": 16
+  },
+  "code_coverage": {
+    "coverage_measured": false,
+    "coverage_percentage": "UNABLE_TO_VERIFY"
+  }
+}

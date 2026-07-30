@@ -6,9 +6,10 @@ This repository maintains modular, package-level documentation across all core s
 
 ---
 
-## 1. System Overview & Getting Started
+## 1. System Overview & Audit Reports
 
 - **[Root Repository README](../README.md)**: Main architecture, quickstart guide, core features, and system requirements.
+- **[Audit Reports Directory Index](reports/README.md)**: Complete evidence-based performance, evaluation, benchmark, and security audit report suite.
 - **[Production Deployment Guide](../deployment/README.md)**: Windows background service setup with NSSM, log management, and service control.
 
 ---

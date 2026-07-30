@@ -1,0 +1,59 @@
+{
+  "report_metadata": {
+    "title": "ARGUS AI Model Architecture Audit Report",
+    "timestamp": "2026-07-30T10:37:00+05:30",
+    "commit_hash": "d9aefed6c95def63f01cd3fc4ad2f718cdd1ea13",
+    "working_tree_status": "Dirty (Uncommitted documentation/report suite additions)",
+    "policy": "Zero False Positive Evidence-Based Reporting Policy"
+  },
+  "architecture_summary": {
+    "architecture_name": "ByGaitLight",
+    "input_tensor_shape": [1, 1, 64, 64],
+    "output_tensor_shape": [1, 128],
+    "embedding_dimension": 128,
+    "output_normalization": "L2 Normalization (F.normalize(x, p=2, dim=1))",
+    "embedding_storage_bytes_per_vector": 512,
+    "verification_status": "Verified"
+  },
+  "parameter_counts": {
+    "backbone_embedder_params": 126144,
+    "classifier_head_params": 63612,
+    "trainable_model_params": 189756,
+    "non_trainable_state_buffers": 451,
+    "total_checkpoint_tensor_elements": 190207,
+    "pytorch_checkpoint_size_bytes": 763893,
+    "onnx_file_size_bytes": 505589,
+    "compression_ratio": 1.5109,
+    "verification_status": "Verified"
+  },
+  "flops_and_macs": {
+    "profiling_tool": "thop",
+    "profiling_tool_version": "2.0.20",
+    "input_tensor_shape": [1, 1, 64, 64],
+    "macs_count": 39886976,
+    "flops_count": 79773952,
+    "flops_definition": "2 * MACs",
+    "runs_executed": 2,
+    "runs_consistent": true,
+    "profiler_limitations": "Skips zero-ops (ReLU, MaxPool2d, Sequential); measures Conv2d, BatchNorm2d, AdaptiveAvgPool2d, Linear ops",
+    "verification_status": "Verified"
+  },
+  "training_parameters": {
+    "loss_function": "ArcFace",
+    "arcface_s_scale": 30.0,
+    "arcface_m_margin": 0.50,
+    "subject_split": {
+      "protocol": "Subject-Disjoint",
+      "train_subjects_count": 62,
+      "val_subjects_count": 12,
+      "test_subjects_count": 50
+    },
+    "checkpoint_path": "runs/exp_001/best_model.pth",
+    "verification_status": "Verified"
+  },
+  "limitations": [
+    "Fixed input resolution of 64x64 pixels required",
+    "Single GEI silhouette input rather than multi-frame sequence tensor",
+    "128-dimensional embedding space optimized for low latency rather than multi-million scale galleries"
+  ]
+}

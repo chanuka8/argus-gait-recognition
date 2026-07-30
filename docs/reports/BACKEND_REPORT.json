@@ -1,0 +1,54 @@
+{
+  "report_metadata": {
+    "title": "ARGUS AI Inference Backend Audit Report",
+    "timestamp": "2026-07-30T10:37:00+05:30",
+    "commit_hash": "d9aefed6c95def63f01cd3fc4ad2f718cdd1ea13",
+    "working_tree_status": "Dirty (Uncommitted documentation/report suite additions)",
+    "policy": "Zero False Positive Evidence-Based Reporting Policy"
+  },
+  "backend_policy": {
+    "default_requested_backend": "auto",
+    "selection_cascade": {
+      "auto": ["onnxruntime", "pytorch"],
+      "onnxruntime_allow_fallback_true": ["onnxruntime", "pytorch"],
+      "onnxruntime_allow_fallback_false": ["onnxruntime"],
+      "pytorch": ["pytorch"],
+      "tensorrt_allow_fallback_true": ["tensorrt", "pytorch"]
+    }
+  },
+  "environment_discovery": {
+    "onnx_available_providers": [
+      "AzureExecutionProvider",
+      "CPUExecutionProvider"
+    ],
+    "onnx_selected_provider": "CPUExecutionProvider",
+    "pytorch_execution_target": "PyTorch-CPU",
+    "tensorrt_installed": false,
+    "verification_status": "Verified"
+  },
+  "current_subsystem_backends": {
+    "benchmark_inference_backends": {
+      "requested_backend": "auto",
+      "active_backend": "onnxruntime",
+      "execution_provider": "CPUExecutionProvider",
+      "fallback_used": false
+    },
+    "doctor_health_check": {
+      "requested_backend": "auto",
+      "active_backend": "pytorch",
+      "execution_provider": "PyTorch-CPU",
+      "fallback_used": false
+    },
+    "tensorrt_requested_benchmark": {
+      "requested_backend": "tensorrt",
+      "active_backend": "pytorch",
+      "execution_provider": "PyTorch-CPU",
+      "fallback_used": true,
+      "fallback_reason": "No module named 'tensorrt'"
+    }
+  },
+  "limitations": [
+    "TensorRT GPU acceleration remains deferred in CPU-only host environment",
+    "ONNX engine file enforces static shape (1, 1, 64, 64) for single GEI feature extraction"
+  ]
+}

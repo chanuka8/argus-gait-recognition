@@ -1,0 +1,93 @@
+{
+  "report_metadata": {
+    "title": "ARGUS AI Benchmark Audit Report",
+    "timestamp": "2026-07-30T10:37:00+05:30",
+    "commit_hash": "d9aefed6c95def63f01cd3fc4ad2f718cdd1ea13",
+    "working_tree_status": "Dirty (Uncommitted documentation/report suite additions)",
+    "policy": "Zero False Positive Evidence-Based Reporting Policy"
+  },
+  "hardware_context": {
+    "cpu_model": "Intel64 Family 6 Model 186 Stepping 2, GenuineIntel",
+    "cpu_cores_physical": 8,
+    "cpu_cores_logical": 12,
+    "system_ram_gb": 7.73,
+    "gpu_model": null,
+    "cuda_available": false,
+    "tensorrt_available": false,
+    "operating_system": "Windows-10-10.0.26200-SP0",
+    "python_version": "3.11.9"
+  },
+  "benchmarks": {
+    "onnxruntime_embedding_inference": {
+      "backend": "onnxruntime",
+      "execution_provider": "CPUExecutionProvider",
+      "input_shape": [1, 1, 64, 64],
+      "batch_size": 1,
+      "warmup_iterations": 50,
+      "timed_iterations": 500,
+      "init_latency_ms": 157.859,
+      "mean_latency_ms": 0.851,
+      "p95_latency_ms": 1.002,
+      "throughput_fps": 1173.82,
+      "parity_passed": true,
+      "max_abs_diff": 0.0,
+      "cosine_similarity": 1.0,
+      "verification_status": "Verified"
+    },
+    "pytorch_embedding_inference": {
+      "backend": "pytorch",
+      "execution_provider": "PyTorch-CPU",
+      "input_shape": [1, 1, 64, 64],
+      "batch_size": 1,
+      "warmup_iterations": 50,
+      "timed_iterations": 500,
+      "init_latency_ms": 45.917,
+      "mean_latency_ms": 4.331,
+      "p95_latency_ms": 5.834,
+      "throughput_fps": 230.77,
+      "verification_status": "Verified"
+    },
+    "subject_disjoint_bulk_extraction": {
+      "protocol": "Batched feature extraction during subject-disjoint evaluation",
+      "input_shape": [1, 1, 64, 64],
+      "batch_size": 1,
+      "sample_count": 5466,
+      "mean_latency_ms": 0.270,
+      "throughput_fps": 3712.01,
+      "verification_status": "Verified"
+    },
+    "gallery_search": {
+      "gallery_size_embeddings": 13544,
+      "unique_identities": 124,
+      "load_latency_ms": 12.64,
+      "verification_status": "Verified"
+    },
+    "full_cctv_pipeline": {
+      "protocol": "Integrated single-person video pipeline (Detection + Tracking + GEI + Embedding + Matching)",
+      "input_resolution": "Synthetic video frames",
+      "batch_size": 1,
+      "timed_iterations": 10,
+      "init_latency_ms": 76.78,
+      "single_frame_prediction_ms": 129.24,
+      "mean_latency_ms": 90.36,
+      "min_latency_ms": 85.77,
+      "max_latency_ms": 100.01,
+      "end_to_end_fps": 11.07,
+      "verification_status": "Verified"
+    },
+    "crowd_subsystem_overhead": {
+      "protocol": "Micro-benchmark across 200 frames with 30 active tracks per frame",
+      "sample_count": 6000,
+      "mean_latency_ms": 3.314,
+      "median_latency_ms": 3.069,
+      "p95_latency_ms": 5.062,
+      "memory_growth_bytes": 0,
+      "verification_status": "Verified"
+    }
+  },
+  "unmeasurable_subsystems": {
+    "standalone_detector_fps": "UNABLE_TO_VERIFY",
+    "standalone_tracker_fps": "UNABLE_TO_VERIFY",
+    "tensorrt_gpu_throughput": "UNABLE_TO_VERIFY"
+  }
+}

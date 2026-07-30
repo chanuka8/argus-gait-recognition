@@ -1,0 +1,72 @@
+{
+  "report_metadata": {
+    "title": "ARGUS AI Evaluation Audit Report",
+    "timestamp": "2026-07-30T10:37:00+05:30",
+    "commit_hash": "d9aefed6c95def63f01cd3fc4ad2f718cdd1ea13",
+    "working_tree_status": "Dirty (Uncommitted documentation/report suite additions)",
+    "policy": "Zero False Positive Evidence-Based Reporting Policy"
+  },
+  "dataset_and_protocol": {
+    "dataset_name": "CASIA-B Gait Dataset",
+    "protocol_type": "Subject-Disjoint",
+    "subject_counts": {
+      "train": 62,
+      "val": 12,
+      "test": 50
+    },
+    "gallery_sample_count": 2171,
+    "probe_sample_count": 3295,
+    "similarity_metric": "Cosine Similarity (Dot product of L2-normalized 128-d vectors)"
+  },
+  "threshold_calibration": {
+    "criterion_used": "min_eer",
+    "calibration_split": "Validation Subjects (063-074)",
+    "selected_threshold": 0.9913,
+    "total_val_probes": 792,
+    "verification_status": "Verified"
+  },
+  "closed_set_metrics": {
+    "test_subjects_count": 50,
+    "rank1_accuracy": 0.86889,
+    "rank5_accuracy": 0.93961,
+    "rank10_accuracy": 0.95751,
+    "precision": 0.90017,
+    "recall_tar": 0.95110,
+    "f1_score": 0.92493,
+    "far": 0.69907,
+    "frr": 0.04890,
+    "condition_wise_rank1": {
+      "NM_normal_walking": 0.96818,
+      "BG_bag_carrying": 0.91233,
+      "CL_coat_wearing": 0.72636
+    },
+    "verification_status": "Verified"
+  },
+  "open_set_metrics": {
+    "known_test_subjects": 25,
+    "unknown_test_subjects": 25,
+    "roc_auc": 0.9150,
+    "equal_error_rate_eer": 0.1688,
+    "eer_threshold": 0.9929,
+    "far_at_operating_threshold": 0.36755,
+    "frr_at_operating_threshold": 0.06271,
+    "tar_at_operating_threshold": 0.93729,
+    "tnr_at_operating_threshold": 0.63245,
+    "precision": 0.67607,
+    "f1_score": 0.78553,
+    "verification_status": "Verified"
+  },
+  "cross_view_metrics": {
+    "view_angles_count": 11,
+    "same_view_avg_accuracy": 0.8653,
+    "cross_view_avg_accuracy": 0.7117,
+    "overall_matrix_avg_accuracy": 0.7257,
+    "verification_status": "Verified"
+  },
+  "protocol_warnings_and_limitations": [
+    "Closed-set FAR represents forced choice among known identities at 0.9913 threshold",
+    "Open-set metrics are the appropriate evidence for unknown-person rejection capability",
+    "CASIA-B laboratory performance does not prove real-world CCTV field performance without field validation",
+    "Coat wearing (CL) causes a performance reduction to 72.64% due to silhouette deformation"
+  ]
+}

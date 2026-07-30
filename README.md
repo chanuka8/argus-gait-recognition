@@ -89,6 +89,32 @@ The repository includes a dedicated ONNX export and verification pipeline ([scri
 
 ---
 
+## Verified System Metrics & Audit Reports
+
+The repository contains an empirical, evidence-grounded audit suite generated under [docs/reports/](docs/reports/README.md).
+
+### Verified System Snapshot
+
+- **Subject-Disjoint Rank-1 Accuracy**: **86.89%** ([EVALUATION_REPORT.md](docs/reports/EVALUATION_REPORT.md))
+- **Subject-Disjoint Rank-5 Accuracy**: **93.96%** ([EVALUATION_REPORT.md](docs/reports/EVALUATION_REPORT.md))
+- **Open-Set ROC AUC**: **0.9150** | **EER**: **16.88%** ([EVALUATION_REPORT.md](docs/reports/EVALUATION_REPORT.md))
+- **ONNX Embedding Latency**: **0.851 ms** / **1,173.82 FPS** (Intel CPU, ONNX Runtime, Batch Size 1, $64 \times 64$, [BENCHMARK_REPORT.md](docs/reports/BENCHMARK_REPORT.md))
+- **Full Pipeline Latency**: **90.36 ms** / **11.07 FPS** (Intel CPU, PyTorch, End-to-End single person, [BENCHMARK_REPORT.md](docs/reports/BENCHMARK_REPORT.md))
+- **Deployment Readiness Status**: **`READY_FOR_CONTROLLED_CCTV_TESTING`** ([DEPLOYMENT_READINESS_REPORT.md](docs/reports/DEPLOYMENT_READINESS_REPORT.md))
+
+### Modular Audit Suite Links
+
+- **[Master Metrics Audit Report](docs/reports/CURRENT_SYSTEM_METRICS_REPORT.md)** ([JSON](docs/reports/CURRENT_SYSTEM_METRICS_REPORT.json))
+- **[Model Architecture Report](docs/reports/MODEL_ARCHITECTURE_REPORT.md)** (FLOPs: 79.77M / MACs: 39.89M, 126K backbone / 190K total params, ArcFace)
+- **[Benchmark Report](docs/reports/BENCHMARK_REPORT.md)** (Isolated ONNX/PyTorch embedding, pipeline latency, crowd overhead)
+- **[Evaluation Report](docs/reports/EVALUATION_REPORT.md)** (Subject-disjoint Rank-1, Rank-5, NM/BG/CL breakdowns, Open-set ROC AUC, Cross-view matrix)
+- **[Deployment Readiness Report](docs/reports/DEPLOYMENT_READINESS_REPORT.md)** (System doctor health status, exit code 0, 16/16 checks passed)
+- **[Inference Backend Report](docs/reports/BACKEND_REPORT.md)** (Backend selection policy `auto`, fallback cascade)
+- **[Test Summary Report](docs/reports/TEST_SUMMARY_REPORT.md)** (PyTest: 341 Passed, 1 Skipped, 0 Failed across 342 tests)
+- **[Security & Data Integrity Report](docs/reports/SECURITY_INTEGRITY_REPORT.md)** (`allow_pickle=False` controls, RTSP masking, VectorStore security)
+
+---
+
 ## Capabilities & Implementation Matrix
 
 | Capability | Implementation Status | Default State | Reference Source |
