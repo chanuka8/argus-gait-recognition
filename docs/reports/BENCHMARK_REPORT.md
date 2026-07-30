@@ -75,7 +75,7 @@
 | :--- | :--- | :--- | :--- | :--- |
 | **Gallery Load Time** | **12.64 ms** (`0.0126 s`) | Measured | 13,544 embeddings loaded from disk | **Verified** |
 | **Gallery Identities** | 124 unique subjects | Measured | Live gallery metadata | **Verified** |
-| **Gallery Total Vectors** | 13,544 Float32 128-d vectors | Measured | Live gallery feature matrix | **Verified** |
+| **Gallery Total Vectors** | 13,544 Float32 256-d vectors | Measured | Live gallery feature matrix | **Verified** |
 
 ### 2.5 Full End-to-End CCTV Pipeline Performance
 

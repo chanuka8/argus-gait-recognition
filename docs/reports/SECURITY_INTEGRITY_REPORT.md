@@ -22,9 +22,9 @@
 | Security Domain | Control Implementation | Audit Evidence / Source | Verification Status |
 | :--- | :--- | :--- | :--- |
 | **Pickle Security (`allow_pickle`)** | `allow_pickle=False` strictly enforced across all NumPy file loads | [security_layer.py](../../security_layer/pickle_protection.py) & 16 security tests | **VERIFIED** |
-| **Gallery Tensor Validation** | Strict shape `(N, 128)`, `float32` dtype, and NaN/Inf rejection | `storage/gallery_storage.py` | **VERIFIED** |
+| **Gallery Tensor Validation** | Strict shape `(N, 256)`, `float32` dtype, and NaN/Inf rejection | `storage/gallery_storage.py` | **VERIFIED** |
 | **Credential Sanitization** | Regex stripping of inline RTSP passwords from log outputs | [sanitizer.py](../../security_layer/sanitizer.py) | **VERIFIED** |
-| **VectorStore Validation** | Query bounds checking and 128-d input dimension verification | `storage/vector_store.py` | **VERIFIED** |
+| **VectorStore Validation** | Query bounds checking and 256-d input dimension verification | `storage/vector_store.py` | **VERIFIED** |
 | **Secrets Management** | Zero hardcoded API keys, passwords, or tokens in codebase | Codebase search scan | **VERIFIED** |
 | **Doctor Safety Policy** | `scripts/doctor.py` performs non-destructive read-only health checks | [doctor.py](../../scripts/doctor.py) | **VERIFIED** |
 | **Report Output Isolation** | Generated reports written strictly to `outputs/reports` and `docs/reports` | System output inspection | **VERIFIED** |

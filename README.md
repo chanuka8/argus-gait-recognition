@@ -100,7 +100,7 @@ The repository contains an empirical, evidence-grounded audit suite generated un
 - **Open-Set ROC AUC**: **0.9150** | **EER**: **16.88%** ([EVALUATION_REPORT.md](docs/reports/EVALUATION_REPORT.md))
 - **ONNX Embedding Latency**: **0.851 ms** / **1,173.82 FPS** (Intel CPU, ONNX Runtime, Batch Size 1, $64 \times 64$, [BENCHMARK_REPORT.md](docs/reports/BENCHMARK_REPORT.md))
 - **Full Pipeline Latency**: **90.36 ms** / **11.07 FPS** (Intel CPU, PyTorch, End-to-End single person, [BENCHMARK_REPORT.md](docs/reports/BENCHMARK_REPORT.md))
-- **Deployment Readiness Status**: **`READY_FOR_CONTROLLED_CCTV_TESTING`** ([DEPLOYMENT_READINESS_REPORT.md](docs/reports/DEPLOYMENT_READINESS_REPORT.md))
+- **Deployment Readiness Status**: **`READY_FOR_CONTROLLED_GAIT_RECOGNITION_TESTING`** ([DEPLOYMENT_READINESS_REPORT.md](docs/reports/DEPLOYMENT_READINESS_REPORT.md))
 
 ### Modular Audit Suite Links
 
@@ -422,9 +422,9 @@ python -m pytest -q
 ### Verified Validation Status
 
 - **✓ Linter Compliance**: `ruff check .` passed with 0 errors.
-- **✓ Full Test Suite**: **341 passed**, 1 skipped (342 total test items).
+- **✓ Full Test Suite**: **366 passed**, 1 skipped (367 total test items).
 - **✓ Documentation Alignment**: `sync_folder_readmes.py --check` clean across all 19 package & script folders.
-- **✓ Deployment Readiness**: `doctor.py` status `READY_FOR_CONTROLLED_CCTV_TESTING` (Exit Code 0).
+- **✓ Deployment Readiness**: `doctor.py` status `READY_FOR_CONTROLLED_GAIT_RECOGNITION_TESTING` (Exit Code 0).
 
 ---
 
@@ -432,7 +432,9 @@ python -m pytest -q
 
 Current qualitative implementation status based on evidence-based health checks:
 
-`READY_FOR_CONTROLLED_CCTV_TESTING`
+`READY_FOR_CONTROLLED_GAIT_RECOGNITION_TESTING`
+
+*Note: The system is ready for controlled real-world gait recognition and body-tracking validation using CCTV or recorded video inputs. It is not a CCTV control or camera-management system.*
 
 - [x] YOLOv8 person detection & ByteTrack multi-object tracking
 - [x] Silhouette segmentation and Live GEI 30-frame sequence builder

@@ -1,6 +1,6 @@
 # ARGUS AI Production Deployment Guide
 
-This directory contains scripts and configurations for deploying ARGUS AI as an always-running background service on Windows environments.
+This directory contains scripts, modules, and configurations for deploying ARGUS AI as an always-running background service and native deployment package on Windows environments.
 
 ## Overview
 
@@ -10,6 +10,20 @@ Key Features:
 - **Automatic System Boot Start**: Starts automatically when Windows boots up without requiring user login.
 - **Crash Recovery**: Automatic restart on worker or process failures.
 - **Log Management**: Redirects stdout/stderr to standard rotating log files in `outputs/logs/system/`.
+- **Deployment Hardening Suite**: Integrated runtime manifest separation, startup health validation, backend startup summary formatting, build/version metadata tracking, and idempotent graceful shutdown.
+
+> [!NOTE]
+> **System Scope**: The system is ready for controlled real-world gait recognition and body-tracking validation using CCTV or recorded video inputs. It is not a CCTV control or camera-management system.
+
+---
+
+## Deployment Hardening Modules
+
+- [runtime_manifest.py](runtime_manifest.py): Build vs runtime asset separator ([runtime_manifest.json](runtime_manifest.json), [runtime_manifest.md](runtime_manifest.md)).
+- [startup_validator.py](startup_validator.py): Pre-flight deployment health validator emitting approved status codes.
+- [backend_summary.py](backend_summary.py): Formats and logs single-emit backend startup summaries.
+- [build_metadata.py](build_metadata.py): Extracts git version, build, configuration fingerprint, and runtime metadata contracts.
+- [shutdown_manager.py](shutdown_manager.py): Coordinates graceful, idempotent process teardown upon SIGINT/SIGTERM or stop requests.
 
 ---
 
@@ -82,6 +96,16 @@ Run PowerShell as **Administrator**:
 
 ```powershell
 .\deployment\uninstall_service.ps1
+```
+
+---
+
+## Automated Deployment Smoke Test
+
+Run non-destructive automated deployment smoke testing before service start:
+
+```bash
+python scripts/smoke_test_deployment.py
 ```
 
 ---

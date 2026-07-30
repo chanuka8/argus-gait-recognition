@@ -96,7 +96,7 @@ Evaluation across **11 camera viewing angles** ($000^\circ, 018^\circ, 036^\circ
 | **Same-View Average** | **86.53%** | Measured | `cross_view_report.json` | **Verified** |
 | **Cross-View Average** | **71.17%** | Measured | `cross_view_report.json` (Excl. same view) | **Verified** |
 | **Overall Matrix Average** | **72.57%** | Measured | `cross_view_report.json` (Full 11x11 matrix) | **Verified** |
-| **Similarity Metric** | Cosine Similarity | Configured | Dot product of L2 normalized 128-d vectors | **Verified** |
+| **Similarity Metric** | Cosine Similarity | Configured | Dot product of L2 normalized 256-d vectors | **Verified** |
 
 ---
 

@@ -54,9 +54,9 @@ No metrics were estimated, fabricated, or assumed. Metrics that could not be mea
 | Parameter / Property | Value | Type | Source File / Checkpoint | Verification Status |
 | :--- | :--- | :--- | :--- | :--- |
 | **Architecture Name** | `ByGaitLight` | Configured | [bygait_light.py](../../models/architectures/bygait_light.py) | **Verified** |
-| **Embedding Dimension** | `128` | Configured | [bygait_light.py](../../models/architectures/bygait_light.py) | **Verified** |
+| **Embedding Dimension** | `256` | Configured | [bygait_light.py](../../models/architectures/bygait_light.py) | **Verified** |
 | **Input Tensor Shape** | `(1, 1, 64, 64)` | Configured | [model_config.yaml](../../configs/model_config.yaml) | **Verified** |
-| **Output Representation** | `128-d L2-Normalized Vector` | Configured | [bygait_light.py](../../models/architectures/bygait_light.py) | **Verified** |
+| **Output Representation** | `256-d L2-Normalized Vector` | Configured | [bygait_light.py](../../models/architectures/bygait_light.py) | **Verified** |
 | **Normalization Method** | `L2 Normalization` (`F.normalize(x, p=2, dim=1)`) | Configured | [bygait_light.py](../../models/architectures/bygait_light.py) | **Verified** |
 | **FLOPs / MACs** | 79.77 M FLOPs / 39.89 M MACs | Measured | `thop` v2.0.20 ($2 \times \text{MACs}$) | **Verified** |
 | **Loss Function** | `ArcFace` ($s=30.0, m=0.50$) | Configured | [losses.py](../../training/losses.py) | **Verified** |
@@ -116,11 +116,11 @@ No metrics were estimated, fabricated, or assumed. Metrics that could not be mea
 | **Active Backend** | `pytorch` | Smoke test passed with PyTorch-CPU | **Verified** |
 | **ONNX Readiness** | **PASS** | ONNX engine at `models/engines/bygait_light.onnx` verified | **Verified** |
 | **PyTorch Readiness** | **PASS** | Checkpoint at `runs/exp_001/best_model.pth` verified | **Verified** |
-| **Doctor Status** | **`READY_FOR_CONTROLLED_CCTV_TESTING`** | Exit code: 0, 0 blocking issues, 0 warnings | **Verified** |
+| **Doctor Status** | **`READY_FOR_CONTROLLED_GAIT_RECOGNITION_TESTING`** | Exit code: 0, 0 blocking issues, 0 warnings | **Verified** |
 | **Startup Validation** | **PASS** | All 16 checks passed cleanly | **Verified** |
 | **Gallery Validation** | **PASS** | 13,544 embeddings (`.npy`, `allow_pickle=False`) | **Verified** |
 | **Configuration Validation** | **PASS** | All YAML config files parsed and validated | **Verified** |
-| **Deployment Readiness Verdict** | **`READY_FOR_CONTROLLED_CCTV_TESTING`** | Full health report status | **Verified** |
+| **Deployment Readiness Verdict** | **`READY_FOR_CONTROLLED_GAIT_RECOGNITION_TESTING`** | Full health report status | **Verified** |
 
 ---
 
@@ -183,7 +183,7 @@ No metrics were estimated, fabricated, or assumed. Metrics that could not be mea
 | **Recognition (Open-Set)** | **PASS** | ROC AUC: 0.9150, EER: 16.88% | [x] | [ ] | [ ] |
 | **ONNX Inference Latency** | **PASS** | 0.851 ms / 1,173.82 FPS (Embedding-only) | [x] | [ ] | [ ] |
 | **Pipeline Latency** | **PASS** | 90.36 ms / 11.07 FPS (Full end-to-end) | [x] | [ ] | [ ] |
-| **Deployment Readiness** | **PASS** | `doctor.py` Status: `READY_FOR_CONTROLLED_CCTV_TESTING` | [x] | [ ] | [ ] |
+| **Deployment Readiness** | **PASS** | `doctor.py` Status: `READY_FOR_CONTROLLED_GAIT_RECOGNITION_TESTING` | [x] | [ ] | [ ] |
 | **ONNX Export Parity** | **PASS** | Max Abs Diff: 0.000000, Structural Check Passed | [x] | [ ] | [ ] |
 | **Gallery Integrity** | **PASS** | 13,544 Embeddings loaded cleanly (`allow_pickle=False`)| [x] | [ ] | [ ] |
 | **Test Suite Coverage** | **PASS** | 341 Passed / 1 Skipped / 0 Failed | [x] | [ ] | [ ] |
@@ -192,4 +192,4 @@ No metrics were estimated, fabricated, or assumed. Metrics that could not be mea
 | **TensorRT Acceleration** | **UNABLE_TO_VERIFY** | No CUDA/TensorRT environment detected | [ ] | [ ] | [x] |
 
 ---
-**Final Verdict:** `READY_FOR_CONTROLLED_CCTV_TESTING`
+**Final Verdict:** `READY_FOR_CONTROLLED_GAIT_RECOGNITION_TESTING`

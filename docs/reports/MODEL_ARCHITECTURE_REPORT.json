@@ -9,10 +9,10 @@
   "architecture_summary": {
     "architecture_name": "ByGaitLight",
     "input_tensor_shape": [1, 1, 64, 64],
-    "output_tensor_shape": [1, 128],
-    "embedding_dimension": 128,
+    "output_tensor_shape": [1, 256],
+    "embedding_dimension": 256,
     "output_normalization": "L2 Normalization (F.normalize(x, p=2, dim=1))",
-    "embedding_storage_bytes_per_vector": 512,
+    "embedding_storage_bytes_per_vector": 1024,
     "verification_status": "Verified"
   },
   "parameter_counts": {
@@ -54,6 +54,6 @@
   "limitations": [
     "Fixed input resolution of 64x64 pixels required",
     "Single GEI silhouette input rather than multi-frame sequence tensor",
-    "128-dimensional embedding space optimized for low latency rather than multi-million scale galleries"
+    "256-dimensional embedding space optimized for low latency rather than multi-million scale galleries"
   ]
 }

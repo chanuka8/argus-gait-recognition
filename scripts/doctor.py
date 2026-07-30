@@ -23,7 +23,7 @@ if str(ROOT) not in sys.path:
 from storage.vector_store import validate_gallery_files
 from utils.config_validator import ConfigValidator, sanitize_rtsp_url
 
-STATUS_READY = "READY_FOR_CONTROLLED_CCTV_TESTING"
+STATUS_READY = "READY_FOR_CONTROLLED_GAIT_RECOGNITION_TESTING"
 STATUS_WARNINGS = "READY_WITH_WARNINGS"
 STATUS_NOT_READY = "NOT_READY"
 STATUS_UNABLE = "UNABLE_TO_VERIFY"

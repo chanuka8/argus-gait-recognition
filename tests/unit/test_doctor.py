@@ -21,7 +21,7 @@ def test_doctor_execution_and_health_report(tmp_path: Path):
     assert json_path.exists()
     assert md_path.exists()
     assert report_data["overall_status"] in {
-        "READY_FOR_CONTROLLED_CCTV_TESTING",
+        "READY_FOR_CONTROLLED_GAIT_RECOGNITION_TESTING",
         "READY_WITH_WARNINGS",
         "NOT_READY",
         "UNABLE_TO_VERIFY",

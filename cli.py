@@ -912,6 +912,9 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
+    from deployment.shutdown_manager import get_shutdown_manager
+    get_shutdown_manager().register_signal_handlers()
+
     parser = build_parser()
     args = parser.parse_args()
 

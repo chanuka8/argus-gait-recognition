@@ -16,10 +16,10 @@ The core embedding architecture of ARGUS AI is **ByGaitLight**, a lightweight co
 | :--- | :--- | :--- | :--- | :--- |
 | **Architecture Name** | `ByGaitLight` | Configured | [bygait_light.py](../../models/architectures/bygait_light.py) | **Verified** |
 | **Input Tensor Shape** | `(1, 1, 64, 64)` | Configured | [model_config.yaml](../../configs/model_config.yaml) | **Verified** |
-| **Output Tensor Shape** | `(1, 128)` | Configured | [bygait_light.py](../../models/architectures/bygait_light.py) | **Verified** |
-| **Embedding Dimension** | `128` | Configured | [bygait_light.py](../../models/architectures/bygait_light.py) | **Verified** |
+| **Output Tensor Shape** | `(1, 256)` | Configured | [bygait_light.py](../../models/architectures/bygait_light.py) | **Verified** |
+| **Embedding Dimension** | `256` | Configured | [bygait_light.py](../../models/architectures/bygait_light.py) | **Verified** |
 | **Output Normalization** | `L2 Normalization` (`F.normalize(x, p=2, dim=1)`) | Configured | [bygait_light.py](../../models/architectures/bygait_light.py) | **Verified** |
-| **Embedding Storage Size** | `512 bytes` (128 x Float32 values) | Derived | $128 \times 4\text{ bytes}$ | **Verified** |
+| **Embedding Storage Size** | `1024 bytes` (256 x Float32 values) | Derived | $256 \times 4\text{ bytes}$ | **Verified** |
 
 ---
 
@@ -35,7 +35,7 @@ Input Tensor (1, 1, 64, 64)
   ├── Block 3: Conv2d(64 -> 128, kernel=3, padding=1) ──> BatchNorm2d(128) ──> ReLU                     [Output: 128 x 16 x 16]
   ├── Global Pool: AdaptiveAvgPool2d((1, 1))                                                            [Output: 128 x 1 x 1]
   ├── Flatten: Flatten(start_dim=1)                                                                    [Output: 128]
-  └── Projection: Linear(128 -> 128) ──> L2 Normalization                                              [Output: 128]
+  └── Projection: Linear(128 -> 256) ──> L2 Normalization                                              [Output: 256]
 ```
 
 ---
@@ -87,7 +87,7 @@ Profiling was conducted using the installed `thop` package.
 
 - **Resolution Sensitivity:** Fixed input size of $64 \times 64$; silhouettes must be cropped and resized prior to embedding.
 - **Single Silhouette Input:** Takes a 2D Gait Energy Image (GEI) frame rather than a 3D video sequence tensor.
-- **Feature Capacity:** Compact 128-dimensional embedding space optimized for low latency rather than extreme multi-million identity galleries.
+- **Feature Capacity:** Compact 256-dimensional embedding space optimized for low latency rather than extreme multi-million identity galleries.
 
 ---
 **Status:** `VERIFIED - MODEL ARCHITECTURE AUDITED`

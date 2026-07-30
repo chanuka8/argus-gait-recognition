@@ -1,6 +1,9 @@
 from core.boot import BootManager
 from core.logger import setup_logger
 from core.orchestrator import Orchestrator
+from deployment.backend_summary import BackendStartupSummary
+from deployment.shutdown_manager import get_shutdown_manager
+from deployment.startup_validator import DeploymentStartupValidator
 
 
 class ArgusSystem:
@@ -9,9 +12,27 @@ class ArgusSystem:
         self.logger = setup_logger("ARGUS.System")
         self.boot_manager = BootManager()
         self.orchestrator = Orchestrator(mode=self.mode)
+        self.shutdown_manager = get_shutdown_manager()
 
     def start(self) -> None:
+        # Register signal handlers for graceful SIGINT/SIGTERM handling
+        self.shutdown_manager.register_signal_handlers()
+
         self.logger.info(f"Starting ARGUS system in {self.mode} mode")
+
+        # 1. Pre-flight startup health validation
+        validator = DeploymentStartupValidator()
+        startup_summary = validator.validate_startup(raise_on_failure=True)
+        self.logger.info(f"Startup health validation status: {startup_summary['status']}")
+
+        # 2. Emit structured backend startup summary
+        backend = startup_summary.get("backend")
+        if backend is not None:
+            summary_obj = BackendStartupSummary(
+                backend=backend,
+                startup_status=startup_summary.get("status", "READY_FOR_CONTROLLED_GAIT_RECOGNITION_TESTING"),
+            )
+            summary_obj.emit(print_cli=True)
 
         config = self.boot_manager.boot()
 

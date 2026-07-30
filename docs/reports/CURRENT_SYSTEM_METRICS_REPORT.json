@@ -29,9 +29,9 @@
   },
   "model_info": {
     "architecture": "ByGaitLight",
-    "embedding_dimension": 128,
+    "embedding_dimension": 256,
     "input_tensor_shape": [1, 1, 64, 64],
-    "output_type": "128-d L2-Normalized Vector",
+    "output_type": "256-d L2-Normalized Vector",
     "macs": 39886976,
     "flops": 79773952,
     "profiling_tool": "thop v2.0.20",
@@ -85,7 +85,7 @@
     "requested_backend": "auto",
     "active_backend": "pytorch",
     "execution_provider": "PyTorch-CPU",
-    "doctor_status": "READY_FOR_CONTROLLED_CCTV_TESTING",
+    "doctor_status": "READY_FOR_CONTROLLED_GAIT_RECOGNITION_TESTING",
     "doctor_exit_code": 0,
     "onnx_export_parity": "PASSED",
     "gallery_integrity": "PASSED",
@@ -114,5 +114,5 @@
     "rtsp_credential_sanitization": "VERIFIED",
     "live_rtsp_stream_security": "UNABLE_TO_VERIFY"
   },
-  "final_verdict": "READY_FOR_CONTROLLED_CCTV_TESTING"
+  "final_verdict": "READY_FOR_CONTROLLED_GAIT_RECOGNITION_TESTING"
 }

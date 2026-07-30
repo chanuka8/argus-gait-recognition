@@ -13,9 +13,9 @@
 
 > [!IMPORTANT]
 > **Approved System Deployment Verdict:**
-> **`READY_FOR_CONTROLLED_CCTV_TESTING`**
+> **`READY_FOR_CONTROLLED_GAIT_RECOGNITION_TESTING`**
 > 
-> *Constraint Note:* The system status **MUST NOT** be simplified or described as "production-ready", "enterprise-ready", "24/7-ready", or "airport-ready". Controlled CCTV field testing is required prior to production deployment.
+> *Scope & Constraint Note:* The system is ready for controlled real-world gait recognition and body-tracking validation using CCTV or recorded video inputs. It is not a CCTV control or camera-management system. The system status **MUST NOT** be simplified or described as "production-ready", "enterprise-ready", "24/7-ready", or "airport-ready". Controlled gait recognition field testing is required prior to production deployment.
 
 ---
 
@@ -73,4 +73,4 @@ Execution of `scripts/doctor.py` returned an exit code of `0` with zero blocking
 - **TensorRT GPU Acceleration:** `UNABLE_TO_VERIFY` (Requires NVIDIA GPU and TensorRT execution provider environment).
 
 ---
-**Status:** `READY_FOR_CONTROLLED_CCTV_TESTING`
+**Status:** `READY_FOR_CONTROLLED_GAIT_RECOGNITION_TESTING`

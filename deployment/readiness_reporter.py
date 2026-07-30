@@ -18,7 +18,7 @@ from utils.config_validator import ConfigValidator, sanitize_rtsp_url
 
 SCHEMA_VERSION = "1.0.0"
 ALLOWED_OVERALL_STATUSES = {
-    "READY_FOR_CONTROLLED_CCTV_TESTING",
+    "READY_FOR_CONTROLLED_GAIT_RECOGNITION_TESTING",
     "READY_WITH_WARNINGS",
     "NOT_READY",
     "UNABLE_TO_VERIFY",
@@ -50,7 +50,7 @@ class DeploymentReadinessReporter:
         elif warnings:
             overall_status = "READY_WITH_WARNINGS"
         else:
-            overall_status = "READY_FOR_CONTROLLED_CCTV_TESTING"
+            overall_status = "READY_FOR_CONTROLLED_GAIT_RECOGNITION_TESTING"
 
         assert overall_status in ALLOWED_OVERALL_STATUSES
 

@@ -16,7 +16,7 @@
     },
     "gallery_sample_count": 2171,
     "probe_sample_count": 3295,
-    "similarity_metric": "Cosine Similarity (Dot product of L2-normalized 128-d vectors)"
+    "similarity_metric": "Cosine Similarity (Dot product of L2-normalized 256-d vectors)"
   },
   "threshold_calibration": {
     "criterion_used": "min_eer",
