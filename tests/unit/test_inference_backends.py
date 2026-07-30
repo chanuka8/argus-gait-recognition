@@ -76,8 +76,16 @@ def test_onnx_export_script_execution(tmp_path: Path):
         output_onnx_path=str(onnx_file),
         precision="fp32",
     )
-    assert success is True
-    assert onnx_file.exists()
+    import importlib.util
+    has_onnx = (importlib.util.find_spec("onnx") is not None) and (importlib.util.find_spec("onnxruntime") is not None)
+
+    if has_onnx:
+        assert success is True
+        assert onnx_file.exists()
+    else:
+        assert success is False
+
+
 
 
 def test_strict_onnx_mode_no_fallback_when_disabled(tmp_path: Path):

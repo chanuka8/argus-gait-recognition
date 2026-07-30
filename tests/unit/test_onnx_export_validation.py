@@ -44,6 +44,10 @@ def test_onnx_export_atomic_replacement_and_reports(tmp_path: Path):
     json_report = tmp_path / "onnx_validation.json"
     md_report = tmp_path / "onnx_validation.md"
 
+    import importlib.util
+    has_onnx = (importlib.util.find_spec("onnx") is not None) and (importlib.util.find_spec("onnxruntime") is not None)
+
+
     success = export_onnx(
         model_path=str(ckpt_file),
         output_onnx_path=str(target_onnx),
@@ -51,23 +55,30 @@ def test_onnx_export_atomic_replacement_and_reports(tmp_path: Path):
         report_md_path=str(md_report),
     )
 
-    assert success is True
-    assert target_onnx.exists()
     assert json_report.exists()
     assert md_report.exists()
 
     with open(json_report, encoding="utf-8") as f:
         data = json.load(f)
 
-    assert data["export_succeeded"] is True
-    assert data["onnx_model_valid"] is True
-    assert data["numerical_parity_passed"] is True
-    assert data["input_shape"] == [1, 1, 64, 128]
-    assert data["output_shape"] == [1, 256]
+    assert data["checkpoint_exists"] is True
+
+    if has_onnx:
+        assert success is True
+        assert target_onnx.exists()
+        assert data["export_succeeded"] is True
+        assert data["onnx_model_valid"] is True
+        assert data["numerical_parity_passed"] is True
+        assert data["input_shape"] == [1, 1, 64, 128]
+        assert data["output_shape"] == [1, 256]
+    else:
+        assert success is False
+        assert data["export_succeeded"] is False
 
     # Confirm temp file was cleaned up
     tmp_file = target_onnx.with_name(f"{target_onnx.name}.tmp")
     assert not tmp_file.exists()
+
 
 
 def test_onnx_export_failure_preserves_sha256_bytes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
