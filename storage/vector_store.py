@@ -1,8 +1,10 @@
 import json
-import time
 from pathlib import Path
+import time
+from typing import Optional, Tuple, Union
 
 import numpy as np
+
 
 
 class VectorStore:
@@ -173,3 +175,71 @@ class VectorStore:
             labels,
             metadata,
         )
+
+
+def validate_gallery_files(
+    gallery_dir: Union[str, Path] = "models/gallery",
+    expected_dim: int = 256,
+) -> Tuple[bool, Optional[str], int]:
+    """
+    Validate gallery feature and label files safely using allow_pickle=False.
+
+    Checks:
+        - File existence
+        - allow_pickle=False safe loading
+        - Non-object numeric feature array
+        - Finite features (no NaN, no Inf)
+        - Shape (N, D) matching expected_dim
+        - 1D labels (N,) with matching N count
+
+    Returns:
+        (is_valid, error_message, count)
+    """
+    g_dir = Path(gallery_dir)
+    feats_file = g_dir / "gallery_features.npy"
+    lbls_file = g_dir / "gallery_labels.npy"
+
+    if not feats_file.exists() or not lbls_file.exists():
+        return False, f"Gallery files missing in {g_dir.as_posix()}", 0
+
+    try:
+        features = np.load(feats_file, allow_pickle=False)
+    except Exception as err:
+        err_msg = str(err)
+        if "pickle" in err_msg.lower() or "object arrays" in err_msg.lower():
+            return False, f"Gallery features file '{feats_file.name}' requires pickle deserialization, which is prohibited.", 0
+        return False, f"Failed to load gallery features file '{feats_file.name}': {err}", 0
+
+    try:
+        labels = np.load(lbls_file, allow_pickle=False)
+    except Exception as err:
+        err_msg = str(err)
+        if "pickle" in err_msg.lower() or "object arrays" in err_msg.lower():
+            return False, f"Gallery labels file '{lbls_file.name}' requires pickle deserialization, which is prohibited.", 0
+        return False, f"Failed to load gallery labels file '{lbls_file.name}': {err}", 0
+
+    if features.dtype == object or features.dtype.kind == "O":
+        return False, f"Gallery features array in '{feats_file.name}' has invalid object dtype ({features.dtype}). Only numeric dtypes are allowed.", 0
+
+    if labels.dtype == object or labels.dtype.kind == "O":
+        return False, f"Gallery labels array in '{lbls_file.name}' has invalid object dtype ({labels.dtype}). Only string or numeric dtypes are allowed.", 0
+
+    if not np.issubdtype(features.dtype, np.number):
+        return False, f"Gallery features array must be numeric, got {features.dtype}.", 0
+
+    if features.ndim != 2:
+        return False, f"Gallery features array must be 2-dimensional (N, D), got shape {features.shape}.", 0
+
+    if features.shape[1] != expected_dim:
+        return False, f"Gallery feature dimension mismatch: expected {expected_dim}, got {features.shape[1]}.", 0
+
+    if labels.ndim != 1:
+        return False, f"Gallery labels array must be 1-dimensional (N,), got shape {labels.shape}.", 0
+
+    if len(features) != len(labels):
+        return False, f"Mismatch between features count ({len(features)}) and labels count ({len(labels)}).", 0
+
+    if not np.isfinite(features).all():
+        return False, f"Gallery features file '{feats_file.name}' contains non-finite values (NaN or Inf).", 0
+
+    return True, None, len(features)

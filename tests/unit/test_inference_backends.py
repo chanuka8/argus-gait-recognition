@@ -65,16 +65,32 @@ def test_invalid_backend_rejection():
 
 
 def test_onnx_export_script_execution(tmp_path: Path):
+    ckpt_file = tmp_path / "model.pth"
+    import torch
+    from models.architectures.bygait_light import ByGaitLight
+    torch.save(ByGaitLight().state_dict(), ckpt_file)
+
     onnx_file = tmp_path / "bygait_light_test.onnx"
-    # Export dummy initialized model
     success = export_onnx(
-        model_path="non_existent_ckpt.pth",
+        model_path=str(ckpt_file),
         output_onnx_path=str(onnx_file),
         precision="fp32",
     )
-    assert isinstance(success, bool)
-    if success:
-        assert onnx_file.exists()
+    assert success is True
+    assert onnx_file.exists()
+
+
+def test_strict_onnx_mode_no_fallback_when_disabled(tmp_path: Path):
+    cfg = {
+        "backend": "onnxruntime",
+        "onnx_path": str(tmp_path / "missing.onnx"),
+        "allow_fallback": False,
+        "device": "cpu",
+        "warmup_iterations": 0,
+    }
+    with pytest.raises(RuntimeError, match="ONNX backend unavailable and fallback disabled"):
+        get_inference_backend(config=cfg)
+
 
 
 def test_tensorrt_backend_instantiation_without_tensorrt_package(tmp_path: Path):
@@ -139,14 +155,45 @@ def test_auto_fallback_properties(tmp_path: Path):
     assert backend.active_backend == "pytorch"
     assert backend.fallback_used is True
     assert backend.selection_fallback_used is True
-    assert "tensorrt" in backend.attempted_backends
     assert "onnxruntime" in backend.attempted_backends
+    assert "pytorch" in backend.attempted_backends
+
+
+def test_backend_validator_and_report_generation(tmp_path: Path):
+    from models.inference.backend import BackendStatus, BackendValidator, generate_backend_report
+
+    cfg = {
+        "backend": "pytorch",
+        "device": "cpu",
+        "warmup_iterations": 0,
+    }
+    backend = get_inference_backend(config=cfg)
+    validator = BackendValidator(config=cfg)
+
+    pt_health = validator.check_pytorch()
+    assert pt_health.is_available is True
+    assert pt_health.status in (BackendStatus.READY, BackendStatus.AVAILABLE)
+
+    report_file = tmp_path / "backend_report.json"
+    rep = generate_backend_report(backend, output_path=str(report_file))
+
+    assert rep["requested_backend"] == "pytorch"
+    assert rep["active_backend"] == "pytorch"
+    assert rep["initialization_result"] == "SUCCESS"
+    assert rep["inference_smoke_test_result"] == "PASSED"
+    assert report_file.exists()
+
 
 
 def test_genuine_onnx_session_properties_and_metrics(tmp_path: Path):
+    ckpt_file = tmp_path / "model.pth"
+    import torch
+    from models.architectures.bygait_light import ByGaitLight
+    torch.save(ByGaitLight().state_dict(), ckpt_file)
+
     onnx_file = tmp_path / "test_model.onnx"
     success = export_onnx(
-        model_path="non_existent_ckpt.pth",
+        model_path=str(ckpt_file),
         output_onnx_path=str(onnx_file),
         precision="fp32",
     )
@@ -172,10 +219,16 @@ def test_genuine_onnx_session_properties_and_metrics(tmp_path: Path):
 
 
 def test_cpu_only_onnx_provider_selection_emits_no_cuda_warning(tmp_path: Path, capwarn=None):
+    ckpt_file = tmp_path / "model.pth"
+    import torch
+    from models.architectures.bygait_light import ByGaitLight
+    torch.save(ByGaitLight().state_dict(), ckpt_file)
+
     onnx_file = tmp_path / "test_model.onnx"
-    export_onnx("non_existent_ckpt.pth", str(onnx_file), "fp32")
+    export_onnx(str(ckpt_file), str(onnx_file), "fp32")
     if not onnx_file.exists():
         pytest.skip("ONNX model unavailable for test")
+
 
     from models.inference.onnx_backend import ONNXBackend
 
@@ -278,6 +331,24 @@ def test_tensorrt_failure_emits_single_warning():
         assert len(trt_warns) == 1
     finally:
         logger.removeHandler(handler)
+
+
+def test_repeated_inference_resource_safety():
+    """Verify backend instance stability and resource safety over 100 repeated inferences."""
+    cfg = {"backend": "pytorch", "device": "cpu"}
+    backend = get_inference_backend(config=cfg)
+    initial_id = id(backend)
+
+    dummy_input = np.ones((1, 1, 64, 128), dtype=np.float32)
+
+    for i in range(100):
+        out = backend.predict(dummy_input)
+        assert out.shape == (1, 256)
+        assert np.isfinite(out).all()
+        assert np.isclose(np.linalg.norm(out), 1.0, atol=1e-5)
+
+    assert id(backend) == initial_id
+
 
 
 def test_benchmark_output_labelled_embedding_only():

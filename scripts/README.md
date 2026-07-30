@@ -18,6 +18,7 @@ This folder contains project maintenance, automation, development, validation, e
 | [build_gallery.py](build_gallery.py) | Utility script for build gallery. | `python scripts/build_gallery.py` |
 | [build_tensorrt_engine.py](build_tensorrt_engine.py) | Build TensorRT engine from ONNX model file and verify output parity. | `python scripts/build_tensorrt_engine.py` |
 | [clean_live_gallery.py](clean_live_gallery.py) | Clean contaminated identities from ARGUS live gallery | `python scripts/clean_live_gallery.py` |
+| [doctor.py](doctor.py) | ARGUS AI Non-Destructive Deployment Health Checker CLI (doctor.py). | `python scripts/doctor.py` |
 | [evaluate_cross_view.py](evaluate_cross_view.py) | Evaluate ARGUS Cross-View Gait Recognition Metrics | `python scripts/evaluate_cross_view.py` |
 | [evaluate_model.py](evaluate_model.py) | Evaluate ARGUS gait recognition model | `python scripts/evaluate_model.py` |
 | [evaluate_open_set.py](evaluate_open_set.py) | Evaluate ARGUS Open-Set Gait Recognition Metrics | `python scripts/evaluate_open_set.py` |
@@ -68,6 +69,7 @@ This folder contains project maintenance, automation, development, validation, e
 | [build_gallery.py](build_gallery.py) | Dataset | No | No | No | No | Utility script for build gallery. |
 | [build_tensorrt_engine.py](build_tensorrt_engine.py) | Conversion | Yes | No | No | No | Build TensorRT engine from ONNX model file and verify out... |
 | [clean_live_gallery.py](clean_live_gallery.py) | Dataset | Yes | No | No | No | Clean contaminated identities from ARGUS live gallery |
+| [doctor.py](doctor.py) | Development | No | No | No | No | ARGUS AI Non-Destructive Deployment Health Checker CLI (d... |
 | [evaluate_cross_view.py](evaluate_cross_view.py) | Development | Yes | No | No | No | Evaluate ARGUS Cross-View Gait Recognition Metrics |
 | [evaluate_model.py](evaluate_model.py) | Development | Yes | No | No | No | Evaluate ARGUS gait recognition model |
 | [evaluate_open_set.py](evaluate_open_set.py) | Development | Yes | No | No | No | Evaluate ARGUS Open-Set Gait Recognition Metrics |
@@ -608,6 +610,7 @@ Development helper scripts run benchmarks, evaluations, training pipelines, and 
 - **[benchmark.py](benchmark.py)**: Performance benchmark script for benchmark. (`python scripts/benchmark.py`)
 - **[benchmark_crowd_performance.py](benchmark_crowd_performance.py)**: Performance Measurement Benchmark for Crowd Intelligence Features. (`python scripts/benchmark_crowd_performance.py`)
 - **[benchmark_inference_backends.py](benchmark_inference_backends.py)**: Inference Backend Performance and Parity Benchmark Script for ARGUS AI. (`python scripts/benchmark_inference_backends.py`)
+- **[doctor.py](doctor.py)**: ARGUS AI Non-Destructive Deployment Health Checker CLI (doctor.py). (`python scripts/doctor.py`)
 - **[evaluate_cross_view.py](evaluate_cross_view.py)**: Evaluate ARGUS Cross-View Gait Recognition Metrics (`python scripts/evaluate_cross_view.py`)
 - **[evaluate_model.py](evaluate_model.py)**: Evaluate ARGUS gait recognition model (`python scripts/evaluate_model.py`)
 - **[evaluate_open_set.py](evaluate_open_set.py)**: Evaluate ARGUS Open-Set Gait Recognition Metrics (`python scripts/evaluate_open_set.py`)
@@ -633,6 +636,7 @@ Development helper scripts run benchmarks, evaluations, training pipelines, and 
 | `python scripts/build_gallery.py` | Utility script for build gallery. |
 | `python scripts/build_tensorrt_engine.py` | Build TensorRT engine from ONNX model file and verify output parity. |
 | `python scripts/clean_live_gallery.py` | Clean contaminated identities from ARGUS live gallery |
+| `python scripts/doctor.py` | ARGUS AI Non-Destructive Deployment Health Checker CLI (doctor.py). |
 | `python scripts/evaluate_cross_view.py` | Evaluate ARGUS Cross-View Gait Recognition Metrics |
 | `python scripts/evaluate_model.py` | Evaluate ARGUS gait recognition model |
 | `python scripts/evaluate_open_set.py` | Evaluate ARGUS Open-Set Gait Recognition Metrics |
@@ -709,7 +713,7 @@ flowchart TD
     step4 --> step5
     step6["6. Conversion (3 scripts)"]
     step5 --> step6
-    step7["7. Development (12 scripts)"]
+    step7["7. Development (13 scripts)"]
     step6 --> step7
     step8["8. Deployment (2 scripts)"]
     step7 --> step8
@@ -728,6 +732,7 @@ flowchart TD
 | [build_gallery.py](build_gallery.py) | `models/gallery` |
 | [build_tensorrt_engine.py](build_tensorrt_engine.py) | `models/engines/bygait_light_fp16.engine` |
 | [clean_live_gallery.py](clean_live_gallery.py) | `Runtime-determined paths` |
+| [doctor.py](doctor.py) | `Runtime-determined paths` |
 | [evaluate_cross_view.py](evaluate_cross_view.py) | `No file modifications` |
 | [evaluate_model.py](evaluate_model.py) | `outputs/reports/evaluation` |
 | [evaluate_open_set.py](evaluate_open_set.py) | `No file modifications` |
@@ -776,7 +781,7 @@ flowchart TD
 | **Environment** | [activate_venv.ps1](activate_venv.ps1) |
 | **Git** | [install_git_hooks.py](install_git_hooks.py) |
 | **Read-Only** | [benchmark_crowd_performance.py](benchmark_crowd_performance.py), [evaluate_cross_view.py](evaluate_cross_view.py), [evaluate_open_set.py](evaluate_open_set.py), [preprocess_casia.py](preprocess_casia.py), [run_auto_enrollment.py](run_auto_enrollment.py), [run_folder_recognition.py](run_folder_recognition.py), [run_video_recognition.py](run_video_recognition.py), [system_check.py](system_check.py), [train_model.py](train_model.py) |
-| **Repository Modification** | [benchmark.py](benchmark.py), [benchmark_inference_backends.py](benchmark_inference_backends.py), [build_gallery.py](build_gallery.py), [build_tensorrt_engine.py](build_tensorrt_engine.py), [clean_live_gallery.py](clean_live_gallery.py), [evaluate_model.py](evaluate_model.py), [evaluate_open_set_threshold_sweep.py](evaluate_open_set_threshold_sweep.py), [evaluate_subject_disjoint.py](evaluate_subject_disjoint.py), [evaluate_threshold_sweep.py](evaluate_threshold_sweep.py), [export_bygait_onnx.py](export_bygait_onnx.py), [migrate_output_layout.py](migrate_output_layout.py), [remove_gallery_identity.py](remove_gallery_identity.py), [remove_numeric_gallery_identities.py](remove_numeric_gallery_identities.py), [set_gallery_identity_status.py](set_gallery_identity_status.py) |
+| **Repository Modification** | [benchmark.py](benchmark.py), [benchmark_inference_backends.py](benchmark_inference_backends.py), [build_gallery.py](build_gallery.py), [build_tensorrt_engine.py](build_tensorrt_engine.py), [clean_live_gallery.py](clean_live_gallery.py), [doctor.py](doctor.py), [evaluate_model.py](evaluate_model.py), [evaluate_open_set_threshold_sweep.py](evaluate_open_set_threshold_sweep.py), [evaluate_subject_disjoint.py](evaluate_subject_disjoint.py), [evaluate_threshold_sweep.py](evaluate_threshold_sweep.py), [export_bygait_onnx.py](export_bygait_onnx.py), [migrate_output_layout.py](migrate_output_layout.py), [remove_gallery_identity.py](remove_gallery_identity.py), [remove_numeric_gallery_identities.py](remove_numeric_gallery_identities.py), [set_gallery_identity_status.py](set_gallery_identity_status.py) |
 | **Validation** | [test_confidence_scorer.py](test_confidence_scorer.py), [test_enrollment.py](test_enrollment.py), [test_events.py](test_events.py), [test_folder_watcher.py](test_folder_watcher.py), [test_gallery_match.py](test_gallery_match.py), [test_gei.py](test_gei.py), [test_inference_pipeline.py](test_inference_pipeline.py), [test_live_gei.py](test_live_gei.py), [test_live_recognition.py](test_live_recognition.py), [test_security_layer.py](test_security_layer.py), [test_silhouette.py](test_silhouette.py), [test_streaming_optimization.py](test_streaming_optimization.py), [test_tracking.py](test_tracking.py), [test_visualizer.py](test_visualizer.py), [test_webcam_detection.py](test_webcam_detection.py) |
 <!-- END SYNC: SAFETY_CLASSIFICATION -->
 

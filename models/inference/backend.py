@@ -2,10 +2,13 @@
 Inference Backend Base Interface and Factory for ARGUS AI.
 
 Defines the abstract BaseInferenceBackend interface and factory get_inference_backend()
-to instantiate execution engines (pytorch, onnxruntime, tensorrt, auto) with safe fallback logic.
+to instantiate execution engines (pytorch, onnxruntime, auto) with safe fallback logic.
 """
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
+from enum import Enum
+import json
 from pathlib import Path
 from typing import Optional, Union
 
@@ -14,6 +17,34 @@ import torch
 import yaml
 
 from monitoring.logging_config import get_logger
+
+
+class BackendStatus(str, Enum):
+    READY = "READY"
+    AVAILABLE = "AVAILABLE"
+    NOT_INSTALLED = "NOT_INSTALLED"
+    MODEL_MISSING = "MODEL_MISSING"
+    INITIALIZATION_FAILED = "INITIALIZATION_FAILED"
+    UNSUPPORTED = "UNSUPPORTED"
+    FALLBACK_ACTIVE = "FALLBACK_ACTIVE"
+
+
+@dataclass
+class BackendCapability:
+    backend_name: str
+    supported_devices: list = field(default_factory=list)
+    supported_precisions: list = field(default_factory=list)
+    dynamic_batching: bool = False
+    max_batch_size: int = 1
+
+
+@dataclass
+class BackendHealth:
+    backend: str
+    status: BackendStatus
+    is_available: bool
+    execution_provider: str
+    error_message: Optional[str] = None
 
 
 def load_inference_backend_config() -> dict:
@@ -136,8 +167,22 @@ class BaseInferenceBackend(ABC):
     def execution_provider(self, value: str) -> None:
         self._execution_provider = str(value)
 
+    @property
+    def metadata(self) -> dict:
+        """Authoritative metadata dictionary describing backend state."""
+        return {
+            "requested_backend": self.requested_backend,
+            "active_backend": self.active_backend,
+            "execution_provider": self.execution_provider,
+            "allow_fallback": self.allow_fallback,
+            "fallback_used": bool(self.fallback_used or self.selection_fallback_used),
+            "fallback_reason": self.fallback_reason,
+            "attempted_backends": self.attempted_backends,
+        }
+
     @abstractmethod
     def predict(self, x: Union[np.ndarray, torch.Tensor]) -> np.ndarray:
+
         """
         Execute forward inference on GEI input tensor/array and return L2-normalized embedding.
 
@@ -171,6 +216,121 @@ class BaseInferenceBackend(ABC):
             return (embedding / (norm + 1e-8)).astype(np.float32)
         norm = np.linalg.norm(embedding, axis=1, keepdims=True)
         return (embedding / (norm + 1e-8)).astype(np.float32)
+
+
+class BackendValidator:
+    """Validates PyTorch and ONNX Runtime backends and performs smoke testing."""
+
+    def __init__(self, config: Optional[dict] = None) -> None:
+        self.config = config or load_inference_backend_config()
+
+    def check_pytorch(self) -> BackendHealth:
+        try:
+            import torch
+
+            model_path = Path(self.config.get("model_path") or "runs/exp_001/best_model.pth")
+            status = BackendStatus.READY if model_path.exists() else BackendStatus.AVAILABLE
+            return BackendHealth(
+                backend="pytorch",
+                status=status,
+                is_available=True,
+                execution_provider="PyTorch-CPU" if not torch.cuda.is_available() else "PyTorch-CUDA",
+            )
+        except ImportError as e:
+            return BackendHealth(
+                backend="pytorch",
+                status=BackendStatus.NOT_INSTALLED,
+                is_available=False,
+                execution_provider="None",
+                error_message=str(e),
+            )
+
+    def check_onnxruntime(self) -> BackendHealth:
+        try:
+            import onnxruntime as ort
+
+            onnx_path = Path(self.config.get("onnx_path", "models/engines/bygait_light.onnx"))
+            if not onnx_path.exists():
+                return BackendHealth(
+                    backend="onnxruntime",
+                    status=BackendStatus.MODEL_MISSING,
+                    is_available=False,
+                    execution_provider="None",
+                    error_message=f"ONNX model file not found at {onnx_path}",
+                )
+            providers = ort.get_available_providers()
+            provider = "CPUExecutionProvider"
+            if "CUDAExecutionProvider" in providers:
+                provider = "CUDAExecutionProvider"
+            return BackendHealth(
+                backend="onnxruntime",
+                status=BackendStatus.READY,
+                is_available=True,
+                execution_provider=provider,
+            )
+        except ImportError as e:
+            return BackendHealth(
+                backend="onnxruntime",
+                status=BackendStatus.NOT_INSTALLED,
+                is_available=False,
+                execution_provider="None",
+                error_message=str(e),
+            )
+
+    def run_smoke_test(self, backend: BaseInferenceBackend) -> bool:
+        dummy = np.zeros((1, 1, 64, 128), dtype=np.float32)
+        try:
+            out = backend.predict(dummy)
+            return bool(out is not None and getattr(out, "shape", None) == (1, 256))
+        except Exception:
+            return False
+
+
+class BackendReport:
+    """Generates backend readiness reports."""
+
+    def __init__(
+        self,
+        backend: BaseInferenceBackend,
+        output_path: str = "outputs/reports/backend_report.json",
+    ) -> None:
+        self.backend = backend
+        self.output_path = Path(output_path)
+
+    def generate(self) -> dict:
+        validator = BackendValidator(self.backend.config)
+        smoke_test = validator.run_smoke_test(self.backend)
+
+        if self.backend.active_backend == "onnxruntime":
+            m_path = str(self.backend.config.get("onnx_path", "models/engines/bygait_light.onnx"))
+        else:
+            m_path = str(self.backend.config.get("model_path", "runs/exp_001/best_model.pth"))
+
+        report_data = {
+            "requested_backend": self.backend.requested_backend,
+            "active_backend": self.backend.active_backend,
+            "execution_provider": self.backend.execution_provider,
+            "fallback_used": bool(self.backend.fallback_used or self.backend.selection_fallback_used),
+            "fallback_reason": self.backend.fallback_reason,
+            "model_path": m_path,
+            "initialization_result": "SUCCESS" if self.backend is not None else "FAILED",
+            "inference_smoke_test_result": "PASSED" if smoke_test else "FAILED",
+        }
+
+        self.output_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(self.output_path, "w", encoding="utf-8") as f:
+            json.dump(report_data, f, indent=4)
+
+        return report_data
+
+
+def generate_backend_report(
+    backend: BaseInferenceBackend,
+    output_path: str = "outputs/reports/backend_report.json",
+) -> dict:
+    """Helper function to generate and write backend readiness report."""
+    reporter = BackendReport(backend=backend, output_path=output_path)
+    return reporter.generate()
 
 
 def get_inference_backend(
@@ -256,27 +416,9 @@ def get_inference_backend(
         return fb
 
     if requested_backend == "auto":
-        attempted = []
+        attempted = ["onnxruntime"]
         reasons = []
 
-        # 1. Try TensorRT
-        attempted.append("tensorrt")
-        try:
-            from models.inference.tensorrt_backend import TensorRTBackend
-
-            backend = TensorRTBackend(config=cfg, model_path=model_path)
-            backend.requested_backend = "auto"
-            backend.attempted_backends = list(attempted)
-            if backend.is_available():
-                backend.selection_fallback_used = False
-                return backend
-            if backend.fallback_reason:
-                reasons.append(f"TensorRT unavailable ({backend.fallback_reason})")
-        except Exception as e:
-            reasons.append(f"TensorRT unavailable ({e})")
-
-        # 2. Try ONNX Runtime
-        attempted.append("onnxruntime")
         try:
             from models.inference.onnx_backend import ONNXBackend
 
@@ -284,20 +426,19 @@ def get_inference_backend(
             backend.requested_backend = "auto"
             backend.attempted_backends = list(attempted)
             if backend.is_available():
-                backend.selection_fallback_used = True
-                backend.fallback_reason = "; ".join(reasons) + "; ONNX Runtime selected"
+                backend.selection_fallback_used = False
                 return backend
             if backend.fallback_reason:
                 reasons.append(f"ONNX unavailable ({backend.fallback_reason})")
         except Exception as e:
             reasons.append(f"ONNX unavailable ({e})")
 
-        # 3. Fallback to PyTorch
+        # Fallback to PyTorch reference engine
         attempted.append("pytorch")
         if not allow_fallback:
             raise RuntimeError(f"Auto backend failed to find available accelerated engine: {'; '.join(reasons)}")
 
-        combined_reason = "; ".join(reasons) if reasons else "Accelerated backends unavailable"
+        combined_reason = "; ".join(reasons) if reasons else "ONNX Runtime backend unavailable"
         fb = PyTorchBackend(config=cfg, model_path=model_path)
         fb.requested_backend = "auto"
         fb.attempted_backends = list(attempted)

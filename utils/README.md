@@ -18,6 +18,7 @@ The `utils` package provides general-purpose helpers for bounding box stabilizat
 |---|---|
 | [alert_manager.py](alert_manager.py) | Manages threat alerts, cooldown deduplication, and `outputs/logs/events/alerts.csv` logging |
 | [box_stabilizer.py](box_stabilizer.py) | Exponential Moving Average (EMA) bounding box coordinate stabilizer |
+| [config_validator.py](config_validator.py) | Module/resource file config_validator.py |
 | [detection_reporter.py](detection_reporter.py) | Thread-safe reporter generating JSONL/CSV detection logs and snapshots in `outputs/media/detections/` |
 | [display_renderer.py](display_renderer.py) | Open-CV image renderer drawing bounding boxes, status color codes, and identity HUD labels |
 | [event_logger.py](event_logger.py) | Thread-safe CSV recognition logger writing events to `outputs/logs/events/recognition_log.csv` |
