@@ -16,8 +16,76 @@ A modular spatial-temporal gait recognition, multi-object tracking, and multi-ca
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-EE4C2C.svg)](https://pytorch.org/)
 [![OpenCV](https://img.shields.io/badge/OpenCV-4.8%2B-5C3EE8.svg)](https://opencv.org/)
 [![Ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
-[![Pytest](https://img.shields.io/badge/tests-313%20passed-brightgreen.svg)](tests)
+[![Pytest](https://img.shields.io/badge/tests-341%20passed-brightgreen.svg)](tests)
+[![Status](https://img.shields.io/badge/status-READY__FOR__CONTROLLED__CCTV__TESTING-blue.svg)](docs/DEPLOYMENT_READINESS.md)
 [![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](VERSION)
+
+---
+
+## Deployment Readiness & Architecture
+
+ARGUS AI separates deployment concerns into distinct inference execution backends, pre-flight health validation tools, and externalized YAML configurations. Detailed deployment specifications are maintained in [docs/DEPLOYMENT_READINESS.md](docs/DEPLOYMENT_READINESS.md).
+
+### Backend Status Matrix
+
+- **PyTorch**: `✓ Reference Backend` (Default active backend for model feature extraction and verification).
+- **ONNX Runtime**: `✓ Optimized Deployment Backend` (CPU-validated inference engine with atomic export and parity verification).
+- **TensorRT**: `Deferred` (Framework implemented; hardware execution deferred pending CUDA + TensorRT environment installation and physical GPU validation).
+
+> **Deployment Notice**: TensorRT is not currently claimed as a production-ready backend. PyTorch serves as the reference engine and ONNX Runtime serves as the optimized CPU deployment engine.
+
+### Backend Selection Policy
+
+Inference backends are selected dynamically via `configs/inference.yaml` or programmatically through `get_inference_backend()` in [models/inference/backend.py](models/inference/backend.py):
+
+- `requested=pytorch` $\rightarrow$ Executes **PyTorch** backend directly without probing ONNX Runtime.
+- `requested=onnxruntime` $\rightarrow$ Executes **ONNX Runtime** backend. If unavailable or if session creation fails, falls back to PyTorch (or raises a blocking error if `allow_fallback=false`).
+- `requested=auto` $\rightarrow$ Attempts **ONNX Runtime** first, falling back to **PyTorch** if ONNX Runtime is uninstalled or model file is missing.
+
+Every initialized backend exposes an authoritative `.metadata` dictionary returning:
+- `requested_backend`: The backend requested by configuration.
+- `active_backend`: The actual backend executing inference (`pytorch` or `onnxruntime`).
+- `execution_provider`: Active low-level provider (`CPUExecutionProvider`, `PyTorch-CPU`, etc.).
+- `allow_fallback`: Boolean flag indicating whether fallback is allowed.
+- `fallback_used`: Boolean indicating whether a fallback occurred.
+- `fallback_reason`: Detailed reason string if fallback was triggered.
+- `attempted_backends`: Exact chain of backends attempted in order (e.g. `["onnxruntime", "pytorch"]`).
+
+---
+
+## ONNX Deployment & Parity Verification
+
+The repository includes a dedicated ONNX export and verification pipeline ([scripts/export_bygait_onnx.py](scripts/export_bygait_onnx.py)):
+
+- **✓ Stable ONNX Export**: Converts `ByGaitLight` PyTorch weights into ONNX format (`models/engines/bygait_light.onnx`) with seed determinism (`seed=42`). Missing checkpoints immediately halt export to prevent saving uninitialized weights.
+- **✓ Atomic Replacement**: Exports initially to a temporary file (`bygait_light.onnx.tmp`) and performs replacement only after structural check and parity validation pass, preserving existing destination files byte-for-byte on failure.
+- **✓ Numerical Parity Validation**: Compares PyTorch and ONNX embedding outputs using fixed tolerances (`rtol=1e-3`, `atol=1e-4`) and records `max_absolute_diff`.
+- **✓ Metadata Report Generation**: Outputs machine-readable JSON (`outputs/reports/onnx_validation.json`) and Markdown (`outputs/reports/onnx_validation.md`) reports containing relative paths only.
+- **✓ Pre-Flight Verification**: Validated automatically by system health checks ([scripts/doctor.py](scripts/doctor.py)).
+
+---
+
+## Deployment Health Checks (`scripts/doctor.py`)
+
+[scripts/doctor.py](scripts/doctor.py) provides a non-destructive CLI tool for pre-flight deployment verification.
+
+### Verified Health Checks
+
+- **✓ Configuration**: Validates externalized YAML settings via `ConfigValidator`.
+- **✓ Model Availability**: Checks PyTorch checkpoint (`runs/exp_001/best_model.pth`) and ONNX engine (`models/engines/bygait_light.onnx`).
+- **✓ Gallery Validation**: Reuses safe vector store checks (`validate_gallery_files` with `allow_pickle=False`, numeric dtypes, non-finite rejection, 2D feature shapes, and label count parity).
+- **✓ Backend Readiness**: Executes smoke tests on active inference backend.
+- **✓ Output Directory**: Verifies writability of `outputs/reports/` using temporary probe cleanup.
+- **✓ Report Generation**: Produces sanitized JSON (`outputs/reports/health_report.json`) and Markdown (`outputs/reports/health_report.md`) reports.
+
+### Non-Destructive Safety Guarantees
+
+`doctor.py` **DOES NOT**:
+- Connect to live RTSP cameras or webcams.
+- Access external network interfaces.
+- Modify model, gallery, or configuration files.
+- Install or upgrade Python packages.
+- Execute pipeline inference or alter repository state.
 
 ---
 
@@ -25,14 +93,17 @@ A modular spatial-temporal gait recognition, multi-object tracking, and multi-ca
 
 | Capability | Implementation Status | Default State | Reference Source |
 | --- | --- | --- | --- |
-| **PyTorch Inference Backend** | Implemented | Enabled (Default) | [models/inference/pytorch_backend.py](models/inference/pytorch_backend.py) |
-| **ONNX Runtime Backend** | Implemented & CPU-Validated | Optional | [models/inference/onnx_backend.py](models/inference/onnx_backend.py) |
-| **TensorRT Inference Backend** | Framework Implemented (HW Validation Pending) | Optional | [models/inference/tensorrt_backend.py](models/inference/tensorrt_backend.py) |
+| **PyTorch Inference Backend** | Implemented (Reference) | Enabled (Default) | [models/inference/pytorch_backend.py](models/inference/pytorch_backend.py) |
+| **ONNX Runtime Backend** | Implemented (Optimized) | Optional | [models/inference/onnx_backend.py](models/inference/onnx_backend.py) |
+| **TensorRT Inference Backend** | Framework Implemented (HW Deferred) | Deferred | [models/inference/tensorrt_backend.py](models/inference/tensorrt_backend.py) |
+| **System Health CLI (`doctor.py`)** | Implemented | Pre-Flight Tool | [scripts/doctor.py](scripts/doctor.py) |
+| **Startup Pipeline Validator** | Implemented | Opt-In / Startup | [deployment/startup_validator.py](deployment/startup_validator.py) |
+| **Deployment Readiness Reporter** | Implemented | Automated Tool | [deployment/readiness_reporter.py](deployment/readiness_reporter.py) |
 | **Explainable Recognition Reports** | Implemented | Disabled by default | [intelligence/explainable_recognition_report.py](intelligence/explainable_recognition_report.py) |
 | **Event Timeline Reconstruction** | Implemented | Disabled by default | [intelligence/event_timeline_reconstructor.py](intelligence/event_timeline_reconstructor.py) |
 | **VectorStore Deserialization Security** | Implemented (`allow_pickle=False`) | Enabled | [storage/vector_store.py](storage/vector_store.py) |
 | **Secure RTSP Credential Resolution** | Implemented (Fernet & Env Vars) | Enabled | [security_layer/credentials.py](security_layer/credentials.py) |
-| **Documentation Synchronization** | Implemented (19 Folder & Script READMEs) | Pre-Commit Hook | [scripts/sync_folder_readmes.py](scripts/sync_folder_readmes.py) |
+| **Documentation Synchronization** | Implemented (19 Package Folders) | Pre-Commit Hook | [scripts/sync_folder_readmes.py](scripts/sync_folder_readmes.py) |
 
 ---
 
@@ -77,10 +148,10 @@ A modular spatial-temporal gait recognition, multi-object tracking, and multi-ca
 
 ### Performance, Security & Infrastructure
 
-- **Pluggable Inference Backends**: Unified factory (`get_inference_backend()`) supporting PyTorch (reference), ONNX Runtime, and TensorRT with automatic PyTorch fallback, attempted backend chain reporting, and sanitized log warnings ([models/inference/backend.py](models/inference/backend.py)).
+- **Pluggable Inference Backends**: Unified factory (`get_inference_backend()`) supporting PyTorch (reference), ONNX Runtime (optimized), and TensorRT (deferred) with automatic PyTorch fallback, attempted backend chain reporting, and sanitized log warnings ([models/inference/backend.py](models/inference/backend.py)).
 - **Hardened Vector Store**: Complete security remediation enforcing `allow_pickle=False`, rejecting object arrays, and validating numeric dtypes, dimensions, and shape consistency ([storage/vector_store.py](storage/vector_store.py)).
 - **Secure RTSP Credential Management**: Fernet-encrypted credential storage, environment variable mapping, per-camera credential resolution, and automatic stream URL sanitization in logs ([security_layer/credentials.py](security_layer/credentials.py)).
-- **Automated Documentation Synchronization**: Automated README table synchronization (`scripts/sync_folder_readmes.py`) covering all 19 package folders including `scripts/README.md` (CLI reference, metadata tables, dependency graph, execution order, change impact, safety classification), atomic writes, cross-platform pre-commit hook installer (`scripts/install_git_hooks.py`), and CI freshness check ([.github/workflows/readme_sync_check.yml](.github/workflows/readme_sync_check.yml)).
+- **Automated Documentation Synchronization**: Automated README table synchronization ([scripts/sync_folder_readmes.py](scripts/sync_folder_readmes.py)) covering all 19 package folders including [scripts/README.md](scripts/README.md) (CLI reference, metadata tables, dependency graph, execution order, change impact, safety classification), atomic writes, cross-platform pre-commit hook installer (`scripts/install_git_hooks.py`), and CI freshness check ([.github/workflows/readme_sync_check.yml](.github/workflows/readme_sync_check.yml)).
 
 ---
 
@@ -88,7 +159,7 @@ A modular spatial-temporal gait recognition, multi-object tracking, and multi-ca
 
 - **Python**: Core implementation language (Python 3.11+).
 - **PyTorch**: Deep learning backend for `ByGaitLight` CNN feature extraction and vector operations.
-- **ONNX Runtime**: Optional accelerated inference engine for PyTorch exported models.
+- **ONNX Runtime**: Accelerated CPU inference engine for PyTorch exported models.
 - **YOLOv8**: Object detection network for high-precision human bounding box localization.
 - **OpenCV**: Computer vision operations, silhouette segmentation, image processing, and display rendering.
 - **NumPy**: Numerical array computations, vector distance calculation, and GEI accumulation.
@@ -148,7 +219,7 @@ ARGUS AI supports secure RTSP camera authentication without storing plaintext cr
 2. **Encrypted Credential Store**: Local credential store (`configs/credentials.enc`) encrypted using Fernet (`cryptography` library).
 3. **Legacy Plaintext**: Plaintext fallback (disabled by default; requires `ARGUS_LEGACY_ALLOW_PLAINTEXT_CREDS=true`).
 
-- **Log Sanitization**: Automatic masking of RTSP credentials (`rtsp://***:***@host:port/path`) across all system logs.
+- **Log Sanitization**: Automatic masking of RTSP credentials (`rtsp://***:***@host:port/path`) across all system logs, reports, and CLI outputs.
 
 ### Hardened Vector Store Deserialization
 
@@ -160,76 +231,32 @@ Biometric gallery storage in `VectorStore` ([storage/vector_store.py](storage/ve
 
 ---
 
-## Explainability & Event Timeline Reconstruction
+## Externalized Configuration
 
-### Explainable Recognition Reports
+System parameters and deployment settings are externalized across YAML configuration files under [configs/](configs/):
 
-`ExplainableRecognitionReporter` ([intelligence/explainable_recognition_report.py](intelligence/explainable_recognition_report.py)) generates operational trace reports explaining identity decisions.
+- **[configs/system.yaml](configs/system.yaml)**: Controls thread pool sizes, logging levels, storage output directories, and API binding parameters.
+- **[configs/inference.yaml](configs/inference.yaml)**: Controls inference backend selection (`pytorch`, `onnxruntime`, `auto`), fallback policies, open-set thresholds (`known_threshold=0.85`, `unknown_threshold=0.70`), ReID parameters, quality bounds, temporal verification, watchlist routing, explainable reports, and event timeline reconstruction.
+- **[configs/cameras.yaml](configs/cameras.yaml)**: Controls RTSP camera endpoints (`host`, `port`, `path`), environment variable credentials (`username_env`, `password_env`), resolution, framerates, worker pool limits, and ONVIF discovery parameters.
 
-- **Triggers**: Confirmed identity, deferred recognition, watchlist match, identity change, or manual export.
-- **Export Formats**: JSON, CSV, and Markdown saved under `outputs/reports/explainable/`.
-- **Privacy & Security**: Excludes raw 256D feature vectors and system credentials.
-- **Default State**: Disabled by default (`explainable_reports.enabled: false` in `configs/inference.yaml`).
-
-### Event Timeline Reconstruction
-
-`EventTimelineReconstructor` ([intelligence/event_timeline_reconstructor.py](intelligence/event_timeline_reconstructor.py)) tracks multi-camera spatial-temporal target journeys.
-
-- **Triggers**: Track creation, camera enter/exit, identity change, watchlist match, track recovery, and track close.
-- **Export Paths**: Formatted JSON/CSV timelines saved under `outputs/reports/timelines/`.
-- **Default State**: Disabled by default (`event_timeline.enabled: false` in `configs/inference.yaml`).
-
-> **Operational Notice**: Explainable reports and event timelines provide internal system diagnostic and audit traces. They do not constitute court-certified or legally binding evidence.
-
----
-
-## Inference Backends & Benchmark Scope
-
-### Pluggable Inference Framework
-
-The framework ([models/inference/backend.py](models/inference/backend.py)) allows seamless backend selection via `configs/inference.yaml`:
-
-- **PyTorch (`pytorch`)**: Default reference backend executing `ByGaitLight` PyTorch model directly.
-- **ONNX Runtime (`onnxruntime`)**: Optional backend executing exported ONNX model (`scripts/export_bygait_onnx.py`).
-- **TensorRT (`tensorrt`)**: Optional engine framework (`scripts/build_tensorrt_engine.py`). Hardware execution is pending target CUDA/TensorRT environment validation.
-- **Auto Selection (`auto`)**: Attempts TensorRT $\rightarrow$ ONNX Runtime $\rightarrow$ PyTorch, recording selection chains (`attempted_backends`, `selection_fallback_used`, `fallback_reason`).
-
-### Benchmark Scope & Scope Disclaimer
-
-`scripts/benchmark_inference_backends.py` provides backend throughput and numerical parity evaluation against the PyTorch reference:
-
-> **Benchmark Scope Disclaimer**: Benchmark FPS and latency metrics measure core model forward embedding inference on synthetic $64 \times 128$ GEI tensors only (`measurement_scope: "embedding_only_synthetic_gei"`). They exclude video decoding, YOLO person detection, ByteTrack tracking, silhouette segmentation, vector gallery matching, report generation, and multi-stream pipeline overhead. Fallback measurements reflect active backend (PyTorch) execution.
-
----
-
-## Documentation Automation & Scripts Reference
-
-ARGUS AI maintains automated folder-level documentation across all 19 package and tool directories:
-
-- **Folder README Sync (`scripts/sync_folder_readmes.py`)**: Automatically scans source files and updates markdown tables between `<!-- BEGIN SYNC: KEY_MODULES -->` comment markers across all package directories.
-- **First-Class Scripts Module (`scripts/README.md`)**: Automatically generated and self-maintaining documentation module for the `scripts/` folder ([scripts/README.md](scripts/README.md)). Includes script inventory (43 active scripts), CLI Reference (collapsible tables for 20 CLI-enabled scripts), script metadata table, Mermaid dependency graph, execution pipeline order, change impact outputs, safety classifications, and cross-references.
-- **Manual Content Preservation**: Preserves all manual prose, headings, architecture diagrams, and data flow sections outside markers.
-- **Atomic Writes**: Uses temporary files and `os.replace()` to ensure zero file corruption on interrupted runs.
-- **Central Index (`docs/README_INDEX.md`)**: Maintains relative links for all package and utility READMEs.
-- **Git Pre-Commit Hook (`scripts/install_git_hooks.py`)**: Automatically syncs and stages README changes prior to commits. Supports both Windows (`venv/Scripts/python.exe`) and POSIX (`venv/bin/python`) environments.
-- **CI Freshness Workflow (`.github/workflows/readme_sync_check.yml`)**: Read-only GitHub Actions workflow enforcing documentation alignment on PRs and main branch pushes (`python scripts/sync_folder_readmes.py --check`).
-
-> **Developer Note**: Run `python scripts/install_git_hooks.py` once after cloning to activate local pre-commit documentation synchronization.
+> **Architecture Principle**: Recognition thresholds, file paths, backend selection options, and camera stream settings must be controlled through YAML files under `configs/` rather than hardcoded in source logic.
 
 ---
 
 ## Output Directory Structure
 
-The system uses a standardized output layout (migrated via `scripts/migrate_output_layout.py`):
+The system uses a standardized output layout:
 
 ```text
 outputs/
 ├── reports/
+│   ├── health_report.json # System health diagnostic reports
+│   ├── deployment_readiness.json # Deployment readiness reports
+│   ├── onnx_validation.json # ONNX export parity reports
 │   ├── explainable/       # Explainable recognition trace reports (JSON/CSV/MD)
 │   ├── timelines/         # Event timeline trajectory exports
 │   ├── benchmark/         # Inference backend performance benchmark reports
-│   ├── evaluation/        # Model evaluation & threshold sweep results
-│   └── exports/           # Manual forensic report exports
+│   └── evaluation/        # Model evaluation & threshold sweep results
 ├── logs/
 │   ├── system/            # System & camera component log files
 │   └── events/            # Recognition and threat alert CSV logs
@@ -243,12 +270,13 @@ outputs/
 
 ---
 
-## Project Structure
+## Project Structure & Documentation Automation
 
 ```text
 ARGUS_AI/
 ├── api/                   # FastAPI server implementation and request schemas
 ├── configs/               # System, inference, camera, and GEI YAML configurations
+├── deployment/            # Startup validator and deployment readiness reporter
 ├── evaluation/            # Open-set, cross-view, dataset split, and leakage evaluators
 ├── intelligence/          # Open-set recognizer, track reliability, watchlist, crowd intelligence, transition model
 ├── models/                # ByGaitLight CNN, OSNet ReID backbone, inference backends, gallery storage
@@ -259,46 +287,42 @@ ARGUS_AI/
 ├── services/              # Camera discovery, ONVIF client, worker threads, service manager
 ├── storage/               # Hardened vector store, evidence manager, dataset loader
 ├── streaming/             # Multi-stream engine, load balancer, buffer queue, camera scheduler
-├── tests/                 # 313 automated tests across unit, integration, and security suites
+├── tests/                 # 341 automated tests across unit, integration, and security suites
 └── utils/                 # Display renderer, detection reporter, alert manager, box stabilizer
 ```
 
+### Documentation Automation
+
+ARGUS AI maintains automated folder-level documentation across all 19 package and tool directories:
+
+- **Folder README Sync ([scripts/sync_folder_readmes.py](scripts/sync_folder_readmes.py))**: Automatically scans source files and updates markdown tables between `<!-- BEGIN SYNC: KEY_MODULES -->` comment markers across all package directories.
+- **First-Class Scripts Module ([scripts/README.md](scripts/README.md))**: Fully auto-generated and self-maintaining documentation module for the `scripts/` folder. Includes script inventory (43 active scripts), CLI Reference (collapsible tables for 20 CLI-enabled scripts), script metadata table, Mermaid dependency graph, execution pipeline order, change impact outputs, safety classifications, and cross-references.
+- **Documentation Index ([docs/README_INDEX.md](docs/README_INDEX.md))**: Central directory of relative links for all package and utility READMEs.
+- **Git Pre-Commit Hook (`scripts/install_git_hooks.py`)**: Automatically syncs and stages README changes prior to commits.
+- **CI Freshness Workflow (`.github/workflows/readme_sync_check.yml`)**: Read-only GitHub Actions workflow enforcing documentation alignment on PRs and main branch pushes.
+
 ---
 
-## Installation
+## Installation & Setup
 
 ### Prerequisites
 
 - **Python**: 3.11 or higher
 - **OS**: Windows 10/11 or Linux (Ubuntu 20.04+)
-- **GPU** (Optional): CUDA-compatible GPU for accelerated PyTorch/ONNX execution
+- **GPU** (Optional): CUDA-compatible GPU for PyTorch execution
 
-### Virtual Environment & Interpreter Setup
+### Virtual Environment Setup
 
-The workspace is preconfigured via `.vscode/settings.json` (`"python.defaultInterpreterPath": "${workspaceFolder}/venv/Scripts/python.exe"`). Launching a new PowerShell terminal inside VS Code automatically activates the repository virtual environment (`Python 3.11.9`).
-
-#### Automatic Activation (PowerShell)
-
-The tracked activation script (`scripts/activate_venv.ps1`) handles environment setup:
-- Resolves workspace paths cleanly.
-- Validates the `venv` interpreter (`venv/Scripts/python.exe`).
-- Deactivates foreign virtual environments if present.
-- Sets prompt context cleanly without side effects.
-
-#### Manual Activation Commands
-
-##### Windows (PowerShell)
+#### Windows (PowerShell)
 
 ```powershell
 python -m venv venv
 & .\venv\Scripts\Activate.ps1
-# Or using the auto-activation script directly:
-powershell -ExecutionPolicy Bypass -File scripts/activate_venv.ps1
 pip install -r requirements.txt
 python scripts/install_git_hooks.py
 ```
 
-##### Linux / macOS (Bash)
+#### Linux / macOS (Bash)
 
 ```bash
 python3 -m venv venv
@@ -309,23 +333,14 @@ python scripts/install_git_hooks.py
 
 ---
 
-## Configuration
-
-System operations are configured via YAML files in `configs/`:
-
-- **[configs/cameras.yaml](configs/cameras.yaml)**: Defines RTSP camera endpoints (`host`, `port`, `path`), environment variable credentials (`username_env`, `password_env`), resolution, framerates, worker pool limits, and ONVIF discovery parameters.
-- **[configs/inference.yaml](configs/inference.yaml)**: Controls matching policy thresholds, open-set recognition, inference backend selection (`pytorch`, `onnxruntime`, `tensorrt`, `auto`), explainable reports, event timeline reconstruction, track reliability scoring, watchlist integration, crowd robustness, crowd intelligence, box stability EMA, ReID settings, GEI quality parameters, temporal verification, and camera transition topology.
-
----
-
 ## Usage
 
 All primary workflows are accessible via [cli.py](cli.py).
 
-### System Health Check
+### Deployment Pre-Flight Health Check
 
 ```bash
-python cli.py --mode health
+python scripts/doctor.py
 ```
 
 ### Multi-Camera Recognition Stream
@@ -340,10 +355,10 @@ python cli.py --mode multi-camera
 python cli.py --mode recognize-video --video "path/to/sample.mp4"
 ```
 
-### Build Biometric Gallery
+### Export ONNX Engine & Validate Parity
 
 ```bash
-python cli.py --mode gallery
+python scripts/export_bygait_onnx.py --output-path models/engines/bygait_light.onnx
 ```
 
 ### Run Inference Backend Benchmark
@@ -360,87 +375,72 @@ python scripts/sync_folder_readmes.py --check
 
 ---
 
-## Testing & Quality Assurance
+## Repository Validation & Testing
 
-Verification is enforced via automated test suites, bytecode compilation, documentation checks, and code style compliance:
+Verification is enforced via automated test suites, code linters, documentation checks, and health diagnostics:
 
 ```bash
-# 1. Bytecode compilation check
-python -m compileall -x "venv|\.venv" .
+# 1. Deployment health pre-flight check
+python scripts/doctor.py
 
 # 2. Linting and code style verification
-ruff check .
+python -m ruff check .
 
 # 3. Documentation synchronization check
 python scripts/sync_folder_readmes.py --check
 
-# 4. Full repository test suite (313 automated tests)
-pytest -q
+# 4. Full repository test suite (341 automated tests)
+python -m pytest -q
 ```
 
-### Current Test & Quality Status
+### Verified Validation Status
 
-- **Ruff Linting**: Pass (`ruff check .` compliant with 0 errors)
-- **Bytecode Compilation**: Pass (`python -m compileall` check clean)
-- **Documentation Alignment**: Pass (`sync_folder_readmes.py --check` clean across all 19 package & script folders)
-- **Automated Tests**: **313 automated tests** (100% passing across unit, integration, and security suites)
-- **Warnings**: 1 non-blocking warning (`ByteTrack` deprecation warning from upstream tracking package)
-
----
-
-## Development & Code Quality
-
-- **Code Style**: Checked using `ruff`. Run `ruff check .` to verify formatting compliance (`All checks passed!`).
-- **Type Annotations**: Comprehensive type hints used across `intelligence/`, `pipeline/`, `services/`, `storage/`, and `models/`.
-- **Thread Safety**: Mutable shared state objects use `threading.Lock()` wrappers to guarantee thread-safe operations across multi-camera worker threads.
-- **Modular Pipeline Design**: Custom processing steps implement explicit step interfaces to maintain low coupling.
-
----
-
-## Limitations
-
-- **Gait View Requirements**: Requires clear side or diagonal walking profiles (~30 consecutive frames) to construct valid GEIs.
-- **Webcam Constraints**: Stationary upper-body webcam feeds do not supply leg/stride movement signatures required for gait recognition.
-- **Legacy Plaintext Fallback**: Embedded plaintext credentials in configuration files are disabled by default and require an explicit legacy override.
-- **TensorRT Hardware Validation**: TensorRT engine builder is implemented; hardware execution is pending deployment environment validation.
+- **✓ Linter Compliance**: `ruff check .` passed with 0 errors.
+- **✓ Full Test Suite**: **341 passed**, 1 skipped (342 total test items).
+- **✓ Documentation Alignment**: `sync_folder_readmes.py --check` clean across all 19 package & script folders.
+- **✓ Deployment Readiness**: `doctor.py` status `READY_FOR_CONTROLLED_CCTV_TESTING` (Exit Code 0).
 
 ---
 
 ## Project Status
 
-### Implemented
+Current qualitative implementation status based on evidence-based health checks:
+
+`READY_FOR_CONTROLLED_CCTV_TESTING`
 
 - [x] YOLOv8 person detection & ByteTrack multi-object tracking
-- [x] Exponential Moving Average (EMA) bounding box coordinate stabilization
 - [x] Silhouette segmentation and Live GEI 30-frame sequence builder
-- [x] `ByGaitLight` lightweight CNN gait embedding model
-- [x] Hardened Vector Store (`allow_pickle=False`, numeric validation, object array rejection)
-- [x] Open-Set Recognition (`KNOWN`, `UNKNOWN`, `UNCERTAIN` classification with margin logic)
-- [x] Track Reliability Scorer (`TrackReliabilityScorer` multi-evidence index)
-- [x] Real-Time Watchlist Integration (`WatchlistManager` / `MissingPersonWorkflow`)
-- [x] Crowd Intelligence System (Crowd Density Estimator, Occlusion Analyzer, Recognition Deferral Engine, Track Recovery)
-- [x] `CrossCameraTracker` global track ID management & directed `CameraTransitionModel` topology
-- [x] Dual-Modal ReID & Gait Fusion (`intelligence/dual_modal_fusion.py`)
-- [x] Multi-Camera Evidence Fusion (`intelligence/multi_camera_evidence_fusion.py`)
-- [x] Spatial-Temporal Camera Topology Auto-Learning (`intelligence/camera_topology_learner.py`)
-- [x] Explainable Recognition Reports & Event Timeline Reconstruction (`intelligence/`)
-- [x] Pluggable Inference Backends (PyTorch reference, ONNX Runtime, TensorRT framework, Auto selection)
-- [x] `IdentityPersistence` score decay & alert cooldown suppression
-- [x] `QualityEstimator` & `TemporalGaitVerifier` filtering steps
-- [x] `MultiStreamEngine`, `WorkerPool`, `LoadBalancer`, and `Watchdog`
-- [x] ONVIF discovery & vendor adapters
+- [x] `ByGaitLight` CNN gait embedding model
+- [x] Hardened Vector Store (`allow_pickle=False`, numeric validation)
+- [x] Open-Set Recognition (`KNOWN`, `UNKNOWN`, `UNCERTAIN` classification)
+- [x] Pluggable Inference Backends (PyTorch reference, ONNX Runtime optimized, TensorRT framework deferred)
+- [x] Stable ONNX export, atomic replacement, and numerical parity validation
+- [x] Non-destructive deployment health checker CLI ([scripts/doctor.py](scripts/doctor.py))
+- [x] Pre-flight pipeline startup validator ([deployment/startup_validator.py](deployment/startup_validator.py))
+- [x] Deployment readiness reporter ([deployment/readiness_reporter.py](deployment/readiness_reporter.py))
+- [x] Externalized YAML configurations ([configs/](configs/))
 - [x] Secure RTSP credential storage & log URL sanitization ([security_layer/credentials.py](security_layer/credentials.py))
-- [x] Automated README Documentation Synchronization & Pre-Commit Hook (`scripts/sync_folder_readmes.py` covering all 19 folders including `scripts/README.md`)
-- [x] 313 automated tests passing with 0 failures
+- [x] Automated README Documentation Synchronization (`scripts/sync_folder_readmes.py`)
+- [x] 341 automated tests passing with 0 failures
 
 ---
 
-## Repository Statistics
+## Future Roadmap
 
-- **Primary Language**: Python (100%)
-- **Core Packages & Tooling**: `pipeline`, `intelligence`, `models`, `services`, `streaming`, `storage`, `monitoring`, `evaluation`, `security_layer`, `utils`, `api`, `scripts` (12 packages/folders)
-- **Automated Tests**: **313 automated tests**
-- **Linter Status**: **0 errors** (`ruff check .` compliant)
+- **CUDA Installation & Target Hardware Validation**: Finalize CUDA runtime and TensorRT library setup on target GPU deployment environments.
+- **TensorRT Engine Generation & Execution**: Validate end-to-end TensorRT engine compilation (`build_tensorrt_engine.py`) and execution parity on target hardware.
+- **Docker Deployment & Production Containerization**: Create containerized deployment blueprints for isolated multi-camera worker nodes.
+- **Real CCTV Stream Hardware Validation**: Field validation on live RTSP network cameras under real physical surveillance conditions.
+- **Long-Duration Continuous Testing**: 24/7 continuous operation testing for long-term memory stability and camera worker pool resilience.
+
+---
+
+## Cross References & Key Documentation
+
+- **Deployment Readiness Specification**: [docs/DEPLOYMENT_READINESS.md](docs/DEPLOYMENT_READINESS.md)
+- **Scripts Module Reference**: [scripts/README.md](scripts/README.md)
+- **Documentation Index**: [docs/README_INDEX.md](docs/README_INDEX.md)
+- **Architecture Specification**: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
 ---
 
