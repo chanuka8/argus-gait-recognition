@@ -63,16 +63,30 @@ class SubjectDisjointEvaluator:
         if not self.model_path.exists():
             raise FileNotFoundError(f"Model checkpoint not found: {self.model_path}")
 
-        model = ByGaitLight()
         checkpoint = torch.load(self.model_path, map_location="cpu")
 
         filtered = {}
         for key, value in checkpoint.items():
             if key.startswith("backbone."):
                 filtered[key.replace("backbone.", "")] = value
-            elif key in model.state_dict():
+            elif key.startswith("features.") or key.startswith("embedding."):
                 filtered[key] = value
 
+        part_bins = 4
+        if "embedding.weight" in filtered:
+            in_features = filtered["embedding.weight"].shape[1]
+            part_bins = max(1, in_features // 128)
+
+        meta_path = self.model_path.parent / "model_metadata.json"
+        if meta_path.exists():
+            try:
+                with open(meta_path, "r", encoding="utf-8") as f:
+                    meta = json.load(f)
+                    part_bins = meta.get("part_bins", part_bins)
+            except Exception:
+                pass
+
+        model = ByGaitLight(part_bins=part_bins)
         model.load_state_dict(filtered, strict=True)
         model.eval()
         return model
