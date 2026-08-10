@@ -2,7 +2,11 @@ from pathlib import Path
 
 import cv2
 import numpy as np
-import yaml
+
+try:
+    import yaml
+except ImportError:
+    yaml = None
 
 
 class LearnedSilhouetteSegmenter:
@@ -24,13 +28,38 @@ class LearnedSilhouetteSegmenter:
             import onnxruntime as ort
 
             providers = ort.get_available_providers()
-            provider = "CUDAExecutionProvider" if "CUDAExecutionProvider" in providers else "CPUExecutionProvider"
-            self.session = ort.InferenceSession(str(self.model_path), providers=[provider])
-        except Exception:
+            provider_list = []
+            if "CUDAExecutionProvider" in providers:
+                provider_list.append("CUDAExecutionProvider")
+            provider_list.append("CPUExecutionProvider")
+            self.session = ort.InferenceSession(str(self.model_path), providers=provider_list)
+        except (OSError, ValueError, RuntimeError, TypeError, AttributeError):
             self.session = None
 
     def is_available(self) -> bool:
         return self.session is not None
+
+    def validate_model(self) -> tuple[bool, str]:
+        """
+        Validate model file presence, ONNX session initialization, and dry-run inference.
+        """
+        if not self.model_path.exists():
+            return False, f"Model file not found at {self.model_path}"
+        if not self.is_available():
+            return False, "ONNX InferenceSession failed to initialize"
+
+        try:
+            dummy_crop = np.zeros((256, 256, 3), dtype=np.uint8)
+            mask = self.segment(dummy_crop)
+            if mask is None:
+                return False, "Dry-run segmentation returned None"
+            if mask.shape != (256, 256):
+                return False, f"Expected (256, 256) mask, got {mask.shape}"
+            if not np.all(np.isfinite(mask)):
+                return False, "Non-finite values detected in dry-run mask"
+            return True, "Learned ONNX silhouette segmenter is valid"
+        except (OSError, ValueError, RuntimeError, TypeError, AttributeError) as e:
+            return False, f"Dry-run inference failed: {e}"
 
     def segment(self, crop: np.ndarray) -> np.ndarray | None:
         if not self.is_available() or crop is None or crop.size == 0:
@@ -46,14 +75,17 @@ class LearnedSilhouetteSegmenter:
             output_name = self.session.get_outputs()[0].name
             raw_out = self.session.run([output_name], {input_name: tensor})[0]
 
-            prob_map = raw_out.squeeze()
+            prob_map = np.squeeze(raw_out)
+            if not np.all(np.isfinite(prob_map)):
+                return None
+
             if prob_map.ndim > 2:
                 prob_map = prob_map[0]
 
             mask_256 = (prob_map > self.threshold).astype(np.uint8) * 255
             mask = cv2.resize(mask_256, (w, h), interpolation=cv2.INTER_NEAREST)
             return mask
-        except Exception:
+        except (OSError, ValueError, RuntimeError, TypeError, AttributeError):
             return None
 
 
@@ -99,13 +131,13 @@ class SilhouetteStep:
 
     @staticmethod
     def _load_config(config_path: Path) -> dict:
-        if not config_path.exists():
+        if not config_path.exists() or yaml is None:
             return {}
         try:
             with open(config_path, encoding="utf-8") as f:
                 data = yaml.safe_load(f)
                 return data if isinstance(data, dict) else {}
-        except Exception:
+        except (OSError, ValueError, TypeError, AttributeError):
             return {}
 
     def extract_from_crop(self, crop: np.ndarray) -> np.ndarray | None:

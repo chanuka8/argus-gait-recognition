@@ -1,13 +1,14 @@
 import unittest
 from unittest.mock import MagicMock
+
 import cv2
 import numpy as np
 
-from pipeline.steps.silhouette_step import (
-    SilhouetteStep,
-    LearnedSilhouetteSegmenter,
-)
 from pipeline.silhouette.extractor import SilhouetteExtractor
+from pipeline.steps.silhouette_step import (
+    LearnedSilhouetteSegmenter,
+    SilhouetteStep,
+)
 
 
 class TestSilhouetteStep(unittest.TestCase):
@@ -51,6 +52,9 @@ class TestSilhouetteStep(unittest.TestCase):
         segmenter = LearnedSilhouetteSegmenter(model_path="non_existent_model.onnx")
         self.assertFalse(segmenter.is_available())
         self.assertIsNone(segmenter.segment(np.zeros((100, 50, 3), dtype=np.uint8)))
+        valid, reason = segmenter.validate_model()
+        self.assertFalse(valid)
+        self.assertIn("not found", reason)
 
     def test_learned_segmenter_mocked_success(self) -> None:
         step = SilhouetteStep(target_size=(64, 128), method="learned")

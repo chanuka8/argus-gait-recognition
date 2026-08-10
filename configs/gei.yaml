@@ -3,3 +3,9 @@ min_frames: 10
 target_size: [64, 128]
 auto_clear_on_build: false
 idle_timeout_seconds: 10.0
+cycle_detection_enabled: true
+min_cycle_frames: 6
+max_cycle_frames: 24
+cycle_confidence_threshold: 0.35
+duplicate_threshold: 0.98
+cycle_history_window: 30

@@ -1,12 +1,13 @@
 from pathlib import Path
 
 import torch
-import torch.nn as nn
+from torch import nn
+from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from core.logger import setup_logger
 from models.architectures.bygait_light import ByGaitLight
-from models.architectures.losses import JointGaitLoss, ArcMarginProduct
+from models.architectures.losses import ArcMarginProduct, JointGaitLoss
 from training.checkpointer import Checkpointer
 from training.dataloader import build_dataloaders
 from training.optimizer import build_optimizer
@@ -17,57 +18,72 @@ class GaitClassifier(nn.Module):
         self,
         num_classes: int,
         embedding_dim: int = 256,
+        part_bins: int = 4,
         loss_mode: str = "ce",
         arcface_s: float = 30.0,
         arcface_m: float = 0.50,
     ) -> None:
         super().__init__()
 
+        if num_classes <= 0:
+            raise ValueError(f"num_classes must be greater than 0, got {num_classes}")
+
+        if loss_mode not in ("ce", "ce_arcface"):
+            raise ValueError(
+                f"Invalid loss_mode: '{loss_mode}'. Supported options are 'ce' and 'ce_arcface'."
+            )
+
         self.backbone = ByGaitLight(
             embedding_dim=embedding_dim,
+            part_bins=part_bins,
         )
 
         self.loss_mode = loss_mode
-        self.classifier = nn.Linear(
-            embedding_dim,
-            num_classes,
-        )
 
         if loss_mode == "ce_arcface":
-            self.arcface_classifier = ArcMarginProduct(
+            self.arcface_classifier: ArcMarginProduct | None = ArcMarginProduct(
                 in_features=embedding_dim,
                 out_features=num_classes,
                 s=arcface_s,
                 m=arcface_m,
             )
+            self.classifier: nn.Linear | None = None
+        else:
+            self.classifier = nn.Linear(
+                embedding_dim,
+                num_classes,
+            )
+            self.arcface_classifier = None
 
     def forward(
         self,
-        x,
-        labels=None,
-    ):
-        embedding = self.backbone(
-            x,
-        )
+        x: torch.Tensor,
+        labels: torch.Tensor | None = None,
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        embedding = self.backbone(x)
 
-        if self.loss_mode == "ce_arcface" and labels is not None:
-            loss_logits, pred_logits = self.arcface_classifier(
-                embedding,
-                labels,
-            )
-        elif self.loss_mode == "ce_arcface" and labels is None:
-            pred_logits = self.arcface_classifier(
-                embedding,
-            )
-            loss_logits = pred_logits
+        if self.loss_mode == "ce_arcface":
+            if self.arcface_classifier is None:
+                raise RuntimeError("ArcMarginProduct classifier is not initialized.")
+            if labels is not None:
+                loss_logits, pred_logits = self.arcface_classifier(
+                    embedding,
+                    labels,
+                )
+            else:
+                pred_logits = self.arcface_classifier(
+                    embedding,
+                )
+                loss_logits = pred_logits
         else:
+            if self.classifier is None:
+                raise RuntimeError("Linear classifier is not initialized.")
             loss_logits = self.classifier(
                 embedding,
             )
             pred_logits = loss_logits
 
         return loss_logits, pred_logits, embedding
-
 
 
 class Trainer:
@@ -85,8 +101,24 @@ class Trainer:
         loss_mode: str = "ce",
         arcface_scale: float = 30.0,
         arcface_margin: float = 0.50,
+        part_bins: int = 4,
         device: str | None = None,
     ) -> None:
+        if epochs < 1:
+            raise ValueError(f"epochs must be at least 1, got {epochs}")
+        if batch_size < 1:
+            raise ValueError(f"batch_size must be at least 1, got {batch_size}")
+        if learning_rate <= 0:
+            raise ValueError(f"learning_rate must be positive, got {learning_rate}")
+        if loss_mode not in ("ce", "ce_arcface"):
+            raise ValueError(
+                f"Invalid loss_mode: '{loss_mode}'. Supported options are 'ce' and 'ce_arcface'."
+            )
+        if triplet_margin < 0:
+            raise ValueError(f"triplet_margin cannot be negative, got {triplet_margin}")
+        if triplet_weight < 0:
+            raise ValueError(f"triplet_weight cannot be negative, got {triplet_weight}")
+
         self.logger = setup_logger(
             "ARGUS.Trainer",
         )
@@ -106,12 +138,18 @@ class Trainer:
         self.loss_mode = loss_mode
         self.arcface_scale = arcface_scale
         self.arcface_margin = arcface_margin
+        self.part_bins = part_bins
 
-        self.device = device or (
-            "cuda"
-            if torch.cuda.is_available()
-            else "cpu"
-        )
+        if device is None:
+            self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        else:
+            if device == "cuda" and not torch.cuda.is_available():
+                self.logger.warning(
+                    "CUDA device requested but not available. Falling back to CPU."
+                )
+                self.device = "cpu"
+            else:
+                self.device = device
 
         self.checkpointer = Checkpointer(
             run_dir=str(
@@ -137,6 +175,11 @@ class Trainer:
             dataset.label_to_index,
         )
 
+        if num_classes <= 0:
+            raise ValueError(f"Dataset at '{self.data_dir}' contains 0 valid classes.")
+        if len(dataset) <= 0:
+            raise ValueError(f"Dataset at '{self.data_dir}' contains 0 samples.")
+
         self.logger.info(
             f"Samples: {len(dataset)}"
         )
@@ -153,6 +196,7 @@ class Trainer:
 
         model = GaitClassifier(
             num_classes=num_classes,
+            part_bins=self.part_bins,
             loss_mode=self.loss_mode,
             arcface_s=self.arcface_scale,
             arcface_m=self.arcface_margin,
@@ -185,14 +229,13 @@ class Trainer:
             "samples": len(dataset),
             "max_classes": self.max_classes,
             "max_samples": self.max_samples,
-            "device": self.device,
+            "device": str(self.device),
             "loss_mode": self.loss_mode,
             "arcface_scale": self.arcface_scale,
             "arcface_margin": self.arcface_margin,
             "triplet_margin": self.triplet_margin,
             "triplet_weight": self.triplet_weight,
         }
-
 
         for epoch in range(
             1,
@@ -270,11 +313,11 @@ class Trainer:
 
     def _train_one_epoch(
         self,
-        model,
-        loader,
-        criterion,
-        optimizer,
-    ) -> dict:
+        model: GaitClassifier,
+        loader: DataLoader,
+        criterion: JointGaitLoss,
+        optimizer: torch.optim.Optimizer,
+    ) -> dict[str, float]:
         model.train()
 
         total_loss = 0.0
@@ -342,10 +385,10 @@ class Trainer:
 
     def _validate(
         self,
-        model,
-        loader,
-        criterion,
-    ) -> dict:
+        model: GaitClassifier,
+        loader: DataLoader,
+        criterion: JointGaitLoss,
+    ) -> dict[str, float]:
         model.eval()
 
         total_loss = 0.0
@@ -406,3 +449,4 @@ class Trainer:
             "val_triplet_loss": total_triplet / max(total, 1),
             "val_accuracy": correct / max(total, 1),
         }
+

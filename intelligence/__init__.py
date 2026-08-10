@@ -1,24 +1,117 @@
 """ARGUS AI Intelligence Package."""
 
-from intelligence.appearance_embedding import AppearanceEmbeddingExtractor
-from intelligence.camera_topology_learner import CameraTopologyLearner, LearnedEdgeStats
-from intelligence.camera_transition_model import CameraTransitionModel
-from intelligence.confidence_scorer import ConfidenceScorer
-from intelligence.cross_camera_tracker import CrossCameraTracker
-from intelligence.crowd_density_estimator import CrowdDensityEstimator, CrowdDensityLevel, CrowdDensityResult
-from intelligence.crowd_intelligence_system import CrowdIntelligenceEvaluation, CrowdIntelligenceSystem
-from intelligence.crowd_occlusion_analyzer import CrowdOcclusionAnalyzer, FrameCrowdAnalysis
-from intelligence.crowd_robustness_manager import CrowdRobustnessManager
-from intelligence.dual_modal_fusion import DualModalFusion
-from intelligence.fusion_weights import DynamicFusionWeights
-from intelligence.missing_person_workflow import MissingPersonWorkflow, WatchlistEntry, WatchlistManager
-from intelligence.multi_camera_evidence_fusion import FusionState, MultiCameraEvidenceFusion, MultiCameraFusionResult
-from intelligence.open_set_recognizer import OpenSetDecisionResult, OpenSetRecognizer, OpenSetState
-from intelligence.quality_assessment import QualityAssessment
-from intelligence.recognition_deferral_engine import DeferralResult, RecognitionDeferralEngine, RecognitionState
-from intelligence.score_normalizer import ScoreNormalizer
-from intelligence.track_recovery_manager import LostTrackRecord, TrackRecoveryManager
-from intelligence.track_reliability_scorer import TrackReliabilityScorer
+try:
+    from intelligence.appearance_embedding import AppearanceEmbeddingExtractor
+except ImportError:
+    AppearanceEmbeddingExtractor = None
+
+try:
+    from intelligence.camera_topology_learner import CameraTopologyLearner, LearnedEdgeStats
+except ImportError:
+    CameraTopologyLearner = None
+    LearnedEdgeStats = None
+
+try:
+    from intelligence.camera_transition_model import CameraTransitionModel
+except ImportError:
+    CameraTransitionModel = None
+
+try:
+    from intelligence.confidence_scorer import ConfidenceScorer
+except ImportError:
+    ConfidenceScorer = None
+
+try:
+    from intelligence.cross_camera_tracker import CrossCameraTracker
+except ImportError:
+    CrossCameraTracker = None
+
+try:
+    from intelligence.crowd_density_estimator import CrowdDensityEstimator, CrowdDensityLevel, CrowdDensityResult
+except ImportError:
+    CrowdDensityEstimator = None
+    CrowdDensityLevel = None
+    CrowdDensityResult = None
+
+try:
+    from intelligence.crowd_intelligence_system import CrowdIntelligenceEvaluation, CrowdIntelligenceSystem
+except ImportError:
+    CrowdIntelligenceEvaluation = None
+    CrowdIntelligenceSystem = None
+
+try:
+    from intelligence.crowd_occlusion_analyzer import CrowdOcclusionAnalyzer, FrameCrowdAnalysis
+except ImportError:
+    CrowdOcclusionAnalyzer = None
+    FrameCrowdAnalysis = None
+
+try:
+    from intelligence.crowd_robustness_manager import CrowdRobustnessManager
+except ImportError:
+    CrowdRobustnessManager = None
+
+try:
+    from intelligence.dual_modal_fusion import DualModalFusion
+except ImportError:
+    DualModalFusion = None
+
+try:
+    from intelligence.fusion_weights import DynamicFusionWeights
+except ImportError:
+    DynamicFusionWeights = None
+
+try:
+    from intelligence.missing_person_workflow import MissingPersonWorkflow, WatchlistEntry, WatchlistManager
+except ImportError:
+    MissingPersonWorkflow = None
+    WatchlistEntry = None
+    WatchlistManager = None
+
+try:
+    from intelligence.multi_camera_evidence_fusion import (
+        FusionState,
+        MultiCameraEvidenceFusion,
+        MultiCameraFusionResult,
+    )
+except ImportError:
+    FusionState = None
+    MultiCameraEvidenceFusion = None
+    MultiCameraFusionResult = None
+
+try:
+    from intelligence.open_set_recognizer import OpenSetDecisionResult, OpenSetRecognizer, OpenSetState
+except ImportError:
+    OpenSetDecisionResult = None
+    OpenSetRecognizer = None
+    OpenSetState = None
+
+try:
+    from intelligence.quality_assessment import QualityAssessment
+except ImportError:
+    QualityAssessment = None
+
+try:
+    from intelligence.recognition_deferral_engine import DeferralResult, RecognitionDeferralEngine, RecognitionState
+except ImportError:
+    DeferralResult = None
+    RecognitionDeferralEngine = None
+    RecognitionState = None
+
+try:
+    from intelligence.score_normalizer import ScoreNormalizer
+except ImportError:
+    ScoreNormalizer = None
+
+try:
+    from intelligence.track_recovery_manager import LostTrackRecord, TrackRecoveryManager
+except ImportError:
+    LostTrackRecord = None
+    TrackRecoveryManager = None
+
+try:
+    from intelligence.track_reliability_scorer import TrackReliabilityScorer
+except ImportError:
+    TrackReliabilityScorer = None
 
 __all__ = [
     "AppearanceEmbeddingExtractor",

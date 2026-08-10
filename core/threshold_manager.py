@@ -5,11 +5,15 @@ Loads, validates, and resolves semantic recognition thresholds from configuratio
 (configs/inference.yaml) and optional evaluation calibration metadata (threshold_calibration.json).
 """
 
-from dataclasses import dataclass
 import json
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Optional
-import yaml
+from typing import Any
+
+try:
+    import yaml
+except ImportError:
+    yaml = None
 
 
 @dataclass
@@ -25,7 +29,7 @@ class RecognitionThresholds:
     centroid_threshold: float = 0.85
     margin_threshold: float = 0.05
     calibrated: bool = False
-    calibration_source: Optional[str] = None
+    calibration_source: str | None = None
 
 
 class ThresholdManager:
@@ -33,10 +37,10 @@ class ThresholdManager:
 
     DEFAULT_CONFIG_PATH = Path("configs/inference.yaml")
 
-    def __init__(self, config_path: Optional[str] = None) -> None:
+    def __init__(self, config_path: str | None = None) -> None:
         self.config_path = Path(config_path) if config_path else self.DEFAULT_CONFIG_PATH
 
-    def load_thresholds(self, config_override: Optional[Dict[str, Any]] = None) -> RecognitionThresholds:
+    def load_thresholds(self, config_override: dict[str, Any] | None = None) -> RecognitionThresholds:
         config = config_override if config_override is not None else self._load_config()
 
         policy = config.get("matching_policy", {})
@@ -87,7 +91,7 @@ class ThresholdManager:
                         centroid_th = known_th
                         calibrated = True
                         calib_source = str(calib_path.as_posix())
-                except Exception:
+                except (OSError, ValueError, json.JSONDecodeError):
                     pass
 
         if unknown_th >= known_th:
@@ -111,12 +115,12 @@ class ThresholdManager:
             calibration_source=calib_source,
         )
 
-    def _load_config(self) -> Dict[str, Any]:
-        if not self.config_path.exists():
+    def _load_config(self) -> dict[str, Any]:
+        if not self.config_path.exists() or yaml is None:
             return {}
         try:
             with open(self.config_path, encoding="utf-8") as f:
                 data = yaml.safe_load(f)
                 return data if isinstance(data, dict) else {}
-        except Exception:
+        except (OSError, ValueError, TypeError, AttributeError):
             return {}

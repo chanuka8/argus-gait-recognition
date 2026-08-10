@@ -2,7 +2,10 @@ import logging
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
-import yaml
+try:
+    import yaml
+except ImportError:
+    yaml = None
 
 
 _DEFAULT_LOG_DIR = "outputs/logs/system"
@@ -33,13 +36,13 @@ def _load_logging_config() -> dict:
         "format": _DEFAULT_FORMAT,
     }
 
-    if not config_path.exists():
+    if not config_path.exists() or yaml is None:
         return defaults
 
     try:
         with open(config_path, "r", encoding="utf-8") as file:
             data = yaml.safe_load(file) or {}
-    except Exception:
+    except (OSError, ValueError, TypeError, AttributeError):
         return defaults
 
     section = data.get("logging", {})
