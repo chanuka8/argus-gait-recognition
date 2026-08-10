@@ -2,197 +2,64 @@
 
 ![ARGUS AI Gait Recognition Banner](assets/github/Gitrepo_profilepic.png)
 
-A modular spatial-temporal gait recognition, multi-object tracking, and multi-camera surveillance intelligence framework.
+### Real-Time Gait Recognition & Cross-Camera Identity Tracking
+
+ARGUS AI is a modular spatial-temporal gait recognition, multi-object tracking, and multi-camera surveillance intelligence framework built on PyTorch and OpenCV. It extracts gait biometric signatures from silhouette sequences to perform open-set subject identification, multi-camera tracking, and forensic trajectory reconstruction.
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](.)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Build](https://img.shields.io/github/actions/workflow/status/chanuka8/argus-gait-recognition/CI.yaml?branch=main)](https://github.com/chanuka8/argus-gait-recognition/actions/workflows/CI.yaml)
 [![Platform: Windows / Linux](https://img.shields.io/badge/platform-Windows%20%7C%20Linux-lightgrey.svg)](.)
-[![Multi-Camera](https://img.shields.io/badge/multi--camera-supported-blue.svg)](pipeline/multi_camera_recognition.py)
-[![Open-Set Recognition](https://img.shields.io/badge/open--set-recognition-blue.svg)](intelligence/open_set_recognizer.py)
-[![Crowd Robust](https://img.shields.io/badge/crowd-robust-blue.svg)](intelligence/crowd_robustness_manager.py)
-[![Watchlist Ready](https://img.shields.io/badge/watchlist-ready-blue.svg)](intelligence/missing_person_workflow.py)
-[![YOLO](https://img.shields.io/badge/YOLO-v8-blue.svg)](https://github.com/ultralytics/ultralytics)
-[![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-EE4C2C.svg)](https://pytorch.org/)
-[![OpenCV](https://img.shields.io/badge/OpenCV-4.8%2B-5C3EE8.svg)](https://opencv.org/)
-[![Ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
-[![Pytest](https://img.shields.io/badge/tests-341%20passed-brightgreen.svg)](tests)
-[![Status](https://img.shields.io/badge/status-READY__FOR__CONTROLLED__CCTV__TESTING-blue.svg)](docs/DEPLOYMENT_READINESS.md)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.6%2B-EE4C2C.svg)](https://pytorch.org/)
+[![CUDA](https://img.shields.io/badge/CUDA-12.8-green.svg)](https://developer.nvidia.com/cuda-toolkit)
+[![ONNX Runtime](https://img.shields.io/badge/ONNX%20Runtime-1.17%2B-blue.svg)](https://onnxruntime.ai/)
+[![Code Style: Ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
+[![Pytest: 393 Passed](https://img.shields.io/badge/pytest-393%20passed-brightgreen.svg)](tests)
+[![Status: Research Grade](https://img.shields.io/badge/status-RESEARCH__GRADE__PLATFORM-blue.svg)](docs/ARGUS_CURRENT_TECHNICAL_STATUS_REPORT.md)
 [![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](VERSION)
 
 ---
 
-## Deployment Readiness & Architecture
+## Project Status Matrix
 
-ARGUS AI separates deployment concerns into distinct inference execution backends, pre-flight health validation tools, and externalized YAML configurations. Detailed deployment specifications are maintained in [docs/DEPLOYMENT_READINESS.md](docs/DEPLOYMENT_READINESS.md).
+ARGUS AI separates implementation into distinct functional components. System maturity is audited against empirical test suites and physical execution evidence:
 
-### Backend Status Matrix
-
-- **PyTorch**: `✓ Reference Backend` (Default active backend for model feature extraction and verification).
-- **ONNX Runtime**: `✓ Optimized Deployment Backend` (CPU-validated inference engine with atomic export and parity verification).
-- **TensorRT**: `Deferred` (Framework implemented; hardware execution deferred pending CUDA + TensorRT environment installation and physical GPU validation).
-
-> **Deployment Notice**: TensorRT is not currently claimed as a production-ready backend. PyTorch serves as the reference engine and ONNX Runtime serves as the optimized CPU deployment engine.
-
-### Backend Selection Policy
-
-Inference backends are selected dynamically via `configs/inference.yaml` or programmatically through `get_inference_backend()` in [models/inference/backend.py](models/inference/backend.py):
-
-- `requested=pytorch` $\rightarrow$ Executes **PyTorch** backend directly without probing ONNX Runtime.
-- `requested=onnxruntime` $\rightarrow$ Executes **ONNX Runtime** backend. If unavailable or if session creation fails, falls back to PyTorch (or raises a blocking error if `allow_fallback=false`).
-- `requested=auto` $\rightarrow$ Attempts **ONNX Runtime** first, falling back to **PyTorch** if ONNX Runtime is uninstalled or model file is missing.
-
-Every initialized backend exposes an authoritative `.metadata` dictionary returning:
-- `requested_backend`: The backend requested by configuration.
-- `active_backend`: The actual backend executing inference (`pytorch` or `onnxruntime`).
-- `execution_provider`: Active low-level provider (`CPUExecutionProvider`, `PyTorch-CPU`, etc.).
-- `allow_fallback`: Boolean flag indicating whether fallback is allowed.
-- `fallback_used`: Boolean indicating whether a fallback occurred.
-- `fallback_reason`: Detailed reason string if fallback was triggered.
-- `attempted_backends`: Exact chain of backends attempted in order (e.g. `["onnxruntime", "pytorch"]`).
+| Component / Subsystem | Implementation Status | Validation Level | Primary Reference Source |
+| :--- | :---: | :---: | :--- |
+| **Person Detection (YOLOv8)** | **IMPLEMENTED** | Validated (PyTest / CUDA) | [pipeline/detection/person_detector.py](pipeline/detection/person_detector.py) |
+| **Multi-Object Tracking (ByteTrack)** | **IMPLEMENTED** | Validated (Integration Suite) | [pipeline/steps/tracking.py](pipeline/steps/tracking.py) |
+| **Bounding Box Stabilization (EMA)** | **IMPLEMENTED** | Validated (Unit Tests) | [utils/box_stabilizer.py](utils/box_stabilizer.py) |
+| **Silhouette Extraction (Contract/Fallback)** | **IMPLEMENTED** | Validated (Otsu Strategy Active) | [pipeline/silhouette/extractor.py](pipeline/silhouette/extractor.py) |
+| **Cycle-Aware GEI Generation** | **IMPLEMENTED** | Validated (Unit Tests) | [pipeline/steps/live_gei.py](pipeline/steps/live_gei.py) |
+| **Gait Feature Encoder (ByGaitLight)** | **IMPLEMENTED** | Validated (HPP / 256-d L2) | [models/architectures/bygait_light.py](models/architectures/bygait_light.py) |
+| **ArcFace & Triplet Training Engine** | **IMPLEMENTED** | Validated (Ablation Matrix) | [models/architectures/losses.py](models/architectures/losses.py) |
+| **Hardened Gallery Storage (VectorStore)** | **IMPLEMENTED** | Validated (`allow_pickle=False`) | [storage/vector_store.py](storage/vector_store.py) |
+| **Open-Set Recognizer (3-State Logic)** | **IMPLEMENTED** | Validated (Min-EER Thresholds) | [intelligence/open_set_recognizer.py](intelligence/open_set_recognizer.py) |
+| **Centralized Threshold Manager** | **IMPLEMENTED** | Validated (Config & Calibration) | [core/threshold_manager.py](core/threshold_manager.py) |
+| **Dual-Modal ReID Score Fusion** | **IMPLEMENTED** | Validated (OSNet Fallback) | [intelligence/dual_modal_fusion.py](intelligence/dual_modal_fusion.py) |
+| **Temporal Gait Verification** | **IMPLEMENTED** | Validated (Sliding Window) | [pipeline/steps/temporal_gait_verifier.py](pipeline/steps/temporal_gait_verifier.py) |
+| **Multi-Camera Evidence Fusion** | **IMPLEMENTED** | Validated (Multi-Stream) | [intelligence/multi_camera_evidence_fusion.py](intelligence/multi_camera_evidence_fusion.py) |
+| **Cross-Camera Tracker & Topology Model** | **IMPLEMENTED** | Validated (Transition Graph) | [intelligence/cross_camera_tracker.py](intelligence/cross_camera_tracker.py) |
+| **Inference Backends (PyTorch / ONNX)** | **IMPLEMENTED** | Validated (Parity Reached) | [models/inference/backend.py](models/inference/backend.py) |
+| **TensorRT Execution Engine** | **EXPERIMENTAL** | Framework Implemented (HW Deferred) | [models/inference/tensorrt_backend.py](models/inference/tensorrt_backend.py) |
+| **Learned UNet Silhouette Model Asset** | **PLANNED** | Asset Missing (Otsu Active) | [pipeline/silhouette/extractor.py](pipeline/silhouette/extractor.py) |
 
 ---
 
-## ONNX Deployment & Parity Verification
+## Key Capabilities
 
-The repository includes a dedicated ONNX export and verification pipeline ([scripts/export_bygait_onnx.py](scripts/export_bygait_onnx.py)):
+### Core Recognition & Pipeline Processing
+* **YOLOv8 Bounding Box Localization**: Deep learning person detection configured via externalized YAML ([configs/detection.yaml](configs/detection.yaml)).
+* **ByteTrack & IoU Multi-Object Tracking**: Track ID assignment with Exponential Moving Average (EMA) box coordinate smoothing ([pipeline/steps/tracking.py](pipeline/steps/tracking.py)).
+* **Unified Silhouette Contract**: Morphological cleaning, component filtering, aspect-ratio constraints, height normalization ($128 \times 64$, 85% centered height), and learned segmenter fallback ([pipeline/silhouette/extractor.py](pipeline/silhouette/extractor.py)).
+* **Cycle-Aware Gait Energy Image (GEI)**: Dynamic sequence aggregation of silhouette sequences into 2D GEI signatures with duplicate frame rejection ([pipeline/steps/live_gei.py](pipeline/steps/live_gei.py)).
+* **ByGaitLight CNN Gait Encoder**: Lightweight convolutional neural network supporting Horizontal Part Pooling (HPP, `part_bins=4`) and 256-dimensional L2-normalized embedding extraction ([models/architectures/bygait_light.py](models/architectures/bygait_light.py)).
 
-- **✓ Stable ONNX Export**: Converts `ByGaitLight` PyTorch weights into ONNX format (`models/engines/bygait_light.onnx`) with seed determinism (`seed=42`). Missing checkpoints immediately halt export to prevent saving uninitialized weights.
-- **✓ Atomic Replacement**: Exports initially to a temporary file (`bygait_light.onnx.tmp`) and performs replacement only after structural check and parity validation pass, preserving existing destination files byte-for-byte on failure.
-- **✓ Numerical Parity Validation**: Compares PyTorch and ONNX embedding outputs using fixed tolerances (`rtol=1e-3`, `atol=1e-4`) and records `max_absolute_diff`.
-- **✓ Metadata Report Generation**: Outputs machine-readable JSON (`outputs/reports/onnx_validation.json`) and Markdown (`outputs/reports/onnx_validation.md`) reports containing relative paths only.
-- **✓ Pre-Flight Verification**: Validated automatically by system health checks ([scripts/doctor.py](scripts/doctor.py)).
-
----
-
-## Deployment Health Checks (`scripts/doctor.py`)
-
-[scripts/doctor.py](scripts/doctor.py) provides a non-destructive CLI tool for pre-flight deployment verification.
-
-### Verified Health Checks
-
-- **✓ Configuration**: Validates externalized YAML settings via `ConfigValidator`.
-- **✓ Model Availability**: Checks PyTorch checkpoint (`runs/exp_001/best_model.pth`) and ONNX engine (`models/engines/bygait_light.onnx`).
-- **✓ Gallery Validation**: Reuses safe vector store checks (`validate_gallery_files` with `allow_pickle=False`, numeric dtypes, non-finite rejection, 2D feature shapes, and label count parity).
-- **✓ Backend Readiness**: Executes smoke tests on active inference backend.
-- **✓ Output Directory**: Verifies writability of `outputs/reports/` using temporary probe cleanup.
-- **✓ Report Generation**: Produces sanitized JSON (`outputs/reports/health_report.json`) and Markdown (`outputs/reports/health_report.md`) reports.
-
-### Non-Destructive Safety Guarantees
-
-`doctor.py` **DOES NOT**:
-- Connect to live RTSP cameras or webcams.
-- Access external network interfaces.
-- Modify model, gallery, or configuration files.
-- Install or upgrade Python packages.
-- Execute pipeline inference or alter repository state.
-
----
-
-## Verified System Metrics & Audit Reports
-
-The repository contains an empirical, evidence-grounded audit suite generated under [docs/reports/](docs/reports/README.md).
-
-### Verified System Snapshot
-
-- **Subject-Disjoint Rank-1 Accuracy**: **86.89%** ([EVALUATION_REPORT.md](docs/reports/EVALUATION_REPORT.md))
-- **Subject-Disjoint Rank-5 Accuracy**: **93.96%** ([EVALUATION_REPORT.md](docs/reports/EVALUATION_REPORT.md))
-- **Open-Set ROC AUC**: **0.9150** | **EER**: **16.88%** ([EVALUATION_REPORT.md](docs/reports/EVALUATION_REPORT.md))
-- **ONNX Embedding Latency**: **0.851 ms** / **1,173.82 FPS** (Intel CPU, ONNX Runtime, Batch Size 1, $64 \times 64$, [BENCHMARK_REPORT.md](docs/reports/BENCHMARK_REPORT.md))
-- **Full Pipeline Latency**: **90.36 ms** / **11.07 FPS** (Intel CPU, PyTorch, End-to-End single person, [BENCHMARK_REPORT.md](docs/reports/BENCHMARK_REPORT.md))
-- **Deployment Readiness Status**: **`READY_FOR_CONTROLLED_GAIT_RECOGNITION_TESTING`** ([DEPLOYMENT_READINESS_REPORT.md](docs/reports/DEPLOYMENT_READINESS_REPORT.md))
-
-### Modular Audit Suite Links
-
-- **[Master Metrics Audit Report](docs/reports/CURRENT_SYSTEM_METRICS_REPORT.md)** ([JSON](docs/reports/CURRENT_SYSTEM_METRICS_REPORT.json))
-- **[Model Architecture Report](docs/reports/MODEL_ARCHITECTURE_REPORT.md)** (FLOPs: 79.77M / MACs: 39.89M, 126K backbone / 190K total params, ArcFace)
-- **[Benchmark Report](docs/reports/BENCHMARK_REPORT.md)** (Isolated ONNX/PyTorch embedding, pipeline latency, crowd overhead)
-- **[Evaluation Report](docs/reports/EVALUATION_REPORT.md)** (Subject-disjoint Rank-1, Rank-5, NM/BG/CL breakdowns, Open-set ROC AUC, Cross-view matrix)
-- **[Deployment Readiness Report](docs/reports/DEPLOYMENT_READINESS_REPORT.md)** (System doctor health status, exit code 0, 16/16 checks passed)
-- **[Inference Backend Report](docs/reports/BACKEND_REPORT.md)** (Backend selection policy `auto`, fallback cascade)
-- **[Test Summary Report](docs/reports/TEST_SUMMARY_REPORT.md)** (PyTest: 341 Passed, 1 Skipped, 0 Failed across 342 tests)
-- **[Security & Data Integrity Report](docs/reports/SECURITY_INTEGRITY_REPORT.md)** (`allow_pickle=False` controls, RTSP masking, VectorStore security)
-
----
-
-## Capabilities & Implementation Matrix
-
-| Capability | Implementation Status | Default State | Reference Source |
-| --- | --- | --- | --- |
-| **PyTorch Inference Backend** | Implemented (Reference) | Enabled (Default) | [models/inference/pytorch_backend.py](models/inference/pytorch_backend.py) |
-| **ONNX Runtime Backend** | Implemented (Optimized) | Optional | [models/inference/onnx_backend.py](models/inference/onnx_backend.py) |
-| **TensorRT Inference Backend** | Framework Implemented (HW Deferred) | Deferred | [models/inference/tensorrt_backend.py](models/inference/tensorrt_backend.py) |
-| **System Health CLI (`doctor.py`)** | Implemented | Pre-Flight Tool | [scripts/doctor.py](scripts/doctor.py) |
-| **Startup Pipeline Validator** | Implemented | Opt-In / Startup | [deployment/startup_validator.py](deployment/startup_validator.py) |
-| **Deployment Readiness Reporter** | Implemented | Automated Tool | [deployment/readiness_reporter.py](deployment/readiness_reporter.py) |
-| **Explainable Recognition Reports** | Implemented | Disabled by default | [intelligence/explainable_recognition_report.py](intelligence/explainable_recognition_report.py) |
-| **Event Timeline Reconstruction** | Implemented | Disabled by default | [intelligence/event_timeline_reconstructor.py](intelligence/event_timeline_reconstructor.py) |
-| **VectorStore Deserialization Security** | Implemented (`allow_pickle=False`) | Enabled | [storage/vector_store.py](storage/vector_store.py) |
-| **Secure RTSP Credential Resolution** | Implemented (Fernet & Env Vars) | Enabled | [security_layer/credentials.py](security_layer/credentials.py) |
-| **Documentation Synchronization** | Implemented (19 Package Folders) | Pre-Commit Hook | [scripts/sync_folder_readmes.py](scripts/sync_folder_readmes.py) |
-
----
-
-## Features
-
-### Core Recognition
-
-- **YOLOv8 Person Detection**: Deep learning bounding box localization ([pipeline/detection/person_detector.py](pipeline/detection/person_detector.py)).
-- **ByteTrack Multi-Object Tracking**: Track ID assignment using ByteTrack and IoU algorithms ([pipeline/steps/tracking.py](pipeline/steps/tracking.py)).
-- **EMA Bounding Box Stabilization**: Exponential Moving Average coordinate filter eliminating detection jitter ([utils/box_stabilizer.py](utils/box_stabilizer.py)).
-- **Silhouette Extraction**: Segmented human contour isolation and morphological cleaning ([pipeline/steps/silhouette_step.py](pipeline/steps/silhouette_step.py)).
-- **Live GEI Generation**: Rolling sequence aggregation of 30 frames into 2D Gait Energy Images ([pipeline/steps/live_gei.py](pipeline/steps/live_gei.py)).
-- **CNN Gait Recognition**: 256-dimensional gait signature extraction via lightweight `ByGaitLight` CNN ([models/architectures/bygait_light.py](models/architectures/bygait_light.py)).
-- **Hardened Gallery Storage**: Secure biometric template storage with strict `allow_pickle=False` deserialization ([storage/vector_store.py](storage/vector_store.py)).
-- **Cosine Similarity Matching**: Cosine distance evaluation between live embeddings and gallery candidates ([storage/vector_store.py](storage/vector_store.py)).
-
-### Recognition Intelligence
-
-- **Open-Set Recognition**: Three-state identity classification (`KNOWN`, `UNKNOWN`, `UNCERTAIN`) evaluating top-1 similarity thresholds (`known_threshold=0.85`, floor `unknown_threshold=0.70`) and candidate margin constraints (`margin_threshold=0.05`) ([intelligence/open_set_recognizer.py](intelligence/open_set_recognizer.py)).
-- **Dual-Modal ReID & Gait Fusion**: Combines gait embeddings with optional appearance (ReID) embeddings using configurable weighted score fusion. Automatically falls back to gait-only recognition when ReID is unavailable or disabled ([intelligence/dual_modal_fusion.py](intelligence/dual_modal_fusion.py)).
-- **Track Reliability Score**: Multi-source evidence scoring producing a normalized index in $[0.0, 1.0]$, explicitly decoupling identity confidence from physical track stability ([intelligence/track_reliability_scorer.py](intelligence/track_reliability_scorer.py)).
-- **Quality-Aware Recognition**: Area, symmetry, and sharpness evaluation to gate low-quality silhouettes before feature extraction ([pipeline/steps/quality_estimator.py](pipeline/steps/quality_estimator.py), [intelligence/quality_assessment.py](intelligence/quality_assessment.py)).
-- **Temporal Verification**: Sliding-window majority vote verification over consecutive frames to prevent transient misclassifications ([pipeline/steps/temporal_gait_verifier.py](pipeline/steps/temporal_gait_verifier.py)).
-- **Prediction Smoothing**: Temporal history aggregation preventing rapid state oscillation ([pipeline/steps/temporal_gait_verifier.py](pipeline/steps/temporal_gait_verifier.py)).
-
-### Multi-Camera & Crowd Intelligence
-
-- **Multi-Camera Tracking**: Global track assignment (`GTRACK-XXXX`) and multi-stream trajectory management ([intelligence/cross_camera_tracker.py](intelligence/cross_camera_tracker.py)).
-- **Camera Transition Modeling**: Directed topology graph enforcing expected travel-time windows $[T_{min}, T_{max}]$, transition probabilities, entry/exit zones, and candidate tie resolution ([intelligence/camera_transition_model.py](intelligence/camera_transition_model.py)).
-- **Spatial-Temporal Camera Topology Auto-Learning**: Learns camera transition statistics from validated cross-camera observations and synchronizes qualified learned routes into active transition models ([intelligence/camera_topology_learner.py](intelligence/camera_topology_learner.py)).
-- **Multi-Camera Evidence Fusion**: Accumulates observations across multiple cameras, suppresses duplicate evidence, and produces unified cross-camera identity confidence ([intelligence/multi_camera_evidence_fusion.py](intelligence/multi_camera_evidence_fusion.py)).
-- **Cross-Camera Identity Persistence**: Accumulated score decay ($\alpha=0.90$) and duplicate alert suppression across streams ([intelligence/identity_persistence.py](intelligence/identity_persistence.py)).
-- **Crowd-Robust Detection**: Adaptive gating, IoU tuning, and threshold adjustments under high spatial density ([intelligence/crowd_robustness_manager.py](intelligence/crowd_robustness_manager.py)).
-
-### Operational Intelligence & Forensic Trace Analysis
-
-- **Explainable Recognition Reports**: Generates JSON, CSV, and Markdown trace reports detailing identity decision logic, similarity scores, candidate margins, track reliability, quality metrics, and deferral flags ([intelligence/explainable_recognition_report.py](intelligence/explainable_recognition_report.py)).
-- **Event Timeline Reconstruction**: Cross-camera chronological event trajectory accumulator for global tracks and watchlist targets ([intelligence/event_timeline_reconstructor.py](intelligence/event_timeline_reconstructor.py)).
-- **Real-Time Watchlist Integration**: Dynamic target identity registration, priority category routing, and instant match notification triggers ([intelligence/missing_person_workflow.py](intelligence/missing_person_workflow.py)).
-- **Crowd Density & Occlusion Analysis**: Real-time person count, area occupancy classification (`LOW`, `MODERATE`, `HIGH`, `SEVERE`), and overlap ratio assessment ([intelligence/crowd_density_estimator.py](intelligence/crowd_density_estimator.py), [intelligence/crowd_occlusion_analyzer.py](intelligence/crowd_occlusion_analyzer.py)).
-- **Recognition Deferral & Track Recovery**: Deferring low-confidence or heavily occluded decisions and recovering lost tracks ([intelligence/recognition_deferral_engine.py](intelligence/recognition_deferral_engine.py), [intelligence/track_recovery_manager.py](intelligence/track_recovery_manager.py)).
-
-### Performance, Security & Infrastructure
-
-- **Pluggable Inference Backends**: Unified factory (`get_inference_backend()`) supporting PyTorch (reference), ONNX Runtime (optimized), and TensorRT (deferred) with automatic PyTorch fallback, attempted backend chain reporting, and sanitized log warnings ([models/inference/backend.py](models/inference/backend.py)).
-- **Hardened Vector Store**: Complete security remediation enforcing `allow_pickle=False`, rejecting object arrays, and validating numeric dtypes, dimensions, and shape consistency ([storage/vector_store.py](storage/vector_store.py)).
-- **Secure RTSP Credential Management**: Fernet-encrypted credential storage, environment variable mapping, per-camera credential resolution, and automatic stream URL sanitization in logs ([security_layer/credentials.py](security_layer/credentials.py)).
-- **Automated Documentation Synchronization**: Automated README table synchronization ([scripts/sync_folder_readmes.py](scripts/sync_folder_readmes.py)) covering all 19 package folders including [scripts/README.md](scripts/README.md) (CLI reference, metadata tables, dependency graph, execution order, change impact, safety classification), atomic writes, cross-platform pre-commit hook installer (`scripts/install_git_hooks.py`), and CI freshness check ([.github/workflows/readme_sync_check.yml](.github/workflows/readme_sync_check.yml)).
-
----
-
-## Technology Stack
-
-- **Python**: Core implementation language (Python 3.11+).
-- **PyTorch**: Deep learning backend for `ByGaitLight` CNN feature extraction and vector operations.
-- **ONNX Runtime**: Accelerated CPU inference engine for PyTorch exported models.
-- **YOLOv8**: Object detection network for high-precision human bounding box localization.
-- **OpenCV**: Computer vision operations, silhouette segmentation, image processing, and display rendering.
-- **NumPy**: Numerical array computations, vector distance calculation, and GEI accumulation.
-- **ByteTrack**: Multi-object tracking algorithm for consistent local track ID assignment.
-- **FastAPI & Uvicorn**: Lightweight HTTP REST API server engine and schema definitions ([api/server.py](api/server.py)).
-- **cryptography**: Encrypted credential management using Fernet.
-- **YAML**: Configuration serialization via PyYAML.
+### Recognition Intelligence & Multi-Camera Tracking
+* **3-State Open-Set Identification**: Classifies tracks into `KNOWN`, `UNKNOWN`, or `UNCERTAIN` based on validation-calibrated cosine similarity thresholds and top-1/top-2 margin constraints ([intelligence/open_set_recognizer.py](intelligence/open_set_recognizer.py)).
+* **Centralized Threshold Management**: Unified threshold loading and strict semantic validation (`unknown_threshold < known_threshold`) driven by [core/threshold_manager.py](core/threshold_manager.py).
+* **Cross-Camera Topology Tracking**: Directed camera transition modeling with travel-time windows $[T_{min}, T_{max}]$, transition probabilities, entry/exit zones, and accumulated score decay ([intelligence/cross_camera_tracker.py](intelligence/cross_camera_tracker.py)).
+* **Dual-Modal Gait + ReID Fusion**: Optional score-level fusion combining gait embeddings with OSNet appearance features ([intelligence/dual_modal_fusion.py](intelligence/dual_modal_fusion.py)).
+* **Watchlist & Event Reconstruction**: Dynamic target registration, threat priority routing, and atomic timeline trajectory export to JSON, CSV, and Markdown ([intelligence/event_timeline_reconstructor.py](intelligence/event_timeline_reconstructor.py)).
 
 ---
 
@@ -200,275 +67,201 @@ The repository contains an empirical, evidence-grounded audit suite generated un
 
 ```mermaid
 graph TD
-    RTSP[Camera Streams / RTSP] --> CS[CameraService / WorkerPool]
-    CS --> MSE[MultiStreamEngine]
-    MSE --> MCR[MultiCameraRecognition Pipeline]
-    
-    subgraph Modular Step Pipeline
-        MCR --> DET[YOLOv8 Detection]
-        DET --> TRK[ByteTrack Tracking]
-        TRK --> EMA[EMA Stabilization]
-        EMA --> SIL[Silhouette Extraction]
-        SIL --> GEI[Live GEI Accumulator]
-        GEI --> QUA[Quality Estimator]
-        QUA --> FEA[Gait Embedding - ByGaitLight]
-        FEA --> APP[Appearance ReID Embedding - OSNet]
-        APP --> FUS[Dual-Modal Score Fusion]
-        FUS --> MAT[Gallery Search - VectorStore]
-    end
-
-    MAT --> OSR[Open-Set Recognition]
-    OSR --> TRS[Track Reliability Scorer]
-    TRS --> WLM[Real-Time Watchlist Manager]
-    WLM --> CIS[Crowd Intelligence System]
-    
-    subgraph Crowd Intelligence
-        CIS --> COA[Crowd Occlusion Analyzer]
-        CIS --> RDE[Recognition Deferral]
-        CIS --> TRM[Track Recovery]
-    end
-
-    CIS --> CCT[Cross-Camera Tracker & Transition Model]
-    CCT --> IDP[Identity Persistence Engine]
-    IDP --> REP[Detection Output - Reporter / Renderer / Evidence]
+    Input[Camera Streams / RTSP / Video] --> DET[Person Detector - YOLOv8]
+    DET --> TRK[Multi-Object Tracker - ByteTrack]
+    TRK --> EMA[Box Coordinate Stabilizer - EMA]
+    EMA --> SIL[Silhouette Step - Unified Contract & Otsu/ONNX Strategy]
+    SIL --> GEI[Live GEI Accumulator - Cycle-Aware Sequence Builder]
+    GEI --> QUA[Quality Estimator - Area / Aspect Ratio / Sharpness]
+    QUA --> FEA[ByGaitLight Encoder - HPP part_bins=4]
+    FEA --> EMB[256-d L2-Normalized Embedding]
+    EMB --> VEC[Gallery Search - Hardened VectorStore]
+    VEC --> THR[Central Threshold Manager - calibration.json]
+    THR --> OSR[Open-Set Recognizer - KNOWN / UNKNOWN / UNCERTAIN]
+    OSR --> TPV[Temporal Gait Verifier - Sliding Window Smoother]
+    TPV --> CCT[Cross-Camera Tracker - Spatial-Temporal Transition Graph]
+    CCT --> OUT[Recognition Output / Watchlist Alert / Timeline Export]
 ```
 
 ---
 
-## Security Infrastructure
+## Current Gait Model & Benchmark Evidence
 
-### Secure RTSP Credential Resolution
+### Active Checkpoint vs. Top Candidate Model
 
-ARGUS AI supports secure RTSP camera authentication without storing plaintext credentials inside repository configuration files. Credentials are resolved dynamically at runtime in priority order:
+ARGUS AI strictly separates the **active deployment checkpoint** from **experimental candidate models**:
 
-1. **Environment Variables**: Per-camera (`ARGUS_CAMERA_<ID>_USERNAME`, `ARGUS_CAMERA_<ID>_PASSWORD`) or global fallback (`ARGUS_RTSP_USERNAME`, `ARGUS_RTSP_PASSWORD`).
-2. **Encrypted Credential Store**: Local credential store (`configs/credentials.enc`) encrypted using Fernet (`cryptography` library).
-3. **Legacy Plaintext**: Plaintext fallback (disabled by default; requires `ARGUS_LEGACY_ALLOW_PLAINTEXT_CREDS=true`).
+* **Active Checkpoint (`runs/exp_001/best_model.pth`)**: Global average pooling `ByGaitLight` (`part_bins=1`), trained without margin-based classification. Preserved as the reference baseline.
+* **Top Candidate Model (`EXP-003E` / `models/candidates/exp_003e_hpp_arcface_triplet025_best.pth`)**: `ByGaitLight` with Horizontal Part Pooling (`part_bins=4`), 256-d L2 embeddings, ArcMarginProduct (ArcFace margin=0.50, scale=30.0), and Batch-Hard Triplet loss (weight=0.25).
 
-- **Log Sanitization**: Automatic masking of RTSP credentials (`rtsp://***:***@host:port/path`) across all system logs, reports, and CLI outputs.
+> **Evaluation Protocol Notice**: Historical benchmarks (Exp-001) were evaluated under non-subject-disjoint splits where test identities overlapped during training supervision. All recent benchmarks (**EXP-003A..E**) use a strict subject-disjoint CASIA-B partition: Train `001–062` (6,779 samples), Validation `063–074` (1,299 samples), Test `075–124` (5,466 samples).
 
-### Hardened Vector Store Deserialization
+### Controlled Ablation Study Matrix (EXP-003A .. EXP-003E)
 
-Biometric gallery storage in `VectorStore` ([storage/vector_store.py](storage/vector_store.py)) has been fully hardened against arbitrary code execution vulnerabilities:
+To determine the individual impacts of HPP, ArcFace, and Triplet loss, a controlled 5-run ablation study was executed under identical training hyperparameters (25 epochs, Adam lr=0.0001, seed 42):
 
-- **`allow_pickle=False` Enforcement**: All `np.load()` calls strictly prohibit pickle deserialization.
-- **Object-Array Rejection**: Rejects any array containing object dtypes (`dtype == object` or `kind == "O"`).
-- **Strict Data Validation**: Validates numeric feature dtypes (`np.issubdtype(dtype, np.number)`), 2D feature matrix dimensions `(N, D)`, 1D label vector shape `(N,)`, feature-to-label count parity, and file corruption.
+| Experiment | Pooling | Loss Mode | Triplet Weight | Rank-1 | Rank-5 | NM (Normal) | BG (Bag) | CL (Clothing) | ROC-AUC | EER | Open-Set FAR | Calibration Threshold | Impostor Score Distribution |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
+| **Exp-001** (Legacy)* | Global (1) | Standard CE | ~0.50 | 86.89%* | 93.96%* | 96.82%* | 91.23%* | 72.64%* | 0.9150 | 16.88% | 36.75% | 0.9913 | Severe saturation near 1.0 |
+| **EXP-003A** (Disjoint Base) | Global (1) | Standard CE | 0.50 | 52.78% | 67.10% | 85.82% | 53.15% | 19.36% | 0.7499 | 31.95% | 70.49% | 0.7064 | Compressed `[0.208, 0.984]` |
+| **EXP-003B** (HPP Alone) | HPP (4) | Standard CE | 0.50 | 61.43% | 75.63% | 91.55% | 60.55% | 32.18% | 0.8327 | 24.86% | 57.06% | 0.7942 | Compressed `[0.450, 0.995]` |
+| **EXP-003C** (ArcFace Alone)| Global (1) | ArcFace | 0.50 | 59.58% | 73.78% | 91.00% | 61.55% | 26.18% | 0.8314 | 25.64% | 47.20% | 0.9927 | Severe saturation near 1.0 |
+| **EXP-003D** (HPP+ArcFace) | HPP (4) | ArcFace | 0.00 | 69.71% | 80.91% | 96.73% | 72.79% | 39.64% | 0.8470 | 23.49% | 60.84% | 0.5287 | Wide range `[0.211, 0.965]` |
+| **EXP-003E** (Top Candidate) | HPP (4) | ArcFace | **0.25** | **72.63%** | **82.76%** | **97.00%** | **78.26%** | **42.64%** | **0.8776** | **20.46%** | **62.26%** | **0.4906** | **Desaturated `[-0.60, 0.97]`** |
 
----
+*\*Note: Exp-001 metrics reflect legacy non-subject-disjoint evaluation. Under strict subject-disjoint split, the global CE baseline achieves 52.78% Rank-1 (EXP-003A). EXP-003E improves Rank-1 by +19.85% absolute over the true baseline.*
 
-## Externalized Configuration
-
-System parameters and deployment settings are externalized across YAML configuration files under [configs/](configs/):
-
-- **[configs/system.yaml](configs/system.yaml)**: Controls thread pool sizes, logging levels, storage output directories, and API binding parameters.
-- **[configs/inference.yaml](configs/inference.yaml)**: Controls inference backend selection (`pytorch`, `onnxruntime`, `auto`), fallback policies, open-set thresholds (`known_threshold=0.85`, `unknown_threshold=0.70`), ReID parameters, quality bounds, temporal verification, watchlist routing, explainable reports, and event timeline reconstruction.
-- **[configs/cameras.yaml](configs/cameras.yaml)**: Controls RTSP camera endpoints (`host`, `port`, `path`), environment variable credentials (`username_env`, `password_env`), resolution, framerates, worker pool limits, and ONVIF discovery parameters.
-
-> **Architecture Principle**: Recognition thresholds, file paths, backend selection options, and camera stream settings must be controlled through YAML files under `configs/` rather than hardcoded in source logic.
-
----
-
-## Output Directory Structure
-
-The system uses a standardized output layout:
-
-```text
-outputs/
-├── reports/
-│   ├── health_report.json # System health diagnostic reports
-│   ├── deployment_readiness.json # Deployment readiness reports
-│   ├── onnx_validation.json # ONNX export parity reports
-│   ├── explainable/       # Explainable recognition trace reports (JSON/CSV/MD)
-│   ├── timelines/         # Event timeline trajectory exports
-│   ├── benchmark/         # Inference backend performance benchmark reports
-│   └── evaluation/        # Model evaluation & threshold sweep results
-├── logs/
-│   ├── system/            # System & camera component log files
-│   └── events/            # Recognition and threat alert CSV logs
-├── monitoring/            # Watchdog and health monitoring metrics
-├── media/
-│   ├── detections/        # Detection snapshots and bounding box crops
-│   └── snapshots/         # Event snapshot imagery
-├── watchlist/             # Watchlist target gallery templates and metadata
-└── temporary/             # Transient pipeline processing buffers
-```
+### Key Research Findings
+1. **HPP Architectural Impact**: HPP (`part_bins=4`) alone improves Rank-1 accuracy by **+8.65%** (52.78% $\rightarrow$ 61.43%) and ROC-AUC by **+0.0828** over global average pooling under identical loss formulations.
+2. **ArcFace & Score Saturation**: Combining ArcFace margin loss with HPP completely eliminates cosine score saturation near 1.0, shifting average impostor similarity down to 0.0537 and expanding cosine dynamics across `[-0.60, 0.97]`.
+3. **Triplet Loss Balance**: Reducing triplet weight from 0.50 to 0.25 (**EXP-003E**) achieves the highest Rank-1 identification accuracy (**72.63%**) and ROC-AUC (**0.8776**) across all subject-disjoint models.
 
 ---
 
-## Project Structure & Documentation Automation
+## Deployment Health & Security Infrastructure
 
-```text
-ARGUS_AI/
-├── api/                   # FastAPI server implementation and request schemas
-├── configs/               # System, inference, camera, and GEI YAML configurations
-├── deployment/            # Startup validator and deployment readiness reporter
-├── evaluation/            # Open-set, cross-view, dataset split, and leakage evaluators
-├── intelligence/          # Open-set recognizer, track reliability, watchlist, crowd intelligence, transition model
-├── models/                # ByGaitLight CNN, OSNet ReID backbone, inference backends, gallery storage
-├── monitoring/            # Camera health monitor, watchdog daemon, logging infrastructure
-├── pipeline/              # Live, multi-camera, video, and folder recognition orchestrators
-│   └── steps/             # Modular pipeline steps (detection, tracking, silhouette, GEI, quality)
-├── security_layer/        # Security decision engine, audit logging, encrypted credentials
-├── services/              # Camera discovery, ONVIF client, worker threads, service manager
-├── storage/               # Hardened vector store, evidence manager, dataset loader
-├── streaming/             # Multi-stream engine, load balancer, buffer queue, camera scheduler
-├── tests/                 # 341 automated tests across unit, integration, and security suites
-└── utils/                 # Display renderer, detection reporter, alert manager, box stabilizer
-```
+### Pre-Flight Deployment Checker (`scripts/doctor.py`)
+`scripts/doctor.py` provides a non-destructive CLI diagnostic tool verifying:
+* **Configuration Validity**: Scans YAML configurations via `ConfigValidator`.
+* **Model Checkpoints**: Verifies PyTorch checkpoint (`runs/exp_001/best_model.pth`) and ONNX engine (`models/engines/bygait_light.onnx`).
+* **Gallery Security**: Runs VectorStore checks (`allow_pickle=False`, numeric dtypes, 2D feature shapes, non-finite rejection).
+* **Inference Backend Smoke Test**: Validates active PyTorch / ONNX Runtime backend execution.
+* **Sanitized Reports**: Outputs machine-readable JSON (`outputs/reports/health_report.json`) and Markdown (`outputs/reports/health_report.md`).
 
-### Documentation Automation
+### Security Controls
+* **Vector Store Hardening**: All biometric gallery loads in [storage/vector_store.py](storage/vector_store.py) strictly enforce `allow_pickle=False` and reject object-type arrays (`dtype == object`), preventing arbitrary code execution exploits.
+* **Encrypted RTSP Credentials**: Per-camera credentials are resolved via environment variables (`ARGUS_CAMERA_<ID>_PASSWORD`) or Fernet-encrypted stores (`configs/credentials.enc`), with automatic log masking (`rtsp://***:***@host:port`).
 
-ARGUS AI maintains automated folder-level documentation across all 19 package and tool directories:
+---
 
-- **Folder README Sync ([scripts/sync_folder_readmes.py](scripts/sync_folder_readmes.py))**: Automatically scans source files and updates markdown tables between `<!-- BEGIN SYNC: KEY_MODULES -->` comment markers across all package directories.
-- **First-Class Scripts Module ([scripts/README.md](scripts/README.md))**: Fully auto-generated and self-maintaining documentation module for the `scripts/` folder. Includes script inventory (43 active scripts), CLI Reference (collapsible tables for 20 CLI-enabled scripts), script metadata table, Mermaid dependency graph, execution pipeline order, change impact outputs, safety classifications, and cross-references.
-- **Documentation Index ([docs/README_INDEX.md](docs/README_INDEX.md))**: Central directory of relative links for all package and utility READMEs.
-- **Git Pre-Commit Hook (`scripts/install_git_hooks.py`)**: Automatically syncs and stages README changes prior to commits.
-- **CI Freshness Workflow (`.github/workflows/readme_sync_check.yml`)**: Read-only GitHub Actions workflow enforcing documentation alignment on PRs and main branch pushes.
+## Inference Backends & Selection Policy
+
+Backend execution is managed by `get_inference_backend()` in [models/inference/backend.py](models/inference/backend.py):
+
+* `requested=pytorch`: Directly executes PyTorch reference backend.
+* `requested=onnxruntime`: Executes ONNX Runtime optimized backend. Falls back to PyTorch if session creation fails and `allow_fallback=true`.
+* `requested=auto`: Attempts ONNX Runtime first, automatically falling back to PyTorch if ONNX Runtime or `.onnx` weights are unavailable.
+
+Every initialized backend metadata dictionary reports `requested_backend`, `active_backend`, `execution_provider`, `fallback_used`, and `fallback_reason`.
 
 ---
 
 ## Installation & Setup
 
 ### Prerequisites
+* **Python**: 3.11+
+* **OS**: Windows 10/11 or Linux (Ubuntu 20.04+)
+* **GPU**: CUDA-compatible GPU (RTX 3050 6GB Laptop GPU tested with PyTorch CUDA 12.8)
 
-- **Python**: 3.11 or higher
-- **OS**: Windows 10/11 or Linux (Ubuntu 20.04+)
-- **GPU** (Optional): CUDA-compatible GPU for PyTorch execution
-
-### Virtual Environment Setup
-
-#### Windows (PowerShell)
+### Setup Steps (Windows PowerShell / Linux Bash)
 
 ```powershell
+# 1. Clone repository and initialize environment
+git clone https://github.com/chanuka8/argus-gait-recognition.git
+cd argus-gait-recognition
+
+# 2. Create and activate virtual environment
 python -m venv venv
-& .\venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-python scripts/install_git_hooks.py
-```
+& .\venv\Scripts\Activate.ps1   # On Linux: source venv/bin/activate
 
-#### Linux / macOS (Bash)
-
-```bash
-python3 -m venv venv
-source venv/bin/activate
+# 3. Install dependencies
 pip install -r requirements.txt
+
+# 4. Install Git documentation pre-commit hooks
 python scripts/install_git_hooks.py
 ```
 
 ---
 
-## Usage
+## Quick Start & CLI Workflows
 
-All primary workflows are accessible via [cli.py](cli.py).
-
-### Deployment Pre-Flight Health Check
+All primary operational modes are exposed through [cli.py](cli.py) and specialized scripts under `scripts/`:
 
 ```bash
+# 1. Run deployment pre-flight health diagnostic
 python scripts/doctor.py
-```
 
-### Multi-Camera Recognition Stream
-
-```bash
+# 2. Run multi-camera recognition stream
 python cli.py --mode multi-camera
-```
 
-### Video File Recognition
-
-```bash
+# 3. Process video file recognition
 python cli.py --mode recognize-video --video "path/to/sample.mp4"
-```
 
-### Export ONNX Engine & Validate Parity
-
-```bash
+# 4. Export ONNX engine and validate numerical parity
 python scripts/export_bygait_onnx.py --output-path models/engines/bygait_light.onnx
-```
 
-### Run Inference Backend Benchmark
+# 5. Execute controlled gait model ablation study (EXP-003A..E)
+python scripts/run_ablation_study.py --epochs 25 --batch-size 16
 
-```bash
-python scripts/benchmark_inference_backends.py --samples 50
-```
-
-### Synchronize Documentation READMEs
-
-```bash
+# 6. Verify documentation alignment across package folders
 python scripts/sync_folder_readmes.py --check
 ```
 
 ---
 
-## Repository Validation & Testing
+## Repository Testing & Verification
 
-Verification is enforced via automated test suites, code linters, documentation checks, and health diagnostics:
+Repository integrity is validated using automated compilation, linting, documentation synchronization, and pytest suites:
 
 ```bash
-# 1. Deployment health pre-flight check
-python scripts/doctor.py
+# 1. Verify compilation across modules
+python -m compileall models training pipeline core intelligence monitoring scripts tests
 
-# 2. Linting and code style verification
+# 2. Run Ruff static code analysis
 python -m ruff check .
 
-# 3. Documentation synchronization check
+# 3. Check documentation README synchronization
 python scripts/sync_folder_readmes.py --check
 
-# 4. Full repository test suite (341 automated tests)
-python -m pytest -q
+# 4. Execute full automated test suite
+python -m pytest tests -q
 ```
 
-### Verified Validation Status
-
-- **✓ Linter Compliance**: `ruff check .` passed with 0 errors.
-- **✓ Full Test Suite**: **366 passed**, 1 skipped (367 total test items).
-- **✓ Documentation Alignment**: `sync_folder_readmes.py --check` clean across all 19 package & script folders.
-- **✓ Deployment Readiness**: `doctor.py` status `READY_FOR_CONTROLLED_GAIT_RECOGNITION_TESTING` (Exit Code 0).
-
----
-
-## Project Status
-
-Current qualitative implementation status based on evidence-based health checks:
-
-`READY_FOR_CONTROLLED_GAIT_RECOGNITION_TESTING`
-
-*Note: The system is ready for controlled real-world gait recognition and body-tracking validation using CCTV or recorded video inputs. It is not a CCTV control or camera-management system.*
-
-- [x] YOLOv8 person detection & ByteTrack multi-object tracking
-- [x] Silhouette segmentation and Live GEI 30-frame sequence builder
-- [x] `ByGaitLight` CNN gait embedding model
-- [x] Hardened Vector Store (`allow_pickle=False`, numeric validation)
-- [x] Open-Set Recognition (`KNOWN`, `UNKNOWN`, `UNCERTAIN` classification)
-- [x] Pluggable Inference Backends (PyTorch reference, ONNX Runtime optimized, TensorRT framework deferred)
-- [x] Stable ONNX export, atomic replacement, and numerical parity validation
-- [x] Non-destructive deployment health checker CLI ([scripts/doctor.py](scripts/doctor.py))
-- [x] Pre-flight pipeline startup validator ([deployment/startup_validator.py](deployment/startup_validator.py))
-- [x] Deployment readiness reporter ([deployment/readiness_reporter.py](deployment/readiness_reporter.py))
-- [x] Externalized YAML configurations ([configs/](configs/))
-- [x] Secure RTSP credential storage & log URL sanitization ([security_layer/credentials.py](security_layer/credentials.py))
-- [x] Automated README Documentation Synchronization (`scripts/sync_folder_readmes.py`)
-- [x] 341 automated tests passing with 0 failures
+### Verified Test Status
+* **Compilation**: `compileall` passed with 0 errors.
+* **Linter**: `ruff check .` passed with 0 errors.
+* **Documentation Sync**: `scripts/sync_folder_readmes.py --check` clean across all 19 package folders.
+* **PyTest Suite**: **393 passed**, 3 skipped, 0 failed across 396 test items.
 
 ---
 
-## Future Roadmap
+## Externalized Configuration
 
-- **CUDA Installation & Target Hardware Validation**: Finalize CUDA runtime and TensorRT library setup on target GPU deployment environments.
-- **TensorRT Engine Generation & Execution**: Validate end-to-end TensorRT engine compilation (`build_tensorrt_engine.py`) and execution parity on target hardware.
-- **Docker Deployment & Production Containerization**: Create containerized deployment blueprints for isolated multi-camera worker nodes.
-- **Real CCTV Stream Hardware Validation**: Field validation on live RTSP network cameras under real physical surveillance conditions.
-- **Long-Duration Continuous Testing**: 24/7 continuous operation testing for long-term memory stability and camera worker pool resilience.
+System parameters are controlled via external YAML configuration files in [configs/](configs/):
+
+* **[configs/system.yaml](configs/system.yaml)**: Thread pool limits, logging levels, storage directories, and REST API bindings.
+* **[configs/inference.yaml](configs/inference.yaml)**: Backend selection policy (`auto`, `pytorch`, `onnxruntime`), matching policy, quality bounds, and watchlist settings.
+* **[configs/detection.yaml](configs/detection.yaml)**: YOLOv8 detector confidence (`0.4`), IoU threshold (`0.45`), target classes (`[0]`), execution device, and input resolution.
+* **[configs/cameras.yaml](configs/cameras.yaml)**: Camera stream endpoints, worker pool limits, and ONVIF discovery options.
+* **[configs/subject_split.json](configs/subject_split.json)**: Subject-disjoint partition manifest (Train `001–062`, Val `063–074`, Test `075–124`).
 
 ---
 
-## Cross References & Key Documentation
+## Known Limitations & Research Targets
 
-- **Deployment Readiness Specification**: [docs/DEPLOYMENT_READINESS.md](docs/DEPLOYMENT_READINESS.md)
-- **Scripts Module Reference**: [scripts/README.md](scripts/README.md)
-- **Documentation Index**: [docs/README_INDEX.md](docs/README_INDEX.md)
-- **Architecture Specification**: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+1. **Open-Set False Accept Rate (FAR = 62.26%)**: While score saturation near 1.0 was completely eliminated by ArcFace + HPP, the open-set FAR on unseen test subjects at validation-calibrated thresholds remains 62.26%, making open-set threshold calibration an active research target.
+2. **Clothing Change Covariate Degradation (`CL` = 42.64%)**: Rank-1 accuracy under clothing changes (`CL`) drops from 97.00% (Normal Walking) to 42.64%, reflecting sensitivity of horizontal silhouette slicing to outer garments (coats/jackets).
+3. **Learned Silhouette Model Asset Availability**: `models/engines/silhouette_segmenter.onnx` is not included in the repository by default; the system operates via Otsu background subtraction fallback.
+
+---
+
+## Prioritized Development Roadmap
+
+* **P0 — Open-Set FAR Reduction**: Optimize ArcFace scale/margin parameters and explore adaptive thresholding to suppress open-set false acceptances.
+* **P1 — Clothing-Change (`CL`) Robustness**: Implement part-aware spatial attention mechanisms to improve gait feature extraction invariant to outer apparel.
+* **P2 — Learned Silhouette Model Validation & Batched Processing**: Validate lightweight UNet ONNX segmentation models and implement batched multi-person feature extraction.
+* **P3 — Cross-Camera Benchmarking & Exporter Modernization**: Conduct quantitative multi-camera tracking evaluation and transition ONNX export to PyTorch `torch.export`.
+
+---
+
+## Cross References & Package Documentation
+
+* **Technical Status Report**: [docs/ARGUS_CURRENT_TECHNICAL_STATUS_REPORT.md](docs/ARGUS_CURRENT_TECHNICAL_STATUS_REPORT.md)
+* **Deployment Readiness Specification**: [docs/DEPLOYMENT_READINESS.md](docs/DEPLOYMENT_READINESS.md)
+* **Documentation Index**: [docs/README_INDEX.md](docs/README_INDEX.md)
+* **Package READMEs**:
+  * [models/README.md](models/README.md) | [training/README.md](training/README.md) | [evaluation/README.md](evaluation/README.md)
+  * [pipeline/README.md](pipeline/README.md) | [intelligence/README.md](intelligence/README.md) | [scripts/README.md](scripts/README.md)
 
 ---
 
@@ -480,11 +273,8 @@ This project is licensed under the [MIT License](LICENSE).
 
 ## Maintainer
 
-### Chanuka Sandun
-
-Undergraduate in Cyber Security
-
-Developer of the ARGUS AI Gait Recognition Module
-
-- GitHub: [github.com/chanuka8](https://github.com/chanuka8)
-- LinkedIn: [linkedin.com/in/chanukasandun](https://www.linkedin.com/in/chanukasandun/)
+**Chanuka Sandun**  
+Undergraduate in Cybersecurity  
+Developer of the ARGUS AI Gait Recognition Framework  
+* GitHub: [github.com/chanuka8](https://github.com/chanuka8)  
+* LinkedIn: [linkedin.com/in/chanukasandun](https://www.linkedin.com/in/chanukasandun/)

@@ -31,6 +31,7 @@ This folder contains project maintenance, automation, development, validation, e
 | [preprocess_casia.py](preprocess_casia.py) | Build GEI images from CASIA-B ZIP dataset | `python scripts/preprocess_casia.py` |
 | [remove_gallery_identity.py](remove_gallery_identity.py) | Remove an identity from ARGUS gallery | `python scripts/remove_gallery_identity.py` |
 | [remove_numeric_gallery_identities.py](remove_numeric_gallery_identities.py) | Remove numeric CASIA-B identities from ARGUS gallery | `python scripts/remove_numeric_gallery_identities.py` |
+| [run_ablation_study.py](run_ablation_study.py) | Run Full ARGUS Gait Ablation Study (EXP-003A..E) | `python scripts/run_ablation_study.py` |
 | [run_auto_enrollment.py](run_auto_enrollment.py) | ARGUS auto enrollment service | `python scripts/run_auto_enrollment.py` |
 | [run_folder_recognition.py](run_folder_recognition.py) | ARGUS folder-based GEI recognition | `python scripts/run_folder_recognition.py` |
 | [run_video_recognition.py](run_video_recognition.py) | ARGUS video-file gait recognition | `python scripts/run_video_recognition.py` |
@@ -84,6 +85,7 @@ This folder contains project maintenance, automation, development, validation, e
 | [preprocess_casia.py](preprocess_casia.py) | Dataset | Yes | No | No | No | Build GEI images from CASIA-B ZIP dataset |
 | [remove_gallery_identity.py](remove_gallery_identity.py) | Dataset | Yes | No | No | No | Remove an identity from ARGUS gallery |
 | [remove_numeric_gallery_identities.py](remove_numeric_gallery_identities.py) | Dataset | Yes | No | No | No | Remove numeric CASIA-B identities from ARGUS gallery |
+| [run_ablation_study.py](run_ablation_study.py) | Development | Yes | No | No | No | Run Full ARGUS Gait Ablation Study (EXP-003A..E) |
 | [run_auto_enrollment.py](run_auto_enrollment.py) | Dataset | Yes | No | No | No | ARGUS auto enrollment service |
 | [run_folder_recognition.py](run_folder_recognition.py) | Development | Yes | No | No | No | ARGUS folder-based GEI recognition |
 | [run_video_recognition.py](run_video_recognition.py) | Development | Yes | No | No | No | ARGUS video-file gait recognition |
@@ -395,6 +397,26 @@ python scripts/remove_numeric_gallery_identities.py --dry-run
 </details>
 
 <details>
+<summary><strong>run_ablation_study.py</strong> — Run Full ARGUS Gait Ablation Study (EXP-003A..E)</summary>
+
+**Usage**: `python scripts/run_ablation_study.py`
+
+| Flag / Argument | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `--epochs` | int | No | 25 | — |
+| `--batch-size` | int | No | 16 | — |
+| `--lr` | float | No | 0.0001 | — |
+
+**Examples**:
+
+```bash
+python scripts/run_ablation_study.py
+python scripts/run_ablation_study.py --epochs 25 --batch-size 16
+```
+
+</details>
+
+<details>
 <summary><strong>run_auto_enrollment.py</strong> — ARGUS auto enrollment service</summary>
 
 **Usage**: `python scripts/run_auto_enrollment.py`
@@ -624,6 +646,7 @@ Development helper scripts run benchmarks, evaluations, training pipelines, and 
 - **[evaluate_open_set_threshold_sweep.py](evaluate_open_set_threshold_sweep.py)**: Evaluate ARGUS Open-Set Threshold and Matching Mode Sweep (`python scripts/evaluate_open_set_threshold_sweep.py`)
 - **[evaluate_subject_disjoint.py](evaluate_subject_disjoint.py)**: Run Full ARGUS Subject-Disjoint Baseline Evaluation Pipeline (`python scripts/evaluate_subject_disjoint.py`)
 - **[evaluate_threshold_sweep.py](evaluate_threshold_sweep.py)**: Evaluate ARGUS thresholds via sweep evaluation (`python scripts/evaluate_threshold_sweep.py`)
+- **[run_ablation_study.py](run_ablation_study.py)**: Run Full ARGUS Gait Ablation Study (EXP-003A..E) (`python scripts/run_ablation_study.py`)
 - **[run_folder_recognition.py](run_folder_recognition.py)**: ARGUS folder-based GEI recognition (`python scripts/run_folder_recognition.py`)
 - **[run_video_recognition.py](run_video_recognition.py)**: ARGUS video-file gait recognition (`python scripts/run_video_recognition.py`)
 - **[setup_silhouette_model.py](setup_silhouette_model.py)**: Silhouette Model Setup and Asset Verification Helper for ARGUS AI. (`python scripts/setup_silhouette_model.py`)
@@ -658,6 +681,7 @@ Development helper scripts run benchmarks, evaluations, training pipelines, and 
 | `python scripts/preprocess_casia.py` | Build GEI images from CASIA-B ZIP dataset |
 | `python scripts/remove_gallery_identity.py` | Remove an identity from ARGUS gallery |
 | `python scripts/remove_numeric_gallery_identities.py` | Remove numeric CASIA-B identities from ARGUS gallery |
+| `python scripts/run_ablation_study.py` | Run Full ARGUS Gait Ablation Study (EXP-003A..E) |
 | `python scripts/run_auto_enrollment.py` | ARGUS auto enrollment service |
 | `python scripts/run_folder_recognition.py` | ARGUS folder-based GEI recognition |
 | `python scripts/run_video_recognition.py` | ARGUS video-file gait recognition |
@@ -701,6 +725,9 @@ flowchart TD
     _git_hooks_pre_commit[".git/hooks/pre-commit"]
     install_git_hooks_py -->|output| _git_hooks_pre_commit
     install_git_hooks_py -->|reference| sync_folder_readmes_py
+    run_ablation_study_py["run_ablation_study.py"]
+    evaluate_subject_disjoint_py["evaluate_subject_disjoint.py"]
+    run_ablation_study_py -->|reference| evaluate_subject_disjoint_py
     Package_READMEs["Package READMEs"]
     sync_folder_readmes_py -->|output| Package_READMEs
     docs_README_INDEX_md["docs/README_INDEX.md"]
@@ -724,7 +751,7 @@ flowchart TD
     step4 --> step5
     step6["6. Conversion (3 scripts)"]
     step5 --> step6
-    step7["7. Development (15 scripts)"]
+    step7["7. Development (16 scripts)"]
     step6 --> step7
     step8["8. Deployment (2 scripts)"]
     step7 --> step8
@@ -756,6 +783,7 @@ flowchart TD
 | [preprocess_casia.py](preprocess_casia.py) | `data/casia_processed/gei` |
 | [remove_gallery_identity.py](remove_gallery_identity.py) | `models/appearance_gallery`, `models/live_gallery` |
 | [remove_numeric_gallery_identities.py](remove_numeric_gallery_identities.py) | `Runtime-determined paths` |
+| [run_ablation_study.py](run_ablation_study.py) | `runs` |
 | [run_auto_enrollment.py](run_auto_enrollment.py) | `No file modifications` |
 | [run_folder_recognition.py](run_folder_recognition.py) | `No file modifications` |
 | [run_video_recognition.py](run_video_recognition.py) | `No file modifications` |
@@ -794,7 +822,7 @@ flowchart TD
 | **Environment** | [activate_venv.ps1](activate_venv.ps1) |
 | **Git** | [install_git_hooks.py](install_git_hooks.py) |
 | **Read-Only** | [benchmark_crowd_performance.py](benchmark_crowd_performance.py), [evaluate_cross_view.py](evaluate_cross_view.py), [evaluate_open_set.py](evaluate_open_set.py), [preprocess_casia.py](preprocess_casia.py), [run_auto_enrollment.py](run_auto_enrollment.py), [run_folder_recognition.py](run_folder_recognition.py), [run_video_recognition.py](run_video_recognition.py), [setup_silhouette_model.py](setup_silhouette_model.py), [system_check.py](system_check.py), [train_model.py](train_model.py) |
-| **Repository Modification** | [benchmark.py](benchmark.py), [benchmark_inference_backends.py](benchmark_inference_backends.py), [build_gallery.py](build_gallery.py), [build_tensorrt_engine.py](build_tensorrt_engine.py), [clean_live_gallery.py](clean_live_gallery.py), [doctor.py](doctor.py), [evaluate_model.py](evaluate_model.py), [evaluate_open_set_threshold_sweep.py](evaluate_open_set_threshold_sweep.py), [evaluate_subject_disjoint.py](evaluate_subject_disjoint.py), [evaluate_threshold_sweep.py](evaluate_threshold_sweep.py), [export_bygait_onnx.py](export_bygait_onnx.py), [migrate_output_layout.py](migrate_output_layout.py), [remove_gallery_identity.py](remove_gallery_identity.py), [remove_numeric_gallery_identities.py](remove_numeric_gallery_identities.py), [set_gallery_identity_status.py](set_gallery_identity_status.py), [smoke_test_deployment.py](smoke_test_deployment.py) |
+| **Repository Modification** | [benchmark.py](benchmark.py), [benchmark_inference_backends.py](benchmark_inference_backends.py), [build_gallery.py](build_gallery.py), [build_tensorrt_engine.py](build_tensorrt_engine.py), [clean_live_gallery.py](clean_live_gallery.py), [doctor.py](doctor.py), [evaluate_model.py](evaluate_model.py), [evaluate_open_set_threshold_sweep.py](evaluate_open_set_threshold_sweep.py), [evaluate_subject_disjoint.py](evaluate_subject_disjoint.py), [evaluate_threshold_sweep.py](evaluate_threshold_sweep.py), [export_bygait_onnx.py](export_bygait_onnx.py), [migrate_output_layout.py](migrate_output_layout.py), [remove_gallery_identity.py](remove_gallery_identity.py), [remove_numeric_gallery_identities.py](remove_numeric_gallery_identities.py), [run_ablation_study.py](run_ablation_study.py), [set_gallery_identity_status.py](set_gallery_identity_status.py), [smoke_test_deployment.py](smoke_test_deployment.py) |
 | **Validation** | [test_confidence_scorer.py](test_confidence_scorer.py), [test_enrollment.py](test_enrollment.py), [test_events.py](test_events.py), [test_folder_watcher.py](test_folder_watcher.py), [test_gallery_match.py](test_gallery_match.py), [test_gei.py](test_gei.py), [test_inference_pipeline.py](test_inference_pipeline.py), [test_live_gei.py](test_live_gei.py), [test_live_recognition.py](test_live_recognition.py), [test_security_layer.py](test_security_layer.py), [test_silhouette.py](test_silhouette.py), [test_streaming_optimization.py](test_streaming_optimization.py), [test_tracking.py](test_tracking.py), [test_visualizer.py](test_visualizer.py), [test_webcam_detection.py](test_webcam_detection.py) |
 <!-- END SYNC: SAFETY_CLASSIFICATION -->
 
