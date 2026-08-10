@@ -13,12 +13,14 @@ class GEIDataset(Dataset):
         max_classes: int | None = None,
         max_samples: int | None = None,
         subject_ids: list[str] | None = None,
+        return_condition: bool = False,
     ) -> None:
         self.root_dir = Path(root_dir)
         self.image_size = image_size
         self.max_classes = max_classes
         self.max_samples = max_samples
         self.subject_ids = set(str(s) for s in subject_ids) if subject_ids is not None else None
+        self.return_condition = return_condition
 
         self.samples = []
         self.label_to_index = {}
@@ -43,11 +45,22 @@ class GEIDataset(Dataset):
             self.label_to_index[person_dir.name] = label_index
 
             for image_path in sorted(person_dir.glob("*.png")):
+                stem = image_path.stem.lower()
+                if "-nm-" in stem or "_nm_" in stem:
+                    cond_code = 0
+                elif "-bg-" in stem or "_bg_" in stem:
+                    cond_code = 1
+                elif "-cl-" in stem or "_cl_" in stem:
+                    cond_code = 2
+                else:
+                    cond_code = 0
+
                 self.samples.append(
                     {
                         "path": image_path,
                         "label": label_index,
                         "person_id": person_dir.name,
+                        "condition_code": cond_code,
                     }
                 )
 
@@ -73,6 +86,10 @@ class GEIDataset(Dataset):
 
         tensor = torch.from_numpy(image).unsqueeze(0)
         label = torch.tensor(sample["label"], dtype=torch.long)
+
+        if self.return_condition:
+            cond = torch.tensor(sample["condition_code"], dtype=torch.long)
+            return tensor, label, cond
 
         return tensor, label
 

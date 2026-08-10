@@ -12,6 +12,7 @@ This folder contains project maintenance, automation, development, validation, e
 | Script | Purpose | Primary Usage |
 |---|---|---|
 | [activate_venv.ps1](activate_venv.ps1) | ARGUS AI - Automatic Python virtual environment activation. | `powershell -ExecutionPolicy Bypass -File scripts/activate_venv.ps1` |
+| [analyze_open_set_and_cl.py](analyze_open_set_and_cl.py) | Utility script for analyze open set and cl. | `python scripts/analyze_open_set_and_cl.py` |
 | [benchmark.py](benchmark.py) | Performance benchmark script for benchmark. | `python scripts/benchmark.py` |
 | [benchmark_crowd_performance.py](benchmark_crowd_performance.py) | Performance Measurement Benchmark for Crowd Intelligence Features. | `python scripts/benchmark_crowd_performance.py` |
 | [benchmark_inference_backends.py](benchmark_inference_backends.py) | Inference Backend Performance and Parity Benchmark Script for ARGUS AI. | `python scripts/benchmark_inference_backends.py` |
@@ -20,6 +21,7 @@ This folder contains project maintenance, automation, development, validation, e
 | [clean_live_gallery.py](clean_live_gallery.py) | Clean contaminated identities from ARGUS live gallery | `python scripts/clean_live_gallery.py` |
 | [doctor.py](doctor.py) | ARGUS AI Non-Destructive Deployment Health Checker CLI (doctor.py). | `python scripts/doctor.py` |
 | [evaluate_cross_view.py](evaluate_cross_view.py) | Evaluate ARGUS Cross-View Gait Recognition Metrics | `python scripts/evaluate_cross_view.py` |
+| [evaluate_exp004.py](evaluate_exp004.py) | EXP-004 Evaluation & Reporting Script. | `python scripts/evaluate_exp004.py` |
 | [evaluate_model.py](evaluate_model.py) | Evaluate ARGUS gait recognition model | `python scripts/evaluate_model.py` |
 | [evaluate_open_set.py](evaluate_open_set.py) | Evaluate ARGUS Open-Set Gait Recognition Metrics | `python scripts/evaluate_open_set.py` |
 | [evaluate_open_set_threshold_sweep.py](evaluate_open_set_threshold_sweep.py) | Evaluate ARGUS Open-Set Threshold and Matching Mode Sweep | `python scripts/evaluate_open_set_threshold_sweep.py` |
@@ -33,6 +35,7 @@ This folder contains project maintenance, automation, development, validation, e
 | [remove_numeric_gallery_identities.py](remove_numeric_gallery_identities.py) | Remove numeric CASIA-B identities from ARGUS gallery | `python scripts/remove_numeric_gallery_identities.py` |
 | [run_ablation_study.py](run_ablation_study.py) | Run Full ARGUS Gait Ablation Study (EXP-003A..E) | `python scripts/run_ablation_study.py` |
 | [run_auto_enrollment.py](run_auto_enrollment.py) | ARGUS auto enrollment service | `python scripts/run_auto_enrollment.py` |
+| [run_exp004_ablations.py](run_exp004_ablations.py) | Run EXP-004 Open-Set & CL Robustness Ablations | `python scripts/run_exp004_ablations.py` |
 | [run_folder_recognition.py](run_folder_recognition.py) | ARGUS folder-based GEI recognition | `python scripts/run_folder_recognition.py` |
 | [run_video_recognition.py](run_video_recognition.py) | ARGUS video-file gait recognition | `python scripts/run_video_recognition.py` |
 | [set_gallery_identity_status.py](set_gallery_identity_status.py) | Set ARGUS gallery identity status | `python scripts/set_gallery_identity_status.py` |
@@ -66,6 +69,7 @@ This folder contains project maintenance, automation, development, validation, e
 | Script | Category | CLI | Auto | Used by CI | Used by Hook | Description |
 |---|---|---|---|---|---|---|
 | [activate_venv.ps1](activate_venv.ps1) | Environment | No | Yes | No | No | ARGUS AI - Automatic Python virtual environment activation. |
+| [analyze_open_set_and_cl.py](analyze_open_set_and_cl.py) | Development | No | No | No | No | Utility script for analyze open set and cl. |
 | [benchmark.py](benchmark.py) | Development | No | No | No | No | Performance benchmark script for benchmark. |
 | [benchmark_crowd_performance.py](benchmark_crowd_performance.py) | Development | No | No | No | No | Performance Measurement Benchmark for Crowd Intelligence ... |
 | [benchmark_inference_backends.py](benchmark_inference_backends.py) | Development | Yes | No | No | No | Inference Backend Performance and Parity Benchmark Script... |
@@ -74,6 +78,7 @@ This folder contains project maintenance, automation, development, validation, e
 | [clean_live_gallery.py](clean_live_gallery.py) | Dataset | Yes | No | No | No | Clean contaminated identities from ARGUS live gallery |
 | [doctor.py](doctor.py) | Development | No | No | No | No | ARGUS AI Non-Destructive Deployment Health Checker CLI (d... |
 | [evaluate_cross_view.py](evaluate_cross_view.py) | Development | Yes | No | No | No | Evaluate ARGUS Cross-View Gait Recognition Metrics |
+| [evaluate_exp004.py](evaluate_exp004.py) | Development | Yes | No | No | No | EXP-004 Evaluation & Reporting Script. |
 | [evaluate_model.py](evaluate_model.py) | Development | Yes | No | No | No | Evaluate ARGUS gait recognition model |
 | [evaluate_open_set.py](evaluate_open_set.py) | Development | Yes | No | No | No | Evaluate ARGUS Open-Set Gait Recognition Metrics |
 | [evaluate_open_set_threshold_sweep.py](evaluate_open_set_threshold_sweep.py) | Development | Yes | No | No | No | Evaluate ARGUS Open-Set Threshold and Matching Mode Sweep |
@@ -87,6 +92,7 @@ This folder contains project maintenance, automation, development, validation, e
 | [remove_numeric_gallery_identities.py](remove_numeric_gallery_identities.py) | Dataset | Yes | No | No | No | Remove numeric CASIA-B identities from ARGUS gallery |
 | [run_ablation_study.py](run_ablation_study.py) | Development | Yes | No | No | No | Run Full ARGUS Gait Ablation Study (EXP-003A..E) |
 | [run_auto_enrollment.py](run_auto_enrollment.py) | Dataset | Yes | No | No | No | ARGUS auto enrollment service |
+| [run_exp004_ablations.py](run_exp004_ablations.py) | Development | Yes | No | No | No | Run EXP-004 Open-Set & CL Robustness Ablations |
 | [run_folder_recognition.py](run_folder_recognition.py) | Development | Yes | No | No | No | ARGUS folder-based GEI recognition |
 | [run_video_recognition.py](run_video_recognition.py) | Development | Yes | No | No | No | ARGUS video-file gait recognition |
 | [set_gallery_identity_status.py](set_gallery_identity_status.py) | Dataset | Yes | No | No | No | Set ARGUS gallery identity status |
@@ -193,6 +199,26 @@ python scripts/clean_live_gallery.py --gallery-dir models/live_gallery
 ```bash
 python scripts/evaluate_cross_view.py
 python scripts/evaluate_cross_view.py --max-images 500 --gallery-ratio 0.5
+```
+
+</details>
+
+<details>
+<summary><strong>evaluate_exp004.py</strong> — EXP-004 Evaluation & Reporting Script.</summary>
+
+**Usage**: `python scripts/evaluate_exp004.py`
+
+| Flag / Argument | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `--model-path` | — | Yes | None | — |
+| `--output-dir` | — | Yes | None | — |
+| `--gei-root` | — | No | `data/casia_processed/gei` | — |
+| `--split-config` | — | No | `configs/subject_split.json` | — |
+
+**Examples**:
+
+```bash
+python scripts/evaluate_exp004.py
 ```
 
 </details>
@@ -441,6 +467,24 @@ python scripts/run_auto_enrollment.py --input data/new_input --processed data/au
 </details>
 
 <details>
+<summary><strong>run_exp004_ablations.py</strong> — Run EXP-004 Open-Set & CL Robustness Ablations</summary>
+
+**Usage**: `python scripts/run_exp004_ablations.py`
+
+| Flag / Argument | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `--mode` | — | No | `decision` | — (choices: decision, retrain_f, retrain_g, retrain_h, retrain_all, all) |
+
+**Examples**:
+
+```bash
+python scripts/run_exp004_ablations.py
+python scripts/run_exp004_ablations.py --mode decision
+```
+
+</details>
+
+<details>
 <summary><strong>run_folder_recognition.py</strong> — ARGUS folder-based GEI recognition</summary>
 
 **Usage**: `python scripts/run_folder_recognition.py`
@@ -636,17 +680,20 @@ Export and conversion scripts handle model format conversion, acceleration engin
 Development helper scripts run benchmarks, evaluations, training pipelines, and interactive recognition tasks:
 
 <!-- BEGIN SYNC: DEVELOPMENT_SCRIPTS -->
+- **[analyze_open_set_and_cl.py](analyze_open_set_and_cl.py)**: Utility script for analyze open set and cl. (`python scripts/analyze_open_set_and_cl.py`)
 - **[benchmark.py](benchmark.py)**: Performance benchmark script for benchmark. (`python scripts/benchmark.py`)
 - **[benchmark_crowd_performance.py](benchmark_crowd_performance.py)**: Performance Measurement Benchmark for Crowd Intelligence Features. (`python scripts/benchmark_crowd_performance.py`)
 - **[benchmark_inference_backends.py](benchmark_inference_backends.py)**: Inference Backend Performance and Parity Benchmark Script for ARGUS AI. (`python scripts/benchmark_inference_backends.py`)
 - **[doctor.py](doctor.py)**: ARGUS AI Non-Destructive Deployment Health Checker CLI (doctor.py). (`python scripts/doctor.py`)
 - **[evaluate_cross_view.py](evaluate_cross_view.py)**: Evaluate ARGUS Cross-View Gait Recognition Metrics (`python scripts/evaluate_cross_view.py`)
+- **[evaluate_exp004.py](evaluate_exp004.py)**: EXP-004 Evaluation & Reporting Script. (`python scripts/evaluate_exp004.py`)
 - **[evaluate_model.py](evaluate_model.py)**: Evaluate ARGUS gait recognition model (`python scripts/evaluate_model.py`)
 - **[evaluate_open_set.py](evaluate_open_set.py)**: Evaluate ARGUS Open-Set Gait Recognition Metrics (`python scripts/evaluate_open_set.py`)
 - **[evaluate_open_set_threshold_sweep.py](evaluate_open_set_threshold_sweep.py)**: Evaluate ARGUS Open-Set Threshold and Matching Mode Sweep (`python scripts/evaluate_open_set_threshold_sweep.py`)
 - **[evaluate_subject_disjoint.py](evaluate_subject_disjoint.py)**: Run Full ARGUS Subject-Disjoint Baseline Evaluation Pipeline (`python scripts/evaluate_subject_disjoint.py`)
 - **[evaluate_threshold_sweep.py](evaluate_threshold_sweep.py)**: Evaluate ARGUS thresholds via sweep evaluation (`python scripts/evaluate_threshold_sweep.py`)
 - **[run_ablation_study.py](run_ablation_study.py)**: Run Full ARGUS Gait Ablation Study (EXP-003A..E) (`python scripts/run_ablation_study.py`)
+- **[run_exp004_ablations.py](run_exp004_ablations.py)**: Run EXP-004 Open-Set & CL Robustness Ablations (`python scripts/run_exp004_ablations.py`)
 - **[run_folder_recognition.py](run_folder_recognition.py)**: ARGUS folder-based GEI recognition (`python scripts/run_folder_recognition.py`)
 - **[run_video_recognition.py](run_video_recognition.py)**: ARGUS video-file gait recognition (`python scripts/run_video_recognition.py`)
 - **[setup_silhouette_model.py](setup_silhouette_model.py)**: Silhouette Model Setup and Asset Verification Helper for ARGUS AI. (`python scripts/setup_silhouette_model.py`)
@@ -662,6 +709,7 @@ Development helper scripts run benchmarks, evaluations, training pipelines, and 
 | Command | Description |
 |---|---|
 | `powershell -ExecutionPolicy Bypass -File scripts/activate_venv.ps1` | ARGUS AI - Automatic Python virtual environment activation. |
+| `python scripts/analyze_open_set_and_cl.py` | Utility script for analyze open set and cl. |
 | `python scripts/benchmark.py` | Performance benchmark script for benchmark. |
 | `python scripts/benchmark_crowd_performance.py` | Performance Measurement Benchmark for Crowd Intelligence Features. |
 | `python scripts/benchmark_inference_backends.py` | Inference Backend Performance and Parity Benchmark Script for ARGUS... |
@@ -670,6 +718,7 @@ Development helper scripts run benchmarks, evaluations, training pipelines, and 
 | `python scripts/clean_live_gallery.py` | Clean contaminated identities from ARGUS live gallery |
 | `python scripts/doctor.py` | ARGUS AI Non-Destructive Deployment Health Checker CLI (doctor.py). |
 | `python scripts/evaluate_cross_view.py` | Evaluate ARGUS Cross-View Gait Recognition Metrics |
+| `python scripts/evaluate_exp004.py` | EXP-004 Evaluation & Reporting Script. |
 | `python scripts/evaluate_model.py` | Evaluate ARGUS gait recognition model |
 | `python scripts/evaluate_open_set.py` | Evaluate ARGUS Open-Set Gait Recognition Metrics |
 | `python scripts/evaluate_open_set_threshold_sweep.py` | Evaluate ARGUS Open-Set Threshold and Matching Mode Sweep |
@@ -683,6 +732,7 @@ Development helper scripts run benchmarks, evaluations, training pipelines, and 
 | `python scripts/remove_numeric_gallery_identities.py` | Remove numeric CASIA-B identities from ARGUS gallery |
 | `python scripts/run_ablation_study.py` | Run Full ARGUS Gait Ablation Study (EXP-003A..E) |
 | `python scripts/run_auto_enrollment.py` | ARGUS auto enrollment service |
+| `python scripts/run_exp004_ablations.py` | Run EXP-004 Open-Set & CL Robustness Ablations |
 | `python scripts/run_folder_recognition.py` | ARGUS folder-based GEI recognition |
 | `python scripts/run_video_recognition.py` | ARGUS video-file gait recognition |
 | `python scripts/set_gallery_identity_status.py` | Set ARGUS gallery identity status |
@@ -751,7 +801,7 @@ flowchart TD
     step4 --> step5
     step6["6. Conversion (3 scripts)"]
     step5 --> step6
-    step7["7. Development (16 scripts)"]
+    step7["7. Development (19 scripts)"]
     step6 --> step7
     step8["8. Deployment (2 scripts)"]
     step7 --> step8
@@ -764,6 +814,7 @@ flowchart TD
 | Script | Generated / Modified Outputs |
 |---|---|
 | [activate_venv.ps1](activate_venv.ps1) | `No file modifications` |
+| [analyze_open_set_and_cl.py](analyze_open_set_and_cl.py) | `No file modifications` |
 | [benchmark.py](benchmark.py) | `outputs/reports/benchmark` |
 | [benchmark_crowd_performance.py](benchmark_crowd_performance.py) | `No file modifications` |
 | [benchmark_inference_backends.py](benchmark_inference_backends.py) | `outputs/reports/benchmark` |
@@ -772,6 +823,7 @@ flowchart TD
 | [clean_live_gallery.py](clean_live_gallery.py) | `Runtime-determined paths` |
 | [doctor.py](doctor.py) | `Runtime-determined paths` |
 | [evaluate_cross_view.py](evaluate_cross_view.py) | `No file modifications` |
+| [evaluate_exp004.py](evaluate_exp004.py) | `Runtime-determined paths` |
 | [evaluate_model.py](evaluate_model.py) | `outputs/reports/evaluation` |
 | [evaluate_open_set.py](evaluate_open_set.py) | `No file modifications` |
 | [evaluate_open_set_threshold_sweep.py](evaluate_open_set_threshold_sweep.py) | `outputs/reports/evaluation` |
@@ -785,6 +837,7 @@ flowchart TD
 | [remove_numeric_gallery_identities.py](remove_numeric_gallery_identities.py) | `Runtime-determined paths` |
 | [run_ablation_study.py](run_ablation_study.py) | `runs` |
 | [run_auto_enrollment.py](run_auto_enrollment.py) | `No file modifications` |
+| [run_exp004_ablations.py](run_exp004_ablations.py) | `Runtime-determined paths` |
 | [run_folder_recognition.py](run_folder_recognition.py) | `No file modifications` |
 | [run_video_recognition.py](run_video_recognition.py) | `No file modifications` |
 | [set_gallery_identity_status.py](set_gallery_identity_status.py) | `models/appearance_gallery`, `models/live_gallery` |
@@ -821,8 +874,8 @@ flowchart TD
 | **Documentation** | [sync_folder_readmes.py](sync_folder_readmes.py) |
 | **Environment** | [activate_venv.ps1](activate_venv.ps1) |
 | **Git** | [install_git_hooks.py](install_git_hooks.py) |
-| **Read-Only** | [benchmark_crowd_performance.py](benchmark_crowd_performance.py), [evaluate_cross_view.py](evaluate_cross_view.py), [evaluate_open_set.py](evaluate_open_set.py), [preprocess_casia.py](preprocess_casia.py), [run_auto_enrollment.py](run_auto_enrollment.py), [run_folder_recognition.py](run_folder_recognition.py), [run_video_recognition.py](run_video_recognition.py), [setup_silhouette_model.py](setup_silhouette_model.py), [system_check.py](system_check.py), [train_model.py](train_model.py) |
-| **Repository Modification** | [benchmark.py](benchmark.py), [benchmark_inference_backends.py](benchmark_inference_backends.py), [build_gallery.py](build_gallery.py), [build_tensorrt_engine.py](build_tensorrt_engine.py), [clean_live_gallery.py](clean_live_gallery.py), [doctor.py](doctor.py), [evaluate_model.py](evaluate_model.py), [evaluate_open_set_threshold_sweep.py](evaluate_open_set_threshold_sweep.py), [evaluate_subject_disjoint.py](evaluate_subject_disjoint.py), [evaluate_threshold_sweep.py](evaluate_threshold_sweep.py), [export_bygait_onnx.py](export_bygait_onnx.py), [migrate_output_layout.py](migrate_output_layout.py), [remove_gallery_identity.py](remove_gallery_identity.py), [remove_numeric_gallery_identities.py](remove_numeric_gallery_identities.py), [run_ablation_study.py](run_ablation_study.py), [set_gallery_identity_status.py](set_gallery_identity_status.py), [smoke_test_deployment.py](smoke_test_deployment.py) |
+| **Read-Only** | [analyze_open_set_and_cl.py](analyze_open_set_and_cl.py), [benchmark_crowd_performance.py](benchmark_crowd_performance.py), [evaluate_cross_view.py](evaluate_cross_view.py), [evaluate_open_set.py](evaluate_open_set.py), [preprocess_casia.py](preprocess_casia.py), [run_auto_enrollment.py](run_auto_enrollment.py), [run_folder_recognition.py](run_folder_recognition.py), [run_video_recognition.py](run_video_recognition.py), [setup_silhouette_model.py](setup_silhouette_model.py), [system_check.py](system_check.py), [train_model.py](train_model.py) |
+| **Repository Modification** | [benchmark.py](benchmark.py), [benchmark_inference_backends.py](benchmark_inference_backends.py), [build_gallery.py](build_gallery.py), [build_tensorrt_engine.py](build_tensorrt_engine.py), [clean_live_gallery.py](clean_live_gallery.py), [doctor.py](doctor.py), [evaluate_exp004.py](evaluate_exp004.py), [evaluate_model.py](evaluate_model.py), [evaluate_open_set_threshold_sweep.py](evaluate_open_set_threshold_sweep.py), [evaluate_subject_disjoint.py](evaluate_subject_disjoint.py), [evaluate_threshold_sweep.py](evaluate_threshold_sweep.py), [export_bygait_onnx.py](export_bygait_onnx.py), [migrate_output_layout.py](migrate_output_layout.py), [remove_gallery_identity.py](remove_gallery_identity.py), [remove_numeric_gallery_identities.py](remove_numeric_gallery_identities.py), [run_ablation_study.py](run_ablation_study.py), [run_exp004_ablations.py](run_exp004_ablations.py), [set_gallery_identity_status.py](set_gallery_identity_status.py), [smoke_test_deployment.py](smoke_test_deployment.py) |
 | **Validation** | [test_confidence_scorer.py](test_confidence_scorer.py), [test_enrollment.py](test_enrollment.py), [test_events.py](test_events.py), [test_folder_watcher.py](test_folder_watcher.py), [test_gallery_match.py](test_gallery_match.py), [test_gei.py](test_gei.py), [test_inference_pipeline.py](test_inference_pipeline.py), [test_live_gei.py](test_live_gei.py), [test_live_recognition.py](test_live_recognition.py), [test_security_layer.py](test_security_layer.py), [test_silhouette.py](test_silhouette.py), [test_streaming_optimization.py](test_streaming_optimization.py), [test_tracking.py](test_tracking.py), [test_visualizer.py](test_visualizer.py), [test_webcam_detection.py](test_webcam_detection.py) |
 <!-- END SYNC: SAFETY_CLASSIFICATION -->
 

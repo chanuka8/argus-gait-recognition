@@ -104,6 +104,8 @@ class Trainer:
         part_bins: int = 4,
         split_config_path: str | None = "configs/subject_split.json",
         device: str | None = None,
+        condition_balanced: bool = False,
+        cross_condition_triplet: bool = False,
     ) -> None:
         if epochs < 1:
             raise ValueError(f"epochs must be at least 1, got {epochs}")
@@ -142,6 +144,8 @@ class Trainer:
         self.arcface_margin = arcface_margin
         self.part_bins = part_bins
         self.split_config_path = split_config_path
+        self.condition_balanced = condition_balanced
+        self.cross_condition_triplet = cross_condition_triplet
 
         if device is None:
             self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -167,12 +171,16 @@ class Trainer:
             "Building dataloaders"
         )
 
+        use_return_condition = self.cross_condition_triplet or self.condition_balanced
+
         train_loader, val_loader, dataset = build_dataloaders(
             root_dir=self.data_dir,
             batch_size=self.batch_size,
             max_classes=self.max_classes,
             max_samples=self.max_samples,
             split_config_path=self.split_config_path,
+            condition_balanced=self.condition_balanced,
+            return_condition=use_return_condition,
         )
 
         num_classes = len(
@@ -243,6 +251,8 @@ class Trainer:
             "embedding_dim": 256,
             "device": str(self.device),
             "split_config_path": self.split_config_path,
+            "condition_balanced": self.condition_balanced,
+            "cross_condition_triplet": self.cross_condition_triplet,
         }
         with open(self.run_dir / "experiment_config.json", "w", encoding="utf-8") as f:
             import json
@@ -368,11 +378,18 @@ class Trainer:
         correct = 0
         total = 0
 
-        for images, labels in tqdm(
+        for batch in tqdm(
             loader,
             desc="Training",
             leave=False,
         ):
+            if len(batch) == 3:
+                images, labels, condition_labels = batch
+                condition_labels = condition_labels.to(self.device)
+            else:
+                images, labels = batch
+                condition_labels = None
+
             images = images.to(
                 self.device,
             )
@@ -388,10 +405,12 @@ class Trainer:
                 labels=labels,
             )
 
+            cond_for_loss = condition_labels if self.cross_condition_triplet else None
             loss, ce_loss, triplet_loss = criterion(
                 loss_logits,
                 embeddings,
                 labels,
+                condition_labels=cond_for_loss,
             )
 
             loss.backward()
@@ -442,11 +461,16 @@ class Trainer:
         all_labels = []
 
         with torch.no_grad():
-            for images, labels in tqdm(
+            for batch in tqdm(
                 loader,
                 desc="Validation",
                 leave=False,
             ):
+                if len(batch) == 3:
+                    images, labels, _ = batch
+                else:
+                    images, labels = batch
+
                 images = images.to(
                     self.device,
                 )

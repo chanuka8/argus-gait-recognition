@@ -16,6 +16,7 @@ class BatchHardTripletLoss(nn.Module):
         self,
         embeddings: torch.Tensor,
         labels: torch.Tensor,
+        condition_labels: torch.Tensor | None = None,
     ) -> torch.Tensor:
         if embeddings.size(0) < 2:
             return embeddings.sum() * 0.0
@@ -47,8 +48,16 @@ class BatchHardTripletLoss(nn.Module):
             False,
         )
 
+        if condition_labels is not None:
+            cond_l = condition_labels.view(-1, 1)
+            cross_cond_mask = positive_mask & (~cond_l.eq(cond_l.t()))
+            has_cross = cross_cond_mask.any(dim=1, keepdim=True)
+            pos_mask_to_use = torch.where(has_cross, cross_cond_mask, positive_mask)
+        else:
+            pos_mask_to_use = positive_mask
+
         hardest_positive = torch.where(
-            positive_mask,
+            pos_mask_to_use,
             distance_matrix,
             torch.zeros_like(distance_matrix),
         ).max(dim=1)[0]
@@ -59,7 +68,7 @@ class BatchHardTripletLoss(nn.Module):
             torch.full_like(distance_matrix, 1e6),
         ).min(dim=1)[0]
 
-        valid_positive = positive_mask.any(
+        valid_positive = pos_mask_to_use.any(
             dim=1,
         )
 
@@ -99,6 +108,7 @@ class JointGaitLoss(nn.Module):
         logits: torch.Tensor,
         embeddings: torch.Tensor,
         labels: torch.Tensor,
+        condition_labels: torch.Tensor | None = None,
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         ce = self.ce_loss(
             logits,
@@ -108,6 +118,7 @@ class JointGaitLoss(nn.Module):
         triplet = self.triplet_loss(
             embeddings,
             labels,
+            condition_labels=condition_labels,
         )
 
         total = ce + self.triplet_weight * triplet
