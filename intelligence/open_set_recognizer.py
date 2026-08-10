@@ -42,6 +42,11 @@ class OpenSetRecognizer:
         margin_threshold: float = 0.05,
         quality_threshold: float = 0.60,
     ) -> None:
+        if unknown_threshold >= known_threshold:
+            raise ValueError(
+                f"Invalid open-set threshold bounds: unknown_threshold ({unknown_threshold}) "
+                f"must be strictly less than known_threshold ({known_threshold})"
+            )
         self.known_threshold = known_threshold
         self.unknown_threshold = unknown_threshold
         self.margin_threshold = margin_threshold
@@ -98,6 +103,8 @@ class OpenSetRecognizer:
         margin = 1.0
         if len(top_matches) > 1:
             margin = top_score - float(top_matches[1][1])
+            if not (isinstance(margin, (int, float)) and margin >= 0.0):
+                margin = 0.0
 
         # 1. Definite UNKNOWN: Score below unknown_threshold
         if top_score < self.unknown_threshold:

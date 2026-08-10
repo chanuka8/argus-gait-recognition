@@ -1,75 +1,155 @@
+from pathlib import Path
+
 import cv2
 import numpy as np
+import yaml
+
+
+class LearnedSilhouetteSegmenter:
+    """
+    Learned human silhouette segmentation strategy using local ONNX model.
+    Falls back gracefully if ONNX runtime or model file is unavailable.
+    """
+
+    def __init__(self, model_path: str = "models/engines/silhouette_segmenter.onnx", threshold: float = 0.5) -> None:
+        self.model_path = Path(model_path)
+        self.threshold = threshold
+        self.session = None
+        self._init_session()
+
+    def _init_session(self) -> None:
+        if not self.model_path.exists():
+            return
+        try:
+            import onnxruntime as ort
+
+            providers = ort.get_available_providers()
+            provider = "CUDAExecutionProvider" if "CUDAExecutionProvider" in providers else "CPUExecutionProvider"
+            self.session = ort.InferenceSession(str(self.model_path), providers=[provider])
+        except Exception:
+            self.session = None
+
+    def is_available(self) -> bool:
+        return self.session is not None
+
+    def segment(self, crop: np.ndarray) -> np.ndarray | None:
+        if not self.is_available() or crop is None or crop.size == 0:
+            return None
+
+        h, w = crop.shape[:2]
+        try:
+            resized = cv2.resize(crop, (256, 256))
+            blob = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
+            tensor = np.transpose(blob, (2, 0, 1))[np.newaxis, ...]
+
+            input_name = self.session.get_inputs()[0].name
+            output_name = self.session.get_outputs()[0].name
+            raw_out = self.session.run([output_name], {input_name: tensor})[0]
+
+            prob_map = raw_out.squeeze()
+            if prob_map.ndim > 2:
+                prob_map = prob_map[0]
+
+            mask_256 = (prob_map > self.threshold).astype(np.uint8) * 255
+            mask = cv2.resize(mask_256, (w, h), interpolation=cv2.INTER_NEAREST)
+            return mask
+        except Exception:
+            return None
+
+
+class OtsuSilhouetteExtractor:
+    """Otsu thresholding silhouette extraction strategy (fallback)."""
+
+    def extract_mask(self, crop: np.ndarray) -> np.ndarray | None:
+        if crop is None or crop.size == 0:
+            return None
+
+        gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
+        blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+        _, mask = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        return mask
 
 
 class SilhouetteStep:
+    """
+    Unified Silhouette Step.
+    Tries learned segmentation strategy first; falls back to Otsu strategy if unavailable.
+    Applies shared morphological cleaning, primary person contour filtering, height normalization,
+    and 64x128 canvas alignment.
+    """
+
     def __init__(
         self,
         target_size: tuple[int, int] = (64, 128),
+        method: str = "auto",
+        model_path: str = "models/engines/silhouette_segmenter.onnx",
+        threshold: float = 0.5,
+        config_path: str = "configs/inference.yaml",
     ) -> None:
         self.target_size = target_size
+        self.config = self._load_config(Path(config_path))
+
+        sil_cfg = self.config.get("silhouette", {})
+        self.method = method if method != "auto" else sil_cfg.get("method", "learned")
+        self.model_path = model_path if model_path != "models/engines/silhouette_segmenter.onnx" else sil_cfg.get("model_path", "models/engines/silhouette_segmenter.onnx")
+        self.threshold = threshold if threshold != 0.5 else float(sil_cfg.get("threshold", 0.5))
+
+        self.learned_segmenter = LearnedSilhouetteSegmenter(model_path=self.model_path, threshold=self.threshold)
+        self.otsu_extractor = OtsuSilhouetteExtractor()
+
+    @staticmethod
+    def _load_config(config_path: Path) -> dict:
+        if not config_path.exists():
+            return {}
+        try:
+            with open(config_path, encoding="utf-8") as f:
+                data = yaml.safe_load(f)
+                return data if isinstance(data, dict) else {}
+        except Exception:
+            return {}
 
     def extract_from_crop(self, crop: np.ndarray) -> np.ndarray | None:
         if crop is None or crop.size == 0:
             return None
 
-        # Extract grayscale from person crop
-        gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
+        raw_mask = None
+        if self.method in {"learned", "auto"} and self.learned_segmenter.is_available():
+            raw_mask = self.learned_segmenter.segment(crop)
 
-        # Apply blur
-        blurred = cv2.GaussianBlur(
-            gray,
-            (5, 5),
-            0,
-        )
+        if raw_mask is None:
+            raw_mask = self.otsu_extractor.extract_mask(crop)
 
-        # Apply Otsu threshold
-        _, mask = cv2.threshold(
-            blurred,
-            0,
-            255,
-            cv2.THRESH_BINARY + cv2.THRESH_OTSU,
-        )
+        if raw_mask is None or raw_mask.size == 0:
+            return None
 
-        # Clean with morphology open/close
-        mask = self._clean_mask(mask)
+        return self._align_and_normalize(raw_mask)
 
-        # Detect contours
-        contours, _ = cv2.findContours(
-            mask,
-            cv2.RETR_EXTERNAL,
-            cv2.CHAIN_APPROX_SIMPLE,
-        )
+    def _align_and_normalize(self, mask: np.ndarray) -> np.ndarray | None:
+        cleaned_mask = self._clean_mask(mask)
 
+        contours, _ = cv2.findContours(cleaned_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         if not contours:
             return None
 
-        # Keep only largest contour
         largest_contour = max(contours, key=cv2.contourArea)
-
-        # Remove small noise / reject abnormal areas
-        crop_area = mask.shape[0] * mask.shape[1]
+        crop_area = cleaned_mask.shape[0] * cleaned_mask.shape[1]
         contour_area = cv2.contourArea(largest_contour)
 
         if contour_area < 50 or contour_area > 0.95 * crop_area:
             return None
 
-        # Crop largest contour bounding box
         x, y, w, h = cv2.boundingRect(largest_contour)
         if w < 5 or h < 15:
             return None
 
-        # Reject abnormal aspect ratio (height / width)
         aspect_ratio = h / w
         if aspect_ratio < 1.2 or aspect_ratio > 6.0:
             return None
 
-        # Draw the largest contour on a clean mask to filter other objects
-        contour_mask = np.zeros_like(mask)
+        contour_mask = np.zeros_like(cleaned_mask)
         cv2.drawContours(contour_mask, [largest_contour], -1, 255, thickness=cv2.FILLED)
-        cropped_silhouette = contour_mask[y:y+h, x:x+w]
+        cropped_silhouette = contour_mask[y : y + h, x : x + w]
 
-        # Resize while preserving aspect ratio and normalize body height to approximately 85% of canvas height
         target_h = int(self.target_size[1] * 0.85)  # 108 pixels
         scale_factor = target_h / h
         new_w = int(w * scale_factor)
@@ -81,37 +161,17 @@ class SilhouetteStep:
             interpolation=cv2.INTER_NEAREST,
         )
 
-        # Place silhouette on fixed 64x128 black canvas
         canvas = np.zeros((self.target_size[1], self.target_size[0]), dtype=np.uint8)
-
-        # Center horizontally
         x_offset = (self.target_size[0] - new_w) // 2
         y_offset = (self.target_size[1] - target_h) // 2
 
-        # Draw onto canvas
         canvas[y_offset : y_offset + target_h, x_offset : x_offset + new_w] = resized_silhouette
-
-        # Return uint8 binary silhouette with values 0 or 255
         return canvas
 
-    def _clean_mask(self, mask: np.ndarray) -> np.ndarray:
-        kernel = np.ones(
-            (3, 3),
-            np.uint8,
-        )
-
-        mask = cv2.morphologyEx(
-            mask,
-            cv2.MORPH_OPEN,
-            kernel,
-            iterations=1,
-        )
-
-        mask = cv2.morphologyEx(
-            mask,
-            cv2.MORPH_CLOSE,
-            kernel,
-            iterations=2,
-        )
-
+    @staticmethod
+    def _clean_mask(mask: np.ndarray) -> np.ndarray:
+        kernel = np.ones((3, 3), np.uint8)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=1)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=2)
         return mask
+

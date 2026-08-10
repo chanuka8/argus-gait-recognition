@@ -101,6 +101,12 @@ open_set:
   margin_threshold: 0.05
   quality_threshold: 0.60
 
+silhouette:
+  method: "learned"
+  model_path: "models/engines/silhouette_segmenter.onnx"
+  threshold: 0.5
+  target_size: [64, 128]
+
 track_reliability:
   enabled: false
   target_observation_frames: 15

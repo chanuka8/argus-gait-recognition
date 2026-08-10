@@ -15,8 +15,22 @@ class PersonDetector:
         self.lock = threading.Lock()
 
         model_path = Path(self.config.get("model_path", "models/weights/yolov8n.pt"))
-        self.confidence = float(self.config.get("confidence", 0.4))
-        self.classes = self.config.get("classes", [0])
+
+        raw_conf = self.config.get("confidence", 0.4)
+        self.confidence = float(raw_conf) if isinstance(raw_conf, (int, float)) and 0.0 <= raw_conf <= 1.0 else 0.4
+
+        raw_iou = self.config.get("iou_threshold", 0.45)
+        self.iou_threshold = float(raw_iou) if isinstance(raw_iou, (int, float)) and 0.0 <= raw_iou <= 1.0 else 0.45
+
+        raw_classes = self.config.get("classes", [0])
+        self.classes = list(raw_classes) if isinstance(raw_classes, list) else [0]
+
+        self.device = str(self.config.get("device", "cpu")).lower()
+        if self.device not in {"cpu", "cuda", "0", "1", "auto"}:
+            self.device = "cpu"
+
+        raw_imgsz = self.config.get("img_size", 640)
+        self.img_size = int(raw_imgsz) if isinstance(raw_imgsz, int) and raw_imgsz > 0 else 640
 
         if model_path.exists():
             self.model = YOLO(str(model_path))
@@ -29,7 +43,10 @@ class PersonDetector:
         defaults = {
             "model_path": "models/weights/yolov8n.pt",
             "confidence": 0.4,
+            "iou_threshold": 0.45,
             "classes": [0],
+            "device": "cpu",
+            "img_size": 640,
         }
 
         if not path.exists():
@@ -38,6 +55,8 @@ class PersonDetector:
         try:
             with open(path, encoding="utf-8") as file:
                 data = yaml.safe_load(file) or {}
+                if not isinstance(data, dict):
+                    return defaults
                 for key, val in defaults.items():
                     data.setdefault(key, val)
                 return data
@@ -48,12 +67,20 @@ class PersonDetector:
         if frame is None or frame.size == 0:
             return []
 
+        kwargs = {
+            "conf": self.confidence,
+            "iou": self.iou_threshold,
+            "classes": self.classes,
+            "verbose": False,
+            "imgsz": self.img_size,
+        }
+        if self.device and self.device != "auto":
+            kwargs["device"] = self.device
+
         with self.lock:
             results = self.model(
                 frame,
-                conf=self.confidence,
-                classes=self.classes,
-                verbose=False,
+                **kwargs,
             )
 
         detections = []

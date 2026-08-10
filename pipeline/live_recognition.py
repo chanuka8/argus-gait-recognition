@@ -26,42 +26,27 @@ from utils.detection_reporter import DetectionReporter, load_reporting_config
 
 
 def _load_matching_policy() -> dict:
-    config_path = Path("configs/inference.yaml")
+    from core.threshold_manager import ThresholdManager
 
-    defaults = {
-        "confirmed_threshold": 0.92,
-        "verify_low": 0.85,
-        "verify_high": 0.92,
-        "low_confidence_low": 0.70,
-        "low_confidence_high": 0.85,
-        "unknown_ceiling": 0.70,
-        "centroid_threshold": 0.85,
-        "margin": 0.05,
+    tm = ThresholdManager()
+    thresholds = tm.load_thresholds()
+
+    return {
+        "use_calibrated_threshold": thresholds.calibrated,
+        "confirmed_threshold": thresholds.confirmed_threshold,
+        "known_threshold": thresholds.known_threshold,
+        "verify_low": thresholds.verify_low,
+        "verify_high": thresholds.verify_high,
+        "low_confidence_low": thresholds.low_confidence_low,
+        "low_confidence_high": thresholds.low_confidence_high,
+        "unknown_ceiling": thresholds.unknown_ceiling,
+        "unknown_threshold": thresholds.unknown_threshold,
+        "centroid_threshold": thresholds.centroid_threshold,
+        "margin": thresholds.margin_threshold,
         "top_k": 5,
         "min_stable_votes": 3,
         "history_size": 10,
     }
-
-    if not config_path.exists():
-        return defaults
-
-    try:
-        with open(config_path, encoding="utf-8") as f:
-            data = yaml.safe_load(f) or {}
-    except Exception:
-        return defaults
-
-    policy = data.get("matching_policy", {})
-
-    if not isinstance(policy, dict):
-        return defaults
-
-    merged = {}
-
-    for key, default_value in defaults.items():
-        merged[key] = policy.get(key, default_value)
-
-    return merged
 
 
 def _load_crowd_control_config() -> dict:
