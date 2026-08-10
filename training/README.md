@@ -19,6 +19,8 @@ The `training` package handles deep neural network model training, loss function
 | [checkpointer.py](checkpointer.py) | Checkpoint saver and model state dictionary restorer |
 | [dataloader.py](dataloader.py) | PyTorch DataLoader factory supporting balanced identity batch sampling |
 | [dataset.py](dataset.py) | PyTorch Dataset class loading 64x128 GEI images and subject labels |
+| [gait_3d_dataset.py](gait_3d_dataset.py) | Module/resource file gait_3d_dataset.py |
+| [gait_3d_trainer.py](gait_3d_trainer.py) | Module/resource file gait_3d_trainer.py |
 | [loss_functions.py](loss_functions.py) | Combined loss implementations: Triplet Loss with hard mining, Cross-Entropy, Margin Loss |
 | [optimizer.py](optimizer.py) | Adam / SGD optimizer builder and Cosine Annealing learning rate schedulers |
 | [trainer.py](trainer.py) | Main training loop coordinator executing forward/backward passes and validation checks |

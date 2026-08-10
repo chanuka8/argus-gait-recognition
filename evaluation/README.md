@@ -17,6 +17,7 @@ The `evaluation` package implements scientific benchmarks, metrics evaluation, s
 | [cross_view_evaluator.py](cross_view_evaluator.py) | Evaluates cross-camera view angle invariance across CASIA-B viewing angles |
 | [dataset_split.py](dataset_split.py) | Partitions dataset subjects into subject-disjoint train, gallery, and probe splits |
 | [evaluator.py](evaluator.py) | Core evaluation harness running identification evaluation protocols |
+| [evaluator_3d.py](evaluator_3d.py) | Module/resource file evaluator_3d.py |
 | [gallery_probe_builder.py](gallery_probe_builder.py) | Constructs gallery feature matrices and query probe vectors for test evaluation |
 | [leakage_validator.py](leakage_validator.py) | Asserts zero identity overlap between gallery and probe datasets |
 | [metrics.py](metrics.py) | Mathematical functions for Rank-k accuracy, EER, ROC AUC, FAR, and FRR |

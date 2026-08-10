@@ -74,6 +74,13 @@ reid:
   batch_size: 8
   similarity_threshold: 0.6
 
+gait_3d:
+  enabled: false
+  model_path: "models/weights/gait3d_pose_lifter.pth"
+  sequence_length: 30
+  confidence_threshold: 0.30
+  device: "auto"
+
 fusion:
   enabled: false
   gait_weight: 0.7

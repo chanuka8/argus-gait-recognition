@@ -46,6 +46,11 @@ except ImportError:
     TemporalGaitVerifier = None
 
 try:
+    from pipeline.steps.gait_3d_step import Gait3DStep
+except ImportError:
+    Gait3DStep = None
+
+try:
     from pipeline.steps.tracking import TrackingStep
 except ImportError:
     TrackingStep = None
@@ -53,6 +58,7 @@ except ImportError:
 __all__ = [
     "CentroidMatchingStep",
     "FeatureExtractionStep",
+    "Gait3DStep",
     "LiveGEI",
     "MatchingStep",
     "QualityEstimator",
