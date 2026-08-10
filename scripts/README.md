@@ -56,7 +56,7 @@ This folder contains project maintenance, automation, development, validation, e
 | [test_tracking.py](test_tracking.py) | Validation test script for tracking. | `pytest scripts/test_tracking.py` |
 | [test_visualizer.py](test_visualizer.py) | Validation test script for visualizer. | `pytest scripts/test_visualizer.py` |
 | [test_webcam_detection.py](test_webcam_detection.py) | Validation test script for webcam detection. | `pytest scripts/test_webcam_detection.py` |
-| [train_model.py](train_model.py) | Train ARGUS ByGaitLight model with metric learning. | `python scripts/train_model.py` |
+| [train_model.py](train_model.py) | Train ARGUS ByGaitLight model with metric learning (HPP + ArcFace + Triplet). | `python scripts/train_model.py` |
 <!-- END SYNC: KEY_MODULES -->
 
 ## Script Metadata
@@ -109,7 +109,7 @@ This folder contains project maintenance, automation, development, validation, e
 | [test_tracking.py](test_tracking.py) | Validation | No | No | No | No | Validation test script for tracking. |
 | [test_visualizer.py](test_visualizer.py) | Validation | No | No | No | No | Validation test script for visualizer. |
 | [test_webcam_detection.py](test_webcam_detection.py) | Validation | No | No | No | No | Validation test script for webcam detection. |
-| [train_model.py](train_model.py) | Development | Yes | No | No | No | Train ARGUS ByGaitLight model with metric learning. |
+| [train_model.py](train_model.py) | Development | Yes | No | No | No | Train ARGUS ByGaitLight model with metric learning (HPP +... |
 <!-- END SYNC: SCRIPT_METADATA_TABLE -->
 
 ## CLI Reference
@@ -505,20 +505,23 @@ python scripts/sync_folder_readmes.py --check --update
 </details>
 
 <details>
-<summary><strong>train_model.py</strong> — Train ARGUS ByGaitLight model with metric learning. Note: Previous short triplet run degraded accuracy, so triplet loss is optional and default --triplet-weight is set to 0.0.</summary>
+<summary><strong>train_model.py</strong> — Train ARGUS ByGaitLight model with metric learning (HPP + ArcFace + Triplet).</summary>
 
 **Usage**: `python scripts/train_model.py`
 
 | Flag / Argument | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `--epochs` | int | No | 3 | — |
+| `--epochs` | int | No | 25 | — |
 | `--batch-size` | int | No | 16 | — |
 | `--lr` | float | No | 0.0001 | — |
+| `--run-dir` | str | No | `runs/exp_002_hpp_arcface` | Directory to save experiment checkpoints and logs. |
+| `--part-bins` | int | No | 4 | Horizontal Part Pooling (HPP) part bins. |
+| `--split-config` | str | No | `configs/subject_split.json` | Subject split manifest configuration path. |
 | `--max-classes` | int | No | None | — |
 | `--max-samples` | int | No | None | — |
 | `--triplet-margin` | float | No | 0.3 | — |
-| `--triplet-weight` | float | No | 0.0 | Weight for triplet loss. Default is 0.0 to prevent training degradation observed in previous runs. |
-| `--loss-mode` | str | No | `ce` | Loss mode to use. Default is stable cross-entropy ('ce'). (choices: ce, ce_arcface) |
+| `--triplet-weight` | float | No | 0.5 | Weight for Batch-Hard Triplet loss. |
+| `--loss-mode` | str | No | `ce_arcface` | Loss mode to use. Default is ArcFace ('ce_arcface'). (choices: ce, ce_arcface) |
 | `--arcface-scale` | float | No | 30.0 | Scale parameter for ArcFace loss. |
 | `--arcface-margin` | float | No | 0.5 | Margin parameter for ArcFace loss. |
 
@@ -526,7 +529,7 @@ python scripts/sync_folder_readmes.py --check --update
 
 ```bash
 python scripts/train_model.py
-python scripts/train_model.py --epochs 3 --batch-size 16
+python scripts/train_model.py --epochs 25 --batch-size 16
 ```
 
 </details>
@@ -627,7 +630,7 @@ Development helper scripts run benchmarks, evaluations, training pipelines, and 
 - **[smoke_test_deployment.py](smoke_test_deployment.py)**: Automated Native Deployment Smoke Test for ARGUS AI. (`python scripts/smoke_test_deployment.py`)
 - **[start_system.bat](start_system.bat)**: System startup launcher script. (`scripts/start_system.bat`)
 - **[start_system.sh](start_system.sh)**: System startup launcher script. (`scripts/start_system.sh`)
-- **[train_model.py](train_model.py)**: Train ARGUS ByGaitLight model with metric learning. (`python scripts/train_model.py`)
+- **[train_model.py](train_model.py)**: Train ARGUS ByGaitLight model with metric learning (HPP + ArcFace + Triplet). (`python scripts/train_model.py`)
 <!-- END SYNC: DEVELOPMENT_SCRIPTS -->
 
 ## Command Index
@@ -680,7 +683,7 @@ Development helper scripts run benchmarks, evaluations, training pipelines, and 
 | `pytest scripts/test_tracking.py` | Validation test script for tracking. |
 | `pytest scripts/test_visualizer.py` | Validation test script for visualizer. |
 | `pytest scripts/test_webcam_detection.py` | Validation test script for webcam detection. |
-| `python scripts/train_model.py` | Train ARGUS ByGaitLight model with metric learning. |
+| `python scripts/train_model.py` | Train ARGUS ByGaitLight model with metric learning (HPP + ArcFace +... |
 <!-- END SYNC: COMMAND_INDEX -->
 
 ## Script Dependency Graph

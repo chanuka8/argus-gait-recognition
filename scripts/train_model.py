@@ -13,14 +13,13 @@ from training.trainer import Trainer
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Train ARGUS ByGaitLight model with metric learning. "
-                    "Note: Previous short triplet run degraded accuracy, so triplet loss is optional and default --triplet-weight is set to 0.0."
+        description="Train ARGUS ByGaitLight model with metric learning (HPP + ArcFace + Triplet)."
     )
 
     parser.add_argument(
         "--epochs",
         type=int,
-        default=3,
+        default=25,
     )
 
     parser.add_argument(
@@ -33,6 +32,27 @@ def main() -> None:
         "--lr",
         type=float,
         default=0.0001,
+    )
+
+    parser.add_argument(
+        "--run-dir",
+        type=str,
+        default="runs/exp_002_hpp_arcface",
+        help="Directory to save experiment checkpoints and logs.",
+    )
+
+    parser.add_argument(
+        "--part-bins",
+        type=int,
+        default=4,
+        help="Horizontal Part Pooling (HPP) part bins.",
+    )
+
+    parser.add_argument(
+        "--split-config",
+        type=str,
+        default="configs/subject_split.json",
+        help="Subject split manifest configuration path.",
     )
 
     parser.add_argument(
@@ -56,16 +76,16 @@ def main() -> None:
     parser.add_argument(
         "--triplet-weight",
         type=float,
-        default=0.0,
-        help="Weight for triplet loss. Default is 0.0 to prevent training degradation observed in previous runs."
+        default=0.5,
+        help="Weight for Batch-Hard Triplet loss."
     )
 
     parser.add_argument(
         "--loss-mode",
         type=str,
         choices=["ce", "ce_arcface"],
-        default="ce",
-        help="Loss mode to use. Default is stable cross-entropy ('ce')."
+        default="ce_arcface",
+        help="Loss mode to use. Default is ArcFace ('ce_arcface')."
     )
 
     parser.add_argument(
@@ -88,6 +108,9 @@ def main() -> None:
         epochs=args.epochs,
         batch_size=args.batch_size,
         learning_rate=args.lr,
+        run_dir=args.run_dir,
+        part_bins=args.part_bins,
+        split_config_path=args.split_config,
         max_classes=args.max_classes,
         max_samples=args.max_samples,
         triplet_margin=args.triplet_margin,

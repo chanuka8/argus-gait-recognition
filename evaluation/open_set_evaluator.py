@@ -39,9 +39,10 @@ class SubjectDisjointOpenSetEvaluator(SubjectDisjointEvaluator):
             report_dir=report_dir,
         )
         self.known_ratio = known_ratio
+        unk_th = max(0.05, threshold - 0.10)
         self.open_set_recognizer = OpenSetRecognizer(
             known_threshold=threshold,
-            unknown_threshold=0.70,
+            unknown_threshold=unk_th,
             margin_threshold=0.05,
         )
 

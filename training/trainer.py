@@ -90,7 +90,7 @@ class Trainer:
     def __init__(
         self,
         data_dir: str = "data/casia_processed/gei",
-        run_dir: str = "runs/exp_001",
+        run_dir: str = "runs/exp_002_hpp_arcface",
         batch_size: int = 16,
         epochs: int = 3,
         learning_rate: float = 0.0001,
@@ -102,6 +102,7 @@ class Trainer:
         arcface_scale: float = 30.0,
         arcface_margin: float = 0.50,
         part_bins: int = 4,
+        split_config_path: str | None = "configs/subject_split.json",
         device: str | None = None,
     ) -> None:
         if epochs < 1:
@@ -127,6 +128,7 @@ class Trainer:
         self.run_dir = Path(
             run_dir,
         )
+        self.run_dir.mkdir(parents=True, exist_ok=True)
 
         self.batch_size = batch_size
         self.epochs = epochs
@@ -139,6 +141,7 @@ class Trainer:
         self.arcface_scale = arcface_scale
         self.arcface_margin = arcface_margin
         self.part_bins = part_bins
+        self.split_config_path = split_config_path
 
         if device is None:
             self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -169,6 +172,7 @@ class Trainer:
             batch_size=self.batch_size,
             max_classes=self.max_classes,
             max_samples=self.max_samples,
+            split_config_path=self.split_config_path,
         )
 
         num_classes = len(
@@ -222,6 +226,43 @@ class Trainer:
 
         best_val_accuracy = 0.0
 
+        exp_config = {
+            "data_dir": self.data_dir,
+            "run_dir": str(self.run_dir),
+            "batch_size": self.batch_size,
+            "epochs": self.epochs,
+            "learning_rate": self.learning_rate,
+            "max_classes": self.max_classes,
+            "max_samples": self.max_samples,
+            "triplet_margin": self.triplet_margin,
+            "triplet_weight": self.triplet_weight,
+            "loss_mode": self.loss_mode,
+            "arcface_scale": self.arcface_scale,
+            "arcface_margin": self.arcface_margin,
+            "part_bins": self.part_bins,
+            "embedding_dim": 256,
+            "device": str(self.device),
+            "split_config_path": self.split_config_path,
+        }
+        with open(self.run_dir / "experiment_config.json", "w", encoding="utf-8") as f:
+            import json
+            json.dump(exp_config, f, indent=4)
+
+        if self.split_config_path and Path(self.split_config_path).exists():
+            import shutil
+            shutil.copy(self.split_config_path, self.run_dir / "subject_split.json")
+
+        model_meta = {
+            "architecture": "ByGaitLight",
+            "part_bins": self.part_bins,
+            "embedding_dim": 256,
+            "l2_normalized": True,
+            "num_training_classes": num_classes,
+        }
+        with open(self.run_dir / "model_metadata.json", "w", encoding="utf-8") as f:
+            import json
+            json.dump(model_meta, f, indent=4)
+
         history = {
             "epochs": [],
             "best_val_accuracy": 0.0,
@@ -235,6 +276,7 @@ class Trainer:
             "arcface_margin": self.arcface_margin,
             "triplet_margin": self.triplet_margin,
             "triplet_weight": self.triplet_weight,
+            "part_bins": self.part_bins,
         }
 
         for epoch in range(
@@ -394,8 +436,10 @@ class Trainer:
         total_loss = 0.0
         total_ce = 0.0
         total_triplet = 0.0
-        correct = 0
         total = 0
+
+        all_embeddings = []
+        all_labels = []
 
         with torch.no_grad():
             for images, labels in tqdm(
@@ -430,23 +474,30 @@ class Trainer:
                 total_ce += ce_loss.item() * batch_size
                 total_triplet += triplet_loss.item() * batch_size
 
-                predictions = torch.argmax(
-                    pred_logits,
-                    dim=1,
-                )
+                total += batch_size
 
-                correct += (
-                    predictions == labels
-                ).sum().item()
+                all_embeddings.append(embeddings.cpu())
+                all_labels.append(labels.cpu())
 
-                total += labels.size(
-                    0,
-                )
+        if all_embeddings:
+            concat_emb = torch.cat(all_embeddings, dim=0)
+            concat_lbl = torch.cat(all_labels, dim=0)
+            N = concat_emb.size(0)
+
+            sim_matrix = torch.mm(concat_emb, concat_emb.t())
+            sim_matrix.fill_diagonal_(-1.0)
+
+            top1_indices = torch.argmax(sim_matrix, dim=1)
+            correct_nn = (concat_lbl[top1_indices] == concat_lbl).sum().item()
+            val_acc = correct_nn / max(N, 1)
+        else:
+            val_acc = 0.0
 
         return {
             "val_loss": total_loss / max(total, 1),
             "val_ce_loss": total_ce / max(total, 1),
             "val_triplet_loss": total_triplet / max(total, 1),
-            "val_accuracy": correct / max(total, 1),
+            "val_accuracy": val_acc,
         }
+
 

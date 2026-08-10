@@ -12,11 +12,13 @@ class GEIDataset(Dataset):
         image_size: tuple[int, int] = (64, 128),
         max_classes: int | None = None,
         max_samples: int | None = None,
+        subject_ids: list[str] | None = None,
     ) -> None:
         self.root_dir = Path(root_dir)
         self.image_size = image_size
         self.max_classes = max_classes
         self.max_samples = max_samples
+        self.subject_ids = set(str(s) for s in subject_ids) if subject_ids is not None else None
 
         self.samples = []
         self.label_to_index = {}
@@ -30,6 +32,9 @@ class GEIDataset(Dataset):
         person_dirs = sorted(
             [path for path in self.root_dir.iterdir() if path.is_dir()]
         )
+
+        if self.subject_ids is not None:
+            person_dirs = [p for p in person_dirs if p.name in self.subject_ids]
 
         if self.max_classes is not None:
             person_dirs = person_dirs[: self.max_classes]
