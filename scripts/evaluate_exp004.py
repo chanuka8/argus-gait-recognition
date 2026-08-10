@@ -23,6 +23,7 @@ def evaluate_checkpoint(
     output_dir: str,
     gei_root: str = "data/casia_processed/gei",
     split_config: str = "configs/subject_split.json",
+    margin_threshold: float = 0.05,
 ) -> dict:
     """Run full evaluation pipeline on a checkpoint and return all metrics."""
     out_dir = Path(output_dir)
@@ -30,6 +31,7 @@ def evaluate_checkpoint(
 
     print("\n=======================================================")
     print(f"  EVALUATING: {model_path}")
+    print(f"  Margin Threshold: {margin_threshold}")
     print("=======================================================\n")
 
     # 1. Load subject split
@@ -50,6 +52,7 @@ def evaluate_checkpoint(
     )
     calib_res = calibrator.calibrate(
         criterion="min_eer",
+        margin_threshold=margin_threshold,
         gei_root=gei_root,
         output_dir=str(out_dir),
     )
@@ -89,6 +92,7 @@ def evaluate_checkpoint(
         threshold=calibrated_threshold,
         known_ratio=0.5,
         report_dir=str(out_dir),
+        margin_threshold=margin_threshold,
     )
     open_set_res = open_set_evaluator.evaluate_open_set_protocol()
 
@@ -99,15 +103,21 @@ def evaluate_checkpoint(
     frr = float(op_metrics.get("FRR", 0.0))
     tar = float(op_metrics.get("TAR", 0.0))
 
+    margin_metrics = open_set_res.get("margin_aware_metrics", {})
+    margin_far = float(margin_metrics.get("FAR", 0.0))
+    margin_frr = float(margin_metrics.get("FRR", 0.0))
+    margin_tar = float(margin_metrics.get("TAR", 0.0))
+
     print(f"  -> ROC-AUC:          {roc_auc:.4f}")
     print(f"  -> EER:              {eer*100:.2f}%")
-    print(f"  -> FAR at threshold: {far*100:.2f}%")
-    print(f"  -> FRR at threshold: {frr*100:.2f}%")
+    print(f"  -> [Score-Only] FAR: {far*100:.2f}%  FRR: {frr*100:.2f}%  TAR: {tar*100:.2f}%")
+    print(f"  -> [Margin M>={margin_threshold}] FAR: {margin_far*100:.2f}%  FRR: {margin_frr*100:.2f}%  TAR: {margin_tar*100:.2f}%")
 
     # 5. Save consolidated summary
     summary = {
         "model_path": model_path,
         "threshold": round(calibrated_threshold, 4),
+        "margin_threshold": margin_threshold,
         "rank1": round(rank1, 4),
         "rank5": round(rank5, 4),
         "rank10": round(rank10, 4),
@@ -116,9 +126,12 @@ def evaluate_checkpoint(
         "CL": round(cl_acc, 4),
         "ROC_AUC": round(roc_auc, 4),
         "EER": round(eer, 4),
-        "FAR": round(far, 4),
-        "FRR": round(frr, 4),
-        "TAR": round(tar, 4),
+        "score_only_FAR": round(far, 4),
+        "score_only_FRR": round(frr, 4),
+        "score_only_TAR": round(tar, 4),
+        "margin_aware_FAR": round(margin_far, 4),
+        "margin_aware_FRR": round(margin_frr, 4),
+        "margin_aware_TAR": round(margin_tar, 4),
         "condition_wise": cond_accs,
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
     }
@@ -138,6 +151,8 @@ if __name__ == "__main__":
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--gei-root", default="data/casia_processed/gei")
     parser.add_argument("--split-config", default="configs/subject_split.json")
+    parser.add_argument("--margin-threshold", type=float, default=0.08,
+                        help="Top1/Top2 margin threshold for EXP-004B open-set policy")
     args = parser.parse_args()
 
     evaluate_checkpoint(
@@ -145,4 +160,5 @@ if __name__ == "__main__":
         output_dir=args.output_dir,
         gei_root=args.gei_root,
         split_config=args.split_config,
+        margin_threshold=args.margin_threshold,
     )

@@ -30,6 +30,7 @@ class SubjectDisjointOpenSetEvaluator(SubjectDisjointEvaluator):
         threshold: float = 0.85,
         known_ratio: float = 0.5,
         report_dir: str = "runs/exp_001/evaluation_subject_disjoint",
+        margin_threshold: float = 0.05,
     ) -> None:
         super().__init__(
             gei_root=gei_root,
@@ -39,11 +40,12 @@ class SubjectDisjointOpenSetEvaluator(SubjectDisjointEvaluator):
             report_dir=report_dir,
         )
         self.known_ratio = known_ratio
+        self.margin_threshold = margin_threshold
         unk_th = max(0.05, threshold - 0.10)
         self.open_set_recognizer = OpenSetRecognizer(
             known_threshold=threshold,
             unknown_threshold=unk_th,
-            margin_threshold=0.05,
+            margin_threshold=margin_threshold,
         )
 
     def evaluate_open_set_protocol(self) -> dict:
@@ -104,6 +106,15 @@ class SubjectDisjointOpenSetEvaluator(SubjectDisjointEvaluator):
             best_id, best_score = matches[0] if matches else ("UNKNOWN", 0.0)
             scores.append(best_score)
 
+            # Compute top-1 / top-2 margin (between different identities)
+            margin = 0.0
+            if len(matches) >= 2:
+                second_diff = [m for m in matches[1:] if m[0] != best_id]
+                if second_diff:
+                    margin = best_score - float(second_diff[0][1])
+                else:
+                    margin = best_score - float(matches[1][1])
+
             is_gen = actual_id in known_set and actual_id == best_id
             is_genuine.append(is_gen)
 
@@ -113,6 +124,7 @@ class SubjectDisjointOpenSetEvaluator(SubjectDisjointEvaluator):
                 "is_known_subject": actual_id in known_set,
                 "predicted_id": best_id,
                 "score": best_score,
+                "margin": round(margin, 4),
                 "open_set_state": open_set_state,
                 "is_genuine_match": is_gen,
             })
@@ -123,8 +135,35 @@ class SubjectDisjointOpenSetEvaluator(SubjectDisjointEvaluator):
         # Compute ROC and EER across score range
         roc_results = compute_roc_auc_eer(scores_arr, is_genuine_arr, num_thresholds=200)
 
-        # Compute biometric rates at operating threshold
+        # Compute biometric rates at operating threshold (score-only)
         operating_rates = compute_biometric_rates(scores_arr, is_genuine_arr, threshold=self.threshold)
+
+        # Compute margin-aware biometric rates (EXP-004B policy)
+        margins_arr = np.asarray([p["margin"] for p in probe_details], dtype=np.float32)
+        margin_accepted = (scores_arr >= self.threshold) & (margins_arr >= self.margin_threshold)
+        margin_tp = int(np.sum(margin_accepted & is_genuine_arr))
+        margin_fp = int(np.sum(margin_accepted & (~is_genuine_arr)))
+        total_genuine = int(np.sum(is_genuine_arr))
+        total_impostor = len(is_genuine_arr) - total_genuine
+        margin_far = margin_fp / total_impostor if total_impostor > 0 else 0.0
+        margin_frr = (total_genuine - margin_tp) / total_genuine if total_genuine > 0 else 0.0
+        margin_tar = margin_tp / total_genuine if total_genuine > 0 else 0.0
+        margin_tnr = 1.0 - margin_far
+        margin_prec = margin_tp / (margin_tp + margin_fp) if (margin_tp + margin_fp) > 0 else 0.0
+        margin_f1 = 2 * margin_prec * margin_tar / (margin_prec + margin_tar) if (margin_prec + margin_tar) > 0 else 0.0
+
+        margin_aware_rates = {
+            "threshold": self.threshold,
+            "margin_threshold": self.margin_threshold,
+            "FAR": round(margin_far, 4),
+            "FRR": round(margin_frr, 4),
+            "TAR": round(margin_tar, 4),
+            "TNR": round(margin_tnr, 4),
+            "precision": round(margin_prec, 4),
+            "f1_score": round(margin_f1, 4),
+            "tp": margin_tp,
+            "fp": margin_fp,
+        }
 
         # Verify that FAR/FRR metrics change across thresholds
         far_values = roc_results["far_list"]
@@ -136,6 +175,7 @@ class SubjectDisjointOpenSetEvaluator(SubjectDisjointEvaluator):
             "checkpoint": str(self.model_path),
             "split_manifest_path": "configs/subject_split.json",
             "operating_threshold": self.threshold,
+            "margin_threshold": self.margin_threshold,
             "known_test_subjects": known_test_subjects,
             "unknown_test_subjects": unknown_test_subjects,
             "gallery_samples_count": len(gallery_items),
@@ -151,6 +191,7 @@ class SubjectDisjointOpenSetEvaluator(SubjectDisjointEvaluator):
             "EER": round(roc_results["eer"], 4),
             "EER_threshold": round(roc_results["eer_threshold"], 4),
             "operating_metrics": operating_rates,
+            "margin_aware_metrics": margin_aware_rates,
             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
         }
 

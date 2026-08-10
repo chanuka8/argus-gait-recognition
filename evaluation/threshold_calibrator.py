@@ -33,6 +33,7 @@ class ThresholdCalibrator:
         self,
         criterion: str = "min_eer",
         target_far: float = 0.01,
+        margin_threshold: float = 0.0,
         gei_root: str = "data/casia_processed/gei",
         output_dir: str = "runs/exp_001/evaluation_subject_disjoint",
     ) -> dict:
@@ -61,6 +62,7 @@ class ThresholdCalibrator:
 
         # Evaluate probes
         scores = []
+        margins = []
         is_genuine = []
         true_labels = []
 
@@ -72,15 +74,24 @@ class ThresholdCalibrator:
 
             # Cosine similarity matrix product
             sims = np.dot(gal_features_norm, feat_norm)
-            best_idx = np.argmax(sims)
+            top_indices = np.argsort(sims)[::-1]
+            best_idx = top_indices[0]
             best_sim = float(sims[best_idx])
             best_match_id = str(gal_labels[best_idx])
 
+            margin = 0.0
+            if len(top_indices) > 1:
+                diff_ids = [idx for idx in top_indices if gal_labels[idx] != best_match_id]
+                second_sim = float(sims[diff_ids[0]]) if diff_ids else best_sim
+                margin = best_sim - second_sim
+
             scores.append(best_sim)
+            margins.append(margin)
             true_labels.append(sub_id)
             is_genuine.append(sub_id in self.known_val_subjects and sub_id == best_match_id)
 
         scores = np.asarray(scores, dtype=np.float32)
+        margins = np.asarray(margins, dtype=np.float32)
         is_genuine = np.asarray(is_genuine, dtype=bool)
 
         # Sweep thresholds
@@ -96,13 +107,13 @@ class ThresholdCalibrator:
 
         for th in thresholds:
             th = float(th)
-            # Accept if score >= th
-            accepted = scores >= th
+            # Accept if score >= th and margin >= margin_threshold
+            accepted = (scores >= th) & (margins >= margin_threshold)
 
             # Genuine query accepted with correct ID => True Accept
-            # Genuine query rejected (score < th) => False Reject
-            # Impostor query (or genuine with wrong match) accepted (score >= th) => False Accept
-            # Impostor query rejected (score < th) => True Reject
+            # Genuine query rejected => False Reject
+            # Impostor query accepted => False Accept
+            # Impostor query rejected => True Reject
 
             tp = int(np.sum(accepted & is_genuine))
             fn = total_genuine_queries - tp
