@@ -1,11 +1,16 @@
 from pathlib import Path
 
 import supervision as sv
+from trackers import ByteTrackTracker
 from ultralytics import YOLO
 import yaml
 
 
 class TrackingStep:
+    """
+    Standard Tracking Step wrapper combining Object Detection and Multi-Object Tracking.
+    """
+
     def __init__(
         self,
         model_path: str | None = None,
@@ -39,7 +44,7 @@ class TrackingStep:
         else:
             self.detector = YOLO("yolov8n.pt")
 
-        self.tracker = sv.ByteTrack()
+        self.tracker = ByteTrackTracker()
 
     @staticmethod
     def _load_config(config_path: Path) -> dict:
@@ -73,7 +78,6 @@ class TrackingStep:
 
         detections = sv.Detections.from_ultralytics(result)
 
-        detections = self.tracker.update_with_detections(detections)
+        detections = self.tracker.update(detections)
 
         return detections
-

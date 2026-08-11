@@ -90,7 +90,7 @@ def run_deployment_smoke_test(
         # 4. Synthetic Inference & Embedding Normalization Test
         if backend is not None:
             try:
-                dummy_gei = np.zeros((1, 1, 64, 128), dtype=np.float32)
+                dummy_gei = np.zeros((1, 1, 128, 64), dtype=np.float32)
                 embedding = backend.predict(dummy_gei)
 
                 is_shape_ok = isinstance(embedding, np.ndarray) and embedding.shape == (1, 256)

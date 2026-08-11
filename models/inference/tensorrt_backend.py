@@ -71,7 +71,7 @@ class TensorRTBackend(BaseInferenceBackend):
         Execute TensorRT inference and return L2-normalized numpy embedding array.
 
         Args:
-            x: Input array or tensor of shape (B, 1, 64, 128) or (64, 128) or (1, 64, 128).
+            x: Input array or tensor of shape (B, 1, 128, 64) or (128, 64) or (1, 128, 64).
 
         Returns:
             L2-normalized float32 numpy array of shape (B, 256).

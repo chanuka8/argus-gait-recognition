@@ -69,7 +69,7 @@ def test_onnx_export_atomic_replacement_and_reports(tmp_path: Path):
         assert data["export_succeeded"] is True
         assert data["onnx_model_valid"] is True
         assert data["numerical_parity_passed"] is True
-        assert data["input_shape"] == [1, 1, 64, 128]
+        assert data["input_shape"] == [1, 1, 128, 64]
         assert data["output_shape"] == [1, 256]
     else:
         assert success is False

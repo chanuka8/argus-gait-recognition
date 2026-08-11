@@ -46,7 +46,7 @@ def test_valid_onnx_export_metadata(tmp_path: Path):
     if has_onnx:
         assert success is True
         assert data["export_succeeded"] is True
-        assert data["input_shape"] == [1, 1, 64, 128]
+        assert data["input_shape"] == [1, 1, 128, 64]
         assert data["output_shape"] == [1, 256]
     else:
         assert success is False
@@ -140,7 +140,7 @@ def test_pytorch_backend_readiness():
     assert meta["active_backend"] == "pytorch"
     assert meta["fallback_used"] is False
 
-    dummy = np.zeros((1, 1, 64, 128), dtype=np.float32)
+    dummy = np.zeros((1, 1, 128, 64), dtype=np.float32)
     out = backend.predict(dummy)
 
     assert out.shape == (1, 256)
@@ -167,7 +167,7 @@ def test_onnx_backend_readiness(tmp_path: Path):
         assert meta["active_backend"] == "pytorch"
         assert meta["fallback_used"] is True
 
-    dummy = np.zeros((1, 1, 64, 128), dtype=np.float32)
+    dummy = np.zeros((1, 1, 128, 64), dtype=np.float32)
     out = backend.predict(dummy)
     assert out.shape == (1, 256)
 
@@ -199,7 +199,7 @@ def test_missing_checkpoint_handling():
     backend = get_inference_backend(config={"backend": "pytorch"}, model_path="non_existent_model.pth")
     assert backend.active_backend == "pytorch"
     # PyTorch backend initializes randomly when checkpoint missing
-    out = backend.predict(np.zeros((1, 1, 64, 128), dtype=np.float32))
+    out = backend.predict(np.zeros((1, 1, 128, 64), dtype=np.float32))
     assert out.shape == (1, 256)
 
 

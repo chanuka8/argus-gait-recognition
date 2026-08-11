@@ -187,7 +187,7 @@ class BaseInferenceBackend(ABC):
         Execute forward inference on GEI input tensor/array and return L2-normalized embedding.
 
         Args:
-            x: Input array or tensor of shape (B, 1, 64, 128) or (64, 128) or (1, 64, 128).
+            x: Input array or tensor of shape (B, 1, 128, 64) or (128, 64) or (1, 128, 64).
 
         Returns:
             L2-normalized float32 numpy array of shape (B, 256).
@@ -200,7 +200,7 @@ class BaseInferenceBackend(ABC):
             return
 
         if sample_input is None:
-            sample_input = np.zeros((1, 1, 64, 128), dtype=np.float32)
+            sample_input = np.zeros((1, 1, 128, 64), dtype=np.float32)
 
         for _ in range(self.warmup_iterations):
             try:
@@ -278,7 +278,7 @@ class BackendValidator:
             )
 
     def run_smoke_test(self, backend: BaseInferenceBackend) -> bool:
-        dummy = np.zeros((1, 1, 64, 128), dtype=np.float32)
+        dummy = np.zeros((1, 1, 128, 64), dtype=np.float32)
         try:
             out = backend.predict(dummy)
             return bool(out is not None and getattr(out, "shape", None) == (1, 256))

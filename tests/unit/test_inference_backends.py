@@ -14,7 +14,7 @@ from scripts.export_bygait_onnx import export_onnx
 
 def test_pytorch_backend_predict_shape_and_l2_normalization():
     backend = PyTorchBackend(config={"backend": "pytorch", "device": "cpu", "precision": "fp32", "warmup_iterations": 0})
-    dummy_input = np.random.randn(1, 1, 64, 128).astype(np.float32)
+    dummy_input = np.random.randn(1, 1, 128, 64).astype(np.float32)
     embedding = backend.predict(dummy_input)
 
     assert isinstance(embedding, np.ndarray)
@@ -41,7 +41,7 @@ def test_missing_engine_tensorrt_fallback(tmp_path: Path):
     # Should safely fall back to PyTorch backend without crashing
     assert isinstance(backend, PyTorchBackend)
 
-    dummy_input = np.zeros((1, 1, 64, 128), dtype=np.float32)
+    dummy_input = np.zeros((1, 1, 128, 64), dtype=np.float32)
     embedding = backend.predict(dummy_input)
     assert embedding.shape == (1, 256)
 
@@ -113,7 +113,7 @@ def test_tensorrt_backend_instantiation_without_tensorrt_package(tmp_path: Path)
     trt_backend = TensorRTBackend(config=cfg)
     assert not trt_backend.is_available()
 
-    dummy_input = np.ones((1, 1, 64, 128), dtype=np.float32)
+    dummy_input = np.ones((1, 1, 128, 64), dtype=np.float32)
     output = trt_backend.predict(dummy_input)
     assert output.shape == (1, 256)
     assert np.isclose(np.linalg.norm(output), 1.0, atol=1e-5)
@@ -248,7 +248,9 @@ def test_cpu_only_onnx_provider_selection_emits_no_cuda_warning(tmp_path: Path, 
         "warmup_iterations": 0,
     }
     try:
-        with pytest.warns(None) as record:
+        import warnings
+        with warnings.catch_warnings(record=True) as record:
+            warnings.simplefilter("always")
             onnx_be = ONNXBackend(config=cfg)
             if onnx_be.is_available():
                 assert onnx_be.execution_provider == "CPUExecutionProvider"
@@ -294,7 +296,7 @@ def test_pytorch_fallback_parity_is_exact(tmp_path: Path):
 
     # --- 2 & 3. Inference succeeds with correct shape/dtype ---
     np.random.seed(42)
-    test_input = np.random.randn(1, 1, 64, 128).astype(np.float32)
+    test_input = np.random.randn(1, 1, 128, 64).astype(np.float32)
 
     embedding = backend.predict(test_input)
 
@@ -347,7 +349,7 @@ def test_repeated_inference_resource_safety():
     backend = get_inference_backend(config=cfg)
     initial_id = id(backend)
 
-    dummy_input = np.ones((1, 1, 64, 128), dtype=np.float32)
+    dummy_input = np.ones((1, 1, 128, 64), dtype=np.float32)
 
     for i in range(100):
         out = backend.predict(dummy_input)

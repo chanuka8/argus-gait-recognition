@@ -3,6 +3,7 @@ import time
 
 import numpy as np
 import supervision as sv
+from trackers import ByteTrackTracker
 
 from monitoring.logging_config import get_logger
 
@@ -11,7 +12,7 @@ class PersonTracker:
     def __init__(self) -> None:
         self.logger = get_logger("detection")
         self.lock = threading.Lock()
-        self.tracker = sv.ByteTrack()
+        self.tracker = ByteTrackTracker()
         self.last_seen: dict[int, float] = {}
 
     def update(self, detections_list: list[dict], frame_shape: tuple[int, ...]) -> list[dict]:
@@ -29,7 +30,7 @@ class PersonTracker:
             )
 
         with self.lock:
-            tracked_detections = self.tracker.update_with_detections(sv_detections)
+            tracked_detections = self.tracker.update(sv_detections)
 
         now = time.monotonic()
         results = []

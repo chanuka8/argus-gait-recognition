@@ -114,7 +114,7 @@ def benchmark_backend(
     if sample_inputs is None:
         np.random.seed(42)
         torch.manual_seed(42)
-        sample_inputs = [np.random.randn(1, 1, 64, 128).astype(np.float32) for _ in range(sample_count)]
+        sample_inputs = [np.random.randn(1, 1, 128, 64).astype(np.float32) for _ in range(sample_count)]
 
     # Warmup latency
     warm_start = time.perf_counter()
@@ -236,7 +236,7 @@ def main() -> None:
     # Deterministically seed and pre-generate identical sample inputs
     np.random.seed(42)
     torch.manual_seed(42)
-    sample_inputs = [np.random.randn(1, 1, 64, 128).astype(np.float32) for _ in range(args.samples)]
+    sample_inputs = [np.random.randn(1, 1, 128, 64).astype(np.float32) for _ in range(args.samples)]
 
     backends_to_test = ["pytorch", "onnxruntime", "tensorrt", "auto"]
     results = {}

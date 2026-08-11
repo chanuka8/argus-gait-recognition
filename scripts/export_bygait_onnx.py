@@ -69,7 +69,7 @@ def export_onnx(
         "numerical_parity_passed": False,
         "numerical_parity_failed": False,
         "unable_to_verify": False,
-        "input_shape": [1, 1, 64, 128],
+        "input_shape": [1, 1, 128, 64],
         "output_shape": [1, 256],
         "max_absolute_diff": None,
         "rtol": rtol,
@@ -106,34 +106,22 @@ def export_onnx(
     model.eval()
 
 
-    dummy_input = torch.randn(1, 1, 64, 128, dtype=torch.float32)
+    dummy_input = torch.randn(1, 1, 128, 64, dtype=torch.float32)
 
     print(f"[INFO] Exporting model atomically to ONNX: {output_file}")
     try:
-        try:
+        import warnings
+
+        batch_dim = torch.export.Dim("batch_size", min=1)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=FutureWarning)
             torch.onnx.export(
                 model,
-                dummy_input,
+                (dummy_input,),
                 str(temp_output_file),
                 export_params=True,
-                opset_version=14,
-                do_constant_folding=True,
-                input_names=["input"],
-                output_names=["output"],
-                dynamic_axes={"input": {0: "batch_size"}, "output": {0: "batch_size"}},
-                dynamo=False,
-            )
-        except TypeError:
-            torch.onnx.export(
-                model,
-                dummy_input,
-                str(temp_output_file),
-                export_params=True,
-                opset_version=14,
-                do_constant_folding=True,
-                input_names=["input"],
-                output_names=["output"],
-                dynamic_axes={"input": {0: "batch_size"}, "output": {0: "batch_size"}},
+                dynamic_shapes=({0: batch_dim},),
+                dynamo=True,
             )
         report_status["export_succeeded"] = True
         print("[INFO] ONNX export completed successfully.")
@@ -174,7 +162,8 @@ def export_onnx(
         with torch.no_grad():
             pytorch_output = model(dummy_input).numpy()
 
-        onnx_output = session.run(None, {"input": dummy_input.numpy()})[0]
+        input_name = session.get_inputs()[0].name
+        onnx_output = session.run(None, {input_name: dummy_input.numpy()})[0]
 
         if pytorch_output.shape != (1, 256) or onnx_output.shape != (1, 256):
             raise ValueError(f"Output shape mismatch. PyTorch: {pytorch_output.shape}, ONNX: {onnx_output.shape}")
