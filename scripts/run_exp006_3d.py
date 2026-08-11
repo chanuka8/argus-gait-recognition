@@ -79,7 +79,7 @@ def main():
 
     # 1. Load YOLOv8-pose, PoseLifter3D, PoseGait3DNet
     print("Loading YOLOv8n-pose and 3D Gait models...")
-    yolo_pose = YOLO("yolov8n-pose.pt")
+    yolo_pose = YOLO("models/weights/yolov8n-pose.pt")
     pose_lifter = PoseLifter3D().to(device).eval()
     gait3d_net = PoseGait3DNet(embedding_dim=256).to(device).eval()
 

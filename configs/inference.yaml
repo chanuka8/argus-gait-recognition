@@ -76,6 +76,7 @@ reid:
 
 gait_3d:
   enabled: false
+  pose_model_path: "models/weights/yolov8n-pose.pt"
   model_path: "models/weights/gait3d_pose_lifter.pth"
   sequence_length: 30
   confidence_threshold: 0.30

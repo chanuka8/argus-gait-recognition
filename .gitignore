@@ -54,5 +54,3 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-
-yolov8n-pose.pt

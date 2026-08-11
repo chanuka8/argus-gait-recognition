@@ -28,7 +28,7 @@ def extract_all_skeletons(zip_path: str = "data/casia_b_raw.zip", out_root: str 
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Loading YOLOv8n-pose on device: {device} for subjects {min_sub:03d}..{max_sub:03d}...")
-    model = YOLO("yolov8n-pose.pt").to(device)
+    model = YOLO("models/weights/yolov8n-pose.pt").to(device)
 
     print(f"Opening Zip archive: {zip_path}...")
     t0 = time.time()
