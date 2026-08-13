@@ -61,21 +61,61 @@ class RecognitionEvent(BaseModel):
 class CameraStartRequest(BaseModel):
     camera_id: str
     source: str
+    zone_id: Optional[str] = "Z01"
+    source_type: Optional[str] = "auto"
+    capture_backend: Optional[str] = "auto"
     location: Optional[str] = "Surveillance Zone"
+    width: Optional[int] = 640
+    height: Optional[int] = 480
+    fps: Optional[float] = 30.0
+
+
+class CameraProbeRequest(BaseModel):
+    source: str
+    source_type: Optional[str] = "auto"
+    capture_backend: Optional[str] = "auto"
 
 
 class CameraStopRequest(BaseModel):
     camera_id: str
 
 
+class CameraSourceResponse(BaseModel):
+    source_id: str
+    display_name: str
+    source_type: str
+    device_index: Optional[int] = None
+    source_url: Optional[str] = ""
+    sanitized_source: str
+    capture_backend_requested: str = "auto"
+    capture_backend_used: str = "auto"
+    available: bool = False
+    actual_width: int = 0
+    actual_height: int = 0
+    actual_fps: float = 0.0
+    last_probe_at: Optional[str] = None
+    error: Optional[str] = None
+
+
 class CameraInfoResponse(BaseModel):
     camera_id: str
+    zone_id: str = "Z01"
     source: str
-    location: str
-    status: str
-    fps: float
-    processed_frames: int
-    active_tracks: int
+    source_type: str = "auto"
+    location: str = "Surveillance Zone"
+    status: str = "ACTIVE"
+    capture_backend: str = "auto"
+    fps: float = 0.0
+    capture_fps: float = 0.0
+    processing_fps: float = 0.0
+    captured_frames: int = 0
+    processed_frames: int = 0
+    dropped_frames: int = 0
+    active_tracks: int = 0
+    processing_latency_ms: float = 0.0
+    started_at: Optional[str] = None
+    last_frame_at: Optional[str] = None
+    error: Optional[str] = None
 
 
 class EnrollResponse(BaseModel):

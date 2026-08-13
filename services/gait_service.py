@@ -12,6 +12,8 @@ from pipeline.detection.person_detector import PersonDetector
 from pipeline.silhouette.extractor import SilhouetteExtractor
 from pipeline.steps.feature_extraction import FeatureExtractionStep
 from pipeline.steps.matching_step import MatchingStep
+from services.camera_source import AutoSourceResolver, ZoneSourceBindingRegistry, resolve_source_type
+from services.camera_worker import CameraWorker
 from storage.vector_store import VectorStore
 
 
@@ -41,7 +43,8 @@ class GaitService:
     """
     Unified Single-Instance Gait Recognition Service for ARGUS FastAPI Backend.
     Encapsulates person detection, silhouette extraction (UNet + Otsu fallback),
-    ByGaitLight feature encoding, VectorStore matching, camera worker state, and event history.
+    ByGaitLight feature encoding, VectorStore matching, thread-safe zone-to-source
+    camera worker lifecycle, and event history.
     """
 
     def __init__(self, gallery_dir: str = "models/live_gallery") -> None:
@@ -63,7 +66,10 @@ class GaitService:
 
         self.ws_manager = WebSocketManager()
         self.events_log: list[dict] = []
-        self.active_cameras: dict[str, dict] = {}
+
+        # Thread-safe auto-source resolver & zone binding registry
+        self.auto_resolver = AutoSourceResolver()
+        self.zone_registry = ZoneSourceBindingRegistry()
 
         self.stats = {
             "processed_images": 0,
@@ -72,6 +78,12 @@ class GaitService:
         }
 
         self.reload_gallery()
+
+    @property
+    def active_cameras(self) -> dict[str, dict]:
+        """Backward compatibility dictionary for active camera info."""
+        workers = self.zone_registry.get_all_workers()
+        return {cam_id: worker.to_dict() for cam_id, worker in workers.items()}
 
     def reload_gallery(self) -> None:
         try:
@@ -132,7 +144,6 @@ class GaitService:
         # 2. Extract silhouette mask (UNet primary + Otsu fallback)
         silhouette = self.silhouette_extractor.extract_from_crop(crop)
         if silhouette is None:
-            # Create standardized fallback grayscale crop
             gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
             silhouette = cv2.resize(gray, (64, 128))
 
@@ -229,7 +240,6 @@ class GaitService:
                 "embeddings_added": 0,
             }
 
-        # Add to VectorStore
         new_features = np.vstack(embeddings)
         new_labels = [person_id] * added_embeddings
 
@@ -251,32 +261,83 @@ class GaitService:
             "embeddings_added": added_embeddings,
         }
 
-    def start_camera(self, camera_id: str, source: str, location: str = "Surveillance Zone") -> dict:
-        """Starts camera tracking worker state."""
-        # Sanitize source (mask passwords in RTSP URLs)
-        sanitized_source = source
-        if "@" in source and "://" in source:
-            proto, rest = source.split("://", 1)
-            user_pass, host_path = rest.rsplit("@", 1)
-            sanitized_source = f"{proto}://***:***@{host_path}"
+    def discover_sources(self, max_index: int = 5, force_refresh: bool = False, backend: str = "dshow") -> list[dict]:
+        """Discovers available local USB webcam sources."""
+        sources = self.auto_resolver.discover_usb_sources(max_index=max_index, force_refresh=force_refresh, backend_preference=backend)
+        return [s.to_dict() for s in sources]
 
-        cam_info = {
-            "camera_id": camera_id,
-            "source": sanitized_source,
-            "location": location,
-            "status": "ACTIVE",
-            "fps": 29.97,
-            "processed_frames": 0,
-            "active_tracks": 0,
-            "started_at": datetime.now(timezone.utc).isoformat(),
-        }
-        self.active_cameras[camera_id] = cam_info
-        return cam_info
+    def probe_camera(self, source: str, source_type: str = "auto", backend: str = "auto") -> dict:
+        """Probes a selected camera source without starting a worker."""
+        info = self.auto_resolver.probe_source(source_val=source, requested_type=source_type, backend=backend)
+        return info.to_dict()
+
+    def start_camera(
+        self,
+        camera_id: str,
+        source: str,
+        zone_id: str = "Z01",
+        source_type: str = "auto",
+        capture_backend: str = "auto",
+        location: str = "Surveillance Zone",
+        width: int = 640,
+        height: int = 480,
+        fps: float = 30.0,
+    ) -> dict:
+        """Starts a real single-owner camera worker in the specified zone."""
+        # 1. Resolve source_type and typed value
+        resolved_type, typed_val = resolve_source_type(source, source_type)
+        device_index = typed_val if resolved_type == "usb" else None
+
+        # 2. Check duplicate zone binding
+        if self.zone_registry.is_zone_active(zone_id, exclude_camera_id=camera_id):
+            raise ValueError(f"CONFLICT: Zone '{zone_id}' already has an active camera worker.")
+
+        # 3. Check duplicate USB device index binding
+        if resolved_type == "usb" and device_index is not None:
+            if self.zone_registry.is_usb_active(device_index, exclude_camera_id=camera_id):
+                raise ValueError(f"CONFLICT: USB webcam device index {device_index} is already active in another zone.")
+
+        # If camera_id exists, stop old instance
+        existing_worker = self.zone_registry.get_worker(camera_id)
+        if existing_worker is not None:
+            existing_worker.stop()
+            self.zone_registry.unregister_binding(camera_id)
+
+        # 4. Instantiate worker
+        worker = CameraWorker(
+            camera_id=camera_id,
+            source=typed_val,
+            zone_id=zone_id,
+            source_type=resolved_type,
+            capture_backend=capture_backend,
+            location=location,
+            target_width=width,
+            target_height=height,
+            target_fps=fps,
+            gait_service=self,
+        )
+
+        # 5. Register binding
+        self.zone_registry.register_binding(camera_id, zone_id, resolved_type, device_index, worker)
+
+        # 6. Start worker and await first frame startup handshake
+        success = worker.start(startup_timeout=5.0)
+        if not success:
+            self.zone_registry.unregister_binding(camera_id)
+            err_msg = worker.error_message or f"Failed to start camera worker '{camera_id}' for source '{source}'."
+            raise ValueError(err_msg)
+
+        return worker.to_dict()
 
     def stop_camera(self, camera_id: str) -> bool:
-        """Stops camera tracking worker state."""
-        if camera_id in self.active_cameras:
-            self.active_cameras[camera_id]["status"] = "STOPPED"
-            del self.active_cameras[camera_id]
+        """Stops an active camera worker and releases zone and USB reservations."""
+        worker = self.zone_registry.get_worker(camera_id)
+        if worker is not None:
+            worker.stop()
+            self.zone_registry.unregister_binding(camera_id)
             return True
         return False
+
+    def shutdown(self) -> None:
+        """Shuts down all active camera workers during application teardown."""
+        self.zone_registry.shutdown_all()
