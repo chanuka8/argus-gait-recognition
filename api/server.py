@@ -14,10 +14,8 @@ async def lifespan(app: FastAPI):
     print("[*] ARGUS Gait Recognition Service initialized on FastAPI startup.")
     yield
     # Shutdown
-    if hasattr(app.state, "gait_service") and app.state.gait_service:
-        app.state.gait_service.shutdown()
-        app.state.gait_service = None
-    print("[*] ARGUS Gait Recognition Service shut down cleanly.")
+    app.state.gait_service = None
+    print("[*] ARGUS Gait Recognition Service shut down.")
 
 
 app = FastAPI(
@@ -46,6 +44,7 @@ async def verify_firebase_id_token(request: Request) -> bool:
     if not auth_header:
         # Development pass-through if unauthenticated
         return True
+    # Placeholder for production firebase_admin.auth.verify_id_token(token)
     return True
 
 

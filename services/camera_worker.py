@@ -1,404 +1,251 @@
-"""
-Single-Owner Camera Worker for ARGUS AI.
-Maintains a single cv2.VideoCapture instance per camera worker.
-Decouples high-speed continuous capture from detection/gait inference.
-Provides low-latency latest-frame slot, real frame statistics, and MJPEG preview streaming.
-"""
-
-from datetime import datetime, timezone
-from enum import Enum
 import threading
 import time
-from typing import Any, Dict, Optional
+from queue import Empty, Full, Queue
 
 import cv2
 import numpy as np
 
-from core.logger import setup_logger
-from services.camera_source import parse_backend_flag, sanitize_url
-
-
-logger = setup_logger("ARGUS.CameraWorker")
-
-
-class WorkerState(str, Enum):
-    DISCOVERED = "DISCOVERED"
-    PROBING = "PROBING"
-    STARTING = "STARTING"
-    ACTIVE = "ACTIVE"
-    ERROR = "ERROR"
-    STOPPING = "STOPPING"
-    STOPPED = "STOPPED"
+from monitoring.logging_config import get_logger
+from security_layer.credentials import sanitize_rtsp_url
 
 
 class CameraWorker:
-    """
-    Thread-safe single-owner Camera Worker.
-    Decouples frame capture loop from inference processing loop.
-    Supports backward compatibility with legacy camera_config dictionaries and CameraManager API.
-    """
+    """Independent worker for a single camera stream."""
 
     def __init__(
         self,
         camera_id: str,
-        source: Any = None,
-        zone_id: str = "Z01",
-        source_type: str = "auto",
-        capture_backend: str = "auto",
-        location: str = "Surveillance Zone",
-        target_width: int = 640,
-        target_height: int = 480,
-        target_fps: float = 30.0,
-        gait_service: Optional[Any] = None,
-        camera_config: Optional[Dict[str, Any]] = None,
-        inference_pipeline: Optional[Any] = None,
-        detection_processor: Optional[Any] = None,
-        **kwargs: Any,
+        camera_config: dict,
+        inference_pipeline,
+        detection_processor,
     ) -> None:
         self.camera_id = camera_id
-
-        # Handle legacy camera_config dictionary if passed
-        if source is None:
-            if camera_config and isinstance(camera_config, dict):
-                source = camera_config.get("url", camera_config.get("device_index", 0))
-                if "type" in camera_config:
-                    source_type = camera_config["type"]
-                target_width = camera_config.get("width", target_width)
-                target_height = camera_config.get("height", target_height)
-                target_fps = float(camera_config.get("target_fps", target_fps))
-            else:
-                source = 0
-
-        self.raw_source = source
-        self.zone_id = zone_id
-        self.source_type = source_type
-        self.capture_backend_requested = capture_backend
-        self.location = location
-        self.target_width = target_width
-        self.target_height = target_height
-        self.target_fps = target_fps
-        self.gait_service = gait_service
+        self.config = camera_config
         self.inference_pipeline = inference_pipeline
         self.detection_processor = detection_processor
-        self.camera_config = camera_config or {}
 
-        self.sanitized_source = sanitize_url(str(source))
-        self.status = WorkerState.STOPPED.value
-        self.error_message: Optional[str] = None
+        self._logger = get_logger(f"camera.{camera_id}")
 
-        # Process / Capture state
-        self._capture: Optional[cv2.VideoCapture] = None
-        self._capture_thread: Optional[threading.Thread] = None
-        self._inference_thread: Optional[threading.Thread] = None
+        self._source_type = camera_config.get("type", "rtsp")
+        self._url = camera_config.get("url", "")
+        self._device_index = int(camera_config.get("device_index", 0))
+        self._width = int(camera_config.get("width", 640))
+        self._height = int(camera_config.get("height", 480))
+        self._target_fps = int(camera_config.get("target_fps", 15))
+        self._reconnect_interval = int(camera_config.get("reconnect_interval", 5))
+        self._max_reconnect = int(camera_config.get("max_reconnect_attempts", 0))
+        self._max_queue_size = int(camera_config.get("max_queue_size", 10))
+
+        self._frame_queue = Queue(maxsize=self._max_queue_size)
+        self._capture = None
+        self._thread = None
         self._stop_event = threading.Event()
-        self._first_frame_event = threading.Event()
         self._lock = threading.Lock()
 
-        # Low-latency Latest Frame Slots
-        self._latest_captured_frame: Optional[np.ndarray] = None
-        self._latest_captured_seq: int = 0
-        self._latest_processed_seq: int = 0
+        self.stats = {
+            "frames_captured": 0,
+            "frames_dropped": 0,
+            "fps": 0.0,
+            "latency_ms": 0.0,
+            "queue_size": 0,
+            "connected": False,
+            "reconnect_count": 0,
+            "uptime_seconds": 0,
+            "identities_recognized": 0,
+            "last_update": time.monotonic(),
+        }
 
-        self._latest_annotated_frame: Optional[np.ndarray] = None
-        self._latest_jpeg_bytes: Optional[bytes] = None
-        self._last_event: Optional[Dict[str, Any]] = None
+        self._frame_count = 0
+        self._last_fps_count = 0
+        self._last_fps_time = time.monotonic()
+        self._start_time = time.monotonic()
+        self._reconnect_count = 0
+        self._latency_sum = 0.0
+        self._latency_count = 0
 
-        # Real performance metrics
-        self.started_at: Optional[str] = None
-        self.last_frame_at: Optional[str] = None
-
-        self.captured_frames: int = 0
-        self.processed_frames: int = 0
-        self.dropped_frames: int = 0
-
-        self.capture_fps: float = 0.0
-        self.processing_fps: float = 0.0
-        self.processing_latency_ms: float = 0.0
-        self.active_tracks: int = 0
-
-    def is_running(self) -> bool:
-        """Returns True if the worker is currently starting or active."""
-        with self._lock:
-            return self.status in (WorkerState.ACTIVE.value, WorkerState.STARTING.value)
-
-    def is_connected(self) -> bool:
-        """Returns True if the worker video stream is active and connected."""
-        with self._lock:
-            return self.status == WorkerState.ACTIVE.value
+    def _resolve_source(self):
+        if self._source_type == "rtsp":
+            if not self._url:
+                raise ValueError(f"Camera {self.camera_id}: RTSP URL is empty")
+            return self._url
+        elif self._source_type == "file":
+            return self.config.get("file_path", "")
+        else:
+            return self._device_index
 
     def _open_capture(self) -> bool:
-        """Opens cv2.VideoCapture using specified backend flag and device/URL."""
         try:
-            backend_flag = parse_backend_flag(self.capture_backend_requested)
+            source = self._resolve_source()
+            safe_source = sanitize_rtsp_url(str(source))
+            self._logger.info(f"Opening camera source: {safe_source}")
 
-            # Determine whether source is integer USB index or string URL
-            source_val = self.raw_source
-            try:
-                val_int = int(source_val)
-                if val_int >= 0:
-                    source_val = val_int
-            except (ValueError, TypeError):
-                source_val = str(source_val)
-
-            if isinstance(source_val, int) and backend_flag != cv2.CAP_ANY:
-                self._capture = cv2.VideoCapture(source_val, backend_flag)
-            else:
-                self._capture = cv2.VideoCapture(source_val)
+            self._capture = cv2.VideoCapture(source)
 
             if not self._capture.isOpened():
-                self.error_message = f"Failed to open video capture for source: {self.sanitized_source}"
-                logger.error(self.error_message)
+                self._logger.error(f"Failed to open camera source: {safe_source}")
                 self._capture = None
                 return False
 
-            if self.target_width > 0:
-                self._capture.set(cv2.CAP_PROP_FRAME_WIDTH, self.target_width)
-            if self.target_height > 0:
-                self._capture.set(cv2.CAP_PROP_FRAME_HEIGHT, self.target_height)
-            if self.target_fps > 0:
-                self._capture.set(cv2.CAP_PROP_FPS, self.target_fps)
+            self._capture.set(cv2.CAP_PROP_FRAME_WIDTH, self._width)
+            self._capture.set(cv2.CAP_PROP_FRAME_HEIGHT, self._height)
 
+            if self._target_fps > 0:
+                self._capture.set(cv2.CAP_PROP_FPS, self._target_fps)
+
+            with self._lock:
+                self.stats["connected"] = True
+
+            self._logger.info(f"Camera {self.camera_id} connected successfully")
             return True
-        except Exception as err:
-            self.error_message = f"Exception opening video capture: {err}"
-            logger.error(self.error_message)
+
+        except Exception as e:
+            self._logger.error(f"Error opening capture: {str(e)}")
             self._capture = None
             return False
 
     def _close_capture(self) -> None:
-        """Safely releases cv2.VideoCapture."""
         if self._capture is not None:
-            try:
-                self._capture.release()
-            except Exception:
-                pass
+            self._capture.release()
             self._capture = None
 
+            with self._lock:
+                self.stats["connected"] = False
+
     def _capture_loop(self) -> None:
-        """High-frequency dedicated capture loop reading raw camera frames continuously."""
-        fps_counter = 0
-        fps_start_time = time.monotonic()
+        """Main frame capture and processing loop."""
+        reconnect_attempts = 0
 
         while not self._stop_event.is_set():
             if self._capture is None or not self._capture.isOpened():
-                break
+                if self._max_reconnect > 0 and reconnect_attempts >= self._max_reconnect:
+                    self._logger.error(f"Max reconnect attempts ({self._max_reconnect}) reached. Stopping.")
+                    break
+
+                self._logger.warning(
+                    f"Camera disconnected. Reconnecting in {self._reconnect_interval}s "
+                    f"(attempt {reconnect_attempts + 1})"
+                )
+
+                self._stop_event.wait(self._reconnect_interval)
+
+                if not self._open_capture():
+                    reconnect_attempts += 1
+                    self._reconnect_count += 1
+
+                    with self._lock:
+                        self.stats["reconnect_count"] = self._reconnect_count
+
+                    continue
+
+                reconnect_attempts = 0
 
             try:
                 ret, frame = self._capture.read()
-                if not ret or frame is None or frame.size == 0:
-                    time.sleep(0.01)
+
+                if not ret or frame is None:
+                    self._logger.warning("Failed to read frame")
+                    self._close_capture()
                     continue
 
-                now_iso = datetime.now(timezone.utc).isoformat()
-                fps_counter += 1
-                elapsed = time.monotonic() - fps_start_time
+                frame = cv2.resize(frame, (self._width, self._height))
+
+                try:
+                    self._frame_queue.put(frame, block=False)
+                    self._frame_count += 1
+                except Full:
+                    with self._lock:
+                        self.stats["frames_dropped"] += 1
+
+                elapsed = time.monotonic() - self._last_fps_time
                 if elapsed >= 1.0:
-                    self.capture_fps = round(fps_counter / elapsed, 2)
-                    fps_counter = 0
-                    fps_start_time = time.monotonic()
+                    with self._lock:
+                        self.stats["fps"] = (self._frame_count - self._last_fps_count) / elapsed
+                        self.stats["queue_size"] = self._frame_queue.qsize()
+                        self.stats["uptime_seconds"] = time.monotonic() - self._start_time
+
+                    self._last_fps_count = self._frame_count
+                    self._last_fps_time = time.monotonic()
 
                 with self._lock:
-                    self.captured_frames += 1
-                    self._latest_captured_seq += 1
-                    self._latest_captured_frame = frame
-                    self.last_frame_at = now_iso
+                    self.stats["frames_captured"] = self._frame_count
+                    self.stats["last_update"] = time.monotonic()
 
-                    # Encode initial JPEG bytes for immediate preview availability
-                    if self._latest_jpeg_bytes is None:
-                        _, buf = cv2.imencode(".jpg", frame, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
-                        if buf is not None:
-                            self._latest_jpeg_bytes = buf.tobytes()
+            except Exception as e:
+                self._logger.error(f"Error in capture loop: {str(e)}")
+                self._close_capture()
 
-                if not self._first_frame_event.is_set():
-                    self._first_frame_event.set()
+        self._close_capture()
+        self._logger.info("Camera capture loop stopped")
 
-            except Exception as err:
-                logger.error(f"Error in capture loop for camera {self.camera_id}: {err}")
-                break
+    def get_frame(self, timeout: float = 0.1) -> np.ndarray | None:
+        """Get next frame from queue."""
+        try:
+            return self._frame_queue.get(timeout=timeout)
+        except Empty:
+            return None
 
-    def _inference_loop(self) -> None:
-        """Inference processing loop consuming the latest unprocessed frame slot."""
-        fps_counter = 0
-        fps_start_time = time.monotonic()
-
-        while not self._stop_event.is_set():
-            target_frame = None
-            seq_to_process = 0
-
-            with self._lock:
-                if self._latest_captured_frame is not None and self._latest_captured_seq > self._latest_processed_seq:
-                    skipped = (self._latest_captured_seq - self._latest_processed_seq) - 1
-                    if skipped > 0:
-                        self.dropped_frames += skipped
-
-                    target_frame = self._latest_captured_frame.copy()
-                    seq_to_process = self._latest_captured_seq
-                    self._latest_processed_seq = seq_to_process
-
-            if target_frame is None:
-                time.sleep(0.005)
-                continue
-
-            t0 = time.monotonic()
-            annotated_frame = target_frame
-            event_res = None
-
-            if self.gait_service is not None:
-                try:
-                    _, img_bytes = cv2.imencode(".jpg", target_frame)
-                    event_res = self.gait_service.process_image_bytes(img_bytes.tobytes(), camera_id=self.camera_id)
-
-                    if event_res:
-                        bbox = event_res.get("bbox", [0, 0, 0, 0])
-                        identity = event_res.get("identity", "UNKNOWN")
-                        confidence = event_res.get("confidence", 0.0)
-
-                        x1, y1, x2, y2 = bbox
-                        if x2 > x1 and y2 > y1:
-                            color = (0, 255, 0) if identity != "UNKNOWN" else (0, 0, 255)
-                            cv2.rectangle(annotated_frame, (x1, y1), (x2, y2), color, 2)
-                            label = f"{identity} ({confidence:.2f})"
-                            cv2.putText(annotated_frame, label, (x1, max(y1 - 10, 20)), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
-
-                except Exception as err:
-                    logger.warning(f"Inference processing error for camera {self.camera_id}: {err}")
-
-            t_lat = (time.monotonic() - t0) * 1000.0
-
-            _, jpeg_buf = cv2.imencode(".jpg", annotated_frame, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
-            jpeg_bytes = jpeg_buf.tobytes() if jpeg_buf is not None else None
-
-            fps_counter += 1
-            elapsed = time.monotonic() - fps_start_time
-            if elapsed >= 1.0:
-                self.processing_fps = round(fps_counter / elapsed, 2)
-                fps_counter = 0
-                fps_start_time = time.monotonic()
-
-            with self._lock:
-                self.processed_frames += 1
-                self.processing_latency_ms = round(t_lat, 2)
-                self._latest_annotated_frame = annotated_frame
-                if jpeg_bytes:
-                    self._latest_jpeg_bytes = jpeg_bytes
-                if event_res:
-                    self._last_event = event_res
-                    self.active_tracks = 1 if event_res.get("identity") != "UNKNOWN" else 0
-
-    def start(self, startup_timeout: float = 5.0) -> bool:
-        """Starts worker threads and waits for first real frame handshake."""
+    def get_stats(self) -> dict:
+        """Get current camera statistics."""
         with self._lock:
-            if self.status in (WorkerState.ACTIVE.value, WorkerState.STARTING.value):
-                logger.warning(f"Worker {self.camera_id} is already starting or active.")
-                return True
+            return self.stats.copy()
 
-            self.status = WorkerState.STARTING.value
-            self.error_message = None
+    def is_connected(self) -> bool:
+        """Check if camera is connected."""
+        with self._lock:
+            return self.stats["connected"]
+
+    def is_running(self) -> bool:
+        """Check if worker thread is running."""
+        return self._thread is not None and self._thread.is_alive()
+
+    def start(self) -> bool:
+        """Start camera capture thread."""
+        if self.is_running():
+            self._logger.warning("Camera worker already running")
+            return False
 
         if not self._open_capture():
-            with self._lock:
-                self.status = WorkerState.ERROR.value
             return False
 
         self._stop_event.clear()
-        self._first_frame_event.clear()
-        self.started_at = datetime.now(timezone.utc).isoformat()
-
-        self._capture_thread = threading.Thread(
+        self._thread = threading.Thread(
             target=self._capture_loop,
-            name=f"cap-{self.camera_id}",
-            daemon=True,
+            name=f"camera-{self.camera_id}",
+            daemon=False,
         )
-        self._capture_thread.start()
+        self._thread.start()
 
-        self._inference_thread = threading.Thread(
-            target=self._inference_loop,
-            name=f"inf-{self.camera_id}",
-            daemon=True,
-        )
-        self._inference_thread.start()
-
-        got_frame = self._first_frame_event.wait(timeout=startup_timeout)
-        if not got_frame:
-            self.error_message = f"Startup timeout: Failed to read first frame within {startup_timeout}s."
-            logger.error(self.error_message)
-            self.stop()
-            with self._lock:
-                self.status = WorkerState.ERROR.value
-            return False
-
-        with self._lock:
-            self.status = WorkerState.ACTIVE.value
-
-        logger.info(f"Camera worker '{self.camera_id}' is ACTIVE in zone '{self.zone_id}'.")
+        self._logger.info(f"Camera worker started: {self.camera_id}")
         return True
 
-    def stop(self, timeout: float = 3.0) -> bool:
-        """Stops capture and inference threads, releasing VideoCapture."""
-        with self._lock:
-            if self.status in (WorkerState.STOPPED.value, WorkerState.STOPPING.value):
-                return True
-            self.status = WorkerState.STOPPING.value
+    def stop(self, timeout: float = 5.0) -> bool:
+        """Stop camera capture thread."""
+        if not self.is_running():
+            self._logger.debug("Camera worker already stopped")
+            return True
 
+        self._logger.info("Stopping camera worker...")
         self._stop_event.set()
 
-        if self._capture_thread and self._capture_thread.is_alive():
-            self._capture_thread.join(timeout=timeout)
-        if self._inference_thread and self._inference_thread.is_alive():
-            self._inference_thread.join(timeout=timeout)
+        if self._thread is not None:
+            self._thread.join(timeout=timeout)
+
+            if self._thread.is_alive():
+                self._logger.error("Thread did not stop within timeout")
+                return False
 
         self._close_capture()
-
-        with self._lock:
-            self.status = WorkerState.STOPPED.value
-            self._latest_captured_frame = None
-            self._latest_annotated_frame = None
-            self._latest_jpeg_bytes = None
-
-        logger.info(f"Camera worker '{self.camera_id}' stopped cleanly.")
+        self._logger.info("Camera worker stopped")
         return True
 
-    def get_jpeg_frame(self) -> Optional[bytes]:
-        """Returns the latest pre-encoded JPEG bytes for MJPEG streaming without calling cv2.VideoCapture."""
-        with self._lock:
-            return self._latest_jpeg_bytes
+    def restart(self) -> bool:
+        """Restart camera worker."""
+        self._logger.info("Restarting camera worker...")
+        success = self.stop(timeout=5.0)
 
-    def get_stats(self) -> Dict[str, Any]:
-        """Backward-compatible alias for to_dict()."""
-        return self.to_dict()
+        if not success:
+            self._logger.error("Failed to stop worker before restart")
+            return False
 
-    def to_dict(self) -> Dict[str, Any]:
-        """Returns detailed status dictionary and real performance statistics."""
-        with self._lock:
-            uptime = 0.0
-            if self.started_at:
-                try:
-                    dt = datetime.fromisoformat(self.started_at)
-                    uptime = (datetime.now(timezone.utc) - dt).total_seconds()
-                except Exception:
-                    pass
-
-            return {
-                "camera_id": self.camera_id,
-                "zone_id": self.zone_id,
-                "source": self.sanitized_source,
-                "source_type": self.source_type,
-                "location": self.location,
-                "status": self.status,
-                "connected": self.status == WorkerState.ACTIVE.value,
-                "reconnect_count": 0,
-                "uptime_seconds": round(uptime, 2),
-                "capture_backend": self.capture_backend_requested,
-                "fps": self.capture_fps,
-                "capture_fps": self.capture_fps,
-                "processing_fps": self.processing_fps,
-                "captured_frames": self.captured_frames,
-                "frames_captured": self.captured_frames,
-                "processed_frames": self.processed_frames,
-                "dropped_frames": self.dropped_frames,
-                "active_tracks": self.active_tracks,
-                "processing_latency_ms": self.processing_latency_ms,
-                "started_at": self.started_at,
-                "last_frame_at": self.last_frame_at,
-                "error": self.error_message,
-            }
+        time.sleep(1.0)
+        return self.start()

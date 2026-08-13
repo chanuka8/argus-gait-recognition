@@ -1,5 +1,4 @@
 import unittest
-from unittest.mock import MagicMock, patch
 import cv2
 import numpy as np
 from fastapi.testclient import TestClient
@@ -53,13 +52,7 @@ class TestApiV1Integration(unittest.TestCase):
         self.assertIn(data["decision"], ["KNOWN", "UNCERTAIN", "UNKNOWN"])
         self.assertEqual(data["recognition_branch"], "2D_GEI")
 
-    @patch("cv2.VideoCapture")
-    def test_camera_lifecycle_endpoints(self, mock_vc) -> None:
-        mock_cap = MagicMock()
-        mock_cap.isOpened.return_value = True
-        mock_cap.read.return_value = (True, np.ones((480, 640, 3), dtype=np.uint8) * 128)
-        mock_vc.return_value = mock_cap
-
+    def test_camera_lifecycle_endpoints(self) -> None:
         start_res = self.client.post(
             "/api/v1/cameras/start",
             json={"camera_id": "cam_gate_01", "source": "rtsp://user:pass@192.168.1.100:554/live", "location": "Main Gate"},

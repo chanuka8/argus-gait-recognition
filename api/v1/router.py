@@ -1,8 +1,6 @@
-import asyncio
 import tempfile
 from typing import List
 
-import cv2
 import numpy as np
 from fastapi import (
     APIRouter,
@@ -15,12 +13,9 @@ from fastapi import (
     WebSocket,
     WebSocketDisconnect,
 )
-from fastapi.responses import StreamingResponse
 
 from api.schemas import (
     CameraInfoResponse,
-    CameraProbeRequest,
-    CameraSourceResponse,
     CameraStartRequest,
     CameraStopRequest,
     EnrollResponse,
@@ -61,7 +56,6 @@ def get_health(service: GaitService = Depends(get_gait_service)):
 def get_status(service: GaitService = Depends(get_gait_service)):
     metrics = service.get_metrics()
     import torch
-
     device = "cuda" if torch.cuda.is_available() else "cpu"
     return {
         "status": "operational",
@@ -91,6 +85,7 @@ async def identify_image(
     service: GaitService = Depends(get_gait_service),
 ):
     if not file.content_type or not file.content_type.startswith("image/"):
+        # Accept image/jpeg, image/png, etc.
         pass
 
     try:
@@ -121,6 +116,8 @@ async def analyze_video(
             tmp_path = tmp_vid.name
 
         service.stats["processed_videos"] += 1
+        # Extract key frame for video analysis
+        import cv2
         cap = cv2.VideoCapture(tmp_path)
         events = []
         frame_idx = 0
@@ -128,7 +125,7 @@ async def analyze_video(
             ret, frame = cap.read()
             if not ret:
                 break
-            if frame_idx % 15 == 0:
+            if frame_idx % 15 == 0:  # Sample every 15th frame
                 _, img_buf = cv2.imencode(".jpg", frame)
                 evt = service.process_image_bytes(img_buf.tobytes(), camera_id="upload-video")
                 events.append(evt)
@@ -138,6 +135,7 @@ async def analyze_video(
         cap.release()
 
         if not events:
+            # Fallback single frame event
             _, img_buf = cv2.imencode(".jpg", np.zeros((200, 100, 3), dtype=np.uint8))
             events.append(service.process_image_bytes(img_buf.tobytes(), camera_id="upload-video"))
 
@@ -146,65 +144,16 @@ async def analyze_video(
         raise HTTPException(status_code=500, detail=f"Video analysis failed: {err}")
 
 
-# CAMERA SOURCE DISCOVERY AND PROBING ENDPOINTS
-@v1_router.get("/camera-sources", response_model=List[CameraSourceResponse])
-def get_camera_sources(service: GaitService = Depends(get_gait_service)):
-    sources = service.discover_sources(max_index=5, force_refresh=False)
-    return sources
-
-
-@v1_router.post("/camera-sources/discover", response_model=List[CameraSourceResponse])
-def discover_camera_sources(service: GaitService = Depends(get_gait_service)):
-    sources = service.discover_sources(max_index=5, force_refresh=True)
-    return sources
-
-
-@v1_router.post("/cameras/probe", response_model=CameraSourceResponse)
-def probe_camera(
-    body: CameraProbeRequest,
-    service: GaitService = Depends(get_gait_service),
-):
-    try:
-        res = service.probe_camera(source=body.source, source_type=body.source_type or "auto", backend=body.capture_backend or "auto")
-        return res
-    except ValueError as val_err:
-        raise HTTPException(status_code=422, detail=str(val_err))
-    except Exception as err:
-        raise HTTPException(status_code=500, detail=f"Camera probe failed: {err}")
-
-
-# CAMERA WORKER LIFECYCLE ENDPOINTS
 @v1_router.post("/cameras/start", response_model=CameraInfoResponse)
 def start_camera(
     body: CameraStartRequest,
     service: GaitService = Depends(get_gait_service),
 ):
     if not body.camera_id or not body.source:
-        raise HTTPException(status_code=400, detail="camera_id and source are required.")
+        raise HTTPException(status_code=400, detail="camera_id and source are required")
 
-    try:
-        cam_info = service.start_camera(
-            camera_id=body.camera_id,
-            source=body.source,
-            zone_id=body.zone_id or "Z01",
-            source_type=body.source_type or "auto",
-            capture_backend=body.capture_backend or "auto",
-            location=body.location or "Surveillance Zone",
-            width=body.width or 640,
-            height=body.height or 480,
-            fps=body.fps or 30.0,
-        )
-        return cam_info
-    except ValueError as val_err:
-        err_str = str(val_err)
-        if err_str.startswith("CONFLICT:"):
-            raise HTTPException(status_code=409, detail=err_str)
-        elif "Invalid requested source_type" in err_str or "detected as" in err_str or "Ambiguous" in err_str:
-            raise HTTPException(status_code=422, detail=err_str)
-        else:
-            raise HTTPException(status_code=400, detail=err_str)
-    except Exception as err:
-        raise HTTPException(status_code=500, detail=f"Failed to start camera worker: {err}")
+    cam_info = service.start_camera(body.camera_id, body.source, body.location or "Surveillance Zone")
+    return cam_info
 
 
 @v1_router.post("/cameras/stop")
@@ -214,40 +163,13 @@ def stop_camera(
 ):
     stopped = service.stop_camera(body.camera_id)
     if not stopped:
-        raise HTTPException(status_code=404, detail=f"Camera worker '{body.camera_id}' not found or active.")
-    return {"success": True, "message": f"Camera worker '{body.camera_id}' stopped successfully."}
+        raise HTTPException(status_code=404, detail=f"Camera {body.camera_id} not found or active")
+    return {"success": True, "message": f"Camera {body.camera_id} stopped"}
 
 
 @v1_router.get("/cameras", response_model=List[CameraInfoResponse])
 def list_cameras(service: GaitService = Depends(get_gait_service)):
     return list(service.active_cameras.values())
-
-
-# MJPEG STREAM PREVIEW ENDPOINT
-@v1_router.get("/cameras/{camera_id}/stream")
-def stream_camera_preview(
-    camera_id: str,
-    service: GaitService = Depends(get_gait_service),
-):
-    worker = service.zone_registry.get_worker(camera_id)
-    if worker is None:
-        raise HTTPException(status_code=404, detail=f"Active camera worker '{camera_id}' not found.")
-
-    def frame_generator():
-        while True:
-            jpeg_bytes = worker.get_jpeg_frame()
-            if jpeg_bytes is not None:
-                yield (
-                    b"--frame\r\n"
-                    b"Content-Type: image/jpeg\r\n\r\n" + jpeg_bytes + b"\r\n"
-                )
-            time_delay = 1.0 / max(1.0, worker.processing_fps or 15.0)
-            asyncio.run(asyncio.sleep(time_delay))
-
-    return StreamingResponse(
-        frame_generator(),
-        media_type="multipart/x-mixed-replace; boundary=frame",
-    )
 
 
 @v1_router.post("/enroll", response_model=EnrollResponse)
@@ -257,7 +179,7 @@ async def enroll_subject(
     service: GaitService = Depends(get_gait_service),
 ):
     if not person_id:
-        raise HTTPException(status_code=400, detail="person_id is required.")
+        raise HTTPException(status_code=400, detail="person_id is required")
 
     image_bytes_list = []
     for f in files:
@@ -266,7 +188,7 @@ async def enroll_subject(
             image_bytes_list.append(b)
 
     if not image_bytes_list:
-        raise HTTPException(status_code=400, detail="No valid image files supplied.")
+        raise HTTPException(status_code=400, detail="No valid image files supplied")
 
     res = service.enroll_images(person_id, image_bytes_list)
     return res
