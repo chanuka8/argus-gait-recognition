@@ -19,6 +19,7 @@ The `services` package manages persistent system service lifecycle (NSSM Windows
 | [camera_manager.py](camera_manager.py) | Central manager coordinating multi-camera workers, stream status, and health metrics |
 | [camera_service.py](camera_service.py) | High-level service facade wrapping camera capture, stream reconnects, and frame queueing |
 | [camera_worker.py](camera_worker.py) | Dedicated background thread worker capturing frames from an individual camera stream |
+| [gait_service.py](gait_service.py) | Module/resource file gait_service.py |
 | [onvif_client.py](onvif_client.py) | ONVIF protocol client querying network CCTV camera capabilities and RTSP stream URIs |
 | [vendor_adapters.py](vendor_adapters.py) | Vendor-specific camera stream adapters (Hikvision, Dahua, Axis, generic RTSP) |
 <!-- END SYNC: KEY_MODULES -->
