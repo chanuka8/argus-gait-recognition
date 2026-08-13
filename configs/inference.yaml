@@ -111,7 +111,7 @@ open_set:
 
 silhouette:
   method: "learned"
-  model_path: "models/engines/silhouette_segmenter.onnx"
+  model_path: "models/weights/silhouette_segmenter.onnx"
   threshold: 0.5
   target_size: [64, 128]
 

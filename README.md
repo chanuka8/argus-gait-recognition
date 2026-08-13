@@ -41,7 +41,7 @@ ARGUS AI separates implementation into distinct functional components. System ma
 | **Cross-Camera Tracker & Topology Model** | **IMPLEMENTED** | Validated (Transition Graph) | [intelligence/cross_camera_tracker.py](intelligence/cross_camera_tracker.py) |
 | **Inference Backends (PyTorch / ONNX)** | **IMPLEMENTED** | Validated (Parity Reached) | [models/inference/backend.py](models/inference/backend.py) |
 | **TensorRT Execution Engine** | **EXPERIMENTAL** | Framework Implemented (HW Deferred) | [models/inference/tensorrt_backend.py](models/inference/tensorrt_backend.py) |
-| **Learned UNet Silhouette Model Asset** | **PLANNED** | Asset Missing (Otsu Active) | [pipeline/silhouette/extractor.py](pipeline/silhouette/extractor.py) |
+| **Learned UNet Silhouette Model Asset** | **IMPLEMENTED** | ONNX Primary + Otsu Fallback | [pipeline/silhouette/extractor.py](pipeline/silhouette/extractor.py) |
 
 ---
 
@@ -241,7 +241,7 @@ System parameters are controlled via external YAML configuration files in [confi
 
 1. **Open-Set False Accept Rate (FAR = 62.26%)**: While score saturation near 1.0 was completely eliminated by ArcFace + HPP, the open-set FAR on unseen test subjects at validation-calibrated thresholds remains 62.26%, making open-set threshold calibration an active research target.
 2. **Clothing Change Covariate Degradation (`CL` = 42.64%)**: Rank-1 accuracy under clothing changes (`CL`) drops from 97.00% (Normal Walking) to 42.64%, reflecting sensitivity of horizontal silhouette slicing to outer garments (coats/jackets).
-3. **Learned Silhouette Model Asset Availability**: `models/engines/silhouette_segmenter.onnx` is not included in the repository by default; the system operates via Otsu background subtraction fallback.
+3. **Learned Silhouette Segmentation Integration**: `models/weights/silhouette_segmenter.onnx` is fully trained, exported, and integrated as the primary segmenter, with classical Otsu thresholding retained as an automatic fallback.
 
 ---
 

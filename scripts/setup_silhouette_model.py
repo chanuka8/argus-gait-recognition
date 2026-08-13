@@ -17,7 +17,7 @@ from pipeline.steps.silhouette_step import LearnedSilhouetteSegmenter
 
 
 def setup_or_verify_silhouette_model(
-    model_path: str = "models/engines/silhouette_segmenter.onnx",
+    model_path: str = "models/weights/silhouette_segmenter.onnx",
 ) -> bool:
     target_path = Path(model_path)
     print(f"[*] Checking silhouette segmentation model asset at: {target_path}")

@@ -23,6 +23,8 @@ The `training` package handles deep neural network model training, loss function
 | [gait_3d_trainer.py](gait_3d_trainer.py) | Module/resource file gait_3d_trainer.py |
 | [loss_functions.py](loss_functions.py) | Combined loss implementations: Triplet Loss with hard mining, Cross-Entropy, Margin Loss |
 | [optimizer.py](optimizer.py) | Adam / SGD optimizer builder and Cosine Annealing learning rate schedulers |
+| [silhouette_dataset.py](silhouette_dataset.py) | Module/resource file silhouette_dataset.py |
+| [train_silhouette_unet.py](train_silhouette_unet.py) | Module/resource file train_silhouette_unet.py |
 | [trainer.py](trainer.py) | Main training loop coordinator executing forward/backward passes and validation checks |
 <!-- END SYNC: KEY_MODULES -->
 

@@ -17,6 +17,7 @@ This folder contains project maintenance, automation, development, validation, e
 | [benchmark.py](benchmark.py) | Performance benchmark script for benchmark. | `python scripts/benchmark.py` |
 | [benchmark_crowd_performance.py](benchmark_crowd_performance.py) | Performance Measurement Benchmark for Crowd Intelligence Features. | `python scripts/benchmark_crowd_performance.py` |
 | [benchmark_inference_backends.py](benchmark_inference_backends.py) | Inference Backend Performance and Parity Benchmark Script for ARGUS AI. | `python scripts/benchmark_inference_backends.py` |
+| [benchmark_silhouette_segmenters.py](benchmark_silhouette_segmenters.py) | Fix Windows console UTF-8 printing | `python scripts/benchmark_silhouette_segmenters.py` |
 | [build_gallery.py](build_gallery.py) | Utility script for build gallery. | `python scripts/build_gallery.py` |
 | [build_tensorrt_engine.py](build_tensorrt_engine.py) | Build TensorRT engine from ONNX model file and verify output parity. | `python scripts/build_tensorrt_engine.py` |
 | [clean_live_gallery.py](clean_live_gallery.py) | Clean contaminated identities from ARGUS live gallery | `python scripts/clean_live_gallery.py` |
@@ -29,6 +30,7 @@ This folder contains project maintenance, automation, development, validation, e
 | [evaluate_subject_disjoint.py](evaluate_subject_disjoint.py) | Run Full ARGUS Subject-Disjoint Baseline Evaluation Pipeline | `python scripts/evaluate_subject_disjoint.py` |
 | [evaluate_threshold_sweep.py](evaluate_threshold_sweep.py) | Evaluate ARGUS thresholds via sweep evaluation | `python scripts/evaluate_threshold_sweep.py` |
 | [export_bygait_onnx.py](export_bygait_onnx.py) | Export PyTorch ByGaitLight model checkpoint to ONNX format and verify numerical parity. | `python scripts/export_bygait_onnx.py` |
+| [export_silhouette_unet_onnx.py](export_silhouette_unet_onnx.py) | Fix Windows console UTF-8 printing | `python scripts/export_silhouette_unet_onnx.py` |
 | [extract_casia_skeletons.py](extract_casia_skeletons.py) | Extract per-frame 2D COCO-17 pose keypoints from raw CASIA-B video frame sequences | `python scripts/extract_casia_skeletons.py` |
 | [install_git_hooks.py](install_git_hooks.py) | Installs Git pre-commit hooks for automated ARGUS AI README synchronization. | `python scripts/install_git_hooks.py` |
 | [migrate_output_layout.py](migrate_output_layout.py) | One-time runtime output layout migration script. | `python scripts/migrate_output_layout.py` |
@@ -79,6 +81,7 @@ This folder contains project maintenance, automation, development, validation, e
 | [benchmark.py](benchmark.py) | Development | No | No | No | No | Performance benchmark script for benchmark. |
 | [benchmark_crowd_performance.py](benchmark_crowd_performance.py) | Development | No | No | No | No | Performance Measurement Benchmark for Crowd Intelligence ... |
 | [benchmark_inference_backends.py](benchmark_inference_backends.py) | Development | Yes | No | No | No | Inference Backend Performance and Parity Benchmark Script... |
+| [benchmark_silhouette_segmenters.py](benchmark_silhouette_segmenters.py) | Development | No | No | No | No | Fix Windows console UTF-8 printing |
 | [build_gallery.py](build_gallery.py) | Dataset | No | No | No | No | Utility script for build gallery. |
 | [build_tensorrt_engine.py](build_tensorrt_engine.py) | Conversion | Yes | No | No | No | Build TensorRT engine from ONNX model file and verify out... |
 | [clean_live_gallery.py](clean_live_gallery.py) | Dataset | Yes | No | No | No | Clean contaminated identities from ARGUS live gallery |
@@ -91,6 +94,7 @@ This folder contains project maintenance, automation, development, validation, e
 | [evaluate_subject_disjoint.py](evaluate_subject_disjoint.py) | Development | Yes | No | No | No | Run Full ARGUS Subject-Disjoint Baseline Evaluation Pipeline |
 | [evaluate_threshold_sweep.py](evaluate_threshold_sweep.py) | Development | Yes | No | No | No | Evaluate ARGUS thresholds via sweep evaluation |
 | [export_bygait_onnx.py](export_bygait_onnx.py) | Conversion | Yes | No | No | No | Export PyTorch ByGaitLight model checkpoint to ONNX forma... |
+| [export_silhouette_unet_onnx.py](export_silhouette_unet_onnx.py) | Development | No | No | No | No | Fix Windows console UTF-8 printing |
 | [extract_casia_skeletons.py](extract_casia_skeletons.py) | Development | Yes | No | No | No | Extract per-frame 2D COCO-17 pose keypoints from raw CASI... |
 | [install_git_hooks.py](install_git_hooks.py) | Git | No | No | No | No | Installs Git pre-commit hooks for automated ARGUS AI READ... |
 | [migrate_output_layout.py](migrate_output_layout.py) | Conversion | Yes | No | No | No | One-time runtime output layout migration script. |
@@ -715,6 +719,7 @@ Development helper scripts run benchmarks, evaluations, training pipelines, and 
 - **[benchmark.py](benchmark.py)**: Performance benchmark script for benchmark. (`python scripts/benchmark.py`)
 - **[benchmark_crowd_performance.py](benchmark_crowd_performance.py)**: Performance Measurement Benchmark for Crowd Intelligence Features. (`python scripts/benchmark_crowd_performance.py`)
 - **[benchmark_inference_backends.py](benchmark_inference_backends.py)**: Inference Backend Performance and Parity Benchmark Script for ARGUS AI. (`python scripts/benchmark_inference_backends.py`)
+- **[benchmark_silhouette_segmenters.py](benchmark_silhouette_segmenters.py)**: Fix Windows console UTF-8 printing (`python scripts/benchmark_silhouette_segmenters.py`)
 - **[doctor.py](doctor.py)**: ARGUS AI Non-Destructive Deployment Health Checker CLI (doctor.py). (`python scripts/doctor.py`)
 - **[evaluate_cross_view.py](evaluate_cross_view.py)**: Evaluate ARGUS Cross-View Gait Recognition Metrics (`python scripts/evaluate_cross_view.py`)
 - **[evaluate_exp004.py](evaluate_exp004.py)**: EXP-004 Evaluation & Reporting Script. (`python scripts/evaluate_exp004.py`)
@@ -723,6 +728,7 @@ Development helper scripts run benchmarks, evaluations, training pipelines, and 
 - **[evaluate_open_set_threshold_sweep.py](evaluate_open_set_threshold_sweep.py)**: Evaluate ARGUS Open-Set Threshold and Matching Mode Sweep (`python scripts/evaluate_open_set_threshold_sweep.py`)
 - **[evaluate_subject_disjoint.py](evaluate_subject_disjoint.py)**: Run Full ARGUS Subject-Disjoint Baseline Evaluation Pipeline (`python scripts/evaluate_subject_disjoint.py`)
 - **[evaluate_threshold_sweep.py](evaluate_threshold_sweep.py)**: Evaluate ARGUS thresholds via sweep evaluation (`python scripts/evaluate_threshold_sweep.py`)
+- **[export_silhouette_unet_onnx.py](export_silhouette_unet_onnx.py)**: Fix Windows console UTF-8 printing (`python scripts/export_silhouette_unet_onnx.py`)
 - **[extract_casia_skeletons.py](extract_casia_skeletons.py)**: Extract per-frame 2D COCO-17 pose keypoints from raw CASIA-B video frame sequences (`python scripts/extract_casia_skeletons.py`)
 - **[run_ablation_study.py](run_ablation_study.py)**: Run Full ARGUS Gait Ablation Study (EXP-003A..E) (`python scripts/run_ablation_study.py`)
 - **[run_exp004_ablations.py](run_exp004_ablations.py)**: Run EXP-004 Open-Set & CL Robustness Ablations (`python scripts/run_exp004_ablations.py`)
@@ -749,6 +755,7 @@ Development helper scripts run benchmarks, evaluations, training pipelines, and 
 | `python scripts/benchmark.py` | Performance benchmark script for benchmark. |
 | `python scripts/benchmark_crowd_performance.py` | Performance Measurement Benchmark for Crowd Intelligence Features. |
 | `python scripts/benchmark_inference_backends.py` | Inference Backend Performance and Parity Benchmark Script for ARGUS... |
+| `python scripts/benchmark_silhouette_segmenters.py` | Fix Windows console UTF-8 printing |
 | `python scripts/build_gallery.py` | Utility script for build gallery. |
 | `python scripts/build_tensorrt_engine.py` | Build TensorRT engine from ONNX model file and verify output parity. |
 | `python scripts/clean_live_gallery.py` | Clean contaminated identities from ARGUS live gallery |
@@ -761,6 +768,7 @@ Development helper scripts run benchmarks, evaluations, training pipelines, and 
 | `python scripts/evaluate_subject_disjoint.py` | Run Full ARGUS Subject-Disjoint Baseline Evaluation Pipeline |
 | `python scripts/evaluate_threshold_sweep.py` | Evaluate ARGUS thresholds via sweep evaluation |
 | `python scripts/export_bygait_onnx.py` | Export PyTorch ByGaitLight model checkpoint to ONNX format and veri... |
+| `python scripts/export_silhouette_unet_onnx.py` | Fix Windows console UTF-8 printing |
 | `python scripts/extract_casia_skeletons.py` | Extract per-frame 2D COCO-17 pose keypoints from raw CASIA-B video ... |
 | `python scripts/install_git_hooks.py` | Installs Git pre-commit hooks for automated ARGUS AI README synchro... |
 | `python scripts/migrate_output_layout.py` | One-time runtime output layout migration script. |
@@ -841,7 +849,7 @@ flowchart TD
     step4 --> step5
     step6["6. Conversion (3 scripts)"]
     step5 --> step6
-    step7["7. Development (24 scripts)"]
+    step7["7. Development (26 scripts)"]
     step6 --> step7
     step8["8. Deployment (2 scripts)"]
     step7 --> step8
@@ -859,6 +867,7 @@ flowchart TD
 | [benchmark.py](benchmark.py) | `outputs/reports/benchmark` |
 | [benchmark_crowd_performance.py](benchmark_crowd_performance.py) | `No file modifications` |
 | [benchmark_inference_backends.py](benchmark_inference_backends.py) | `outputs/reports/benchmark` |
+| [benchmark_silhouette_segmenters.py](benchmark_silhouette_segmenters.py) | `No file modifications` |
 | [build_gallery.py](build_gallery.py) | `models/gallery` |
 | [build_tensorrt_engine.py](build_tensorrt_engine.py) | `models/engines/bygait_light_fp16.engine` |
 | [clean_live_gallery.py](clean_live_gallery.py) | `Runtime-determined paths` |
@@ -871,6 +880,7 @@ flowchart TD
 | [evaluate_subject_disjoint.py](evaluate_subject_disjoint.py) | `runs/exp_001/evaluation_subject_disjoint` |
 | [evaluate_threshold_sweep.py](evaluate_threshold_sweep.py) | `outputs/reports/evaluation` |
 | [export_bygait_onnx.py](export_bygait_onnx.py) | `models/engines/bygait_light.onnx` |
+| [export_silhouette_unet_onnx.py](export_silhouette_unet_onnx.py) | `Runtime-determined paths` |
 | [extract_casia_skeletons.py](extract_casia_skeletons.py) | `Runtime-determined paths` |
 | [install_git_hooks.py](install_git_hooks.py) | `.git/hooks/pre-commit` |
 | [migrate_output_layout.py](migrate_output_layout.py) | `Runtime-determined paths` |
@@ -919,8 +929,8 @@ flowchart TD
 | **Documentation** | [sync_folder_readmes.py](sync_folder_readmes.py) |
 | **Environment** | [activate_venv.ps1](activate_venv.ps1) |
 | **Git** | [install_git_hooks.py](install_git_hooks.py) |
-| **Read-Only** | [analyze_cl_part_similarity.py](analyze_cl_part_similarity.py), [analyze_open_set_and_cl.py](analyze_open_set_and_cl.py), [benchmark_crowd_performance.py](benchmark_crowd_performance.py), [evaluate_cross_view.py](evaluate_cross_view.py), [evaluate_open_set.py](evaluate_open_set.py), [preprocess_casia.py](preprocess_casia.py), [run_auto_enrollment.py](run_auto_enrollment.py), [run_folder_recognition.py](run_folder_recognition.py), [run_video_recognition.py](run_video_recognition.py), [setup_silhouette_model.py](setup_silhouette_model.py), [system_check.py](system_check.py), [train_model.py](train_model.py) |
-| **Repository Modification** | [benchmark.py](benchmark.py), [benchmark_inference_backends.py](benchmark_inference_backends.py), [build_gallery.py](build_gallery.py), [build_tensorrt_engine.py](build_tensorrt_engine.py), [clean_live_gallery.py](clean_live_gallery.py), [doctor.py](doctor.py), [evaluate_exp004.py](evaluate_exp004.py), [evaluate_model.py](evaluate_model.py), [evaluate_open_set_threshold_sweep.py](evaluate_open_set_threshold_sweep.py), [evaluate_subject_disjoint.py](evaluate_subject_disjoint.py), [evaluate_threshold_sweep.py](evaluate_threshold_sweep.py), [export_bygait_onnx.py](export_bygait_onnx.py), [extract_casia_skeletons.py](extract_casia_skeletons.py), [migrate_output_layout.py](migrate_output_layout.py), [remove_gallery_identity.py](remove_gallery_identity.py), [remove_numeric_gallery_identities.py](remove_numeric_gallery_identities.py), [run_ablation_study.py](run_ablation_study.py), [run_exp004_ablations.py](run_exp004_ablations.py), [run_exp006_3d.py](run_exp006_3d.py), [run_exp006_full.py](run_exp006_full.py), [run_exp007_ablations.py](run_exp007_ablations.py), [set_gallery_identity_status.py](set_gallery_identity_status.py), [smoke_test_deployment.py](smoke_test_deployment.py) |
+| **Read-Only** | [analyze_cl_part_similarity.py](analyze_cl_part_similarity.py), [analyze_open_set_and_cl.py](analyze_open_set_and_cl.py), [benchmark_crowd_performance.py](benchmark_crowd_performance.py), [benchmark_silhouette_segmenters.py](benchmark_silhouette_segmenters.py), [evaluate_cross_view.py](evaluate_cross_view.py), [evaluate_open_set.py](evaluate_open_set.py), [preprocess_casia.py](preprocess_casia.py), [run_auto_enrollment.py](run_auto_enrollment.py), [run_folder_recognition.py](run_folder_recognition.py), [run_video_recognition.py](run_video_recognition.py), [setup_silhouette_model.py](setup_silhouette_model.py), [system_check.py](system_check.py), [train_model.py](train_model.py) |
+| **Repository Modification** | [benchmark.py](benchmark.py), [benchmark_inference_backends.py](benchmark_inference_backends.py), [build_gallery.py](build_gallery.py), [build_tensorrt_engine.py](build_tensorrt_engine.py), [clean_live_gallery.py](clean_live_gallery.py), [doctor.py](doctor.py), [evaluate_exp004.py](evaluate_exp004.py), [evaluate_model.py](evaluate_model.py), [evaluate_open_set_threshold_sweep.py](evaluate_open_set_threshold_sweep.py), [evaluate_subject_disjoint.py](evaluate_subject_disjoint.py), [evaluate_threshold_sweep.py](evaluate_threshold_sweep.py), [export_bygait_onnx.py](export_bygait_onnx.py), [export_silhouette_unet_onnx.py](export_silhouette_unet_onnx.py), [extract_casia_skeletons.py](extract_casia_skeletons.py), [migrate_output_layout.py](migrate_output_layout.py), [remove_gallery_identity.py](remove_gallery_identity.py), [remove_numeric_gallery_identities.py](remove_numeric_gallery_identities.py), [run_ablation_study.py](run_ablation_study.py), [run_exp004_ablations.py](run_exp004_ablations.py), [run_exp006_3d.py](run_exp006_3d.py), [run_exp006_full.py](run_exp006_full.py), [run_exp007_ablations.py](run_exp007_ablations.py), [set_gallery_identity_status.py](set_gallery_identity_status.py), [smoke_test_deployment.py](smoke_test_deployment.py) |
 | **Validation** | [test_confidence_scorer.py](test_confidence_scorer.py), [test_enrollment.py](test_enrollment.py), [test_events.py](test_events.py), [test_folder_watcher.py](test_folder_watcher.py), [test_gallery_match.py](test_gallery_match.py), [test_gei.py](test_gei.py), [test_inference_pipeline.py](test_inference_pipeline.py), [test_live_gei.py](test_live_gei.py), [test_live_recognition.py](test_live_recognition.py), [test_security_layer.py](test_security_layer.py), [test_silhouette.py](test_silhouette.py), [test_streaming_optimization.py](test_streaming_optimization.py), [test_tracking.py](test_tracking.py), [test_visualizer.py](test_visualizer.py), [test_webcam_detection.py](test_webcam_detection.py) |
 <!-- END SYNC: SAFETY_CLASSIFICATION -->
 

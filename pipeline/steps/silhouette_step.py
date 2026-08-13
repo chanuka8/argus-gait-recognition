@@ -15,14 +15,29 @@ class LearnedSilhouetteSegmenter:
     Falls back gracefully if ONNX runtime or model file is unavailable.
     """
 
-    def __init__(self, model_path: str = "models/engines/silhouette_segmenter.onnx", threshold: float = 0.5) -> None:
+    def __init__(self, model_path: str = "models/weights/silhouette_segmenter.onnx", threshold: float = 0.5) -> None:
         self.model_path = Path(model_path)
         self.threshold = threshold
         self.session = None
         self._init_session()
 
     def _init_session(self) -> None:
-        if not self.model_path.exists():
+        target_path = None
+        if self.model_path.exists():
+            target_path = self.model_path
+        else:
+            defaults = [
+                Path("models/weights/silhouette_segmenter.onnx"),
+                Path("models/engines/silhouette_segmenter.onnx"),
+            ]
+            # Only use fallback defaults if self.model_path was one of the standard defaults
+            if str(self.model_path) in {"models/weights/silhouette_segmenter.onnx", "models/engines/silhouette_segmenter.onnx"}:
+                for p in defaults:
+                    if p.exists():
+                        target_path = p
+                        break
+
+        if target_path is None or not target_path.exists():
             return
         try:
             import onnxruntime as ort
@@ -32,7 +47,8 @@ class LearnedSilhouetteSegmenter:
             if "CUDAExecutionProvider" in providers:
                 provider_list.append("CUDAExecutionProvider")
             provider_list.append("CPUExecutionProvider")
-            self.session = ort.InferenceSession(str(self.model_path), providers=provider_list)
+            self.session = ort.InferenceSession(str(target_path), providers=provider_list)
+            self.model_path = target_path
         except (OSError, ValueError, RuntimeError, TypeError, AttributeError):
             self.session = None
 
@@ -114,7 +130,7 @@ class SilhouetteStep:
         self,
         target_size: tuple[int, int] = (64, 128),
         method: str = "auto",
-        model_path: str = "models/engines/silhouette_segmenter.onnx",
+        model_path: str = "models/weights/silhouette_segmenter.onnx",
         threshold: float = 0.5,
         config_path: str = "configs/inference.yaml",
     ) -> None:
@@ -123,7 +139,8 @@ class SilhouetteStep:
 
         sil_cfg = self.config.get("silhouette", {})
         self.method = method if method != "auto" else sil_cfg.get("method", "learned")
-        self.model_path = model_path if model_path != "models/engines/silhouette_segmenter.onnx" else sil_cfg.get("model_path", "models/engines/silhouette_segmenter.onnx")
+        default_path = sil_cfg.get("model_path", "models/weights/silhouette_segmenter.onnx")
+        self.model_path = model_path if model_path != "models/weights/silhouette_segmenter.onnx" else default_path
         self.threshold = threshold if threshold != 0.5 else float(sil_cfg.get("threshold", 0.5))
 
         self.learned_segmenter = LearnedSilhouetteSegmenter(model_path=self.model_path, threshold=self.threshold)
