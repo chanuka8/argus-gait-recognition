@@ -460,7 +460,8 @@ Margin Calculation: m = s1 - s2
 | Path | Asset Architecture | Vector Dim | Status |
 | :--- | :--- | :--- | :--- |
 | `models/weights/yolov8n.pt` | YOLOv8 Nano Person Detector | N/A | **ACTIVE** |
-| `models/engines/silhouette_segmenter.onnx` | UNet/DeepLab Silhouette Segmenter | Mask (256x256) | **ACTIVE** |
+| `models/weights/silhouette_segmenter.onnx` | PyTorch UNet Silhouette Segmenter | Mask (256x256) | **ACTIVE PRIMARY** |
+| `models/engines/silhouette_segmenter.onnx` | PyTorch UNet Silhouette Segmenter | Mask (256x256) | **ACTIVE MIRROR** |
 | `runs/exp_001/best_model.pth` | ByGaitLight (exp_001) | 256-D | **ACTIVE DEFAULT CHECKPOINT** (`configs/system.yaml`) |
 | `runs/exp_002_hpp_arcface/best_model.pth` | ByGaitLight + HPP (exp_002) | 256-D | **2D CANDIDATE** (Triplet weight 0.50) |
 | `runs/exp_003e_hpp_arcface_triplet025/best_model.pth` | ByGaitLight + HPP (exp_003e) | 256-D | **TOP STRICT 2D CANDIDATE** (Triplet weight 0.25) |
