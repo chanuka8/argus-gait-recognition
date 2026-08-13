@@ -23,6 +23,10 @@ def benchmark_silhouette_segmenters(
     zip_path: str = "data/casia_b_raw.zip",
     num_samples: int = 100,
 ) -> dict:
+    if not Path(zip_path).exists():
+        print(f"[!] CASIA-B raw archive not found at: {zip_path}")
+        return {}
+
     print(f"[*] Benchmarking Silhouette Segmenters on {num_samples} CASIA-B validation samples...")
     val_ds = SilhouetteSegmentationDataset(
         zip_path=zip_path, subject_range=(63, 74), max_samples=num_samples, seed=101
