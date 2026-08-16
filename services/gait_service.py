@@ -1,3 +1,6 @@
+from services.camera_worker import CameraWorker, normalize_camera_source
+from typing import Optional, List, Dict, Any
+from services.camera_source_resolver import CameraSourceResolver
 import asyncio
 from datetime import datetime, timezone
 import uuid
@@ -64,6 +67,8 @@ class GaitService:
         self.ws_manager = WebSocketManager()
         self.events_log: list[dict] = []
         self.active_cameras: dict[str, dict] = {}
+        self.source_resolver = CameraSourceResolver()
+        self.camera_workers: dict[str, CameraWorker] = {}
 
         self.stats = {
             "processed_images": 0,
@@ -251,32 +256,126 @@ class GaitService:
             "embeddings_added": added_embeddings,
         }
 
-    def start_camera(self, camera_id: str, source: str, location: str = "Surveillance Zone") -> dict:
-        """Starts camera tracking worker state."""
+    def start_camera(
+        self,
+        camera_id: str,
+        source: str = "auto",
+        location: str = "Surveillance Zone",
+        zone_id: Optional[str] = None,
+    ) -> dict:
+        """Starts camera tracking worker state with automatic or explicit source resolution."""
+        # If camera is already active, return existing deterministically
+        if camera_id in self.active_cameras:
+            return self.get_camera_info(camera_id)
+
+        # Resolve available physical source (USB Webcam / RTSP / Explicit)
+        resolution = self.source_resolver.resolve_source(
+            camera_id=camera_id,
+            requested_source=source or "auto",
+            zone_id=zone_id,
+        )
+
+        resolved_source = resolution["resolved_source"]
+        resolved_type = resolution["resolved_source_type"]
+        resolved_label = resolution["resolved_source_label"]
+
         # Sanitize source (mask passwords in RTSP URLs)
-        sanitized_source = source
-        if "@" in source and "://" in source:
-            proto, rest = source.split("://", 1)
+        sanitized_source = resolved_source
+        if "@" in sanitized_source and "://" in sanitized_source:
+            proto, rest = sanitized_source.split("://", 1)
             user_pass, host_path = rest.rsplit("@", 1)
             sanitized_source = f"{proto}://***:***@{host_path}"
 
+        # Initialize and start CameraWorker
+        worker_cfg = {
+            "type": resolved_type,
+            "url": resolved_source if resolved_type != "usb" else "",
+            "device_index": int(resolved_source) if resolved_type == "usb" else 0,
+            "width": 640,
+            "height": 480,
+            "target_fps": 15,
+            "jpeg_quality": 75,
+            "preview_max_fps": 15,
+        }
+
+        worker = CameraWorker(
+            camera_id=camera_id,
+            camera_config=worker_cfg,
+            inference_pipeline=None,
+            detection_processor=None,
+        )
+
+        started = worker.start()
+        if not started:
+            self.source_resolver.release_source_by_camera_id(camera_id)
+            raise RuntimeError(f"Failed to open video capture for {resolved_label} ({camera_id})")
+
+        self.camera_workers[camera_id] = worker
+
+        stats = worker.get_stats()
+        frames_captured = stats.get("frames_captured", 1)
+
         cam_info = {
             "camera_id": camera_id,
+            "zone_id": zone_id,
             "source": sanitized_source,
             "location": location,
             "status": "ACTIVE",
-            "fps": 29.97,
-            "processed_frames": 0,
+            "fps": round(stats.get("fps", 0.0), 1),
+            "processed_frames": frames_captured,
             "active_tracks": 0,
+            "requested_source": source,
+            "resolved_source": sanitized_source,
+            "resolved_source_type": resolved_type,
+            "resolved_source_label": resolved_label,
+            "preview_url": f"/api/v1/cameras/{camera_id}/stream",
             "started_at": datetime.now(timezone.utc).isoformat(),
+            "last_frame_at": stats.get("last_frame_at"),
         }
         self.active_cameras[camera_id] = cam_info
+        self.logger.info(f"Camera worker {camera_id} active with {resolved_label}")
         return cam_info
 
     def stop_camera(self, camera_id: str) -> bool:
-        """Stops camera tracking worker state."""
+        """Stops camera tracking worker state and releases source reservation."""
+        worker = self.camera_workers.pop(camera_id, None)
+        if worker:
+            try:
+                worker.stop()
+            except Exception as e:
+                self.logger.warning(f"Error stopping worker {camera_id}: {e}")
+
         if camera_id in self.active_cameras:
             self.active_cameras[camera_id]["status"] = "STOPPED"
             del self.active_cameras[camera_id]
+            self.source_resolver.release_source_by_camera_id(camera_id)
             return True
         return False
+
+    def get_camera_worker(self, camera_id: str) -> Optional[CameraWorker]:
+        """Return active CameraWorker instance if present."""
+        return self.camera_workers.get(camera_id)
+
+    def get_camera_info(self, camera_id: str) -> Optional[dict]:
+        """Return updated camera status with live telemetry metrics."""
+        cam = self.active_cameras.get(camera_id)
+        if not cam:
+            return None
+        worker = self.camera_workers.get(camera_id)
+        if worker:
+            stats = worker.get_stats()
+            cam["processed_frames"] = stats.get("frames_captured", cam.get("processed_frames", 0))
+            cam["fps"] = round(stats.get("fps", 0.0), 1)
+            cam["active_tracks"] = worker._active_tracks
+            cam["preview_url"] = f"/api/v1/cameras/{camera_id}/stream"
+            cam["last_frame_at"] = stats.get("last_frame_at")
+        return cam
+
+    def list_all_cameras(self) -> List[dict]:
+        """Return all active camera info with updated telemetry."""
+        result = []
+        for cam_id in list(self.active_cameras.keys()):
+            info = self.get_camera_info(cam_id)
+            if info:
+                result.append(info)
+        return result

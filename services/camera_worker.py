@@ -1,6 +1,8 @@
 import threading
 import time
+from datetime import datetime, timezone
 from queue import Empty, Full, Queue
+from typing import Optional
 
 import cv2
 import numpy as np
@@ -9,15 +11,27 @@ from monitoring.logging_config import get_logger
 from security_layer.credentials import sanitize_rtsp_url
 
 
+def normalize_camera_source(source) -> int | str:
+    """Normalize camera source to an integer device index or cleaned string."""
+    if isinstance(source, int):
+        return source
+
+    normalized = str(source).strip()
+    if normalized.isdigit():
+        return int(normalized)
+
+    return normalized
+
+
 class CameraWorker:
-    """Independent worker for a single camera stream."""
+    """Independent worker for a single camera stream with real-time JPEG preview buffer."""
 
     def __init__(
         self,
         camera_id: str,
         camera_config: dict,
-        inference_pipeline,
-        detection_processor,
+        inference_pipeline=None,
+        detection_processor=None,
     ) -> None:
         self.camera_id = camera_id
         self.config = camera_config
@@ -26,7 +40,7 @@ class CameraWorker:
 
         self._logger = get_logger(f"camera.{camera_id}")
 
-        self._source_type = camera_config.get("type", "rtsp")
+        self._source_type = camera_config.get("type", "usb")
         self._url = camera_config.get("url", "")
         self._device_index = int(camera_config.get("device_index", 0))
         self._width = int(camera_config.get("width", 640))
@@ -35,12 +49,19 @@ class CameraWorker:
         self._reconnect_interval = int(camera_config.get("reconnect_interval", 5))
         self._max_reconnect = int(camera_config.get("max_reconnect_attempts", 0))
         self._max_queue_size = int(camera_config.get("max_queue_size", 10))
+        self._jpeg_quality = int(camera_config.get("jpeg_quality", 75))
+        self._min_jpeg_interval = 1.0 / float(camera_config.get("preview_max_fps", 15))
 
         self._frame_queue = Queue(maxsize=self._max_queue_size)
         self._capture = None
         self._thread = None
         self._stop_event = threading.Event()
         self._lock = threading.Lock()
+
+        self._latest_jpeg: Optional[bytes] = None
+        self._last_frame_at: Optional[str] = None
+        self._last_jpeg_encode_time: float = 0.0
+        self._active_tracks: int = 0
 
         self.stats = {
             "frames_captured": 0,
@@ -50,7 +71,7 @@ class CameraWorker:
             "queue_size": 0,
             "connected": False,
             "reconnect_count": 0,
-            "uptime_seconds": 0,
+            "uptime_seconds": 0.0,
             "identities_recognized": 0,
             "last_update": time.monotonic(),
         }
@@ -60,18 +81,20 @@ class CameraWorker:
         self._last_fps_time = time.monotonic()
         self._start_time = time.monotonic()
         self._reconnect_count = 0
-        self._latency_sum = 0.0
-        self._latency_count = 0
 
     def _resolve_source(self):
         if self._source_type == "rtsp":
             if not self._url:
                 raise ValueError(f"Camera {self.camera_id}: RTSP URL is empty")
             return self._url
+        elif self._source_type == "http":
+            if not self._url:
+                raise ValueError(f"Camera {self.camera_id}: HTTP URL is empty")
+            return self._url
         elif self._source_type == "file":
             return self.config.get("file_path", "")
         else:
-            return self._device_index
+            return normalize_camera_source(self.config.get("device_index", self._device_index))
 
     def _open_capture(self) -> bool:
         try:
@@ -92,14 +115,37 @@ class CameraWorker:
             if self._target_fps > 0:
                 self._capture.set(cv2.CAP_PROP_FPS, self._target_fps)
 
+            # Read initial test frame to guarantee readiness
+            ret, frame = self._capture.read()
+            if not ret or frame is None or frame.size == 0:
+                self._logger.error(f"Failed to read initial frame from camera source: {safe_source}")
+                self._capture.release()
+                self._capture = None
+                return False
+
+            # Process initial frame into JPEG buffer
+            frame_resized = cv2.resize(frame, (self._width, self._height))
+            encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), self._jpeg_quality]
+            success, enc_buf = cv2.imencode(".jpg", frame_resized, encode_param)
+            now = time.monotonic()
+            iso_now = datetime.now(timezone.utc).isoformat()
+
             with self._lock:
                 self.stats["connected"] = True
+                self._frame_count = 1
+                self.stats["frames_captured"] = 1
+                if success:
+                    self._latest_jpeg = enc_buf.tobytes()
+                    self._last_frame_at = iso_now
+                    self._last_jpeg_encode_time = now
 
-            self._logger.info(f"Camera {self.camera_id} connected successfully")
+            self._logger.info(f"Camera {self.camera_id} connected and initial frame verified successfully")
             return True
 
         except Exception as e:
             self._logger.error(f"Error opening capture: {str(e)}")
+            if self._capture is not None:
+                self._capture.release()
             self._capture = None
             return False
 
@@ -112,7 +158,7 @@ class CameraWorker:
                 self.stats["connected"] = False
 
     def _capture_loop(self) -> None:
-        """Main frame capture and processing loop."""
+        """Main frame capture and preview encoding loop."""
         reconnect_attempts = 0
 
         while not self._stop_event.is_set():
@@ -121,33 +167,42 @@ class CameraWorker:
                     self._logger.error(f"Max reconnect attempts ({self._max_reconnect}) reached. Stopping.")
                     break
 
-                self._logger.warning(
-                    f"Camera disconnected. Reconnecting in {self._reconnect_interval}s "
-                    f"(attempt {reconnect_attempts + 1})"
-                )
-
                 self._stop_event.wait(self._reconnect_interval)
-
                 if not self._open_capture():
                     reconnect_attempts += 1
-                    self._reconnect_count += 1
-
-                    with self._lock:
-                        self.stats["reconnect_count"] = self._reconnect_count
-
                     continue
-
                 reconnect_attempts = 0
 
             try:
                 ret, frame = self._capture.read()
 
                 if not ret or frame is None:
-                    self._logger.warning("Failed to read frame")
                     self._close_capture()
                     continue
 
                 frame = cv2.resize(frame, (self._width, self._height))
+                now = time.monotonic()
+                iso_now = datetime.now(timezone.utc).isoformat()
+
+                # Rate-limited preview JPEG encoding
+                if now - self._last_jpeg_encode_time >= self._min_jpeg_interval:
+                    try:
+                        preview_frame = frame
+                        if preview_frame.shape[1] > 640:
+                            h, w = preview_frame.shape[:2]
+                            new_h = int(h * (640 / w))
+                            preview_frame = cv2.resize(preview_frame, (640, new_h))
+
+                        encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), self._jpeg_quality]
+                        success, enc_buf = cv2.imencode(".jpg", preview_frame, encode_param)
+                        if success:
+                            jpeg_bytes = enc_buf.tobytes()
+                            with self._lock:
+                                self._latest_jpeg = jpeg_bytes
+                                self._last_frame_at = iso_now
+                            self._last_jpeg_encode_time = now
+                    except Exception as enc_err:
+                        self._logger.debug(f"Preview JPEG encode error: {enc_err}")
 
                 try:
                     self._frame_queue.put(frame, block=False)
@@ -156,19 +211,19 @@ class CameraWorker:
                     with self._lock:
                         self.stats["frames_dropped"] += 1
 
-                elapsed = time.monotonic() - self._last_fps_time
+                elapsed = now - self._last_fps_time
                 if elapsed >= 1.0:
                     with self._lock:
                         self.stats["fps"] = (self._frame_count - self._last_fps_count) / elapsed
                         self.stats["queue_size"] = self._frame_queue.qsize()
-                        self.stats["uptime_seconds"] = time.monotonic() - self._start_time
+                        self.stats["uptime_seconds"] = now - self._start_time
 
                     self._last_fps_count = self._frame_count
-                    self._last_fps_time = time.monotonic()
+                    self._last_fps_time = now
 
                 with self._lock:
                     self.stats["frames_captured"] = self._frame_count
-                    self.stats["last_update"] = time.monotonic()
+                    self.stats["last_update"] = now
 
             except Exception as e:
                 self._logger.error(f"Error in capture loop: {str(e)}")
@@ -177,31 +232,30 @@ class CameraWorker:
         self._close_capture()
         self._logger.info("Camera capture loop stopped")
 
-    def get_frame(self, timeout: float = 0.1) -> np.ndarray | None:
-        """Get next frame from queue."""
-        try:
-            return self._frame_queue.get(timeout=timeout)
-        except Empty:
-            return None
+    def get_latest_jpeg(self) -> Optional[bytes]:
+        """Return the latest encoded JPEG frame bytes safely."""
+        with self._lock:
+            return self._latest_jpeg
 
     def get_stats(self) -> dict:
         """Get current camera statistics."""
         with self._lock:
-            return self.stats.copy()
+            return {
+                **self.stats.copy(),
+                "last_frame_at": self._last_frame_at,
+                "active_tracks": self._active_tracks,
+            }
 
     def is_connected(self) -> bool:
-        """Check if camera is connected."""
         with self._lock:
             return self.stats["connected"]
 
     def is_running(self) -> bool:
-        """Check if worker thread is running."""
         return self._thread is not None and self._thread.is_alive()
 
     def start(self) -> bool:
-        """Start camera capture thread."""
+        """Start camera capture thread after verifying readiness."""
         if self.is_running():
-            self._logger.warning("Camera worker already running")
             return False
 
         if not self._open_capture():
@@ -211,41 +265,15 @@ class CameraWorker:
         self._thread = threading.Thread(
             target=self._capture_loop,
             name=f"camera-{self.camera_id}",
-            daemon=False,
+            daemon=True,
         )
         self._thread.start()
-
-        self._logger.info(f"Camera worker started: {self.camera_id}")
         return True
 
-    def stop(self, timeout: float = 5.0) -> bool:
+    def stop(self, timeout: float = 3.0) -> bool:
         """Stop camera capture thread."""
-        if not self.is_running():
-            self._logger.debug("Camera worker already stopped")
-            return True
-
-        self._logger.info("Stopping camera worker...")
         self._stop_event.set()
-
-        if self._thread is not None:
+        if self._thread is not None and self._thread.is_alive():
             self._thread.join(timeout=timeout)
-
-            if self._thread.is_alive():
-                self._logger.error("Thread did not stop within timeout")
-                return False
-
         self._close_capture()
-        self._logger.info("Camera worker stopped")
         return True
-
-    def restart(self) -> bool:
-        """Restart camera worker."""
-        self._logger.info("Restarting camera worker...")
-        success = self.stop(timeout=5.0)
-
-        if not success:
-            self._logger.error("Failed to stop worker before restart")
-            return False
-
-        time.sleep(1.0)
-        return self.start()

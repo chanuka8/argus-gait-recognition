@@ -60,8 +60,9 @@ class RecognitionEvent(BaseModel):
 
 class CameraStartRequest(BaseModel):
     camera_id: str
-    source: str
+    source: Optional[str] = "auto"
     location: Optional[str] = "Surveillance Zone"
+    zone_id: Optional[str] = None
 
 
 class CameraStopRequest(BaseModel):
@@ -73,9 +74,17 @@ class CameraInfoResponse(BaseModel):
     source: str
     location: str
     status: str
-    fps: float
-    processed_frames: int
-    active_tracks: int
+    fps: float = 0.0
+    processed_frames: int = 0
+    active_tracks: int = 0
+    zone_id: Optional[str] = None
+    requested_source: Optional[str] = None
+    resolved_source: Optional[str] = None
+    resolved_source_type: Optional[str] = None
+    resolved_source_label: Optional[str] = None
+    preview_url: Optional[str] = None
+    started_at: Optional[str] = None
+    last_frame_at: Optional[str] = None
 
 
 class EnrollResponse(BaseModel):

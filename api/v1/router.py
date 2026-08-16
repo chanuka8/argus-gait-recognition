@@ -1,3 +1,5 @@
+from fastapi.responses import StreamingResponse, Response
+import asyncio
 """Version 1 API routes for the ARGUS gait recognition backend."""
 
 import tempfile
@@ -317,19 +319,31 @@ def start_camera(
     body: CameraStartRequest,
     service: GaitService = Depends(get_gait_service),
 ):
-    """Start a camera recognition worker."""
+    """Start a camera recognition worker with automatic or explicit source resolution."""
 
-    if not body.camera_id or not body.source:
+    if not body.camera_id:
         raise HTTPException(
             status_code=400,
-            detail="camera_id and source are required",
+            detail="camera_id is required",
         )
 
-    return service.start_camera(
-        body.camera_id,
-        body.source,
-        body.location or "Surveillance Zone",
-    )
+    try:
+        return service.start_camera(
+            camera_id=body.camera_id,
+            source=body.source or "auto",
+            location=body.location or "Surveillance Zone",
+            zone_id=body.zone_id,
+        )
+    except RuntimeError as err:
+        raise HTTPException(
+            status_code=400,
+            detail=str(err),
+        ) from err
+    except Exception as err:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Camera worker startup failed: {err}",
+        ) from err
 
 
 @v1_router.post("/cameras/stop")
@@ -363,9 +377,87 @@ def stop_camera(
 def list_cameras(
     service: GaitService = Depends(get_gait_service),
 ):
-    """Return all active camera workers."""
+    """Return all active camera workers with live telemetry metrics."""
 
-    return list(service.active_cameras.values())
+    return service.list_all_cameras()
+
+
+@v1_router.get(
+    "/cameras/{camera_id}/stream",
+)
+async def stream_camera(
+    camera_id: str,
+    service: GaitService = Depends(get_gait_service),
+):
+    """
+    Stream live camera frames in multipart/x-mixed-replace MJPEG format.
+    Reuses the active CameraWorker instance without opening additional captures.
+    """
+    if camera_id not in service.active_cameras:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Camera worker {camera_id} is not active",
+        )
+
+    async def frame_generator():
+        try:
+            while camera_id in service.active_cameras:
+                worker = service.get_camera_worker(camera_id)
+                if not worker:
+                    break
+
+                jpeg_bytes = worker.get_latest_jpeg()
+                if jpeg_bytes is not None:
+                    yield (
+                        b"--frame\r\n"
+                        b"Content-Type: image/jpeg\r\n"
+                        b"Content-Length: " + str(len(jpeg_bytes)).encode() + b"\r\n\r\n"
+                        + jpeg_bytes + b"\r\n"
+                    )
+                    await asyncio.sleep(0.066)  # ~15 FPS max yield
+                else:
+                    await asyncio.sleep(0.1)
+        except (asyncio.CancelledError, GeneratorExit):
+            pass
+
+    return StreamingResponse(
+        frame_generator(),
+        media_type="multipart/x-mixed-replace; boundary=frame",
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
+    )
+
+
+@v1_router.get(
+    "/cameras/{camera_id}/snapshot",
+)
+def get_camera_snapshot(
+    camera_id: str,
+    service: GaitService = Depends(get_gait_service),
+):
+    """Return the latest single JPEG snapshot frame from the camera worker."""
+    worker = service.get_camera_worker(camera_id)
+    if not worker or camera_id not in service.active_cameras:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Camera worker {camera_id} is not active",
+        )
+
+    jpeg_bytes = worker.get_latest_jpeg()
+    if jpeg_bytes is None:
+        raise HTTPException(
+            status_code=503,
+            detail="No frame captured yet from camera",
+        )
+
+    return Response(
+        content=jpeg_bytes,
+        media_type="image/jpeg",
+        headers={"Cache-Control": "no-cache"},
+    )
 
 
 @v1_router.post(
