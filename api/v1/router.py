@@ -1,5 +1,7 @@
+"""Version 1 API routes for the ARGUS gait recognition backend."""
+
 import tempfile
-from typing import List
+from typing import Annotated
 
 import numpy as np
 from fastapi import (
@@ -28,35 +30,69 @@ from services.gait_service import GaitService
 
 
 def get_gait_service(request: Request = None) -> GaitService:
-    if request and hasattr(request.app.state, "gait_service") and request.app.state.gait_service:
+    """Return the initialized application-level gait service."""
+
+    if (
+        request
+        and hasattr(request.app.state, "gait_service")
+        and request.app.state.gait_service
+    ):
         return request.app.state.gait_service
+
     return GaitService()
 
 
-v1_router = APIRouter(prefix="/api/v1", tags=["v1"])
+v1_router = APIRouter(
+    prefix="/api/v1",
+    tags=["v1"],
+)
 
 
-@v1_router.get("/health", response_model=HealthResponse)
-def get_health(service: GaitService = Depends(get_gait_service)):
+@v1_router.get(
+    "/health",
+    response_model=HealthResponse,
+)
+def get_health(
+    service: GaitService = Depends(get_gait_service),
+):
+    """Return the health status of the ARGUS gait service."""
+
     return {
         "status": "healthy",
         "system": "ARGUS AI Gait Recognition System",
         "version": "0.1.0",
         "pipeline_loaded": True,
-        "active_backend": getattr(service.extractor.backend, "backend_name", "pytorch"),
+        "active_backend": getattr(
+            service.extractor.backend,
+            "backend_name",
+            "pytorch",
+        ),
         "models": {
-            "person_detector": "active" if service.detector else "optional",
+            "person_detector": (
+                "active"
+                if service.detector
+                else "optional"
+            ),
             "silhouette_extractor": "active",
             "gait_encoder": "active",
         },
     }
 
 
-@v1_router.get("/status", response_model=StatusResponse)
-def get_status(service: GaitService = Depends(get_gait_service)):
-    metrics = service.get_metrics()
+@v1_router.get(
+    "/status",
+    response_model=StatusResponse,
+)
+def get_status(
+    service: GaitService = Depends(get_gait_service),
+):
+    """Return the operational status of the ARGUS backend."""
+
     import torch
+
+    metrics = service.get_metrics()
     device = "cuda" if torch.cuda.is_available() else "cpu"
+
     return {
         "status": "operational",
         "device": device,
@@ -73,87 +109,227 @@ def get_status(service: GaitService = Depends(get_gait_service)):
     }
 
 
-@v1_router.get("/metrics", response_model=MetricsResponse)
-def get_metrics(service: GaitService = Depends(get_gait_service)):
+@v1_router.get(
+    "/metrics",
+    response_model=MetricsResponse,
+)
+def get_metrics(
+    service: GaitService = Depends(get_gait_service),
+):
+    """Return runtime metrics."""
+
     return service.get_metrics()
 
 
-@v1_router.post("/identify/image", response_model=RecognitionEvent)
+@v1_router.post(
+    "/identify/image",
+    response_model=RecognitionEvent,
+)
 async def identify_image(
-    file: UploadFile = File(...),
-    camera_id: str = Form("upload-image"),
+    file: Annotated[
+        UploadFile,
+        File(description="Image file used for gait identification"),
+    ],
+    camera_id: Annotated[
+        str,
+        Form(description="Camera or upload source identifier"),
+    ] = "upload-image",
     service: GaitService = Depends(get_gait_service),
 ):
-    if not file.content_type or not file.content_type.startswith("image/"):
-        # Accept image/jpeg, image/png, etc.
-        pass
+    """Identify a person from an uploaded image."""
+
+    if (
+        file.content_type
+        and not file.content_type.startswith("image/")
+    ):
+        raise HTTPException(
+            status_code=415,
+            detail=(
+                "Unsupported file type. "
+                "Upload a valid image file."
+            ),
+        )
 
     try:
         content = await file.read()
+
         if not content:
-            raise HTTPException(status_code=400, detail="Uploaded file is empty")
+            raise HTTPException(
+                status_code=400,
+                detail="Uploaded file is empty",
+            )
 
-        event = service.process_image_bytes(content, camera_id=camera_id)
-        return event
-    except ValueError as val_err:
-        raise HTTPException(status_code=400, detail=str(val_err))
-    except Exception as err:
-        raise HTTPException(status_code=500, detail=f"Image identification failed: {err}")
+        return service.process_image_bytes(
+            content,
+            camera_id=camera_id,
+        )
+
+    except HTTPException:
+        raise
+
+    except ValueError as error:
+        raise HTTPException(
+            status_code=400,
+            detail=str(error),
+        ) from error
+
+    except Exception as error:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Image identification failed: {error}",
+        ) from error
+
+    finally:
+        await file.close()
 
 
-@v1_router.post("/analyze/video", response_model=List[RecognitionEvent])
+@v1_router.post(
+    "/analyze/video",
+    response_model=list[RecognitionEvent],
+)
 async def analyze_video(
-    file: UploadFile = File(...),
+    file: Annotated[
+        UploadFile,
+        File(description="Video file used for gait analysis"),
+    ],
     service: GaitService = Depends(get_gait_service),
 ):
+    """Analyze sampled frames from an uploaded video."""
+
+    temporary_path: str | None = None
+
     try:
         content = await file.read()
-        if not content:
-            raise HTTPException(status_code=400, detail="Uploaded video file is empty")
 
-        with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp_vid:
-            tmp_vid.write(content)
-            tmp_path = tmp_vid.name
+        if not content:
+            raise HTTPException(
+                status_code=400,
+                detail="Uploaded video file is empty",
+            )
+
+        suffix = ".mp4"
+
+        if file.filename and "." in file.filename:
+            suffix = "." + file.filename.rsplit(".", maxsplit=1)[-1]
+
+        with tempfile.NamedTemporaryFile(
+            suffix=suffix,
+            delete=False,
+        ) as temporary_video:
+            temporary_video.write(content)
+            temporary_path = temporary_video.name
 
         service.stats["processed_videos"] += 1
-        # Extract key frame for video analysis
+
         import cv2
-        cap = cv2.VideoCapture(tmp_path)
-        events = []
-        frame_idx = 0
-        while cap.isOpened():
-            ret, frame = cap.read()
-            if not ret:
-                break
-            if frame_idx % 15 == 0:  # Sample every 15th frame
-                _, img_buf = cv2.imencode(".jpg", frame)
-                evt = service.process_image_bytes(img_buf.tobytes(), camera_id="upload-video")
-                events.append(evt)
-                if len(events) >= 10:
+
+        capture = cv2.VideoCapture(temporary_path)
+        events: list[RecognitionEvent] = []
+        frame_index = 0
+
+        try:
+            while capture.isOpened():
+                success, frame = capture.read()
+
+                if not success:
                     break
-            frame_idx += 1
-        cap.release()
+
+                # Process every fifteenth frame.
+                if frame_index % 15 == 0:
+                    encoded, image_buffer = cv2.imencode(
+                        ".jpg",
+                        frame,
+                    )
+
+                    if encoded:
+                        event = service.process_image_bytes(
+                            image_buffer.tobytes(),
+                            camera_id="upload-video",
+                        )
+                        events.append(event)
+
+                    if len(events) >= 10:
+                        break
+
+                frame_index += 1
+
+        finally:
+            capture.release()
 
         if not events:
-            # Fallback single frame event
-            _, img_buf = cv2.imencode(".jpg", np.zeros((200, 100, 3), dtype=np.uint8))
-            events.append(service.process_image_bytes(img_buf.tobytes(), camera_id="upload-video"))
+            fallback_frame = np.zeros(
+                (200, 100, 3),
+                dtype=np.uint8,
+            )
+
+            encoded, image_buffer = cv2.imencode(
+                ".jpg",
+                fallback_frame,
+            )
+
+            if not encoded:
+                raise HTTPException(
+                    status_code=500,
+                    detail="Unable to create fallback video frame",
+                )
+
+            events.append(
+                service.process_image_bytes(
+                    image_buffer.tobytes(),
+                    camera_id="upload-video",
+                )
+            )
 
         return events
-    except Exception as err:
-        raise HTTPException(status_code=500, detail=f"Video analysis failed: {err}")
+
+    except HTTPException:
+        raise
+
+    except ValueError as error:
+        raise HTTPException(
+            status_code=400,
+            detail=str(error),
+        ) from error
+
+    except Exception as error:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Video analysis failed: {error}",
+        ) from error
+
+    finally:
+        await file.close()
+
+        if temporary_path:
+            try:
+                import os
+
+                os.remove(temporary_path)
+            except OSError:
+                pass
 
 
-@v1_router.post("/cameras/start", response_model=CameraInfoResponse)
+@v1_router.post(
+    "/cameras/start",
+    response_model=CameraInfoResponse,
+)
 def start_camera(
     body: CameraStartRequest,
     service: GaitService = Depends(get_gait_service),
 ):
-    if not body.camera_id or not body.source:
-        raise HTTPException(status_code=400, detail="camera_id and source are required")
+    """Start a camera recognition worker."""
 
-    cam_info = service.start_camera(body.camera_id, body.source, body.location or "Surveillance Zone")
-    return cam_info
+    if not body.camera_id or not body.source:
+        raise HTTPException(
+            status_code=400,
+            detail="camera_id and source are required",
+        )
+
+    return service.start_camera(
+        body.camera_id,
+        body.source,
+        body.location or "Surveillance Zone",
+    )
 
 
 @v1_router.post("/cameras/stop")
@@ -161,41 +337,132 @@ def stop_camera(
     body: CameraStopRequest,
     service: GaitService = Depends(get_gait_service),
 ):
+    """Stop an active camera recognition worker."""
+
     stopped = service.stop_camera(body.camera_id)
+
     if not stopped:
-        raise HTTPException(status_code=404, detail=f"Camera {body.camera_id} not found or active")
-    return {"success": True, "message": f"Camera {body.camera_id} stopped"}
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                f"Camera {body.camera_id} "
+                "was not found or is not active"
+            ),
+        )
+
+    return {
+        "success": True,
+        "message": f"Camera {body.camera_id} stopped",
+    }
 
 
-@v1_router.get("/cameras", response_model=List[CameraInfoResponse])
-def list_cameras(service: GaitService = Depends(get_gait_service)):
+@v1_router.get(
+    "/cameras",
+    response_model=list[CameraInfoResponse],
+)
+def list_cameras(
+    service: GaitService = Depends(get_gait_service),
+):
+    """Return all active camera workers."""
+
     return list(service.active_cameras.values())
 
 
-@v1_router.post("/enroll", response_model=EnrollResponse)
+@v1_router.post(
+    "/enroll",
+    response_model=EnrollResponse,
+)
 async def enroll_subject(
-    person_id: str = Form(...),
-    files: List[UploadFile] = File(...),
+    person_id: Annotated[
+        str,
+        Form(description="Unique identity assigned to the subject"),
+    ],
+    files: Annotated[
+        list[UploadFile],
+        File(description="One or more gait enrollment image files"),
+    ],
     service: GaitService = Depends(get_gait_service),
 ):
-    if not person_id:
-        raise HTTPException(status_code=400, detail="person_id is required")
+    """Enroll a person using one or more gait images."""
 
-    image_bytes_list = []
-    for f in files:
-        b = await f.read()
-        if b:
-            image_bytes_list.append(b)
+    normalized_person_id = person_id.strip()
 
-    if not image_bytes_list:
-        raise HTTPException(status_code=400, detail="No valid image files supplied")
+    if not normalized_person_id:
+        raise HTTPException(
+            status_code=400,
+            detail="person_id is required",
+        )
 
-    res = service.enroll_images(person_id, image_bytes_list)
-    return res
+    if not files:
+        raise HTTPException(
+            status_code=400,
+            detail="At least one image file is required",
+        )
+
+    image_bytes_list: list[bytes] = []
+
+    try:
+        for upload in files:
+            if (
+                upload.content_type
+                and not upload.content_type.startswith("image/")
+            ):
+                raise HTTPException(
+                    status_code=415,
+                    detail=(
+                        f"Unsupported file type for "
+                        f"{upload.filename or 'uploaded file'}: "
+                        f"{upload.content_type}"
+                    ),
+                )
+
+            content = await upload.read()
+
+            if content:
+                image_bytes_list.append(content)
+
+        if not image_bytes_list:
+            raise HTTPException(
+                status_code=400,
+                detail="No valid image files supplied",
+            )
+
+        result = service.enroll_images(
+            normalized_person_id,
+            image_bytes_list,
+        )
+
+        return result
+
+    except HTTPException:
+        raise
+
+    except ValueError as error:
+        raise HTTPException(
+            status_code=400,
+            detail=str(error),
+        ) from error
+
+    except Exception as error:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Enrollment failed: {error}",
+        ) from error
+
+    finally:
+        for upload in files:
+            await upload.close()
 
 
-@v1_router.get("/events", response_model=List[RecognitionEvent])
-def get_events(service: GaitService = Depends(get_gait_service)):
+@v1_router.get(
+    "/events",
+    response_model=list[RecognitionEvent],
+)
+def get_events(
+    service: GaitService = Depends(get_gait_service),
+):
+    """Return recent gait recognition events."""
+
     return service.events_log
 
 
@@ -203,12 +470,24 @@ def get_events(service: GaitService = Depends(get_gait_service)):
 async def websocket_recognition(
     websocket: WebSocket,
 ):
-    service = get_gait_service(request=None)
+    """Provide real-time recognition events through WebSocket."""
+
+    if (
+        hasattr(websocket.app.state, "gait_service")
+        and websocket.app.state.gait_service
+    ):
+        service = websocket.app.state.gait_service
+    else:
+        service = GaitService()
+
     await service.ws_manager.connect(websocket)
+
     try:
         while True:
-            _ = await websocket.receive_text()
+            await websocket.receive_text()
+
     except WebSocketDisconnect:
         service.ws_manager.disconnect(websocket)
+
     except Exception:
         service.ws_manager.disconnect(websocket)

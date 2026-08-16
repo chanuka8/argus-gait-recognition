@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 import os
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.utils import get_openapi
 
 from api.v1.router import v1_router, get_gait_service
 from services.gait_service import GaitService
@@ -49,6 +50,52 @@ async def verify_firebase_id_token(request: Request) -> bool:
 
 
 app.include_router(v1_router)
+
+
+def custom_openapi():
+    """Custom OpenAPI schema generator ensuring multipart files format=binary for Swagger file picker."""
+    if app.openapi_schema:
+        return app.openapi_schema
+
+    openapi_schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+    )
+
+    try:
+        paths = openapi_schema.get("paths", {})
+        enroll_post = paths.get("/api/v1/enroll", {}).get("post", {})
+        content = enroll_post.get("requestBody", {}).get("content", {})
+        form_data = content.get("multipart/form-data", {})
+        schema_ref = form_data.get("schema", {}).get("$ref", "")
+
+        target_schema = None
+        if schema_ref and "$ref" in form_data.get("schema", {}):
+            ref_name = schema_ref.split("/")[-1]
+            target_schema = openapi_schema.get("components", {}).get("schemas", {}).get(ref_name)
+        elif "properties" in form_data.get("schema", {}):
+            target_schema = form_data.get("schema")
+
+        if target_schema and "properties" in target_schema and "files" in target_schema["properties"]:
+            target_schema["properties"]["files"] = {
+                "title": "Files",
+                "description": "One or more gait enrollment image files",
+                "type": "array",
+                "items": {
+                    "type": "string",
+                    "format": "binary",
+                },
+            }
+    except Exception:
+        pass
+
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+
+app.openapi = custom_openapi
 
 
 # Backward-compatibility aliases for root endpoints
