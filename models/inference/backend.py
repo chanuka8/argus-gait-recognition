@@ -54,6 +54,7 @@ def load_inference_backend_config() -> dict:
         "backend": "pytorch",
         "device": "auto",
         "precision": "fp32",
+        "model_path": "runs/exp_001/best_model.pth",
         "engine_path": "models/engines/bygait_light_fp16.engine",
         "onnx_path": "models/engines/bygait_light.onnx",
         "allow_fallback": True,

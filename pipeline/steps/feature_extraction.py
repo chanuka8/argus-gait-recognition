@@ -13,15 +13,16 @@ from models.inference.backend import get_inference_backend, load_inference_backe
 class FeatureExtractionStep:
     def __init__(
         self,
-        model_path: str = "runs/exp_001/best_model.pth",
+        model_path: str = None,
         image_size: tuple[int, int] = (64, 128),
         binary_threshold: int = 20,
         backend_config: dict = None,
     ) -> None:
-        self.model_path = Path(model_path)
+        self.backend_config = backend_config or load_inference_backend_config()
+        resolved_path = model_path or self.backend_config.get("model_path") or "runs/exp_001/best_model.pth"
+        self.model_path = Path(resolved_path)
         self.image_size = image_size
         self.binary_threshold = binary_threshold
-        self.backend_config = backend_config or load_inference_backend_config()
         self.backend = get_inference_backend(
             config=self.backend_config,
             model_path=str(self.model_path) if self.model_path.exists() else None,

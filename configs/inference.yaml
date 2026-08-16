@@ -217,6 +217,7 @@ inference_backend:
   backend: pytorch
   device: auto
   precision: fp32
+  model_path: "models/candidates/exp_003e_hpp_arcface_triplet025_best.pth"
   engine_path: models/engines/bygait_light_fp16.engine
   onnx_path: models/engines/bygait_light.onnx
   allow_fallback: true
