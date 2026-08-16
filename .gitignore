@@ -54,3 +54,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Runtime gait gallery
+models/live_gallery/gallery_features.npy
+models/live_gallery/gallery_labels.npy
+models/live_gallery/gallery_metadata.json
