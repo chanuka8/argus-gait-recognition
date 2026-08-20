@@ -63,6 +63,7 @@ class CameraStartRequest(BaseModel):
     source: Optional[str] = "auto"
     location: Optional[str] = "Surveillance Zone"
     zone_id: Optional[str] = None
+    credential_id: Optional[str] = None
 
 
 class CameraStopRequest(BaseModel):
@@ -85,6 +86,33 @@ class CameraInfoResponse(BaseModel):
     preview_url: Optional[str] = None
     started_at: Optional[str] = None
     last_frame_at: Optional[str] = None
+    credential_id: Optional[str] = None
+    credential_configured: Optional[bool] = False
+
+
+class CredentialCreateRequest(BaseModel):
+    username: str
+    password: str
+    credential_id: Optional[str] = None
+    description: Optional[str] = None
+    shared_user_ids: Optional[List[str]] = Field(default_factory=list)
+
+
+class CredentialResponse(BaseModel):
+    credential_id: str
+    owner_user_id: str
+    username: str = "***"
+    password: str = "***"
+    description: Optional[str] = ""
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+    shared_user_ids: List[str] = Field(default_factory=list)
+    credential_configured: bool = True
+    is_owner: Optional[bool] = True
+
+
+class CredentialShareRequest(BaseModel):
+    target_user_id: str
 
 
 class EnrollResponse(BaseModel):

@@ -1,6 +1,9 @@
-from services.camera_worker import CameraWorker, normalize_camera_source
-from typing import Optional, List, Dict, Any
+from services.camera_worker import CameraWorker
+from typing import Optional, List
+from pathlib import Path
+import yaml
 from services.camera_source_resolver import CameraSourceResolver
+from security_layer.credentials import sanitize_rtsp_url
 import asyncio
 from datetime import datetime, timezone
 import uuid
@@ -256,12 +259,46 @@ class GaitService:
             "embeddings_added": added_embeddings,
         }
 
+    def _load_camera_config(self) -> dict:
+        """Load default camera configuration settings from configs/system.yaml."""
+        config_path = Path("configs/system.yaml")
+        defaults = {
+            "width": 640,
+            "height": 480,
+            "target_fps": 15,
+            "jpeg_quality": 75,
+            "preview_max_fps": 15,
+            "reconnect_interval": 5,
+            "max_reconnect_attempts": 0,
+            "max_queue_size": 10,
+            "startup_timeout": 10.0,
+            "startup_retry_interval": 0.3,
+        }
+
+        if not config_path.exists():
+            return defaults
+
+        try:
+            with open(config_path, "r", encoding="utf-8") as f:
+                data = yaml.safe_load(f) or {}
+                section = data.get("camera", {})
+                if isinstance(section, dict):
+                    for k in defaults:
+                        if k in section:
+                            defaults[k] = section[k]
+        except Exception as e:
+            self.logger.warning(f"Could not load system camera configuration: {e}")
+
+        return defaults
+
     def start_camera(
         self,
         camera_id: str,
         source: str = "auto",
         location: str = "Surveillance Zone",
         zone_id: Optional[str] = None,
+        user_id: str = "default_user",
+        credential_id: Optional[str] = None,
     ) -> dict:
         """Starts camera tracking worker state with automatic or explicit source resolution."""
         # If camera is already active, return existing deterministically
@@ -273,29 +310,26 @@ class GaitService:
             camera_id=camera_id,
             requested_source=source or "auto",
             zone_id=zone_id,
+            user_id=user_id,
+            credential_id=credential_id,
         )
 
         resolved_source = resolution["resolved_source"]
         resolved_type = resolution["resolved_source_type"]
         resolved_label = resolution["resolved_source_label"]
+        res_cred_id = resolution.get("credential_id")
+        res_cred_conf = resolution.get("credential_configured", False)
 
         # Sanitize source (mask passwords in RTSP URLs)
-        sanitized_source = resolved_source
-        if "@" in sanitized_source and "://" in sanitized_source:
-            proto, rest = sanitized_source.split("://", 1)
-            user_pass, host_path = rest.rsplit("@", 1)
-            sanitized_source = f"{proto}://***:***@{host_path}"
+        sanitized_source = sanitize_rtsp_url(resolved_source)
 
-        # Initialize and start CameraWorker
+        # Load system-level camera defaults and overlay resolved hardware parameters
+        camera_defaults = self._load_camera_config()
         worker_cfg = {
+            **camera_defaults,
             "type": resolved_type,
             "url": resolved_source if resolved_type != "usb" else "",
             "device_index": int(resolved_source) if resolved_type == "usb" else 0,
-            "width": 640,
-            "height": 480,
-            "target_fps": 15,
-            "jpeg_quality": 75,
-            "preview_max_fps": 15,
         }
 
         worker = CameraWorker(
@@ -308,7 +342,7 @@ class GaitService:
         started = worker.start()
         if not started:
             self.source_resolver.release_source_by_camera_id(camera_id)
-            raise RuntimeError(f"Failed to open video capture for {resolved_label} ({camera_id})")
+            raise RuntimeError(f"Failed to open video capture for {sanitized_source} ({camera_id})")
 
         self.camera_workers[camera_id] = worker
 
@@ -324,16 +358,18 @@ class GaitService:
             "fps": round(stats.get("fps", 0.0), 1),
             "processed_frames": frames_captured,
             "active_tracks": 0,
-            "requested_source": source,
+            "requested_source": sanitize_rtsp_url(source),
             "resolved_source": sanitized_source,
             "resolved_source_type": resolved_type,
-            "resolved_source_label": resolved_label,
+            "resolved_source_label": sanitize_rtsp_url(resolved_label),
             "preview_url": f"/api/v1/cameras/{camera_id}/stream",
             "started_at": datetime.now(timezone.utc).isoformat(),
             "last_frame_at": stats.get("last_frame_at"),
+            "credential_id": res_cred_id,
+            "credential_configured": res_cred_conf,
         }
         self.active_cameras[camera_id] = cam_info
-        self.logger.info(f"Camera worker {camera_id} active with {resolved_label}")
+        self.logger.info(f"Camera worker {camera_id} active with {sanitize_rtsp_url(resolved_label)}")
         return cam_info
 
     def stop_camera(self, camera_id: str) -> bool:
@@ -343,7 +379,7 @@ class GaitService:
             try:
                 worker.stop()
             except Exception as e:
-                self.logger.warning(f"Error stopping worker {camera_id}: {e}")
+                self.logger.warning(f"Error stopping worker {camera_id}: {sanitize_rtsp_url(str(e))}")
 
         if camera_id in self.active_cameras:
             self.active_cameras[camera_id]["status"] = "STOPPED"

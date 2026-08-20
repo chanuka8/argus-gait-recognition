@@ -20,6 +20,10 @@ camera:
   max_reconnect_attempts: 0
   # Maximum frames held in the thread-safe queue
   max_queue_size: 10
+  # Seconds to wait for first frame readiness during startup
+  startup_timeout: 10
+  # Seconds between retry attempts for first frame readiness
+  startup_retry_interval: 0.3
 
 logging:
   # Directory for all log files

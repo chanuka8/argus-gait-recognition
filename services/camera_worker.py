@@ -1,11 +1,10 @@
 import threading
 import time
 from datetime import datetime, timezone
-from queue import Empty, Full, Queue
+from queue import Full, Queue
 from typing import Optional
 
 import cv2
-import numpy as np
 
 from monitoring.logging_config import get_logger
 from security_layer.credentials import sanitize_rtsp_url
@@ -43,20 +42,24 @@ class CameraWorker:
         self._source_type = camera_config.get("type", "usb")
         self._url = camera_config.get("url", "")
         self._device_index = int(camera_config.get("device_index", 0))
-        self._width = int(camera_config.get("width", 640))
-        self._height = int(camera_config.get("height", 480))
-        self._target_fps = int(camera_config.get("target_fps", 15))
-        self._reconnect_interval = int(camera_config.get("reconnect_interval", 5))
-        self._max_reconnect = int(camera_config.get("max_reconnect_attempts", 0))
-        self._max_queue_size = int(camera_config.get("max_queue_size", 10))
-        self._jpeg_quality = int(camera_config.get("jpeg_quality", 75))
-        self._min_jpeg_interval = 1.0 / float(camera_config.get("preview_max_fps", 15))
+        self._width = max(16, int(camera_config.get("width", 640)))
+        self._height = max(16, int(camera_config.get("height", 480)))
+        self._target_fps = max(0, int(camera_config.get("target_fps", 15)))
+        self._reconnect_interval = max(0, int(camera_config.get("reconnect_interval", 5)))
+        self._max_reconnect = max(0, int(camera_config.get("max_reconnect_attempts", 0)))
+        self._max_queue_size = max(1, int(camera_config.get("max_queue_size", 10)))
+        self._jpeg_quality = max(1, min(100, int(camera_config.get("jpeg_quality", 75))))
+        preview_max_fps = max(0.1, float(camera_config.get("preview_max_fps", 15)))
+        self._min_jpeg_interval = 1.0 / preview_max_fps
+        self._startup_timeout = max(0.1, float(camera_config.get("startup_timeout", 10.0)))
+        self._startup_retry_interval = max(0.01, float(camera_config.get("startup_retry_interval", 0.3)))
 
         self._frame_queue = Queue(maxsize=self._max_queue_size)
         self._capture = None
         self._thread = None
+        self._is_starting = False
         self._stop_event = threading.Event()
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
 
         self._latest_jpeg: Optional[bytes] = None
         self._last_frame_at: Optional[str] = None
@@ -92,9 +95,76 @@ class CameraWorker:
                 raise ValueError(f"Camera {self.camera_id}: HTTP URL is empty")
             return self._url
         elif self._source_type == "file":
-            return self.config.get("file_path", "")
+            file_path = self.config.get("file_path", "")
+            if not file_path:
+                raise ValueError(f"Camera {self.camera_id}: Video file path is empty")
+            return file_path
         else:
             return normalize_camera_source(self.config.get("device_index", self._device_index))
+
+    def _wait_for_first_frame(self, safe_source: str) -> bool:
+        """Wait for the first valid frame with bounded retry.
+
+        RTSP streams typically require 1-5 seconds to negotiate and buffer the
+        first frame after VideoCapture is opened. This method retries read()
+        up to startup_timeout seconds, checking _stop_event between retries
+        so that a pending stop request can abort startup immediately.
+
+        Returns True if a valid frame was received and the JPEG preview buffer
+        was populated, False otherwise.
+        """
+        self._logger.info(f"Waiting for first frame from {safe_source} (timeout={self._startup_timeout}s)")
+        deadline = time.monotonic() + self._startup_timeout
+        attempt = 0
+
+        while time.monotonic() < deadline:
+            if self._stop_event.is_set():
+                self._logger.info(f"Startup cancelled by stop request for {safe_source}")
+                return False
+
+            attempt += 1
+            ret, frame = self._capture.read()
+
+            if ret and frame is not None and frame.size > 0:
+                # Valid frame received — populate preview buffer
+                success = False
+                enc_buf = None
+                try:
+                    frame_resized = cv2.resize(frame, (self._width, self._height))
+                    encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), self._jpeg_quality]
+                    success, enc_buf = cv2.imencode(".jpg", frame_resized, encode_param)
+                except Exception as enc_err:
+                    self._logger.warning(f"Initial JPEG encode error: {enc_err}")
+
+                now = time.monotonic()
+                iso_now = datetime.now(timezone.utc).isoformat()
+
+                with self._lock:
+                    self.stats["connected"] = True
+                    self._frame_count = 1
+                    self.stats["frames_captured"] = 1
+                    if success and enc_buf is not None:
+                        self._latest_jpeg = enc_buf.tobytes()
+                        self._last_frame_at = iso_now
+                        self._last_jpeg_encode_time = now
+
+                self._logger.info(
+                    f"Camera {self.camera_id} first frame received after {attempt} attempt(s) "
+                    f"({time.monotonic() - (deadline - self._startup_timeout):.1f}s)"
+                )
+                return True
+
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
+            sleep_time = min(self._startup_retry_interval, remaining)
+            self._stop_event.wait(sleep_time)
+
+        self._logger.error(
+            f"Startup timeout: no valid frame from {safe_source} after "
+            f"{self._startup_timeout}s ({attempt} attempts)"
+        )
+        return False
 
     def _open_capture(self) -> bool:
         try:
@@ -106,6 +176,11 @@ class CameraWorker:
 
             if not self._capture.isOpened():
                 self._logger.error(f"Failed to open camera source: {safe_source}")
+                if self._capture is not None:
+                    try:
+                        self._capture.release()
+                    except Exception:
+                        pass
                 self._capture = None
                 return False
 
@@ -115,68 +190,71 @@ class CameraWorker:
             if self._target_fps > 0:
                 self._capture.set(cv2.CAP_PROP_FPS, self._target_fps)
 
-            # Read initial test frame to guarantee readiness
-            ret, frame = self._capture.read()
-            if not ret or frame is None or frame.size == 0:
-                self._logger.error(f"Failed to read initial frame from camera source: {safe_source}")
-                self._capture.release()
+            # Bounded first-frame readiness handshake
+            if not self._wait_for_first_frame(safe_source):
+                if self._capture is not None:
+                    try:
+                        self._capture.release()
+                    except Exception:
+                        pass
                 self._capture = None
                 return False
 
-            # Process initial frame into JPEG buffer
-            frame_resized = cv2.resize(frame, (self._width, self._height))
-            encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), self._jpeg_quality]
-            success, enc_buf = cv2.imencode(".jpg", frame_resized, encode_param)
-            now = time.monotonic()
-            iso_now = datetime.now(timezone.utc).isoformat()
-
-            with self._lock:
-                self.stats["connected"] = True
-                self._frame_count = 1
-                self.stats["frames_captured"] = 1
-                if success:
-                    self._latest_jpeg = enc_buf.tobytes()
-                    self._last_frame_at = iso_now
-                    self._last_jpeg_encode_time = now
-
-            self._logger.info(f"Camera {self.camera_id} connected and initial frame verified successfully")
+            self._logger.info(f"Camera {self.camera_id} connected and ready")
             return True
 
         except Exception as e:
-            self._logger.error(f"Error opening capture: {str(e)}")
+            self._logger.error(f"Error opening capture: {sanitize_rtsp_url(str(e))}")
             if self._capture is not None:
-                self._capture.release()
+                try:
+                    self._capture.release()
+                except Exception:
+                    pass
             self._capture = None
             return False
 
     def _close_capture(self) -> None:
-        if self._capture is not None:
-            self._capture.release()
-            self._capture = None
+        with self._lock:
+            if self._capture is not None:
+                try:
+                    self._capture.release()
+                except Exception:
+                    pass
+                self._capture = None
 
-            with self._lock:
-                self.stats["connected"] = False
+            self.stats["connected"] = False
 
     def _capture_loop(self) -> None:
         """Main frame capture and preview encoding loop."""
         reconnect_attempts = 0
+        frame_interval = 1.0 / self._target_fps if self._target_fps > 0 else 0.0
 
         while not self._stop_event.is_set():
+            loop_start = time.monotonic()
+
             if self._capture is None or not self._capture.isOpened():
                 if self._max_reconnect > 0 and reconnect_attempts >= self._max_reconnect:
                     self._logger.error(f"Max reconnect attempts ({self._max_reconnect}) reached. Stopping.")
                     break
 
+                reconnect_attempts += 1
+                self._reconnect_count += 1
+                with self._lock:
+                    self.stats["reconnect_count"] = self._reconnect_count
+                self._logger.info(f"Reconnecting camera {self.camera_id} (attempt {reconnect_attempts})")
                 self._stop_event.wait(self._reconnect_interval)
-                if not self._open_capture():
-                    reconnect_attempts += 1
-                    continue
-                reconnect_attempts = 0
+                if self._stop_event.is_set():
+                    break
+                if self._open_capture():
+                    reconnect_attempts = 0
+                    self._logger.info(f"Camera {self.camera_id} reconnected successfully")
+                continue
 
             try:
                 ret, frame = self._capture.read()
 
                 if not ret or frame is None:
+                    self._logger.warning(f"Frame read failure on camera {self.camera_id}, disconnecting for reconnect")
                     self._close_capture()
                     continue
 
@@ -195,7 +273,7 @@ class CameraWorker:
 
                         encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), self._jpeg_quality]
                         success, enc_buf = cv2.imencode(".jpg", preview_frame, encode_param)
-                        if success:
+                        if success and enc_buf is not None:
                             jpeg_bytes = enc_buf.tobytes()
                             with self._lock:
                                 self._latest_jpeg = jpeg_bytes
@@ -225,8 +303,15 @@ class CameraWorker:
                     self.stats["frames_captured"] = self._frame_count
                     self.stats["last_update"] = now
 
+                # Frame rate pacing
+                if frame_interval > 0:
+                    processing_time = time.monotonic() - loop_start
+                    sleep_time = frame_interval - processing_time
+                    if sleep_time > 0:
+                        self._stop_event.wait(sleep_time)
+
             except Exception as e:
-                self._logger.error(f"Error in capture loop: {str(e)}")
+                self._logger.error(f"Error in capture loop: {sanitize_rtsp_url(str(e))}")
                 self._close_capture()
 
         self._close_capture()
@@ -251,29 +336,59 @@ class CameraWorker:
             return self.stats["connected"]
 
     def is_running(self) -> bool:
-        return self._thread is not None and self._thread.is_alive()
+        with self._lock:
+            return self._thread is not None and self._thread.is_alive()
 
     def start(self) -> bool:
         """Start camera capture thread after verifying readiness."""
-        if self.is_running():
-            return False
+        with self._lock:
+            if self._is_starting or (self._thread is not None and self._thread.is_alive()):
+                return False
+            self._is_starting = True
+            self._stop_event.clear()
 
-        if not self._open_capture():
-            return False
+        try:
+            if not self._open_capture():
+                with self._lock:
+                    self._is_starting = False
+                return False
 
-        self._stop_event.clear()
-        self._thread = threading.Thread(
-            target=self._capture_loop,
-            name=f"camera-{self.camera_id}",
-            daemon=True,
-        )
-        self._thread.start()
-        return True
+            with self._lock:
+                if self._stop_event.is_set() or (self._thread is not None and self._thread.is_alive()):
+                    self._close_capture()
+                    self._is_starting = False
+                    return False
+
+                self._thread = threading.Thread(
+                    target=self._capture_loop,
+                    name=f"camera-{self.camera_id}",
+                    daemon=True,
+                )
+                self._thread.start()
+                self._is_starting = False
+                return True
+        except Exception:
+            with self._lock:
+                self._is_starting = False
+            self._close_capture()
+            return False
 
     def stop(self, timeout: float = 3.0) -> bool:
         """Stop camera capture thread."""
         self._stop_event.set()
-        if self._thread is not None and self._thread.is_alive():
-            self._thread.join(timeout=timeout)
+        thread_to_join = None
+        with self._lock:
+            self._is_starting = False
+            if self._thread is not None and self._thread.is_alive():
+                thread_to_join = self._thread
+
+        if thread_to_join is not None:
+            thread_to_join.join(timeout=timeout)
+
         self._close_capture()
         return True
+
+    def restart(self, timeout: float = 3.0) -> bool:
+        """Restart camera capture thread cleanly."""
+        self.stop(timeout=timeout)
+        return self.start()
