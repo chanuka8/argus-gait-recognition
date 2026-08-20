@@ -78,6 +78,10 @@ class CameraInfoResponse(BaseModel):
     fps: float = 0.0
     processed_frames: int = 0
     active_tracks: int = 0
+    recognition_active: Optional[bool] = False
+    last_recognition_at: Optional[str] = None
+    active_clients: Optional[int] = 0
+    recognized_identities: Optional[List[str]] = Field(default_factory=list)
     zone_id: Optional[str] = None
     requested_source: Optional[str] = None
     resolved_source: Optional[str] = None
@@ -88,6 +92,7 @@ class CameraInfoResponse(BaseModel):
     last_frame_at: Optional[str] = None
     credential_id: Optional[str] = None
     credential_configured: Optional[bool] = False
+
 
 
 class CredentialCreateRequest(BaseModel):

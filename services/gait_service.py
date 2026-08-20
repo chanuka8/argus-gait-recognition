@@ -99,6 +99,29 @@ class GaitService:
             self.gallery_labels = []
             self.metadata = []
 
+        # Sync gallery across all active camera workers
+        for worker in self.camera_workers.values():
+            if worker.recognition_worker is not None:
+                worker.recognition_worker.update_gallery(
+                    gallery_features=self.gallery_features,
+                    gallery_labels=self.gallery_labels,
+                    metadata=self.metadata,
+                )
+
+    def _handle_recognition_event(self, event_dict: dict) -> None:
+        """Store confirmed recognition event in history and broadcast to WebSocket subscribers."""
+        self.events_log.insert(0, event_dict)
+        if len(self.events_log) > 500:
+            self.events_log.pop()
+        self.stats["total_events"] += 1
+
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                asyncio.create_task(self.ws_manager.broadcast(event_dict))
+        except Exception:
+            pass
+
     def get_metrics(self) -> dict:
         has_labels = len(self.gallery_labels) > 0 if self.gallery_labels is not None else False
         unique_labels = set(self.gallery_labels) if has_labels else set()
@@ -332,11 +355,32 @@ class GaitService:
             "device_index": int(resolved_source) if resolved_type == "usb" else 0,
         }
 
+        # Initialize decoupled real-time recognition worker
+        recognition_worker = None
+        try:
+            from services.recognition_worker import RecognitionWorker
+            recognition_worker = RecognitionWorker(
+                camera_id=camera_id,
+                config=worker_cfg.get("recognition", {}),
+                detector=self.detector,
+                silhouette_extractor=self.silhouette_extractor,
+                extractor=self.extractor,
+                matcher=self.matcher,
+                open_set_recognizer=self.open_set_recognizer,
+                gallery_features=self.gallery_features,
+                gallery_labels=self.gallery_labels,
+                metadata=self.metadata,
+                event_callback=self._handle_recognition_event,
+            )
+        except Exception as rec_err:
+            self.logger.warning(f"Recognition worker init deferred for {camera_id}: {rec_err}")
+
         worker = CameraWorker(
             camera_id=camera_id,
             camera_config=worker_cfg,
             inference_pipeline=None,
             detection_processor=None,
+            recognition_worker=recognition_worker,
         )
 
         started = worker.start()
@@ -357,7 +401,8 @@ class GaitService:
             "status": "ACTIVE",
             "fps": round(stats.get("fps", 0.0), 1),
             "processed_frames": frames_captured,
-            "active_tracks": 0,
+            "active_tracks": stats.get("active_tracks", 0),
+            "recognition_active": stats.get("recognition_active", False),
             "requested_source": sanitize_rtsp_url(source),
             "resolved_source": sanitized_source,
             "resolved_source_type": resolved_type,
@@ -365,6 +410,7 @@ class GaitService:
             "preview_url": f"/api/v1/cameras/{camera_id}/stream",
             "started_at": datetime.now(timezone.utc).isoformat(),
             "last_frame_at": stats.get("last_frame_at"),
+            "last_recognition_at": stats.get("last_recognition_at"),
             "credential_id": res_cred_id,
             "credential_configured": res_cred_conf,
         }
@@ -402,7 +448,11 @@ class GaitService:
             stats = worker.get_stats()
             cam["processed_frames"] = stats.get("frames_captured", cam.get("processed_frames", 0))
             cam["fps"] = round(stats.get("fps", 0.0), 1)
-            cam["active_tracks"] = worker._active_tracks
+            cam["active_tracks"] = stats.get("active_tracks", 0)
+            cam["recognition_active"] = stats.get("recognition_active", False)
+            cam["last_recognition_at"] = stats.get("last_recognition_at")
+            cam["active_clients"] = stats.get("active_clients", 0)
+            cam["recognized_identities"] = stats.get("recognized_identities", [])
             cam["preview_url"] = f"/api/v1/cameras/{camera_id}/stream"
             cam["last_frame_at"] = stats.get("last_frame_at")
         return cam

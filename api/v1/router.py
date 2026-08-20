@@ -562,7 +562,7 @@ async def stream_camera(
     service: GaitService = Depends(get_gait_service),
 ):
     """
-    Stream live camera frames in multipart/x-mixed-replace MJPEG format.
+    Stream live camera frames with real-time recognition overlays in multipart/x-mixed-replace MJPEG format.
     Reuses the active CameraWorker instance without opening additional captures.
     """
     if camera_id not in service.active_cameras:
@@ -571,14 +571,32 @@ async def stream_camera(
             detail=f"Camera worker {camera_id} is not active",
         )
 
+    worker = service.get_camera_worker(camera_id)
+    if not worker:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Camera worker instance {camera_id} not found",
+        )
+
     async def frame_generator():
+        worker.register_client()
         try:
             while camera_id in service.active_cameras:
-                worker = service.get_camera_worker(camera_id)
-                if not worker:
+                curr_worker = service.get_camera_worker(camera_id)
+                if not curr_worker or not curr_worker.is_running():
+                    # Yield offline frame before terminating if available
+                    if curr_worker:
+                        offline_jpeg = curr_worker.get_latest_jpeg()
+                        if offline_jpeg:
+                            yield (
+                                b"--frame\r\n"
+                                b"Content-Type: image/jpeg\r\n"
+                                b"Content-Length: " + str(len(offline_jpeg)).encode() + b"\r\n\r\n"
+                                + offline_jpeg + b"\r\n"
+                            )
                     break
 
-                jpeg_bytes = worker.get_latest_jpeg()
+                jpeg_bytes = curr_worker.get_latest_jpeg()
                 if jpeg_bytes is not None:
                     yield (
                         b"--frame\r\n"
@@ -591,6 +609,10 @@ async def stream_camera(
                     await asyncio.sleep(0.1)
         except (asyncio.CancelledError, GeneratorExit):
             pass
+        finally:
+            curr_worker = service.get_camera_worker(camera_id)
+            if curr_worker:
+                curr_worker.unregister_client()
 
     return StreamingResponse(
         frame_generator(),
@@ -599,8 +621,10 @@ async def stream_camera(
             "Cache-Control": "no-cache, no-store, must-revalidate",
             "Pragma": "no-cache",
             "Expires": "0",
+            "Connection": "close",
         },
     )
+
 
 
 @v1_router.get(

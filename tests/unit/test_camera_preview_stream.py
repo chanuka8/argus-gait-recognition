@@ -54,9 +54,19 @@ def test_get_cameras_empty_by_default():
         assert resp.json() == []
 
 
+from unittest.mock import MagicMock, patch
+
+
 def test_mjpeg_stream_and_snapshot_endpoints():
     """Verify /api/v1/cameras/{camera_id}/stream and /snapshot endpoints with TestClient."""
-    with TestClient(app) as client:
+    mock_cap = MagicMock()
+    mock_cap.isOpened.return_value = True
+    dummy = np.zeros((480, 640, 3), dtype=np.uint8)
+    mock_cap.read.return_value = (True, dummy)
+
+    with TestClient(app) as client, \
+         patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap), \
+         patch("services.camera_source_resolver.CameraSourceResolver.probe_usb_webcam", return_value=True):
         # 1. Non-active camera returns 404
         resp_404 = client.get("/api/v1/cameras/NON_EXISTENT_CAM/stream")
         assert resp_404.status_code == 404

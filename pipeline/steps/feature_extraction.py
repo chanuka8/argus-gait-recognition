@@ -114,3 +114,26 @@ class FeatureExtractionStep:
         return embedding.astype(
             np.float32,
         )
+
+    def extract_from_gei(
+        self,
+        gei: np.ndarray,
+    ) -> np.ndarray:
+        """Extract a 256-d L2-normalized embedding directly from an in-memory GEI array."""
+        if gei is None or gei.size == 0:
+            return np.empty((0, 256), dtype=np.float32)
+
+        if gei.ndim == 3 and gei.shape[2] == 3:
+            gei = cv2.cvtColor(gei, cv2.COLOR_BGR2GRAY)
+
+        h, w = gei.shape[:2]
+        if (w, h) != self.image_size:
+            gei = cv2.resize(gei, self.image_size)
+
+        if gei.dtype == np.uint8 or gei.max() > 1.0:
+            norm_gei = gei.astype(np.float32) / 255.0
+        else:
+            norm_gei = gei.astype(np.float32)
+
+        embedding = self.backend.predict(norm_gei).flatten()
+        return embedding.astype(np.float32)

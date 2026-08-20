@@ -5,9 +5,12 @@ from queue import Full, Queue
 from typing import Optional
 
 import cv2
+import numpy as np
 
 from monitoring.logging_config import get_logger
 from security_layer.credentials import sanitize_rtsp_url
+from services.recognition_worker import RecognitionWorker
+from utils.display_renderer import DetectionDisplayRenderer, load_display_config
 
 
 def normalize_camera_source(source) -> int | str:
@@ -23,7 +26,7 @@ def normalize_camera_source(source) -> int | str:
 
 
 class CameraWorker:
-    """Independent worker for a single camera stream with real-time JPEG preview buffer."""
+    """Independent worker for a single camera stream with real-time JPEG preview buffer and recognition overlays."""
 
     def __init__(
         self,
@@ -31,13 +34,16 @@ class CameraWorker:
         camera_config: dict,
         inference_pipeline=None,
         detection_processor=None,
+        recognition_worker: Optional[RecognitionWorker] = None,
     ) -> None:
         self.camera_id = camera_id
         self.config = camera_config
         self.inference_pipeline = inference_pipeline
         self.detection_processor = detection_processor
+        self.recognition_worker = recognition_worker
 
         self._logger = get_logger(f"camera.{camera_id}")
+        self._renderer = DetectionDisplayRenderer(load_display_config())
 
         self._source_type = camera_config.get("type", "usb")
         self._url = camera_config.get("url", "")
@@ -65,6 +71,8 @@ class CameraWorker:
         self._last_frame_at: Optional[str] = None
         self._last_jpeg_encode_time: float = 0.0
         self._active_tracks: int = 0
+        self._active_clients: int = 0
+        self._recognized_identities: list[str] = []
 
         self.stats = {
             "frames_captured": 0,
@@ -76,6 +84,8 @@ class CameraWorker:
             "reconnect_count": 0,
             "uptime_seconds": 0.0,
             "identities_recognized": 0,
+            "active_tracks": 0,
+            "recognition_active": False,
             "last_update": time.monotonic(),
         }
 
@@ -224,8 +234,82 @@ class CameraWorker:
 
             self.stats["connected"] = False
 
+    def _render_status_frame(self, message: str = "OFFLINE") -> bytes:
+        """Render a clean status placeholder frame when camera is disconnected or reconnecting."""
+        try:
+            frame = np.zeros((self._height, self._width, 3), dtype=np.uint8)
+            cv2.putText(frame, "ARGUS AI SURVEILLANCE", (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2, cv2.LINE_AA)
+            cv2.putText(frame, f"CAMERA: {self.camera_id}", (20, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (200, 200, 200), 1, cv2.LINE_AA)
+            cv2.putText(frame, f"STATUS: {message}", (20, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2, cv2.LINE_AA)
+            now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+            cv2.putText(frame, now_str, (20, 160), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (150, 150, 150), 1, cv2.LINE_AA)
+            encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), self._jpeg_quality]
+            success, enc_buf = cv2.imencode(".jpg", frame, encode_param)
+            return enc_buf.tobytes() if success and enc_buf is not None else b""
+        except Exception:
+            return b""
+
+    def _render_preview_overlays(self, frame: np.ndarray) -> np.ndarray:
+        """Render live CCTV overlays: bounding boxes, track labels, identities, top status, and timestamp."""
+        try:
+            annotated = frame.copy()
+            active_tracks = []
+            rec_active = False
+            confirmed_ids = []
+
+            if self.recognition_worker is not None:
+                rec_active = self.recognition_worker.is_alive()
+                active_tracks = self.recognition_worker.cache.get_active_tracks(self.camera_id)
+                for res in active_tracks:
+                    self._renderer.draw(
+                        frame=annotated,
+                        box=res.bbox,
+                        track_id=res.track_id,
+                        identity=res.identity,
+                        score=res.similarity,
+                        decision=res.decision,
+                        camera_id=self.camera_id,
+                    )
+                    if res.status == "CONFIRMED" and res.identity != "UNKNOWN":
+                        confirmed_ids.append(res.identity)
+
+            with self._lock:
+                self._active_tracks = len(active_tracks)
+                self._recognized_identities = list(set(confirmed_ids))
+                self.stats["active_tracks"] = self._active_tracks
+                self.stats["identities_recognized"] = len(self._recognized_identities)
+                self.stats["recognition_active"] = rec_active
+
+            # Top overlay header
+            fps_val = self.stats.get("fps", 0.0)
+            status_text = f"[{self.camera_id}] FPS: {fps_val:.1f} | LIVE | Tracks: {len(active_tracks)}"
+            cv2.putText(annotated, status_text, (10, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 255, 0), 2, cv2.LINE_AA)
+
+            # Bottom timestamp
+            now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+            cv2.putText(annotated, now_iso, (10, annotated.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (220, 220, 220), 1, cv2.LINE_AA)
+            return annotated
+        except Exception as overlay_err:
+            self._logger.debug(f"Overlay rendering error: {overlay_err}")
+            return frame
+
+    def register_client(self) -> None:
+        """Increment active streaming client counter."""
+        with self._lock:
+            self._active_clients += 1
+
+    def unregister_client(self) -> None:
+        """Decrement active streaming client counter."""
+        with self._lock:
+            self._active_clients = max(0, self._active_clients - 1)
+
+    def get_active_clients(self) -> int:
+        """Get number of currently connected stream clients."""
+        with self._lock:
+            return self._active_clients
+
     def _capture_loop(self) -> None:
-        """Main frame capture and preview encoding loop."""
+        """Main frame capture, recognition delegation, and preview encoding loop."""
         reconnect_attempts = 0
         frame_interval = 1.0 / self._target_fps if self._target_fps > 0 else 0.0
 
@@ -241,6 +325,8 @@ class CameraWorker:
                 self._reconnect_count += 1
                 with self._lock:
                     self.stats["reconnect_count"] = self._reconnect_count
+                    self._latest_jpeg = self._render_status_frame(f"RECONNECTING ({reconnect_attempts})")
+
                 self._logger.info(f"Reconnecting camera {self.camera_id} (attempt {reconnect_attempts})")
                 self._stop_event.wait(self._reconnect_interval)
                 if self._stop_event.is_set():
@@ -256,16 +342,22 @@ class CameraWorker:
                 if not ret or frame is None:
                     self._logger.warning(f"Frame read failure on camera {self.camera_id}, disconnecting for reconnect")
                     self._close_capture()
+                    with self._lock:
+                        self._latest_jpeg = self._render_status_frame("SIGNAL LOST")
                     continue
 
                 frame = cv2.resize(frame, (self._width, self._height))
                 now = time.monotonic()
                 iso_now = datetime.now(timezone.utc).isoformat()
 
-                # Rate-limited preview JPEG encoding
+                # Asynchronously feed decoupled recognition worker
+                if self.recognition_worker is not None:
+                    self.recognition_worker.put_frame(frame)
+
+                # Rate-limited preview JPEG encoding with visual recognition overlays
                 if now - self._last_jpeg_encode_time >= self._min_jpeg_interval:
                     try:
-                        preview_frame = frame
+                        preview_frame = self._render_preview_overlays(frame)
                         if preview_frame.shape[1] > 640:
                             h, w = preview_frame.shape[:2]
                             new_h = int(h * (640 / w))
@@ -313,6 +405,8 @@ class CameraWorker:
             except Exception as e:
                 self._logger.error(f"Error in capture loop: {sanitize_rtsp_url(str(e))}")
                 self._close_capture()
+                with self._lock:
+                    self._latest_jpeg = self._render_status_frame("CAPTURE ERROR")
 
         self._close_capture()
         self._logger.info("Camera capture loop stopped")
@@ -323,12 +417,19 @@ class CameraWorker:
             return self._latest_jpeg
 
     def get_stats(self) -> dict:
-        """Get current camera statistics."""
+        """Get current camera statistics including recognition telemetry."""
+        rec_stats = {}
+        if self.recognition_worker is not None:
+            rec_stats = self.recognition_worker.get_stats()
+
         with self._lock:
             return {
                 **self.stats.copy(),
                 "last_frame_at": self._last_frame_at,
                 "active_tracks": self._active_tracks,
+                "active_clients": self._active_clients,
+                "recognized_identities": list(self._recognized_identities),
+                **rec_stats,
             }
 
     def is_connected(self) -> bool:
@@ -340,7 +441,7 @@ class CameraWorker:
             return self._thread is not None and self._thread.is_alive()
 
     def start(self) -> bool:
-        """Start camera capture thread after verifying readiness."""
+        """Start camera capture thread and recognition worker after verifying readiness."""
         with self._lock:
             if self._is_starting or (self._thread is not None and self._thread.is_alive()):
                 return False
@@ -366,7 +467,11 @@ class CameraWorker:
                 )
                 self._thread.start()
                 self._is_starting = False
-                return True
+
+            if self.recognition_worker is not None:
+                self.recognition_worker.start()
+
+            return True
         except Exception:
             with self._lock:
                 self._is_starting = False
@@ -374,7 +479,7 @@ class CameraWorker:
             return False
 
     def stop(self, timeout: float = 3.0) -> bool:
-        """Stop camera capture thread."""
+        """Stop camera capture thread and recognition worker."""
         self._stop_event.set()
         thread_to_join = None
         with self._lock:
@@ -385,10 +490,15 @@ class CameraWorker:
         if thread_to_join is not None:
             thread_to_join.join(timeout=timeout)
 
+        if self.recognition_worker is not None:
+            self.recognition_worker.stop(timeout=timeout)
+
         self._close_capture()
+        with self._lock:
+            self._latest_jpeg = self._render_status_frame("OFFLINE")
         return True
 
     def restart(self, timeout: float = 3.0) -> bool:
-        """Restart camera capture thread cleanly."""
+        """Restart camera capture thread and recognition worker cleanly."""
         self.stop(timeout=timeout)
         return self.start()
