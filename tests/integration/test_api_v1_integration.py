@@ -1,4 +1,5 @@
 import unittest
+import unittest.mock
 import cv2
 import numpy as np
 from fastapi.testclient import TestClient
@@ -53,25 +54,33 @@ class TestApiV1Integration(unittest.TestCase):
         self.assertEqual(data["recognition_branch"], "2D_GEI")
 
     def test_camera_lifecycle_endpoints(self) -> None:
-        start_res = self.client.post(
-            "/api/v1/cameras/start",
-            json={"camera_id": "cam_gate_01", "source": "rtsp://user:pass@192.168.1.100:554/live", "location": "Main Gate"},
-        )
-        self.assertEqual(start_res.status_code, 200)
-        cam_data = start_res.json()
-        self.assertEqual(cam_data["camera_id"], "cam_gate_01")
-        self.assertNotIn("pass", cam_data["source"])
+        dummy_frame = np.zeros((480, 640, 3), dtype=np.uint8)
+        dummy_frame[50:150, 50:150] = [0, 200, 0]
 
-        list_res = self.client.get("/api/v1/cameras")
-        self.assertEqual(list_res.status_code, 200)
-        cams = list_res.json()
-        self.assertTrue(any(c["camera_id"] == "cam_gate_01" for c in cams))
+        mock_cap = unittest.mock.MagicMock()
+        mock_cap.isOpened.return_value = True
+        mock_cap.read.return_value = (True, dummy_frame)
 
-        stop_res = self.client.post(
-            "/api/v1/cameras/stop",
-            json={"camera_id": "cam_gate_01"},
-        )
-        self.assertEqual(stop_res.status_code, 200)
+        with unittest.mock.patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
+            start_res = self.client.post(
+                "/api/v1/cameras/start",
+                json={"camera_id": "cam_gate_01", "source": "rtsp://user:pass@192.168.1.100:554/live", "location": "Main Gate"},
+            )
+            self.assertEqual(start_res.status_code, 200)
+            cam_data = start_res.json()
+            self.assertEqual(cam_data["camera_id"], "cam_gate_01")
+            self.assertNotIn("pass", cam_data["source"])
+
+            list_res = self.client.get("/api/v1/cameras")
+            self.assertEqual(list_res.status_code, 200)
+            cams = list_res.json()
+            self.assertTrue(any(c["camera_id"] == "cam_gate_01" for c in cams))
+
+            stop_res = self.client.post(
+                "/api/v1/cameras/stop",
+                json={"camera_id": "cam_gate_01"},
+            )
+            self.assertEqual(stop_res.status_code, 200)
 
     def test_enroll_endpoint(self) -> None:
         img = np.zeros((100, 50, 3), dtype=np.uint8)

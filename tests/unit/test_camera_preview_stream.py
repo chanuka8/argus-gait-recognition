@@ -1,14 +1,9 @@
-import pytest
-import time
 import numpy as np
 import cv2
-from unittest.mock import MagicMock, patch
 from fastapi.testclient import TestClient
 
 from api.server import app
 from services.camera_worker import CameraWorker
-from services.gait_service import GaitService
-from services.camera_source_resolver import CameraSourceResolver
 
 
 def test_camera_worker_latest_jpeg_buffer():

@@ -5,7 +5,7 @@ from typing import Dict, Optional
 import yaml
 
 from core.logger import setup_logger
-from security_layer.credentials import resolve_camera_config
+from security_layer.credentials import resolve_camera_config, sanitize_rtsp_url
 from services.camera_worker import CameraWorker
 
 
@@ -78,7 +78,7 @@ class CameraManager:
             self._logger.info(f"Loaded {len(self.cameras_config)} camera configurations")
 
         except Exception as e:
-            self._logger.error(f"Failed to load config: {str(e)}")
+            self._logger.error(f"Failed to load config: {sanitize_rtsp_url(str(e))}")
             self.cameras_config = {}
             self.multi_camera_config = {}
 
@@ -99,7 +99,7 @@ class CameraManager:
             return worker
 
         except Exception as e:
-            self._logger.error(f"Failed to create worker for {camera_id}: {str(e)}")
+            self._logger.error(f"Failed to create worker for {camera_id}: {sanitize_rtsp_url(str(e))}")
             return None
 
     def add_camera(self, camera_id: str, camera_config: dict) -> bool:

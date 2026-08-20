@@ -7,6 +7,28 @@ try:
 except ImportError:
     yaml = None
 
+from security_layer.credentials import sanitize_rtsp_url
+
+
+class SensitiveDataFilter(logging.Filter):
+    """Logging filter that redacts RTSP credentials from all log channels."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        if isinstance(record.msg, str):
+            record.msg = sanitize_rtsp_url(record.msg)
+        if record.args:
+            if isinstance(record.args, tuple):
+                record.args = tuple(
+                    sanitize_rtsp_url(arg) if isinstance(arg, str) else arg
+                    for arg in record.args
+                )
+            elif isinstance(record.args, dict):
+                record.args = {
+                    k: sanitize_rtsp_url(v) if isinstance(v, str) else v
+                    for k, v in record.args.items()
+                }
+        return True
+
 
 _DEFAULT_LOG_DIR = "outputs/logs/system"
 _DEFAULT_MAX_BYTES = 10 * 1024 * 1024
@@ -68,6 +90,7 @@ def init_logging() -> None:
 
     level = getattr(logging, str(config["level"]).upper(), logging.INFO)
     formatter = logging.Formatter(config["format"])
+    sensitive_filter = SensitiveDataFilter()
 
     for logger_name, filename in _LOG_CHANNELS.items():
         logger = logging.getLogger(logger_name)
@@ -92,10 +115,12 @@ def init_logging() -> None:
             encoding="utf-8",
         )
         file_handler.setFormatter(formatter)
+        file_handler.addFilter(sensitive_filter)
         logger.addHandler(file_handler)
 
         console_handler = logging.StreamHandler()
         console_handler.setFormatter(formatter)
+        console_handler.addFilter(sensitive_filter)
         logger.addHandler(console_handler)
 
     error_logger = logging.getLogger("ARGUS.Error")
@@ -115,6 +140,7 @@ def init_logging() -> None:
             )
             error_filter_handler.setLevel(logging.WARNING)
             error_filter_handler.setFormatter(formatter)
+            error_filter_handler.addFilter(sensitive_filter)
             other_logger.addHandler(error_filter_handler)
 
     _initialized = True
