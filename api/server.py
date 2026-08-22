@@ -1,11 +1,16 @@
 from contextlib import asynccontextmanager
 import os
-from fastapi import FastAPI, Request
+from pathlib import Path
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from api.v1.router import v1_router, get_gait_service
 from services.gait_service import GaitService
+
+FRONTEND_DIST_DIR = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 
 
 @asynccontextmanager
@@ -27,7 +32,10 @@ app = FastAPI(
 )
 
 # Configurable CORS Origins for React/Vite Frontend
-cors_origins_env = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000")
+cors_origins_env = os.getenv(
+    "CORS_ORIGINS",
+    "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://localhost:8000,http://127.0.0.1:8000",
+)
 allowed_origins = [orig.strip() for orig in cors_origins_env.split(",") if orig.strip()]
 
 app.add_middleware(
@@ -50,6 +58,10 @@ async def verify_firebase_id_token(request: Request) -> bool:
 
 
 app.include_router(v1_router)
+
+# Mount frontend production assets if dist exists
+if (FRONTEND_DIST_DIR / "assets").exists():
+    app.mount("/assets", StaticFiles(directory=str(FRONTEND_DIST_DIR / "assets")), name="frontend_assets")
 
 
 def custom_openapi():
@@ -99,15 +111,6 @@ app.openapi = custom_openapi
 
 
 # Backward-compatibility aliases for root endpoints
-@app.get("/")
-def root():
-    return {
-        "message": "ARGUS AI Gait Recognition API is running",
-        "docs": "/docs",
-        "v1_endpoints": "/api/v1",
-    }
-
-
 @app.get("/health")
 def root_health(request: Request):
     return {
@@ -133,3 +136,44 @@ def root_status(request: Request):
 def root_metrics(request: Request):
     svc = get_gait_service(request)
     return svc.get_metrics()
+
+
+@app.get("/")
+def root():
+    index_file = FRONTEND_DIST_DIR / "index.html"
+    if FRONTEND_DIST_DIR.exists() and index_file.is_file():
+        return FileResponse(str(index_file))
+    return {
+        "message": "ARGUS AI Gait Recognition API is running",
+        "docs": "/docs",
+        "v1_endpoints": "/api/v1",
+    }
+
+
+@app.get("/{full_path:path}")
+async def serve_spa_frontend(full_path: str):
+    """
+    Catch-all route to serve the React Single Page Application (SPA).
+    Supports client-side routing while preserving /api, /docs, /redoc, /health, /status, and /metrics.
+    """
+    if full_path.startswith("api/") or full_path in (
+        "docs",
+        "redoc",
+        "openapi.json",
+        "health",
+        "status",
+        "metrics",
+    ):
+        raise HTTPException(status_code=404, detail="Not Found")
+
+    # Serve static files in dist root (e.g. logo.png, favicon.ico)
+    static_file = FRONTEND_DIST_DIR / full_path
+    if FRONTEND_DIST_DIR.exists() and static_file.is_file():
+        return FileResponse(str(static_file))
+
+    # SPA index.html fallback for client-side routes (e.g. /dashboard, /cctv-network, /admin/dashboard)
+    index_file = FRONTEND_DIST_DIR / "index.html"
+    if FRONTEND_DIST_DIR.exists() and index_file.is_file():
+        return FileResponse(str(index_file))
+
+    raise HTTPException(status_code=404, detail="Frontend build not found")

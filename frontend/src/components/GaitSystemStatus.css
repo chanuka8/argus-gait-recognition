@@ -1,0 +1,137 @@
+/* ARGUS Gait System Status Widget CSS */
+
+.gait-status-widget {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  box-shadow: var(--shadow-md);
+  margin-bottom: 1.25rem;
+  transition: border-color var(--ease-mid);
+}
+
+.gait-status-widget:hover {
+  border-color: var(--border-hover);
+}
+
+.gait-status-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.gait-status-title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.status-pulse-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #06D6A0;
+  box-shadow: 0 0 10px #06D6A0;
+}
+
+.status-pulse-dot.offline {
+  background: #FF6B6B;
+  box-shadow: 0 0 10px #FF6B6B;
+}
+
+.gait-status-header h3 {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: 0.5px;
+}
+
+.gait-status-badges {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.gait-pill {
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0.25rem 0.6rem;
+  border-radius: 99px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.gait-pill.ws-live {
+  background: rgba(92, 225, 230, 0.15);
+  color: var(--sky);
+  border: 1px solid var(--sky);
+}
+
+.gait-pill.ws-off {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+.gait-pill.healthy {
+  background: rgba(6, 214, 160, 0.15);
+  color: #06D6A0;
+  border: 1px solid rgba(6, 214, 160, 0.4);
+}
+
+.gait-pill.degraded {
+  background: rgba(255, 107, 107, 0.15);
+  color: #FF6B6B;
+  border: 1px solid rgba(255, 107, 107, 0.4);
+}
+
+.gait-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+}
+
+.gait-metric-box {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 0.5rem;
+  text-align: center;
+}
+
+.gait-metric-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.gait-metric-val {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--sky);
+  margin-top: 0.2rem;
+  font-family: var(--font-logs);
+}
+
+.gait-status-error {
+  background: rgba(255, 107, 107, 0.1);
+  border: 1px solid var(--status-missing);
+  border-radius: var(--radius-md);
+  padding: 0.85rem 1.1rem;
+  color: var(--status-missing);
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@media (max-width: 768px) {
+  .gait-metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

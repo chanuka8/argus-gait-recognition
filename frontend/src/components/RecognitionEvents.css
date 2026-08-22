@@ -1,0 +1,166 @@
+/* ARGUS Real-Time Recognition Stream CSS */
+
+.recon-events-widget {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  box-shadow: var(--shadow-md);
+  margin-top: 1rem;
+}
+
+.recon-events-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.75rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.recon-events-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.recon-events-title h3 {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.recon-count-tag {
+  font-size: 0.72rem;
+  background: var(--surface-2);
+  color: var(--sky);
+  padding: 0.15rem 0.55rem;
+  border-radius: 99px;
+  font-weight: 700;
+}
+
+.recon-filter-group {
+  display: flex;
+  gap: 0.25rem;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 0.2rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.recon-filter-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.3rem 0.65rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all var(--ease-fast);
+}
+
+.recon-filter-btn:hover {
+  color: var(--text-primary);
+}
+
+.recon-filter-btn.active {
+  background: var(--accent-dim);
+  color: #0A0E12;
+}
+
+.recon-events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.recon-event-card {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: border-color var(--ease-fast), transform var(--ease-fast);
+}
+
+.recon-event-card:hover {
+  border-color: var(--sky);
+  transform: translateX(2px);
+}
+
+.recon-event-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.decision-badge {
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  letter-spacing: 0.5px;
+}
+
+.decision-badge.known {
+  background: rgba(6, 214, 160, 0.15);
+  color: #06D6A0;
+  border: 1px solid rgba(6, 214, 160, 0.4);
+}
+
+.decision-badge.uncertain {
+  background: rgba(255, 209, 102, 0.15);
+  color: #FFD166;
+  border: 1px solid rgba(255, 209, 102, 0.4);
+}
+
+.decision-badge.unknown {
+  background: rgba(255, 107, 107, 0.15);
+  color: #FF6B6B;
+  border: 1px solid rgba(255, 107, 107, 0.4);
+}
+
+.recon-identity {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.recon-meta {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-family: var(--font-logs);
+  margin-top: 0.15rem;
+}
+
+.recon-event-right {
+  text-align: right;
+}
+
+.recon-conf {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--sky);
+  font-family: var(--font-logs);
+}
+
+.recon-time {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+}
+
+.recon-empty-state {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}

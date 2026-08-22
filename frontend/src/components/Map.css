@@ -1,0 +1,111 @@
+.map-container {
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+    overflow: hidden;
+}
+
+/* ── Leaflet overrides ── */
+.leaflet-container {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.leaflet-control-zoom {
+    border: 1px solid rgba(92, 225, 230, 0.16) !important;
+    border-radius: var(--radius-sm) !important;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.40) !important;
+}
+
+.leaflet-control-zoom a {
+    background: rgba(42, 45, 49, 0.92) !important;
+    border-color: rgba(92, 225, 230, 0.14) !important;
+    color: #a0e4e8 !important;
+    font-weight: 700;
+    font-size: 15px;
+    line-height: 26px !important;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.leaflet-control-zoom a:hover {
+    background: rgba(74, 184, 189, 0.55) !important;
+    color: #d6e4ea !important;
+}
+
+.leaflet-control-attribution {
+    background: rgba(42, 45, 49, 0.80) !important;
+    color: rgba(232, 236, 241, 0.45) !important;
+    font-size: 0.68rem;
+    border-top-left-radius: 6px !important;
+    backdrop-filter: blur(4px);
+}
+
+.leaflet-control-attribution a {
+    color: #5ce1e6 !important;
+}
+
+/* ── Surveillance Layer Controls Overlay ── */
+.surveillance-map-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.layer-toggles-panel {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 1000;
+    background: rgba(22, 25, 29, 0.90);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(92, 225, 230, 0.25);
+    border-radius: 10px;
+    padding: 0.5rem 0.8rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+}
+
+.layer-toggle-btn {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    padding: 0.35rem 0.7rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #e8ecf1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: all 0.2s ease;
+}
+
+.layer-toggle-btn:hover {
+    border-color: #5ce1e6;
+    background: rgba(92, 225, 230, 0.15);
+}
+
+.layer-toggle-btn.active {
+    background: rgba(0, 229, 255, 0.2);
+    border-color: #00E5FF;
+    color: #00E5FF;
+    box-shadow: 0 0 10px rgba(0, 229, 255, 0.3);
+}
+
+.cctv-status-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    background: rgba(76, 175, 80, 0.2);
+    color: #4CAF50;
+    border: 1px solid #4CAF50;
+    margin-bottom: 6px;
+}
