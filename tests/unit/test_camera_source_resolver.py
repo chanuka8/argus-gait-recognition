@@ -1,11 +1,19 @@
+import numpy as np
 import pytest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from fastapi.testclient import TestClient
 
 from api.server import app
 from services.camera_source_resolver import CameraSourceResolver
 from services.camera_worker import normalize_camera_source
 from services.gait_service import GaitService
+
+
+def _dummy_frame():
+    """Return a valid dummy 640x480 BGR frame for mocked capture."""
+    frame = np.zeros((480, 640, 3), dtype=np.uint8)
+    frame[100:200, 100:200] = [0, 255, 0]
+    return frame
 
 
 def test_normalize_camera_source():
@@ -45,7 +53,8 @@ def test_source_resolver_skip_unavailable_usb_and_select_rtsp():
     ]
 
     # USB fails, RTSP stream probe succeeds
-    with patch.object(resolver, "probe_usb_webcam", return_value=False),          patch.object(resolver, "probe_stream", return_value=True):
+    with patch.object(resolver, "probe_usb_webcam", return_value=False), \
+         patch.object(resolver, "probe_stream", return_value=True):
         res = resolver.resolve_source(camera_id="CCTV-TEST-RTSP", requested_source="auto")
         assert res["resolved_source_type"] == "rtsp"
         assert res["resolved_source"] == "rtsp://192.168.1.100:554/stream1"
@@ -66,8 +75,12 @@ def test_source_resolver_no_source_available_raises():
 def test_gait_service_auto_source_lifecycle():
     """Verify GaitService start_camera and stop_camera with auto source and reservation cleanup."""
     service = GaitService()
+    mock_cap = MagicMock()
+    mock_cap.isOpened.return_value = True
+    mock_cap.read.return_value = (True, _dummy_frame())
 
-    with patch.object(service.source_resolver, "probe_usb_webcam", return_value=True):
+    with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap), \
+         patch.object(service.source_resolver, "probe_usb_webcam", return_value=True):
         # Start with source: "auto"
         info = service.start_camera(
             camera_id="CCTV-AUTO-1",
@@ -89,7 +102,13 @@ def test_gait_service_auto_source_lifecycle():
 
 def test_api_cameras_start_auto_contract():
     """Verify FastAPI /api/v1/cameras/start with source: auto."""
-    with TestClient(app) as client:
+    mock_cap = MagicMock()
+    mock_cap.isOpened.return_value = True
+    mock_cap.read.return_value = (True, _dummy_frame())
+
+    with TestClient(app) as client, \
+         patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap), \
+         patch("services.camera_source_resolver.CameraSourceResolver.probe_usb_webcam", return_value=True):
         # Start worker via API
         resp = client.post(
             "/api/v1/cameras/start",
