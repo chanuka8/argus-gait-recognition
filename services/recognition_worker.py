@@ -155,6 +155,17 @@ class RecognitionWorker:
         self._lock = threading.RLock()
 
         self._last_recognition_at: Optional[str] = None
+        self.gallery_features = gallery_features
+        self.gallery_labels = list(gallery_labels) if gallery_labels is not None else []
+        if isinstance(metadata, dict):
+            self.metadata = metadata
+        elif isinstance(metadata, list) and len(metadata) > 0 and isinstance(metadata[0], dict):
+            self.metadata = {str(m.get("person_id", m.get("label", i))): m for i, m in enumerate(metadata)}
+        else:
+            self.metadata = {str(lbl): {"status": "ACTIVE", "enabled": True} for lbl in self.gallery_labels}
+
+        self.event_callback = event_callback
+
         self._last_recognition_times: Dict[int, float] = {}
         self._frame_count = 0
         self._recognition_count = 0
@@ -163,14 +174,23 @@ class RecognitionWorker:
     def update_gallery(
         self,
         gallery_features: Optional[np.ndarray],
-        gallery_labels: Optional[list],
-        metadata: Optional[list] = None,
+        gallery_labels: Optional[List[str]],
+        metadata: Optional[Any] = None,
     ) -> None:
-        """Update live gallery embeddings thread-safely."""
+        """Update reference gallery features, labels, and metadata at runtime."""
         with self._lock:
             self.gallery_features = gallery_features
-            self.gallery_labels = gallery_labels or []
-            self.metadata = metadata or []
+            self.gallery_labels = list(gallery_labels) if gallery_labels is not None else []
+            if isinstance(metadata, dict):
+                self.metadata = metadata
+            elif isinstance(metadata, list) and len(metadata) > 0 and isinstance(metadata[0], dict):
+                self.metadata = {str(m.get("person_id", m.get("label", i))): m for i, m in enumerate(metadata)}
+            else:
+                self.metadata = {str(lbl): {"status": "ACTIVE", "enabled": True} for lbl in self.gallery_labels}
+            self._logger.info(
+                f"Updated live recognition gallery for camera {self.camera_id}: "
+                f"{len(self.gallery_labels)} identities"
+            )
 
     def put_frame(self, frame: np.ndarray) -> bool:
         """
@@ -378,6 +398,9 @@ class RecognitionWorker:
 
             if g_features is None or len(g_labels) == 0:
                 return "UNKNOWN", 0.0, "UNKNOWN_PERSON", "UNKNOWN"
+
+            if not isinstance(g_meta, dict):
+                g_meta = {str(lbl): {"status": "ACTIVE", "enabled": True} for lbl in g_labels}
 
             embedding = self.extractor.extract_from_gei(gei)
             if embedding is None or len(embedding) == 0:

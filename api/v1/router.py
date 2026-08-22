@@ -555,6 +555,24 @@ def list_cameras(
 
 
 @v1_router.get(
+    "/cameras/{camera_id}",
+    response_model=CameraInfoResponse,
+)
+def get_camera(
+    camera_id: str,
+    service: GaitService = Depends(get_gait_service),
+):
+    """Return live camera worker telemetry and recognition stats for a specific camera."""
+    info = service.get_camera_info(camera_id)
+    if not info:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Camera {camera_id} is not active",
+        )
+    return info
+
+
+@v1_router.get(
     "/cameras/{camera_id}/stream",
 )
 async def stream_camera(
@@ -755,6 +773,7 @@ def get_events(
 
 
 @v1_router.websocket("/ws/recognition")
+@v1_router.websocket("/ws/events")
 async def websocket_recognition(
     websocket: WebSocket,
 ):

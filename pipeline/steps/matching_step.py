@@ -16,6 +16,9 @@ class MatchingStep:
         if metadata is None:
             return False
 
+        if not isinstance(metadata, dict):
+            return True
+
         entry = metadata.get(
             str(label),
         )
@@ -243,4 +246,4 @@ class MatchingStep:
         return open_set_recognizer.evaluate_open_set_decision(
             top_matches=matches,
             quality_score=quality_score,
-        )
+        )
