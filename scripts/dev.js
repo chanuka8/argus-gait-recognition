@@ -191,6 +191,7 @@ async function main() {
 
     let backendStartupFailed = false;
     let backendStderrBuffer = '';
+    let backendImportError = false;
 
     backendProc.stdout.on('data', (data) => {
         const text = data.toString();
@@ -202,6 +203,16 @@ async function main() {
     backendProc.stderr.on('data', (data) => {
         const text = data.toString();
         backendStderrBuffer += text;
+
+        // Detect fatal import errors early so we can fast-fail
+        if (
+            text.includes('ModuleNotFoundError') ||
+            text.includes('ImportError') ||
+            text.includes('Error loading ASGI app')
+        ) {
+            backendImportError = true;
+        }
+
         text.split(/\r?\n/).forEach((line) => {
             if (line.trim()) logBackend(line);
         });
@@ -222,23 +233,51 @@ async function main() {
     // 2. Wait for Backend Health Synchronization
     // -------------------------------------------------------------------------
     logArgus('Waiting for backend service readiness...');
-    const maxWaitMs = 30000;
+    logArgus('(ML model loading may take 30-90s on first run with CUDA)');
+
+    // Allow up to 120s for CUDA/PyTorch model initialization on cold starts.
+    // Warm starts typically complete within 10-15s.
+    const maxWaitMs = 120000;
+    const progressIntervalMs = 5000;
     const startWait = Date.now();
     let backendReady = false;
+    let lastProgressLog = startWait;
 
     while (Date.now() - startWait < maxWaitMs) {
         if (backendStartupFailed || isShuttingDown) break;
+
+        // Fast-fail on import/module errors instead of waiting for timeout
+        if (backendImportError) {
+            logError('Backend failed with an import error (see output above).');
+            break;
+        }
 
         const healthy = await checkBackendHealth(500);
         if (healthy) {
             backendReady = true;
             break;
         }
+
+        // Log progress every 5 seconds so the user knows we are still waiting
+        const now = Date.now();
+        if (now - lastProgressLog >= progressIntervalMs) {
+            const elapsed = Math.round((now - startWait) / 1000);
+            logArgus(`${YELLOW}Still waiting for backend... (${elapsed}s elapsed)${RESET}`);
+            lastProgressLog = now;
+        }
+
         await new Promise((r) => setTimeout(r, 250));
     }
 
     if (!backendReady) {
-        logError('FastAPI backend failed to become healthy within 30s timeout.');
+        const elapsed = Math.round((Date.now() - startWait) / 1000);
+        if (backendImportError) {
+            logError('Backend failed to start due to an import error.');
+        } else if (backendStartupFailed) {
+            logError('Backend process exited before becoming healthy.');
+        } else {
+            logError(`FastAPI backend failed to become healthy within ${elapsed}s timeout.`);
+        }
         if (backendStderrBuffer) {
             console.error(backendStderrBuffer);
         }
