@@ -42,9 +42,9 @@ def main():
         tensor = torch.from_numpy(img_resized).float().unsqueeze(0).unsqueeze(0) / 255.0
         with torch.no_grad():
             feat = model.features(tensor)
-            part_pooled = model.pool(feat)  # (1, 128, 4, 1)
-            bins = part_pooled.squeeze(-1).squeeze(0).T  # (4, 128)
-            bins = F.normalize(bins, p=2, dim=1)  # L2 normalize each bin
+            part_pooled = model.pool(feat)
+            bins = part_pooled.squeeze(-1).squeeze(0).T
+            bins = F.normalize(bins, p=2, dim=1)
 
             flat = torch.flatten(part_pooled, 1)
             emb = model.embedding(flat)
@@ -63,7 +63,7 @@ def main():
 
     gei_root = Path("data/casia_processed/gei")
     sub_data = {}
-    for sub in test_subs[:20]:  # First 20 test subjects for speed
+    for sub in test_subs[:20]:
         sub_dir = gei_root / sub
         if not sub_dir.exists():
             continue
@@ -145,7 +145,6 @@ def main():
         print(f"{part_names[b]}:")
         print(f"  NM-NM={nm_nm_p:.4f} | NM-BG={nm_bg_p:.4f} | NM-CL={nm_cl_p:.4f} | Drop={drop_pct:.1f}%")
 
-    # Inter-subject similarity baseline for reference
     inter_sims = []
     subs_list = list(sub_data.keys())
     for i in range(min(10, len(subs_list))):

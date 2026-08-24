@@ -28,7 +28,6 @@ const Notifications = ({ isOpen, onClose }) => {
 
     const [notifications, setNotifications] = useState(roleNotifs);
 
-    // Reset notifications when role-specific data changes
     const [prevRoleNotifs, setPrevRoleNotifs] = useState(roleNotifs);
     if (roleNotifs !== prevRoleNotifs) {
         setPrevRoleNotifs(roleNotifs);
@@ -40,7 +39,7 @@ const Notifications = ({ isOpen, onClose }) => {
     };
 
     const handleNotificationClick = (caseId) => {
-        if (!caseId) return; // System logs don't navigate to case pages
+        if (!caseId) return;
         onClose(); 
         navigate(`/case/${caseId}`);
     };

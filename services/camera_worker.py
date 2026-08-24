@@ -130,7 +130,7 @@ class CameraWorker:
             if not file_path:
                 raise ValueError(f"Camera {self.camera_id}: Video file path is empty")
             return file_path
-        else:  # webcam
+        else:
             source_val = self.config.get("device_index")
             if source_val is None:
                 source_val = self.config.get("source", self._device_index)
@@ -160,7 +160,6 @@ class CameraWorker:
             ret, frame = self._capture.read()
 
             if ret and frame is not None and frame.size > 0:
-                # Valid frame received — populate preview buffer
                 success = False
                 enc_buf = None
                 try:
@@ -239,7 +238,6 @@ class CameraWorker:
             if self._target_fps > 0:
                 self._capture.set(cv2.CAP_PROP_FPS, self._target_fps)
 
-            # Bounded first-frame readiness handshake
             if not self._wait_for_first_frame(safe_source):
                 if self._capture is not None:
                     try:
@@ -319,12 +317,10 @@ class CameraWorker:
                 self.stats["identities_recognized"] = len(self._recognized_identities)
                 self.stats["recognition_active"] = rec_active
 
-            # Top overlay header
             fps_val = self.stats.get("fps", 0.0)
             status_text = f"[{self.camera_id}] FPS: {fps_val:.1f} | LIVE | Tracks: {len(active_tracks)}"
             cv2.putText(annotated, status_text, (10, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 255, 0), 2, cv2.LINE_AA)
 
-            # Bottom timestamp
             now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
             cv2.putText(annotated, now_iso, (10, annotated.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (220, 220, 220), 1, cv2.LINE_AA)
             return annotated
@@ -389,11 +385,9 @@ class CameraWorker:
                 now = time.monotonic()
                 iso_now = datetime.now(timezone.utc).isoformat()
 
-                # Asynchronously feed decoupled recognition worker
                 if self.recognition_worker is not None:
                     self.recognition_worker.put_frame(frame)
 
-                # Rate-limited preview JPEG encoding with visual recognition overlays
                 if now - self._last_jpeg_encode_time >= self._min_jpeg_interval:
                     try:
                         preview_frame = self._render_preview_overlays(frame)
@@ -434,7 +428,6 @@ class CameraWorker:
                     self.stats["frames_captured"] = self._frame_count
                     self.stats["last_update"] = now
 
-                # Frame rate pacing
                 if frame_interval > 0:
                     processing_time = time.monotonic() - loop_start
                     sleep_time = frame_interval - processing_time

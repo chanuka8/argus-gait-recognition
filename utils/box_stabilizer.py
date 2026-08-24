@@ -49,7 +49,7 @@ class BoxStabilizer:
         self.max_jump = config.get("max_jump_ratio", 0.35)
         self.prune_after = config.get("prune_after_frames", 30)
 
-        self.tracks = {}  # track_id -> dict
+        self.tracks = {}
         self.current_frame = 0
         self._lock = threading.Lock()
 
@@ -71,7 +71,6 @@ class BoxStabilizer:
             self.current_frame += 1
             detected_track_ids = set()
 
-            # Step 1: Process current raw detections
             for track_id, box, conf in raw_detections:
                 if conf < self.min_confidence:
                     continue
@@ -82,14 +81,12 @@ class BoxStabilizer:
                 box_w = raw_box[2] - raw_box[0]
                 box_h = raw_box[3] - raw_box[1]
 
-                # Reject extremely small boxes or invalid coordinates
                 if box_h < 10 or box_w < 10:
                     continue
 
                 detected_track_ids.add(track_id)
 
                 if track_id not in self.tracks:
-                    # New track initialization
                     self.tracks[track_id] = {
                         "stable_box": raw_box,
                         "missed_frames": 0,
@@ -97,13 +94,11 @@ class BoxStabilizer:
                         "is_predicted": False,
                     }
                 else:
-                    # Existing track: compute updates with jump verification
                     prev_state = self.tracks[track_id]
                     prev_box = prev_state["stable_box"]
 
                     iou = compute_iou(raw_box, prev_box)
 
-                    # Compute centroids and dimensions
                     prev_cx = (prev_box[0] + prev_box[2]) / 2.0
                     prev_cy = (prev_box[1] + prev_box[3]) / 2.0
                     prev_w = prev_box[2] - prev_box[0]
@@ -128,11 +123,9 @@ class BoxStabilizer:
                     )
 
                     if is_jump:
-                        # Sudden jump: retain last stable box coordinates and mark predicted
                         prev_state["missed_frames"] += 1
                         prev_state["is_predicted"] = True
                     else:
-                        # Apply Exponential Moving Average (EMA) smoothing
                         prev_state["stable_box"] = (
                             self.alpha * raw_box + (1.0 - self.alpha) * prev_box
                         )
@@ -140,13 +133,11 @@ class BoxStabilizer:
                         prev_state["last_seen_frame"] = self.current_frame
                         prev_state["is_predicted"] = False
 
-            # Step 2: Handle temporarily missed tracks (not in current detections)
             for track_id, state in self.tracks.items():
                 if track_id not in detected_track_ids:
                     state["missed_frames"] += 1
                     state["is_predicted"] = True
 
-            # Step 3: Prune stale tracks to release memory
             to_prune = []
             for track_id, state in self.tracks.items():
                 if self.current_frame - state["last_seen_frame"] > self.prune_after:
@@ -155,7 +146,6 @@ class BoxStabilizer:
             for track_id in to_prune:
                 self.tracks.pop(track_id, None)
 
-            # Step 4: Map final results
             results = {}
             for track_id, state in self.tracks.items():
                 is_valid = state["missed_frames"] <= self.max_missed

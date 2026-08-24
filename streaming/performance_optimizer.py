@@ -54,7 +54,6 @@ class PerformanceOptimizer:
         """Determine whether to drop/skip the current frame to maintain target latency."""
         with self._lock:
             threshold = self._config["adaptive_skip_threshold"]
-            # Skip if queue is near capacity (>80%) or latency exceeds threshold
             if queue_fullness > 0.8 or latency_seconds > threshold:
                 return True
             return False

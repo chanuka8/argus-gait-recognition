@@ -1,10 +1,3 @@
-/**
- * LEGACY / OPTIONAL: Face Recognition Embedding Service
- *
- * NOTE: The primary ARGUS biometric pipeline operates on Gait Biometrics (2D GEI + ByGaitLight).
- * This service is preserved for optional secondary face-recognition API integration
- * without breaking case reporting flows.
- */
 
 import { db } from '../firebaseConfig';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';

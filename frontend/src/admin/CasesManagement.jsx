@@ -14,7 +14,6 @@ const CasesManagement = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
 
-    // Deletion states
     const [deletingCase, setDeletingCase] = useState(null);
     const [confirmPassword, setConfirmPassword] = useState('');
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -76,7 +75,6 @@ const CasesManagement = () => {
         setIsAuthorizing(true);
 
         try {
-            // Verify admin password by querying username
             const adminQuery = query(
                 collection(db, 'admins'),
                 where('username', '==', currentUser?.username || '')
@@ -97,8 +95,6 @@ const CasesManagement = () => {
                 return;
             }
 
-            // Password is correct, perform cascade deletion:
-            // Fetch associated media documents to get storage files
             const mediaRef = doc(db, 'person_media', deletingCase.id);
             const mediaSnap = await getDoc(mediaRef);
 
@@ -107,7 +103,6 @@ const CasesManagement = () => {
                 const imageUrls = mediaData.imageUrls || [];
                 const videoUrls = mediaData.videoUrls || [];
 
-                // Delete image files from Firebase Storage
                 for (const url of imageUrls) {
                     if (url.includes('firebasestorage.googleapis.com')) {
                         try {
@@ -120,7 +115,6 @@ const CasesManagement = () => {
                     }
                 }
 
-                // Delete video files from Firebase Storage
                 for (const url of videoUrls) {
                     if (url.includes('firebasestorage.googleapis.com')) {
                         try {
@@ -133,15 +127,12 @@ const CasesManagement = () => {
                     }
                 }
 
-                // Delete person_media Firestore document
                 await deleteDoc(mediaRef);
             }
 
-            // Delete main victims case document
             const victimRef = doc(db, 'victims', deletingCase.id);
             await deleteDoc(victimRef);
 
-            // Log the critical action in system logs
             addLog(
                 'critical',
                 `Case ${deletingCase.caseId} permanently removed`,
@@ -149,13 +140,10 @@ const CasesManagement = () => {
                 currentUser.username
             );
 
-            // Update local state list
             setCases(prev => prev.filter(c => c.id !== deletingCase.id));
 
-            // Trigger success state
             setIsDeleteSuccess(true);
 
-            // Reset and close after delay
             setTimeout(() => {
                 setDeletingCase(null);
                 setConfirmPassword('');
@@ -170,9 +158,6 @@ const CasesManagement = () => {
         }
     };
 
-
-
-    // Filter cases by ID or type
     const filteredCases = cases.filter(c => {
         const term = searchTerm.toLowerCase();
         return String(c.caseId).toLowerCase().includes(term) ||
@@ -270,7 +255,6 @@ const CasesManagement = () => {
                 </div>
             </main>
 
-            {/* Password Verification Modal */}
             {deletingCase && (
                 <div
                     className="delete-modal-overlay"

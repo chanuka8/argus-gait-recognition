@@ -52,7 +52,6 @@ def compute_parity_metrics(
     max_abs_diff = float(np.max(abs_diffs))
     mean_abs_diff = float(np.mean(abs_diffs))
 
-    # Cosine similarity per sample
     cosine_sims = []
     for e1, e2 in zip(embeddings, reference_embeddings):
         norm1 = np.linalg.norm(e1)
@@ -64,7 +63,6 @@ def compute_parity_metrics(
     allclose_passed = bool(np.allclose(emb_matrix, ref_matrix, atol=atol, rtol=rtol))
     cosine_passed = bool(cosine_similarity >= 0.999)
 
-    # For PyTorch fallback/reference, numerical parity must be exact or near-zero
     if is_pytorch_fallback:
         parity_passed = max_abs_diff < 1e-4
     else:
@@ -106,7 +104,6 @@ def benchmark_backend(
 
     print(f"\n[BENCHMARK] Testing Backend: '{backend_name}' (device={device}, precision={precision})...")
 
-    # Measure initialization time
     init_start = time.perf_counter()
     backend = get_inference_backend(config=config, model_path=model_path)
     init_time_ms = (time.perf_counter() - init_start) * 1000.0
@@ -116,12 +113,10 @@ def benchmark_backend(
         torch.manual_seed(42)
         sample_inputs = [np.random.randn(1, 1, 128, 64).astype(np.float32) for _ in range(sample_count)]
 
-    # Warmup latency
     warm_start = time.perf_counter()
     backend.predict(sample_inputs[0])
     warm_latency_ms = (time.perf_counter() - warm_start) * 1000.0
 
-    # Latency sampling loop
     latencies = []
     start_total = time.perf_counter()
     outputs = []
@@ -148,7 +143,6 @@ def benchmark_backend(
     fb_reason = getattr(backend, "fallback_reason", None)
     exec_provider = getattr(backend, "execution_provider", "PyTorch-CPU")
 
-    # Parity computation against reference embeddings
     is_pytorch_fallback = fb_used or (act_backend == "pytorch")
     if reference_embeddings is not None:
         parity_info = compute_parity_metrics(
@@ -233,7 +227,6 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    # Deterministically seed and pre-generate identical sample inputs
     np.random.seed(42)
     torch.manual_seed(42)
     sample_inputs = [np.random.randn(1, 1, 128, 64).astype(np.float32) for _ in range(args.samples)]

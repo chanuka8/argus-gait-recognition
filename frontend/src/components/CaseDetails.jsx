@@ -76,13 +76,11 @@ const CaseDetails = () => {
     const [showNotifications, setShowNotifications] = useState(false);
     const [showProfile, setShowProfile] = useState(false);
 
-    // Live case states
     const [caseData, setCaseData] = useState(null);
     const [mediaData, setMediaData] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
 
-    // Status modal states
     const [showStatusModal, setShowStatusModal] = useState(false);
     const [selectedStatus, setSelectedStatus] = useState('Investigating');
     const [isSavingStatus, setIsSavingStatus] = useState(false);
@@ -145,7 +143,6 @@ const CaseDetails = () => {
                 setIsLoading(true);
                 setError('');
                 
-                // 1. Fetch victim document details
                 const victimRef = doc(db, 'victims', id);
                 const victimSnap = await getDoc(victimRef);
                 
@@ -157,7 +154,6 @@ const CaseDetails = () => {
                     setError('Case record not found in system database.');
                 }
 
-                // 2. Fetch media attachments
                 const mediaRef = doc(db, 'person_media', id);
                 const mediaSnap = await getDoc(mediaRef);
                 if (mediaSnap.exists()) {
@@ -185,7 +181,6 @@ const CaseDetails = () => {
             
             setCaseData(prev => ({ ...prev, status: selectedStatus }));
             
-            // Record status change in logs
             addLog(
                 'info',
                 `Case ${displayId} status updated to ${selectedStatus}`,
@@ -212,7 +207,6 @@ const CaseDetails = () => {
                 setCaseData(prev => ({ ...prev, status: 'Closed' }));
                 setSelectedStatus('Closed');
 
-                // Record closure in logs
                 addLog(
                     'warning',
                     `Case ${displayId} closed`,
@@ -469,7 +463,6 @@ const CaseDetails = () => {
                 </div>
             </main>
 
-            {/* Status Update Modal */}
             {showStatusModal && (
                 <div 
                     className="status-modal-overlay"

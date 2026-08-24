@@ -6,7 +6,6 @@ from typing import Optional, Tuple, Union
 import numpy as np
 
 
-
 class VectorStore:
     def __init__(
         self,
@@ -127,7 +126,6 @@ class VectorStore:
                 ) from err
             raise ValueError(f"Failed to load gallery labels file '{self.labels_file}': {err}") from err
 
-        # Security & Validation Checks
         if features.dtype == object or features.dtype.kind == "O":
             raise ValueError(
                 f"Gallery features array in '{self.features_file}' has invalid object dtype ({features.dtype}). Only numeric dtypes are allowed."

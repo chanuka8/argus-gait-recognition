@@ -94,7 +94,6 @@ class Evaluator3D:
                     else:
                         probe_items.append(item)
 
-        # STRICT LEAKAGE GUARD: Verify zero intersection between gallery and probe paths
         gal_paths = {g["path"] for g in gallery_items}
         prb_paths = {p["path"] for p in probe_items}
         overlap = gal_paths.intersection(prb_paths)
@@ -115,7 +114,6 @@ class Evaluator3D:
         if not gallery_items or not probe_items:
             raise RuntimeError(f"Gallery ({len(gallery_items)}) or Probe ({len(probe_items)}) set empty!")
 
-        # Benchmark extraction speed and VRAM
         if torch.cuda.is_available():
             torch.cuda.reset_peak_memory_stats()
 
@@ -155,8 +153,7 @@ class Evaluator3D:
         if torch.cuda.is_available():
             vram_mb = torch.cuda.max_memory_allocated() / (1024.0 * 1024.0)
 
-        # 1. Closed-set CMC (Rank-1, Rank-5) & Condition-wise Breakdown
-        sim_matrix = np.dot(prb_features, gal_features.T)  # (N_probe, N_gallery)
+        sim_matrix = np.dot(prb_features, gal_features.T)
 
         rank1_hits = 0
         rank5_hits = 0
@@ -199,7 +196,6 @@ class Evaluator3D:
         rank1_acc = rank1_hits / max(len(probe_items), 1)
         rank5_acc = rank5_hits / max(len(probe_items), 1)
 
-        # Condition-wise breakdown (NM, BG, CL)
         cond_accs = {}
         for c in ["NM", "BG", "CL"]:
             mask = np.array([c in cond for cond in prb_conds])
@@ -209,7 +205,6 @@ class Evaluator3D:
             else:
                 cond_accs[c] = 0.0
 
-        # View-wise breakdown
         view_accs = {}
         unique_views = sorted(list(set(prb_views)))
         for v in unique_views:
@@ -218,7 +213,6 @@ class Evaluator3D:
                 v_hits = sum(1 for i in np.where(mask)[0] if probe_details[i]["is_genuine"])
                 view_accs[v] = round(v_hits / float(np.sum(mask)), 4)
 
-        # 2. Open-set Evaluation (Known 075-099 vs Unknown 100-124)
         known_test_subs = set(test_subs[: len(test_subs) // 2])
         scores_arr = np.array([p["score"] for p in probe_details], dtype=np.float32)
         margins_arr = np.array([p["margin"] for p in probe_details], dtype=np.float32)
@@ -227,7 +221,6 @@ class Evaluator3D:
         roc_res = compute_roc_auc_eer(scores_arr, is_genuine_arr)
         operating_rates = compute_biometric_rates(scores_arr, is_genuine_arr, threshold=roc_res["eer_threshold"])
 
-        # Margin-aware policy (EXP-004B logic)
         accepted = (scores_arr >= roc_res["eer_threshold"]) & (margins_arr >= self.margin_threshold)
         tp = int(np.sum(accepted & is_genuine_arr))
         fp = int(np.sum(accepted & (~is_genuine_arr)))

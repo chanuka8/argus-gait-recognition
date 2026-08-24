@@ -62,7 +62,6 @@ def _execute_doctor_checks(json_path: str, md_path: str) -> Tuple[int, dict]:
     blocking_issues: List[str] = []
     warnings: List[str] = []
 
-    # 1. Python Environment Check
     py_ver = sys.version.split()[0]
     py_ok = sys.version_info >= (3, 9)
     checks.append({
@@ -74,7 +73,6 @@ def _execute_doctor_checks(json_path: str, md_path: str) -> Tuple[int, dict]:
     if not py_ok:
         blocking_issues.append(f"Python version {py_ver} is unsupported (minimum 3.9 required)")
 
-    # 2. Essential Package Imports Check
     required_packages = ["torch", "onnx", "onnxruntime", "cv2", "numpy", "yaml"]
     for pkg in required_packages:
         try:
@@ -98,7 +96,6 @@ def _execute_doctor_checks(json_path: str, md_path: str) -> Tuple[int, dict]:
             else:
                 warnings.append(f"Optional package '{pkg}' missing")
 
-    # 3. Model Files Check
     ckpt_path = ROOT / "runs" / "exp_001" / "best_model.pth"
     onnx_path = ROOT / "models" / "engines" / "bygait_light.onnx"
 
@@ -141,7 +138,6 @@ def _execute_doctor_checks(json_path: str, md_path: str) -> Tuple[int, dict]:
             })
             blocking_issues.append(f"Corrupted ONNX model file at {_to_rel(onnx_path)}")
 
-    # 4. Backend Initialization Check
     try:
         from models.inference.backend import BackendValidator, get_inference_backend
         backend_inst = get_inference_backend()
@@ -165,7 +161,6 @@ def _execute_doctor_checks(json_path: str, md_path: str) -> Tuple[int, dict]:
         })
         blocking_issues.append(f"Inference backend failed to initialize: {e}")
 
-    # 5. Gallery Safety & Integrity Check (allow_pickle=False, numeric, finite, dimension)
     gallery_dir = ROOT / "models" / "gallery"
     g_valid, g_err, g_count = validate_gallery_files(gallery_dir=gallery_dir, expected_dim=256)
     if g_valid:
@@ -192,7 +187,6 @@ def _execute_doctor_checks(json_path: str, md_path: str) -> Tuple[int, dict]:
         })
         blocking_issues.append(f"Gallery defect: {g_err}")
 
-    # 6. Configuration Externalization Check
     cfg_validator = ConfigValidator(configs_dir=ROOT / "configs")
     cfg_results = cfg_validator.validate_all()
     all_cfg_ok = True
@@ -210,7 +204,6 @@ def _execute_doctor_checks(json_path: str, md_path: str) -> Tuple[int, dict]:
         "details": "All YAML configurations loaded and validated cleanly" if all_cfg_ok else "Configuration validation errors detected",
     })
 
-    # 7. Writable Output Directories & Probe Cleanup Check
     out_dir = ROOT / "outputs" / "reports"
     out_dir.mkdir(parents=True, exist_ok=True)
     probe_file = out_dir / ".doctor_probe.tmp"
@@ -244,7 +237,6 @@ def _execute_doctor_checks(json_path: str, md_path: str) -> Tuple[int, dict]:
     if not disk_ok:
         warnings.append(f"Low disk space: {free_mb:.1f} MB remaining")
 
-    # 8. Logging Initialization Check
     try:
         from monitoring.logging_config import get_logger
         logger = get_logger("doctor")
@@ -264,7 +256,6 @@ def _execute_doctor_checks(json_path: str, md_path: str) -> Tuple[int, dict]:
         })
         warnings.append(f"Logging initialization issue: {e}")
 
-    # Determine qualitative overall status and exit code
     if blocking_issues:
         overall_status = STATUS_NOT_READY
         exit_code = 1
@@ -283,13 +274,11 @@ def _execute_doctor_checks(json_path: str, md_path: str) -> Tuple[int, dict]:
         "checks": checks,
     }
 
-    # Write JSON report
     j_path = ROOT / json_path
     j_path.parent.mkdir(parents=True, exist_ok=True)
     with open(j_path, "w", encoding="utf-8") as f:
         json.dump(report_data, f, indent=4)
 
-    # Write Markdown report
     m_path = ROOT / md_path
     m_path.parent.mkdir(parents=True, exist_ok=True)
 

@@ -9,13 +9,11 @@ from deployment.runtime_manifest import RuntimeManifest, generate_runtime_manife
 def test_runtime_manifest_lists_required_and_excludes_dev_assets():
     manifest = get_runtime_manifest()
 
-    # Verify required runtime components
     assert "main.py" in manifest.runtime_assets
     assert any(a.startswith("core/") for a in manifest.runtime_assets)
     assert any(a.startswith("configs/") for a in manifest.runtime_assets)
     assert "scripts/doctor.py" in manifest.runtime_assets
 
-    # Verify dev/build assets excluded from runtime
     assert "tests" in manifest.build_assets
     assert "pytest.ini" in manifest.build_assets
     assert ".env" in manifest.excluded_patterns

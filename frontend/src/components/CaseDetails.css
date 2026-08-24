@@ -54,7 +54,6 @@
     min-height: 0;
 }
 
-/* ── Container ── */
 .case-details-container {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -68,7 +67,6 @@
     overflow: hidden;
 }
 
-/* ── ID header ── */
 .case-id-header {
     font-size: 1.3rem;
     font-weight: 800;
@@ -91,7 +89,6 @@
     flex-shrink: 0;
 }
 
-/* ── Layout ── */
 .case-layout {
     display: flex;
     gap: 1.5rem;
@@ -100,7 +97,6 @@
     overflow: hidden;
 }
 
-/* ── Info panel ── */
 .case-info-panel {
     background: var(--surface-2);
     border: 1px solid var(--border);
@@ -181,7 +177,6 @@
     font-weight: 400;
 }
 
-/* ── Visuals panel ── */
 .case-visuals-panel {
     flex: 1;
     display: flex;
@@ -278,7 +273,6 @@
     padding: 1rem;
 }
 
-/* ── Actions ── */
 .case-actions {
     display: flex;
     gap: 1rem;
@@ -420,7 +414,6 @@
     object-fit: cover;
 }
 
-/* Status Modal Styles */
 .status-modal-overlay {
     position: fixed;
     top: 0;

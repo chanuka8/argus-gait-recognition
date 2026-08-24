@@ -10,7 +10,6 @@ from dataclasses import asdict, dataclass, field
 import json
 from pathlib import Path
 
-# Authoritative lists of repository-relative asset paths
 
 BUILD_TIME_ASSETS = [
     "tests",
@@ -113,7 +112,6 @@ class RuntimeManifest:
         path.parent.mkdir(parents=True, exist_ok=True)
 
         data = self.to_dict()
-        # Verify no absolute paths or credentials
         raw_json = json.dumps(data, indent=4)
         if "C:\\Users" in raw_json or "/home/" in raw_json:
             raise ValueError("Absolute user-home path detected in runtime manifest export")

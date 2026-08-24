@@ -94,7 +94,6 @@ class Gait3DStep:
         if not self.enabled or self.pose_estimator is None or crop is None or crop.size == 0:
             return None
 
-        # Convert grayscale or 1-channel image to 3-channel BGR for YOLO
         if crop.ndim == 2:
             crop_bgr = cv2.cvtColor(crop, cv2.COLOR_GRAY2BGR)
         elif crop.shape[2] == 1:
@@ -106,25 +105,23 @@ class Gait3DStep:
         if not results or results[0].keypoints is None or len(results[0].keypoints.xy) == 0:
             return None
 
-        xy = results[0].keypoints.xy[0].cpu().numpy()  # (17, 2)
+        xy = results[0].keypoints.xy[0].cpu().numpy()
         conf = results[0].keypoints.conf[0].cpu().numpy() if results[0].keypoints.conf is not None else np.ones(17)
 
-        # Normalize xy relative to crop width/height
         h, w = crop.shape[:2]
         xy_norm = xy / np.array([max(w, 1), max(h, 1)])
-        kpts_2d = np.concatenate([xy_norm, conf[:, None]], axis=-1)  # (17, 3)
+        kpts_2d = np.concatenate([xy_norm, conf[:, None]], axis=-1)
 
         self.pose_buffer.add_keypoints(track_id, kpts_2d)
         seq_2d = self.pose_buffer.get_sequence(track_id)
 
         if seq_2d is None:
-            return None  # Sequence still buffering
+            return None
 
-        # Lift 2D -> 3D and compute 3D gait embedding
         with torch.no_grad():
-            tensor_2d = torch.from_numpy(seq_2d).float().unsqueeze(0).to(self.device)  # (1, T, 17, 3)
-            joints_3d = self.pose_lifter(tensor_2d)  # (1, T, 17, 3)
-            emb = self.gait_net(joints_3d).squeeze(0).cpu().numpy()  # (256,)
+            tensor_2d = torch.from_numpy(seq_2d).float().unsqueeze(0).to(self.device)
+            joints_3d = self.pose_lifter(tensor_2d)
+            emb = self.gait_net(joints_3d).squeeze(0).cpu().numpy()
 
         return emb.astype(np.float32)
 

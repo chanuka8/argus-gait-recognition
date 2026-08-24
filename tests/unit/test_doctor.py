@@ -29,7 +29,6 @@ def test_doctor_execution_and_health_report(tmp_path: Path):
     assert "checks" in report_data
     assert isinstance(report_data["checks"], list)
 
-    # Confirm writability probe file was cleaned up
     probe_file = Path("outputs/reports/.doctor_probe.tmp")
     assert not probe_file.exists()
 
@@ -54,7 +53,6 @@ def test_doctor_internal_exception_returns_exit_code_2(tmp_path: Path, monkeypat
 
 
 def test_doctor_non_destructive_guarantee(tmp_path: Path):
-    # Capture state before doctor execution
     models_dir = Path("models")
     mtime_before = {f: f.stat().st_mtime for f in models_dir.rglob("*") if f.is_file()}
 
@@ -63,7 +61,6 @@ def test_doctor_non_destructive_guarantee(tmp_path: Path):
 
     run_doctor(json_path=str(json_path), md_path=str(md_path))
 
-    # Confirm no file inside models/ had its modification time altered
     mtime_after = {f: f.stat().st_mtime for f in models_dir.rglob("*") if f.is_file()}
     assert mtime_before == mtime_after
 

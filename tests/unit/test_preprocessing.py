@@ -74,7 +74,6 @@ class TestPreprocessing(unittest.TestCase):
         gei.add(frame)
         self.assertEqual(gei.count(), 1)
 
-        # Identical frame added -> should be filtered
         gei.add(frame)
         self.assertEqual(gei.count(), 1)
         self.assertGreater(gei.duplicate_frames, 0)
@@ -111,7 +110,6 @@ class TestPreprocessing(unittest.TestCase):
             cycle_detection_enabled=True,
             duplicate_filter_enabled=False,
         )
-        # Add non-periodic varying frames
         for i in range(8):
             mask = np.zeros((128, 64), dtype=np.uint8)
             w = 10 + (i % 3) * 5

@@ -255,7 +255,6 @@ async def analyze_video(
                 if not success:
                     break
 
-                # Process every fifteenth frame.
                 if frame_index % 15 == 0:
                     encoded, image_buffer = cv2.imencode(
                         ".jpg",
@@ -328,11 +327,6 @@ async def analyze_video(
                 os.remove(temporary_path)
             except OSError:
                 pass
-
-
-# ---------------------------------------------------------------------------
-# RTSP Credential Management Endpoints
-# ---------------------------------------------------------------------------
 
 
 @v1_router.post(
@@ -473,11 +467,6 @@ def set_camera_credentials(
         raise HTTPException(status_code=403, detail=str(err)) from err
 
 
-# ---------------------------------------------------------------------------
-# Camera Lifecycle Endpoints
-# ---------------------------------------------------------------------------
-
-
 @v1_router.post(
     "/cameras/start",
     response_model=CameraInfoResponse,
@@ -602,7 +591,6 @@ async def stream_camera(
             while camera_id in service.active_cameras:
                 curr_worker = service.get_camera_worker(camera_id)
                 if not curr_worker or not curr_worker.is_running():
-                    # Yield offline frame before terminating if available
                     if curr_worker:
                         offline_jpeg = curr_worker.get_latest_jpeg()
                         if offline_jpeg:
@@ -622,7 +610,7 @@ async def stream_camera(
                         b"Content-Length: " + str(len(jpeg_bytes)).encode() + b"\r\n\r\n"
                         + jpeg_bytes + b"\r\n"
                     )
-                    await asyncio.sleep(0.066)  # ~15 FPS max yield
+                    await asyncio.sleep(0.066)
                 else:
                     await asyncio.sleep(0.1)
         except (asyncio.CancelledError, GeneratorExit):
@@ -642,7 +630,6 @@ async def stream_camera(
             "Connection": "close",
         },
     )
-
 
 
 @v1_router.get(

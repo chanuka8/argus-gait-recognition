@@ -157,7 +157,6 @@ class TrackReliabilityScorer:
         s_obs = self._compute_observation_subscore(observation_count)
         s_det = self._compute_detection_subscore(detection_confidence, stability_score)
 
-        # Base weighted score
         reliability = (
             s_qual * self.weights["quality"]
             + s_temp * self.weights["temporal"]
@@ -166,17 +165,14 @@ class TrackReliabilityScorer:
             + s_det * self.weights["detection"]
         )
 
-        # Incorporate Optional Persistence Evidence
         if persistence_score is not None:
             p_score = float(np.clip(persistence_score, 0.0, 1.0))
             reliability = 0.85 * reliability + 0.15 * p_score
 
-        # Incorporate Optional Transition Evidence
         if transition_score is not None:
             t_score = float(np.clip(transition_score, 0.0, 1.0))
             reliability = 0.85 * reliability + 0.15 * t_score
 
-        # Incorporate Optional Crowd Occlusion & Clean Frame Evidence
         if occlusion_score is not None:
             occ_penalty = float(np.clip(occlusion_score, 0.0, 1.0))
             reliability *= (1.0 - 0.3 * occ_penalty)
@@ -222,7 +218,6 @@ class TrackReliabilityScorer:
             stability_score=stability_score,
         )
 
-        # Explicit sub-dimension aggregates
         identity_confidence = 0.5 * s_temp + 0.5 * s_open
         track_stability = (s_qual * self.weights["quality"] + s_obs * self.weights["observation"] + s_det * self.weights["detection"]) / max(1e-5, (self.weights["quality"] + self.weights["observation"] + self.weights["detection"]))
 

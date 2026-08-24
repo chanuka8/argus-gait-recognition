@@ -162,7 +162,6 @@ class EventTimelineReconstructor:
                 self._timelines[key] = []
             events = self._timelines[key]
 
-            # Deduplicate identical consecutive event
             if events:
                 last = events[-1]
                 if (

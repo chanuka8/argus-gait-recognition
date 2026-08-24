@@ -58,38 +58,32 @@ class CentroidMatchingStep:
         - 'centroid_margin': Centroid matching with margin rule
         - 'centroid_margin_topk': Centroid matching + margin rule + topk consensus
         """
-        # Flat mode fallback
         if mode == "flat":
             return self.flat_matcher.match(
                 query_feature, gallery_features, gallery_labels, metadata
             )
 
-        # Prepare Query
         q_feat = self._prepare_query(query_feature)
         if q_feat is None:
             return "UNKNOWN", 0.0
 
-        # Build Centroids
         centroids, centroid_labels = self._build_centroids(
             gallery_features, gallery_labels, metadata
         )
         if centroids is None or len(centroids) == 0:
             return "UNKNOWN", 0.0
 
-        # Compute centroid scores
         scores = np.dot(centroids, q_feat)
         best_idx = int(np.argmax(scores))
         best_score = float(scores[best_idx])
         best_identity = str(centroid_labels[best_idx])
 
-        # Apply Rejection/Rules
         if mode == "centroid":
             if best_score < self.threshold:
                 return "UNKNOWN", best_score
             return best_identity, best_score
 
         elif mode == "centroid_margin":
-            # Check margin rule (best - second_best >= margin)
             if len(scores) > 1:
                 sorted_scores = sorted(scores, reverse=True)
                 if sorted_scores[0] - sorted_scores[1] < self.margin:
@@ -99,17 +93,14 @@ class CentroidMatchingStep:
             return best_identity, best_score
 
         elif mode == "centroid_margin_topk":
-            # Check margin rule first
             if len(scores) > 1:
                 sorted_scores = sorted(scores, reverse=True)
                 if sorted_scores[0] - sorted_scores[1] < self.margin:
                     return "UNKNOWN", best_score
 
-            # Check threshold
             if best_score < self.threshold:
                 return "UNKNOWN", best_score
 
-            # Check top-K consensus in flat features
             active_features, active_labels = self._prepare_gallery(
                 gallery_features, gallery_labels, metadata
             )
@@ -120,7 +111,6 @@ class CentroidMatchingStep:
             top_k_indices = np.argsort(flat_scores)[::-1][:self.top_k]
             top_k_labels = [str(active_labels[i]) for i in top_k_indices]
 
-            # Vote count for best_identity
             votes = Counter(top_k_labels)
             majority_thresh = len(top_k_labels) / 2.0
             if votes[best_identity] > majority_thresh:

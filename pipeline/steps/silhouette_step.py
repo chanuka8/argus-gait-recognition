@@ -30,7 +30,6 @@ class LearnedSilhouetteSegmenter:
                 Path("models/weights/silhouette_segmenter.onnx"),
                 Path("models/engines/silhouette_segmenter.onnx"),
             ]
-            # Only use fallback defaults if self.model_path was one of the standard defaults
             if str(self.model_path) in {"models/weights/silhouette_segmenter.onnx", "models/engines/silhouette_segmenter.onnx"}:
                 for p in defaults:
                     if p.exists():
@@ -199,7 +198,7 @@ class SilhouetteStep:
         cv2.drawContours(contour_mask, [largest_contour], -1, 255, thickness=cv2.FILLED)
         cropped_silhouette = contour_mask[y : y + h, x : x + w]
 
-        target_h = int(self.target_size[1] * 0.85)  # 108 pixels
+        target_h = int(self.target_size[1] * 0.85)
         scale_factor = target_h / h
         new_w = int(w * scale_factor)
         new_w = max(1, min(new_w, self.target_size[0]))

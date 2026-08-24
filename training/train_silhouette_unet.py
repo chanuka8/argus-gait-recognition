@@ -2,13 +2,11 @@ import os
 import sys
 from pathlib import Path
 
-# Fix Windows console UTF-8 printing
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 if hasattr(sys.stderr, "reconfigure"):
     sys.stderr.reconfigure(encoding="utf-8")
 
-# Ensure repository root is on sys.path
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -73,7 +71,6 @@ def train_and_export_silhouette_unet(
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"[*] Training UNet Silhouette Segmenter on device: {device}")
 
-    # Datasets
     train_ds = SilhouetteSegmentationDataset(
         zip_path=zip_path, subject_range=(1, 62), max_samples=250, seed=42
     )
@@ -105,7 +102,6 @@ def train_and_export_silhouette_unet(
 
         train_loss /= len(train_ds)
 
-        # Validation
         model.eval()
         val_loss = 0.0
         metrics_list = []
@@ -137,11 +133,9 @@ def train_and_export_silhouette_unet(
             torch.save(model.state_dict(), best_pth_path)
             print(f"  -> Saved best model checkpoint to {best_pth_path}")
 
-    # Load best weights
     model.load_state_dict(torch.load(best_pth_path, map_location=device))
     model.eval()
 
-    # Measure latency & FPS on CPU/GPU
     dummy_in = torch.randn(1, 3, 256, 256, device=device)
     for _ in range(10):
         _ = model(dummy_in)
@@ -155,7 +149,6 @@ def train_and_export_silhouette_unet(
     avg_latency_ms = (elapsed / num_runs) * 1000.0
     fps = num_runs / elapsed
 
-    # Export & validate ONNX using helper function
     onnx_valid, onnx_msg = export_and_validate_onnx(
         pth_path=str(best_pth_path),
         output_onnx_path=str(Path(output_dir) / "silhouette_segmenter.onnx"),

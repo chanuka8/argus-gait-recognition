@@ -42,7 +42,6 @@ class DeploymentReadinessReporter:
         warnings = doc_report.get("warnings", [])
         unable_to_verify: List[str] = ["Live RTSP camera connection (deferred until camera execution)"]
 
-        # Determine qualitative overall status
         if doc_exit_code == 2:
             overall_status = "UNABLE_TO_VERIFY"
         elif blocking_issues:
@@ -54,7 +53,6 @@ class DeploymentReadinessReporter:
 
         assert overall_status in ALLOWED_OVERALL_STATUSES
 
-        # Collect component readiness evidence
         python_readiness = {
             "version": sys.version.split()[0],
             "interpreter": Path(sys.executable).as_posix(),
@@ -175,7 +173,6 @@ class DeploymentReadinessReporter:
         """Generate and write readiness JSON and Markdown reports."""
         report_data = self.evaluate_readiness()
 
-        # Write JSON atomically
         j_file = Path(json_path)
         j_file.parent.mkdir(parents=True, exist_ok=True)
         tmp_j_file = j_file.with_name(f"{j_file.name}.tmp")
@@ -184,7 +181,6 @@ class DeploymentReadinessReporter:
         tmp_j_file.replace(j_file)
 
 
-        # Write Markdown
         m_file = Path(md_path)
         m_file.parent.mkdir(parents=True, exist_ok=True)
 

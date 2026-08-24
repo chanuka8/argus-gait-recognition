@@ -65,10 +65,6 @@ class TestMetricCorrectness:
         preds = [["A", "B", "C"], ["X", "B", "C"], ["Y", "Z", "C"]]
         true_labels = ["A", "B", "C"]
         cmc = compute_cmc_curve(preds, true_labels, max_k=3)
-        # Sample 1: A in rank 1 -> counts at rank 1, 2, 3
-        # Sample 2: B in rank 2 -> counts at rank 2, 3
-        # Sample 3: C in rank 3 -> counts at rank 3
-        # Accuracies: Rank 1 = 1/3, Rank 2 = 2/3, Rank 3 = 3/3
         assert pytest.approx(cmc[0], 1e-4) == 1 / 3
         assert pytest.approx(cmc[1], 1e-4) == 2 / 3
         assert pytest.approx(cmc[2], 1e-4) == 3 / 3
@@ -111,11 +107,9 @@ class TestMetricCorrectness:
 
     def test_evaluation_metrics_class_imbalance(self):
         em = EvaluationMetrics()
-        # 10 samples of class A (9 correct, 1 misclassified as B)
         for _ in range(9):
             em.update("A", "A")
         em.update("A", "B")
-        # 1 sample of class B (1 correct)
         em.update("B", "B")
 
         summary = em.summary()

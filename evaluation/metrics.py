@@ -163,13 +163,11 @@ def compute_roc_auc_eer(
     tar_arr = np.asarray(tar_list, dtype=np.float32)
     frr_arr = np.asarray(frr_list, dtype=np.float32)
 
-    # ROC AUC calculation (Trapezoidal integration of TAR vs FAR)
     order = np.argsort(far_arr)
     sorted_far = far_arr[order]
     sorted_tar = tar_arr[order]
     roc_auc = float(np.trapezoid(sorted_tar, sorted_far))
 
-    # EER calculation (where FAR = FRR, min |FAR - FRR|)
     diff = np.abs(far_arr - frr_arr)
     eer_idx = int(np.argmin(diff))
     eer = float((far_arr[eer_idx] + frr_arr[eer_idx]) / 2.0)

@@ -34,11 +34,9 @@ def evaluate_checkpoint(
     print(f"  Margin Threshold: {margin_threshold}")
     print("=======================================================\n")
 
-    # 1. Load subject split
     split_manifest = load_or_create_subject_split(config_path=split_config, data_dir=gei_root)
     val_subs = split_manifest["val_subjects"]
 
-    # 2. Calibrate threshold on validation set (063-074)
     evaluator_base = SubjectDisjointEvaluator(
         gei_root=gei_root,
         model_path=model_path,
@@ -59,7 +57,6 @@ def evaluate_checkpoint(
     calibrated_threshold = float(calib_res["selected_threshold"])
     print(f"  -> Calibrated Threshold (Val set min_eer): {calibrated_threshold:.4f}")
 
-    # 3. Closed-set evaluation on test set (075-124)
     evaluator = SubjectDisjointEvaluator(
         gei_root=gei_root,
         model_path=model_path,
@@ -84,7 +81,6 @@ def evaluate_checkpoint(
     print(f"  -> BG Accuracy:      {bg_acc*100:.2f}%")
     print(f"  -> CL Accuracy:      {cl_acc*100:.2f}%")
 
-    # 4. Open-set evaluation on test set (Known 075-099 vs Unknown 100-124)
     open_set_evaluator = SubjectDisjointOpenSetEvaluator(
         gei_root=gei_root,
         model_path=model_path,
@@ -113,7 +109,6 @@ def evaluate_checkpoint(
     print(f"  -> [Score-Only] FAR: {far*100:.2f}%  FRR: {frr*100:.2f}%  TAR: {tar*100:.2f}%")
     print(f"  -> [Margin M>={margin_threshold}] FAR: {margin_far*100:.2f}%  FRR: {margin_frr*100:.2f}%  TAR: {margin_tar*100:.2f}%")
 
-    # 5. Save consolidated summary
     summary = {
         "model_path": model_path,
         "threshold": round(calibrated_threshold, 4),

@@ -25,20 +25,17 @@ class SubjectDisjointCrossViewEvaluator(SubjectDisjointEvaluator):
     def evaluate_cross_view_matrices(self) -> dict:
         test_subjects = self.split_manifest["test_subjects"]
 
-        # Build all gallery & probe items for test subjects
         gallery_items, probe_items = build_gallery_and_probe_sets(
             subjects=test_subjects,
             gei_root=str(self.gei_root),
         )
 
         print(f"Building feature embeddings for Cross-View Matrix ({len(gallery_items)} gallery, {len(probe_items)} probes)...")
-        # Pre-extract all embeddings into cache
         for item in gallery_items:
             self.image_to_embedding(Path(item["path"]))
         for item in probe_items:
             self.image_to_embedding(Path(item["path"]))
 
-        # Group gallery items by (angle, subject_id)
         gal_by_angle = {angle: [i for i in gallery_items if i["angle"] == angle] for angle in ALL_ANGLES}
         prb_by_angle_cond = {
             cond: {angle: [i for i in probe_items if i["angle"] == angle and i["condition"] == cond] for angle in ALL_ANGLES}
@@ -46,7 +43,6 @@ class SubjectDisjointCrossViewEvaluator(SubjectDisjointEvaluator):
         }
         prb_by_angle_all = {angle: [i for i in probe_items if i["angle"] == angle] for angle in ALL_ANGLES}
 
-        # Structure to hold matrices: matrix[gal_angle][prb_angle] = rank1_acc
         matrix_rank1 = {g_ang: {} for g_ang in ALL_ANGLES}
         matrix_rank5 = {g_ang: {} for g_ang in ALL_ANGLES}
         matrix_rank10 = {g_ang: {} for g_ang in ALL_ANGLES}
@@ -107,7 +103,6 @@ class SubjectDisjointCrossViewEvaluator(SubjectDisjointEvaluator):
                 else:
                     cross_view_rank1_values.append(ranks[1])
 
-                # Per-condition matrix
                 for cond in ["NM", "BG", "CL"]:
                     cond_prbs = prb_by_angle_cond[cond][p_ang]
                     if not cond_prbs:
@@ -152,12 +147,10 @@ class SubjectDisjointCrossViewEvaluator(SubjectDisjointEvaluator):
             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
         }
 
-        # Save JSON
         json_path = self.report_dir / "cross_view_report.json"
         with open(json_path, "w", encoding="utf-8") as f:
             json.dump(report, f, indent=4)
 
-        # Save CSV
         csv_path = self.report_dir / "cross_view_matrix.csv"
         with open(csv_path, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
@@ -166,7 +159,6 @@ class SubjectDisjointCrossViewEvaluator(SubjectDisjointEvaluator):
                 row = [g_ang] + [matrix_rank1[g_ang].get(p_ang, 0.0) for p_ang in ALL_ANGLES]
                 writer.writerow(row)
 
-        # Save Markdown Report
         md_path = self.report_dir / "cross_view_report.md"
         with open(md_path, "w", encoding="utf-8") as f:
             f.write("# ARGUS Cross-View Rank-1 Accuracy Matrix\n\n")

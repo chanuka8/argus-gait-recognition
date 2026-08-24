@@ -19,11 +19,9 @@ def test_camera_worker_latest_jpeg_buffer():
     }
     worker = CameraWorker("CCTV-TEST-STREAM", cfg, None, None)
 
-    # Initially before capture
     assert worker.get_latest_jpeg() is None
     assert worker.stats["fps"] == 0.0
 
-    # Simulate a frame captured
     dummy_frame = np.zeros((480, 640, 3), dtype=np.uint8)
     dummy_frame[100:200, 100:200] = [0, 255, 0]
 
@@ -39,7 +37,7 @@ def test_camera_worker_latest_jpeg_buffer():
 
     returned_jpeg = worker.get_latest_jpeg()
     assert returned_jpeg is not None
-    assert returned_jpeg.startswith(b"\xff\xd8")  # JPEG magic header
+    assert returned_jpeg.startswith(b"\xff\xd8")
 
     stats = worker.get_stats()
     assert stats["frames_captured"] == 5
@@ -67,14 +65,12 @@ def test_mjpeg_stream_and_snapshot_endpoints():
     with TestClient(app) as client, \
          patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap), \
          patch("services.camera_source_resolver.CameraSourceResolver.probe_usb_webcam", return_value=True):
-        # 1. Non-active camera returns 404
         resp_404 = client.get("/api/v1/cameras/NON_EXISTENT_CAM/stream")
         assert resp_404.status_code == 404
 
         snap_404 = client.get("/api/v1/cameras/NON_EXISTENT_CAM/snapshot")
         assert snap_404.status_code == 404
 
-        # 2. Start Camera via API
         start_resp = client.post(
             "/api/v1/cameras/start",
             json={
@@ -92,7 +88,6 @@ def test_mjpeg_stream_and_snapshot_endpoints():
         assert cam_data["resolved_source_label"] == "USB Webcam 0"
         assert cam_data["processed_frames"] >= 1
 
-        # 3. Verify in active cameras list
         list_resp = client.get("/api/v1/cameras")
         assert list_resp.status_code == 200
         active_list = list_resp.json()
@@ -101,7 +96,6 @@ def test_mjpeg_stream_and_snapshot_endpoints():
         assert matching[0]["preview_url"] == "/api/v1/cameras/CCTV-PREVIEW-1/stream"
         assert matching[0]["resolved_source_label"] == "USB Webcam 0"
 
-        # 4. Stop Camera
         stop_resp = client.post(
             "/api/v1/cameras/stop",
             json={"camera_id": "CCTV-PREVIEW-1"}
@@ -109,7 +103,6 @@ def test_mjpeg_stream_and_snapshot_endpoints():
         assert stop_resp.status_code == 200
         assert stop_resp.json()["success"] is True
 
-        # 5. List is empty again
         list_after = client.get("/api/v1/cameras")
         assert list_after.status_code == 200
         assert len([c for c in list_after.json() if c["camera_id"] == "CCTV-PREVIEW-1"]) == 0

@@ -15,11 +15,9 @@ FRONTEND_DIST_DIR = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: initialize single-instance GaitService on app.state
     app.state.gait_service = GaitService()
     print("[*] ARGUS Gait Recognition Service initialized on FastAPI startup.")
     yield
-    # Shutdown
     app.state.gait_service = None
     print("[*] ARGUS Gait Recognition Service shut down.")
 
@@ -31,7 +29,6 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Configurable CORS Origins for React/Vite Frontend
 cors_origins_env = os.getenv(
     "CORS_ORIGINS",
     "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://localhost:8000,http://127.0.0.1:8000",
@@ -48,19 +45,15 @@ app.add_middleware(
 )
 
 
-# Security boundary placeholder: Firebase ID token verification middleware / helper
 async def verify_firebase_id_token(request: Request) -> bool:
     auth_header = request.headers.get("Authorization")
     if not auth_header:
-        # Development pass-through if unauthenticated
         return True
-    # Placeholder for production firebase_admin.auth.verify_id_token(token)
     return True
 
 
 app.include_router(v1_router)
 
-# Mount frontend production assets if dist exists
 if (FRONTEND_DIST_DIR / "assets").exists():
     app.mount("/assets", StaticFiles(directory=str(FRONTEND_DIST_DIR / "assets")), name="frontend_assets")
 
@@ -111,7 +104,6 @@ def custom_openapi():
 app.openapi = custom_openapi
 
 
-# Backward-compatibility aliases for root endpoints
 @app.get("/health")
 def root_health(request: Request):
     return {
@@ -167,12 +159,10 @@ async def serve_spa_frontend(full_path: str):
     ):
         raise HTTPException(status_code=404, detail="Not Found")
 
-    # Serve static files in dist root (e.g. logo.png, favicon.ico)
     static_file = FRONTEND_DIST_DIR / full_path
     if FRONTEND_DIST_DIR.exists() and static_file.is_file():
         return FileResponse(str(static_file))
 
-    # SPA index.html fallback for client-side routes (e.g. /dashboard, /cctv-network, /admin/dashboard)
     index_file = FRONTEND_DIST_DIR / "index.html"
     if FRONTEND_DIST_DIR.exists() and index_file.is_file():
         return FileResponse(str(index_file))

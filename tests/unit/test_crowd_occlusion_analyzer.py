@@ -29,7 +29,7 @@ def test_overlapping_detections_and_score_bounds():
     analyzer = CrowdOcclusionAnalyzer({"enabled": True, "high_threshold": 0.60})
     detections = [
         {"track_id": 10, "bbox": [100, 100, 200, 300]},
-        {"track_id": 11, "bbox": [110, 100, 210, 300]},  # ~0.70 IoU overlap
+        {"track_id": 11, "bbox": [110, 100, 210, 300]},
     ]
     res = analyzer.analyze_frame(detections, (1080, 1920), camera_id="cam_01")
 
@@ -42,7 +42,7 @@ def test_high_occlusion_silhouette_rejection():
     analyzer = CrowdOcclusionAnalyzer({"enabled": True, "high_threshold": 0.50})
     detections = [
         {"track_id": 100, "bbox": [100, 100, 200, 300]},
-        {"track_id": 101, "bbox": [105, 100, 205, 300]},  # Severe overlap
+        {"track_id": 101, "bbox": [105, 100, 205, 300]},
     ]
     res = analyzer.analyze_frame(detections, (1080, 1920), camera_id="cam_01")
 
@@ -53,22 +53,19 @@ def test_high_occlusion_silhouette_rejection():
 def test_one_bad_frame_does_not_clear_buffer():
     analyzer = CrowdOcclusionAnalyzer({"enabled": True, "high_threshold": 0.60, "smoothing_window": 3})
 
-    # Frame 1 & 2 clean
     det_clean = [{"track_id": 5, "bbox": [10, 10, 50, 100]}]
     analyzer.analyze_frame(det_clean, (1080, 1920), camera_id="cam_01", timestamp=1.0)
     analyzer.analyze_frame(det_clean, (1080, 1920), camera_id="cam_01", timestamp=2.0)
 
-    # Frame 3 heavily occluded
     det_occ = [
         {"track_id": 5, "bbox": [10, 10, 50, 100]},
         {"track_id": 6, "bbox": [12, 10, 52, 100]},
     ]
     analyzer.analyze_frame(det_occ, (1080, 1920), camera_id="cam_01", timestamp=3.0)
 
-    # State still exists and clean history is preserved
     state = analyzer.track_states[("cam_01", 5)]
     assert len(state.clean_history) == 3
-    assert state.clean_history[0] is True  # preserved history
+    assert state.clean_history[0] is True
 
 
 def test_state_cleanup_and_camera_isolated_keys():
@@ -80,7 +77,6 @@ def test_state_cleanup_and_camera_isolated_keys():
     assert ("cam_B", 1) in analyzer.track_states
     assert len(analyzer.track_states) == 2
 
-    # Cleanup cam_A at timestamp 25.0 (> 10s idle)
     purged = analyzer.cleanup_inactive(max_idle_seconds=10.0, current_time=25.0)
     assert ("cam_A", 1) in purged
     assert ("cam_B", 1) in purged

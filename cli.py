@@ -462,32 +462,27 @@ def full_check(args=None) -> int:
     print("ARGUS FULL CHECK")
     print("=" * 60)
 
-    # 1. Health check
     code = health(args)
     if code != 0:
         print("\n[CRITICAL FAILURE] Health check failed.")
         return code
 
-    # 2. Unit tests
     code = tests(args)
     if code != 0:
         print("\n[CRITICAL FAILURE] Unit tests failed.")
         return code
 
-    # 3. Pytest suite
     print("\nRunning full pytest suite...")
     code = run_command([sys.executable, "-m", "pytest", "tests", "-v"])
     if code != 0:
         print("\n[CRITICAL FAILURE] Pytest suite failed.")
         return code
 
-    # 4. Benchmark check
     code = benchmark(args)
     if code != 0:
         print("\n[CRITICAL FAILURE] Benchmark run failed.")
         return code
 
-    # 5. Offline Evaluation
     code = evaluate(args)
     if code != 0:
         print("\n[CRITICAL FAILURE] Evaluation sweep failed.")
@@ -502,38 +497,32 @@ def prepare(args=None) -> int:
     print("ARGUS PREPARE PIPELINE")
     print("=" * 60)
 
-    # 1. Preprocessing
     code = preprocess(args)
     if code != 0:
         print("\n[ERROR] Preprocessing step failed.")
         return code
 
-    # 2. Check --confirm flag
     if not getattr(args, "confirm", False):
         print("\n[WARNING] --confirm flag is missing. Training step is bypassed safely.")
         print("To run training, please invoke with --confirm.")
         print("Example: python cli.py --mode prepare --confirm")
         return 0
 
-    # 3. Model training
     code = train(args)
     if code != 0:
         print("\n[ERROR] Model training step failed.")
         return code
 
-    # 4. Gallery build
     code = build_gallery(args)
     if code != 0:
         print("\n[ERROR] Gallery build step failed.")
         return code
 
-    # 5. Offline evaluation
     code = evaluate(args)
     if code != 0:
         print("\n[ERROR] Evaluation step failed.")
         return code
 
-    # 6. Benchmark
     code = benchmark(args)
     if code != 0:
         print("\n[ERROR] Benchmark step failed.")
@@ -548,27 +537,23 @@ def research_eval(args=None) -> int:
     print("ARGUS RESEARCH EVALUATION")
     print("=" * 60)
 
-    # 1. Standard offline evaluation
     code = evaluate(args)
     if code != 0:
         print("\n[ERROR] Evaluation model failed.")
         return code
 
-    # 2. Threshold sweep
     print("\nRunning evaluation threshold sweep...")
     code = run_command([sys.executable, "scripts/evaluate_threshold_sweep.py"])
     if code != 0:
         print("\n[ERROR] Threshold sweep failed.")
         return code
 
-    # 3. Open-set evaluation
     print("\nRunning open-set evaluation...")
     code = run_command([sys.executable, "scripts/evaluate_open_set.py"])
     if code != 0:
         print("\n[ERROR] Open-set evaluation failed.")
         return code
 
-    # 4. Cross-view evaluation
     print("\nRunning cross-view evaluation...")
     code = run_command([sys.executable, "scripts/evaluate_cross_view.py"])
     if code != 0:
@@ -584,32 +569,27 @@ def production_test(args=None) -> int:
     print("ARGUS PRODUCTION ENVIRONMENT TEST")
     print("=" * 60)
 
-    # 1. Health check
     code = health(args)
     if code != 0:
         print("\n[ERROR] Health check failed.")
         return code
 
-    # 2. Running unit tests discover
     code = tests(args)
     if code != 0:
         print("\n[ERROR] Unit tests failed.")
         return code
 
-    # 3. Running full pytest suite
     print("\nRunning full pytest suite...")
     code = run_command([sys.executable, "-m", "pytest", "tests", "-v"])
     if code != 0:
         print("\n[ERROR] Pytest suite failed.")
         return code
 
-    # 4. Benchmark check
     code = benchmark(args)
     if code != 0:
         print("\n[ERROR] Benchmark check failed.")
         return code
 
-    # 5. Verifying configs/cameras.yaml exists
     cameras_cfg = Path("configs/cameras.yaml")
     if not cameras_cfg.exists():
         print(f"[ERROR] Required configuration file is missing: {cameras_cfg}")
@@ -617,7 +597,6 @@ def production_test(args=None) -> int:
     else:
         print("[OK] Verified: configs/cameras.yaml exists.")
 
-    # 6. Verifying models/live_gallery exists
     live_gallery_dir = Path("models/live_gallery")
     if not (live_gallery_dir.exists() and live_gallery_dir.is_dir()):
         print(f"[ERROR] Required live gallery folder is missing: {live_gallery_dir}")
@@ -625,7 +604,6 @@ def production_test(args=None) -> int:
     else:
         print("[OK] Verified: models/live_gallery exists.")
 
-    # 7. Verifying configs/inference.yaml exists
     inference_cfg = Path("configs/inference.yaml")
     if not inference_cfg.exists():
         print(f"[ERROR] Required configuration file is missing: {inference_cfg}")
@@ -642,11 +620,9 @@ def docs_check(args=None) -> int:
     print("ARGUS DOCUMENTATION VALIDATION & AUTO-GENERATION")
     print("=" * 60)
 
-    # 1. Ensure docs directory exists
     docs_dir = Path("docs")
     docs_dir.mkdir(parents=True, exist_ok=True)
 
-    # 2. Auto-generate the matching person detection documentation file
     doc_path = docs_dir / "matching_person_detection.md"
     try:
         import yaml
@@ -728,7 +704,6 @@ Detections are classified into the following statuses based on the confidence sc
         print(f"[ERROR] Failed to auto-generate docs: {e}")
         return 1
 
-    # 3. Permanently remove all other markdown files from the docs/ directory
     for item in docs_dir.iterdir():
         if item.is_file() and item.suffix == ".md" and item.name != "matching_person_detection.md":
             try:
@@ -737,7 +712,6 @@ Detections are classified into the following statuses based on the confidence sc
             except Exception as e:
                 print(f"[WARNING] Failed to delete docs/{item.name}: {e}")
 
-    # 4. Perform documentation checks
     required_files = ["README.md", "requirements.txt", "Makefile", "docs/matching_person_detection.md"]
     missing = False
     for file_name in required_files:

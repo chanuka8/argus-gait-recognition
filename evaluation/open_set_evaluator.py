@@ -52,22 +52,19 @@ class SubjectDisjointOpenSetEvaluator(SubjectDisjointEvaluator):
         test_subjects = sorted(self.split_manifest["test_subjects"])
         num_known = max(1, int(len(test_subjects) * self.known_ratio))
 
-        known_test_subjects = test_subjects[:num_known]       # e.g., 075-099
-        unknown_test_subjects = test_subjects[num_known:]     # e.g., 100-124
+        known_test_subjects = test_subjects[:num_known]
+        unknown_test_subjects = test_subjects[num_known:]
 
-        # Build gallery for KNOWN test subjects ONLY
         gallery_items, _ = build_gallery_and_probe_sets(
             subjects=known_test_subjects,
             gei_root=str(self.gei_root),
         )
 
-        # Build probes for ALL test subjects (both known and unknown)
         _, probe_items = build_gallery_and_probe_sets(
             subjects=test_subjects,
             gei_root=str(self.gei_root),
         )
 
-        # Disjointness assertion: ensure unknown test subjects DO NOT exist in gallery
         assert_gallery_probe_disjointness(
             gallery_paths=[i["path"] for i in gallery_items],
             probe_paths=[i["path"] for i in probe_items],
@@ -106,7 +103,6 @@ class SubjectDisjointOpenSetEvaluator(SubjectDisjointEvaluator):
             best_id, best_score = matches[0] if matches else ("UNKNOWN", 0.0)
             scores.append(best_score)
 
-            # Compute top-1 / top-2 margin (between different identities)
             margin = 0.0
             if len(matches) >= 2:
                 second_diff = [m for m in matches[1:] if m[0] != best_id]
@@ -132,13 +128,10 @@ class SubjectDisjointOpenSetEvaluator(SubjectDisjointEvaluator):
         scores_arr = np.asarray(scores, dtype=np.float32)
         is_genuine_arr = np.asarray(is_genuine, dtype=bool)
 
-        # Compute ROC and EER across score range
         roc_results = compute_roc_auc_eer(scores_arr, is_genuine_arr, num_thresholds=200)
 
-        # Compute biometric rates at operating threshold (score-only)
         operating_rates = compute_biometric_rates(scores_arr, is_genuine_arr, threshold=self.threshold)
 
-        # Compute margin-aware biometric rates (EXP-004B policy)
         margins_arr = np.asarray([p["margin"] for p in probe_details], dtype=np.float32)
         margin_accepted = (scores_arr >= self.threshold) & (margins_arr >= self.margin_threshold)
         margin_tp = int(np.sum(margin_accepted & is_genuine_arr))
@@ -165,7 +158,6 @@ class SubjectDisjointOpenSetEvaluator(SubjectDisjointEvaluator):
             "fp": margin_fp,
         }
 
-        # Verify that FAR/FRR metrics change across thresholds
         far_values = roc_results["far_list"]
         if len(set(far_values)) <= 1:
             raise ValueError("CRITICAL METRIC FAILURE: FAR metrics do not change across threshold sweep! Score distribution is degenerate.")
@@ -196,17 +188,14 @@ class SubjectDisjointOpenSetEvaluator(SubjectDisjointEvaluator):
         }
 
 
-        # Save report JSON
         json_path = self.report_dir / "open_set_report.json"
         with open(json_path, "w", encoding="utf-8") as f:
             json.dump(report, f, indent=4)
 
-        # Save scores JSON
         scores_path = self.report_dir / "open_set_scores.json"
         with open(scores_path, "w", encoding="utf-8") as f:
             json.dump(probe_details, f, indent=2)
 
-        # Save CSV
         csv_path = self.report_dir / "open_set_report.csv"
         with open(csv_path, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)

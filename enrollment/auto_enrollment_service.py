@@ -517,7 +517,6 @@ class AutoEnrollmentService:
 
             person_id = person_folder.name
 
-            # Skip photo-only folder
             if image_files and not video_files:
                 print(
                     f"Skipped photo-only folder. Gait enrollment requires walking video: {person_id}"

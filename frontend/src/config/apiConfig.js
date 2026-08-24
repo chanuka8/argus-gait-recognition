@@ -1,46 +1,24 @@
-/**
- * ARGUS Centralized API & Stream Configuration
- * Supports development mode (Vite proxy / localhost:8000) and production same-origin deployment.
- */
 
 const envApiUrl = import.meta.env.VITE_GAIT_API_URL || import.meta.env.VITE_API_URL;
 const isDev = import.meta.env.DEV;
 
-// Base HTTP origin for API requests
 export const API_BASE = envApiUrl !== undefined
   ? envApiUrl
   : (isDev ? 'http://localhost:8000' : '');
 
-/**
- * Returns full API endpoint URL for v1 routes.
- * @param {string} endpoint - e.g. '/health' or 'cameras'
- */
 export const getApiUrl = (endpoint = '') => {
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   return `${API_BASE}/api/v1${cleanEndpoint}`;
 };
 
-/**
- * Returns the live multipart MJPEG preview stream URL for a given camera.
- * @param {string} cameraId - e.g. 'cam_gate_01'
- */
 export const getStreamUrl = (cameraId) => {
   return `${API_BASE}/api/v1/cameras/${encodeURIComponent(cameraId)}/stream`;
 };
 
-/**
- * Returns a static snapshot JPEG URL for a given camera.
- * @param {string} cameraId
- */
 export const getSnapshotUrl = (cameraId) => {
   return `${API_BASE}/api/v1/cameras/${encodeURIComponent(cameraId)}/snapshot`;
 };
 
-/**
- * Returns the WebSocket URL for real-time recognition event broadcasting.
- * Supports /ws/recognition and /ws/events.
- * @param {string} wsPath - default '/ws/events'
- */
 export const getWsUrl = (wsPath = '/ws/events') => {
   const cleanPath = wsPath.startsWith('/') ? wsPath : `/${wsPath}`;
   if (API_BASE.startsWith('http://') || API_BASE.startsWith('https://')) {
@@ -53,7 +31,4 @@ export const getWsUrl = (wsPath = '/ws/events') => {
   return `ws://localhost:8000/api/v1${cleanPath}`;
 };
 
-/**
- * Legacy face API base URL (isolated for optional legacy services).
- */
 export const FACE_API_BASE_URL = import.meta.env.VITE_FACE_API_URL || (isDev ? 'http://localhost:8000' : '');

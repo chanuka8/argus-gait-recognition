@@ -57,9 +57,7 @@ class RecognitionDeferralEngine:
         self.evidence_ttl_seconds = float(cfg.get("evidence_ttl_seconds", 10.0))
         self.identity_ttl_seconds = float(cfg.get("identity_ttl_seconds", 5.0))
 
-        # (camera_id, track_id) -> list of EvidenceRecord
         self.evidence_buffers: Dict[Tuple[str, Any], List[EvidenceRecord]] = {}
-        # (camera_id, track_id) -> (retained_identity, last_confirmed_timestamp)
         self.retained_identities: Dict[Tuple[str, Any], Tuple[str, float]] = {}
 
     def is_enabled(self) -> bool:
@@ -90,7 +88,6 @@ class RecognitionDeferralEngine:
         now = timestamp if timestamp is not None else time.monotonic()
         key = (camera_id, track_id)
 
-        # Baseline mode if disabled
         if not self.enabled:
             is_confirmed = (
                 open_set_state == "KNOWN"
@@ -110,7 +107,6 @@ class RecognitionDeferralEngine:
                 should_alert=is_confirmed,
             )
 
-        # Record new evidence
         new_record = EvidenceRecord(
             identity_candidate=identity_candidate,
             similarity=similarity,
@@ -128,14 +124,12 @@ class RecognitionDeferralEngine:
         buf = self.evidence_buffers[key]
         buf.append(new_record)
 
-        # TTL eviction
         buf[:] = [r for r in buf if (now - r.timestamp) <= self.evidence_ttl_seconds]
         if len(buf) > self.evidence_window * 2:
             buf[:] = buf[-self.evidence_window * 2:]
 
         accumulated_count = len(buf)
 
-        # Evaluate deferral conditions
         defer_reasons = []
 
         if identity_candidate == "UNKNOWN" or open_set_state == "UNKNOWN":
@@ -171,7 +165,6 @@ class RecognitionDeferralEngine:
         if reliability < self.minimum_reliability:
             defer_reasons.append(f"Reliability ({reliability:.2f}) < min ({self.minimum_reliability:.2f})")
 
-        # Count matching confirmations for candidate identity in evidence buffer
         matching_confirmations = [
             r for r in buf
             if r.identity_candidate == identity_candidate
@@ -185,7 +178,6 @@ class RecognitionDeferralEngine:
             )
 
         if defer_reasons:
-            # Check retained identity TTL
             retained_id = "UNKNOWN"
             if key in self.retained_identities:
                 prev_id, prev_ts = self.retained_identities[key]
@@ -199,11 +191,10 @@ class RecognitionDeferralEngine:
                 confidence=similarity,
                 defer_reason="; ".join(defer_reasons),
                 accumulated_evidence_count=accumulated_count,
-                should_alert=False,  # DEFERRED must NEVER trigger watchlist alert
+                should_alert=False,
                 evidence_history=buf,
             )
 
-        # All criteria satisfied: Confirm identity!
         self.retained_identities[key] = (identity_candidate, now)
 
         return DeferralResult(
@@ -213,7 +204,7 @@ class RecognitionDeferralEngine:
             confidence=similarity,
             defer_reason="",
             accumulated_evidence_count=accumulated_count,
-            should_alert=True,  # Only CONFIRMED triggers watchlist alert
+            should_alert=True,
             evidence_history=buf,
         )
 

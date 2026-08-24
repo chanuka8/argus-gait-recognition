@@ -13,7 +13,6 @@ def test_disabled_by_default_behavior():
 
 def test_unknown_open_set_mapping():
     scorer = TrackReliabilityScorer(enabled=True)
-    # UNKNOWN mapping must yield 0.0 subscore for identity reliability
     subscore = scorer._compute_open_set_subscore("UNKNOWN")
     assert subscore == 0.0
 
@@ -40,7 +39,6 @@ def test_known_uncertain_unknown_ordering():
         observation_count=15,
     )
 
-    # KNOWN > UNCERTAIN > UNKNOWN ordering verification
     assert score_known > score_uncertain
     assert score_uncertain > score_unknown
 
@@ -48,7 +46,6 @@ def test_known_uncertain_unknown_ordering():
 def test_track_reliability_score_bounds():
     scorer = TrackReliabilityScorer(enabled=True)
 
-    # Best-case evidence
     high_score = scorer.compute_reliability(
         quality_score=1.0,
         temporal_decision="MAJORITY_VOTE",
@@ -60,7 +57,6 @@ def test_track_reliability_score_bounds():
     assert 0.0 <= high_score <= 1.0
     assert high_score > 0.8
 
-    # Worst-case / low evidence
     low_score = scorer.compute_reliability(
         quality_score=0.2,
         temporal_decision="UNCERTAIN",
@@ -93,7 +89,6 @@ def test_track_reliability_evaluation_dict():
 
 
 def test_backward_compatibility_disabled_pipeline_output():
-    # In disabled mode, pipeline result dictionaries omit 'track_reliability'
     from pipeline.video_recognition import _load_track_reliability_config
     cfg = _load_track_reliability_config()
     assert not cfg.get("enabled", False)

@@ -45,7 +45,6 @@ class DynamicFusionWeights:
         g_avail = bool(gait_available and gait_quality > 0.0)
         r_avail = bool(reid_available and reid_quality > 0.0)
 
-        # Single-modality fallback
         if g_avail and not r_avail:
             return 1.0, 0.0
         if r_avail and not g_avail:
@@ -53,7 +52,6 @@ class DynamicFusionWeights:
         if not g_avail and not r_avail:
             return self.base_gait_weight, self.base_reid_weight
 
-        # Quality-weighted dynamic adaptation
         eff_gait_w = self.base_gait_weight * max(0.0, min(1.0, gait_quality))
         eff_reid_w = self.base_reid_weight * max(0.0, min(1.0, reid_quality))
 

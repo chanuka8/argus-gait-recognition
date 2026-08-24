@@ -47,15 +47,14 @@ def main():
     ckpt_path = "runs/exp_003e_hpp_arcface_triplet025/best_model.pth"
     model = load_model(ckpt_path, part_bins=4)
 
-    # 1. Analyze Open-Set Probe & Gallery on Validation Set (063-074)
     print("--- Extracting Validation Set Features (063-074) ---")
-    val_known = val_subs[:len(val_subs)//2]    # 063-068
+    val_known = val_subs[:len(val_subs)//2]
 
     val_gal_items, _ = build_gallery_and_probe_sets(val_known, "data/casia_processed/gei")
     _, _ = build_gallery_and_probe_sets(val_subs, "data/casia_processed/gei")
 
     print("--- Extracting Test Set Features (075-124) ---")
-    test_known = test_subs[:25]   # 075-099
+    test_known = test_subs[:25]
 
     test_gal_items, _ = build_gallery_and_probe_sets(test_known, "data/casia_processed/gei")
     _, test_prb_items = build_gallery_and_probe_sets(test_subs, "data/casia_processed/gei")
@@ -63,7 +62,6 @@ def main():
     test_gal_feats = np.asarray([image_to_embedding(model, i["path"]) for i in test_gal_items], dtype=np.float32)
     test_gal_labels = np.asarray([i["subject_id"] for i in test_gal_items])
 
-    # Compute Test Probes Match Statistics
     test_scores_top1 = []
     test_scores_top2 = []
     test_margins = []
@@ -78,7 +76,6 @@ def main():
         actual_id = prb["subject_id"]
         cond = prb["condition"]
 
-        # Compute similarities against gallery
         sims = np.dot(test_gal_feats, prb_feat)
         top_indices = np.argsort(sims)[::-1]
 
@@ -86,8 +83,6 @@ def main():
         top1_score = float(sims[top1_idx])
         top1_id = test_gal_labels[top1_idx]
 
-        # Top-2 score (from a DIFFERENT identity or second sample)
-        # Find highest score from a different gallery identity if possible
         different_id_indices = [idx for idx in top_indices if test_gal_labels[idx] != top1_id]
         top2_score = float(sims[different_id_indices[0]]) if different_id_indices else top1_score
 
@@ -118,7 +113,6 @@ def main():
     print(f"Genuine Margins: mean={np.mean(gen_margins):.4f}, std={np.std(gen_margins):.4f}")
     print(f"Impostor Margins: mean={np.mean(imp_margins):.4f}, std={np.std(imp_margins):.4f}")
 
-    # 2. Analyze CL Failure Cases
     print("\n=======================================================")
     print("      EXP-003E CONDITION-WISE INTRA/INTER SIMILARITY   ")
     print("=======================================================")
@@ -138,7 +132,6 @@ def main():
     bg_feats = np.asarray(bg_feats)
     cl_feats = np.asarray(cl_feats)
 
-    # Compute intra-condition vs cross-condition similarities for same subjects
     sub_to_cond_feats = {}
     for prb in test_prb_items:
         s = prb["subject_id"]

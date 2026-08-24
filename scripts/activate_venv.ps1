@@ -15,36 +15,29 @@
         is missing.
       - Performs no network, testing, linting, compilation, Git, or
         package-installation operations.
-#>
 
 $ErrorActionPreference = 'Stop'
 
-# Resolve repository root: parent directory of scripts/
 $RepoRoot = Split-Path -Parent (Split-Path -Parent $PSCommandPath)
 $RepoRoot = [System.IO.Path]::GetFullPath($RepoRoot)
 
-# Start terminal in the repository root
 Set-Location -LiteralPath $RepoRoot
 
-# Derive virtual environment paths
 $VenvDir = Join-Path $RepoRoot 'venv'
 $ActivateScript = Join-Path $VenvDir 'Scripts\Activate.ps1'
 $PythonExe = Join-Path $VenvDir 'Scripts\python.exe'
 
-# Validate venv directory
 if (-not (Test-Path -LiteralPath $VenvDir -PathType Container)) {
     Write-Warning "[ARGUS] Virtual environment not found: $VenvDir"
     Write-Warning "[ARGUS] Create it with: python -m venv `"$VenvDir`""
     return
 }
 
-# Validate activation script
 if (-not (Test-Path -LiteralPath $ActivateScript -PathType Leaf)) {
     Write-Warning "[ARGUS] Activation script not found: $ActivateScript"
     return
 }
 
-# Validate Python interpreter
 if (-not (Test-Path -LiteralPath $PythonExe -PathType Leaf)) {
     Write-Warning "[ARGUS] Python interpreter not found: $PythonExe"
     return
@@ -52,7 +45,6 @@ if (-not (Test-Path -LiteralPath $PythonExe -PathType Leaf)) {
 
 $TargetVenv = [System.IO.Path]::GetFullPath($VenvDir)
 
-# Skip only when this exact environment is already fully activated
 if ($global:__ARGUS_VENV_ACTIVATED -and $env:VIRTUAL_ENV) {
     try {
         $CurrentVenv = [System.IO.Path]::GetFullPath($env:VIRTUAL_ENV)
@@ -62,11 +54,9 @@ if ($global:__ARGUS_VENV_ACTIVATED -and $env:VIRTUAL_ENV) {
         }
     }
     catch {
-        # Invalid inherited VIRTUAL_ENV path; continue with normal activation.
     }
 }
 
-# Deactivate a different active virtual environment
 if ($env:VIRTUAL_ENV) {
     try {
         $CurrentVenv = [System.IO.Path]::GetFullPath($env:VIRTUAL_ENV)
@@ -87,7 +77,6 @@ if ($env:VIRTUAL_ENV) {
     }
 }
 
-# Activate the ARGUS virtual environment
 try {
     . $ActivateScript
 

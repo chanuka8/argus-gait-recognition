@@ -19,7 +19,7 @@ class ThresholdCalibrator:
     def __init__(
         self,
         val_subjects: list[str],
-        feature_extractor_fn,  # Callable[[Path], np.ndarray]
+        feature_extractor_fn,
         known_ratio: float = 0.5,
     ) -> None:
         self.val_subjects = sorted(val_subjects)
@@ -37,13 +37,11 @@ class ThresholdCalibrator:
         gei_root: str = "data/casia_processed/gei",
         output_dir: str = "runs/exp_001/evaluation_subject_disjoint",
     ) -> dict:
-        # Build gallery for KNOWN validation subjects only
         gallery_items, _ = build_gallery_and_probe_sets(
             subjects=sorted(list(self.known_val_subjects)),
             gei_root=gei_root,
         )
 
-        # Build probes for ALL validation subjects (both known and unknown)
         _, probe_items = build_gallery_and_probe_sets(
             subjects=self.val_subjects,
             gei_root=gei_root,
@@ -52,15 +50,12 @@ class ThresholdCalibrator:
         if not gallery_items or not probe_items:
             raise RuntimeError("Validation gallery or probe items empty. Cannot calibrate threshold.")
 
-        # Extract embeddings
         gal_features = np.asarray([self.feature_extractor(Path(item["path"])) for item in gallery_items], dtype=np.float32)
         gal_labels = np.asarray([item["subject_id"] for item in gallery_items])
 
-        # L2 normalize gallery
         gal_norms = np.linalg.norm(gal_features, axis=1, keepdims=True)
         gal_features_norm = gal_features / (gal_norms + 1e-8)
 
-        # Evaluate probes
         scores = []
         margins = []
         is_genuine = []
@@ -72,7 +67,6 @@ class ThresholdCalibrator:
             feat = self.feature_extractor(prb_path)
             feat_norm = feat / (np.linalg.norm(feat) + 1e-8)
 
-            # Cosine similarity matrix product
             sims = np.dot(gal_features_norm, feat_norm)
             top_indices = np.argsort(sims)[::-1]
             best_idx = top_indices[0]
@@ -94,7 +88,6 @@ class ThresholdCalibrator:
         margins = np.asarray(margins, dtype=np.float32)
         is_genuine = np.asarray(is_genuine, dtype=bool)
 
-        # Sweep thresholds
         min_score = float(np.min(scores))
         max_score = float(np.max(scores))
         thresholds = np.linspace(min_score - 0.05, max_score + 0.05, 201)
@@ -107,13 +100,8 @@ class ThresholdCalibrator:
 
         for th in thresholds:
             th = float(th)
-            # Accept if score >= th and margin >= margin_threshold
             accepted = (scores >= th) & (margins >= margin_threshold)
 
-            # Genuine query accepted with correct ID => True Accept
-            # Genuine query rejected => False Reject
-            # Impostor query accepted => False Accept
-            # Impostor query rejected => True Reject
 
             tp = int(np.sum(accepted & is_genuine))
             fn = total_genuine_queries - tp
@@ -141,7 +129,6 @@ class ThresholdCalibrator:
                 "EER_gap": abs(far - frr),
             })
 
-        # Find best threshold according to criterion
         if criterion == "min_eer":
             sweep_records_sorted = sorted(sweep_records, key=lambda x: x["EER_gap"])
             best_threshold = sweep_records_sorted[0]["threshold"]
@@ -151,7 +138,6 @@ class ThresholdCalibrator:
         elif criterion == "target_far":
             eligible = [r for r in sweep_records if r["FAR"] <= target_far]
             if eligible:
-                # Pick one with highest TAR among eligible
                 eligible_sorted = sorted(eligible, key=lambda x: x["TAR"], reverse=True)
                 best_threshold = eligible_sorted[0]["threshold"]
             else:

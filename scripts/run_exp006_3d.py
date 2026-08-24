@@ -52,7 +52,6 @@ def extract_2d_keypoints_sequence(yolo_model: YOLO, img_paths: list[str]) -> np.
     if not seq_kpts:
         seq_kpts = [np.zeros((17, 3), dtype=np.float32) for _ in range(15)]
 
-    # Pad or tile sequence to length 30
     seq_arr = np.stack(seq_kpts, axis=0)
     if len(seq_arr) < 30:
         repeats = (30 // len(seq_arr)) + 1
@@ -77,28 +76,23 @@ def main():
         torch.cuda.reset_peak_memory_stats()
         print(f"GPU: {torch.cuda.get_device_name(0)}")
 
-    # 1. Load YOLOv8-pose, PoseLifter3D, PoseGait3DNet
     print("Loading YOLOv8n-pose and 3D Gait models...")
     yolo_pose = YOLO("models/weights/yolov8n-pose.pt")
     pose_lifter = PoseLifter3D().to(device).eval()
     gait3d_net = PoseGait3DNet(embedding_dim=256).to(device).eval()
 
-    # 2. Load dataset subject split (Train 001-062, Val 063-074, Test 075-124)
     split_manifest = load_or_create_subject_split("configs/subject_split.json", "data/casia_processed/gei")
     test_subs = split_manifest["test_subjects"]
     gei_root = "data/casia_processed/gei"
 
-    # Build gallery (075-099 NM-01..02) and probe (075-124 NM/BG/CL)
     gallery_items, probe_items = build_gallery_and_probe_sets(subjects=test_subs, gei_root=gei_root)
     print(f"Loaded Gallery items: {len(gallery_items)} | Probe items: {len(probe_items)}")
 
-    # 3. Extract 3D Gait embeddings for Gallery and Probes
     print("Extracting 3D Gait embeddings...")
     start_time = time.time()
 
     def get_3d_embedding(item_path: str) -> np.ndarray:
         p_dir = Path(item_path).parent
-        # Gather up to 5 adjacent frames or images for temporal sequence
         frame_paths = sorted(list(p_dir.glob("*.png")))[:5]
         if not frame_paths:
             frame_paths = [item_path]
@@ -129,9 +123,8 @@ def main():
 
     print(f"Extraction completed in {total_time:.2f}s | FPS: {fps:.1f} | Latency: {latency_ms:.2f}ms/item | VRAM: {vram_mb:.1f}MB")
 
-    # 4. Evaluate Closed-set Recognition
     print("\n--- Evaluating 3D Gait Closed-Set Identification ---")
-    sim_matrix = np.dot(prb_embs, gal_embs.T)  # (N_probe, N_gallery)
+    sim_matrix = np.dot(prb_embs, gal_embs.T)
 
     top1_hits = 0
     top5_hits = 0
@@ -147,7 +140,6 @@ def main():
     rank1_acc = top1_hits / max(len(prb_labels), 1)
     rank5_acc = top5_hits / max(len(prb_labels), 1)
 
-    # Condition-wise breakdown
     cond_accs = {}
     for c in ["NM", "BG", "CL"]:
         mask = (prb_conds == c)
@@ -163,7 +155,6 @@ def main():
     print(f"BG Accuracy:     {cond_accs['BG']*100:.2f}%")
     print(f"CL Accuracy:     {cond_accs['CL']*100:.2f}%")
 
-    # 5. Open-Set Identification Evaluation (Known 075-099 vs Unknown 100-124)
     known_subs = set(test_subs[:len(test_subs) // 2])
     scores = np.max(sim_matrix, axis=1)
     is_genuine = np.array([prb_labels[i] in known_subs and gal_labels[np.argmax(sim_matrix[i])] == prb_labels[i] for i in range(len(prb_labels))], dtype=bool)
@@ -172,7 +163,6 @@ def main():
     eer_th = roc_res["eer_threshold"]
     op_metrics = compute_biometric_rates(scores, is_genuine, threshold=eer_th)
 
-    # 6. Load EXP-003E / EXP-004B 2D baseline metrics for direct comparison
     exp004b_eval = evaluate_checkpoint(
         model_path="runs/exp_003e_hpp_arcface_triplet025/best_model.pth",
         output_dir=str(output_dir / "exp004b_baseline"),

@@ -1,13 +1,6 @@
-/**
- * ARGUS Gait Backend API Client & WebSocket Service
- * Interacts with FastAPI Gait Recognition Backend (v1 API).
- */
 
 import { getApiUrl, getWsUrl, getStreamUrl, getSnapshotUrl } from '../config/apiConfig';
 
-/**
- * Standard HTTP request wrapper against FastAPI backend.
- */
 async function request(endpoint, options = {}) {
   const url = getApiUrl(endpoint);
   try {
@@ -26,10 +19,6 @@ async function request(endpoint, options = {}) {
   }
 }
 
-/**
- * Normalizes recognition events across all backend event producers
- * (RecognitionWorker live events, image identification, and video analysis).
- */
 export function normalizeRecognitionEvent(rawEvent) {
   if (!rawEvent || typeof rawEvent !== 'object') return null;
 
@@ -189,7 +178,7 @@ export const gaitApi = {
           try {
             socket.close();
           } catch {
-            // ignore
+            /* ignore */
           }
         }
       },

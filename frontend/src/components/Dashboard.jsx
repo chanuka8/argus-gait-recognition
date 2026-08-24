@@ -138,7 +138,6 @@ const Dashboard = () => {
             </header>
 
             <main className="command-workspace">
-                {/* LEFT PANE: TACTICAL MAP & HUD TELEMETRY */}
                 <section className="tactical-map-pane">
                     <div className="map-hud-ribbon">
                         <div className="hud-metric-pill total">
@@ -175,7 +174,6 @@ const Dashboard = () => {
                     </div>
                 </section>
 
-                {/* RIGHT PANE: OPERATIONS DOCK & LIVE FEED */}
                 <aside className="operations-dock">
                     <GaitSystemStatus />
 

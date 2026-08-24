@@ -10,11 +10,6 @@ from services.camera_worker import CameraWorker, normalize_camera_source
 from services.gait_service import GaitService
 
 
-# ---------------------------------------------------------------------------
-# Original Tests (preserved)
-# ---------------------------------------------------------------------------
-
-
 def test_normalize_camera_source_webcam_indices():
     """Verify numeric strings and integers are normalized to integer device indices."""
     assert normalize_camera_source("0") == 0
@@ -41,7 +36,6 @@ def test_camera_start_and_stop_lifecycle():
 
     with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap), \
          patch.object(service.source_resolver, "probe_usb_webcam", return_value=True):
-        # Start worker
         cam_info = service.start_camera(
             camera_id="CCTV-TEST-101",
             source="0",
@@ -51,12 +45,10 @@ def test_camera_start_and_stop_lifecycle():
         assert cam_info["status"] == "ACTIVE"
         assert "CCTV-TEST-101" in service.active_cameras
 
-        # Stop worker
         stopped = service.stop_camera("CCTV-TEST-101")
         assert stopped is True
         assert "CCTV-TEST-101" not in service.active_cameras
 
-        # Stopping non-existent camera returns False
         assert service.stop_camera("NON_EXISTENT") is False
 
 
@@ -69,7 +61,6 @@ def test_camera_api_endpoints():
     with TestClient(app) as client, \
          patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap), \
          patch("services.camera_source_resolver.CameraSourceResolver.probe_usb_webcam", return_value=True):
-        # Start Camera via API
         start_resp = client.post(
             "/api/v1/cameras/start",
             json={
@@ -83,13 +74,11 @@ def test_camera_api_endpoints():
         assert data["camera_id"] == "CCTV-API-99"
         assert data["status"] == "ACTIVE"
 
-        # List Cameras
         list_resp = client.get("/api/v1/cameras")
         assert list_resp.status_code == 200
         cameras = list_resp.json()
         assert any(c["camera_id"] == "CCTV-API-99" for c in cameras)
 
-        # Stop Camera
         stop_resp = client.post(
             "/api/v1/cameras/stop",
             json={"camera_id": "CCTV-API-99"},
@@ -97,17 +86,12 @@ def test_camera_api_endpoints():
         assert stop_resp.status_code == 200
         assert stop_resp.json()["success"] is True
 
-        # Stop non-existent returns 404
         stop_404 = client.post(
             "/api/v1/cameras/stop",
             json={"camera_id": "CCTV-API-99"},
         )
         assert stop_404.status_code == 404
 
-
-# ---------------------------------------------------------------------------
-# Helper factory for CameraWorker with mocked capture
-# ---------------------------------------------------------------------------
 
 def _make_rtsp_config(**overrides):
     """Build an RTSP camera config dict with fast test timeouts."""
@@ -136,11 +120,6 @@ def _dummy_frame():
     return frame
 
 
-# ---------------------------------------------------------------------------
-# New Tests — Startup Retry
-# ---------------------------------------------------------------------------
-
-
 def test_rtsp_startup_retries_then_succeeds():
     """RTSP VideoCapture opens but first reads fail; bounded retry eventually succeeds."""
     cfg = _make_rtsp_config()
@@ -148,7 +127,6 @@ def test_rtsp_startup_retries_then_succeeds():
 
     frame = _dummy_frame()
 
-    # read() fails 3 times during handshake, then continuously succeeds
     call_count = 0
 
     def read_effect():
@@ -190,7 +168,6 @@ def test_rtsp_startup_timeout_clean_failure():
     assert worker.is_connected() is False
     assert worker._capture is None
     assert worker.is_running() is False
-    # Verify capture was released
     mock_cap.release.assert_called()
 
 
@@ -217,7 +194,7 @@ def test_stop_during_startup_handshake():
 
     mock_cap = MagicMock()
     mock_cap.isOpened.return_value = True
-    mock_cap.read.return_value = (False, None)  # Never returns valid frame
+    mock_cap.read.return_value = (False, None)
 
     def set_stop_after_delay():
         time.sleep(0.2)
@@ -237,11 +214,6 @@ def test_stop_during_startup_handshake():
     mock_cap.release.assert_called()
 
 
-# ---------------------------------------------------------------------------
-# New Tests — Lifecycle Idempotency
-# ---------------------------------------------------------------------------
-
-
 def test_duplicate_start_rejected():
     """Starting the same camera twice does not create duplicate workers."""
     service = GaitService()
@@ -254,12 +226,10 @@ def test_duplicate_start_rejected():
         info1 = service.start_camera(camera_id="CAM-DUP", source="0", location="Test")
         assert info1["status"] == "ACTIVE"
 
-        # Second start returns existing info without error
         info2 = service.start_camera(camera_id="CAM-DUP", source="0", location="Test")
         assert info2["camera_id"] == "CAM-DUP"
         assert info2["status"] == "ACTIVE"
 
-        # Only one worker exists
         assert len([k for k in service.camera_workers if k == "CAM-DUP"]) == 1
 
         service.stop_camera("CAM-DUP")
@@ -276,16 +246,9 @@ def test_repeated_stop_is_safe():
          patch.object(service.source_resolver, "probe_usb_webcam", return_value=True):
         service.start_camera(camera_id="CAM-RSTOP", source="0", location="Test")
         assert service.stop_camera("CAM-RSTOP") is True
-        # Second stop returns False (already stopped)
         assert service.stop_camera("CAM-RSTOP") is False
-        # No stale entry
         assert "CAM-RSTOP" not in service.active_cameras
         assert "CAM-RSTOP" not in service.camera_workers
-
-
-# ---------------------------------------------------------------------------
-# New Tests — Failure Cleanup
-# ---------------------------------------------------------------------------
 
 
 def test_startup_failure_no_stale_active_worker():
@@ -293,7 +256,7 @@ def test_startup_failure_no_stale_active_worker():
     service = GaitService()
 
     mock_cap = MagicMock()
-    mock_cap.isOpened.return_value = False  # Capture fails to open
+    mock_cap.isOpened.return_value = False
 
     with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
         try:
@@ -306,7 +269,6 @@ def test_startup_failure_no_stale_active_worker():
         except RuntimeError:
             pass
 
-    # No stale ACTIVE entry
     assert "CAM-STALE" not in service.active_cameras
     assert "CAM-STALE" not in service.camera_workers
 
@@ -329,15 +291,9 @@ def test_startup_failure_releases_zone_reservation():
         except RuntimeError:
             pass
 
-    # Reservation was cleaned up
     assert not service.source_resolver.is_source_reserved(
         "stream:rtsp://user:pass@10.0.0.1:554/live"
     )
-
-
-# ---------------------------------------------------------------------------
-# New Tests — Credential Sanitization
-# ---------------------------------------------------------------------------
 
 
 def test_credential_sanitization_in_error():
@@ -361,11 +317,6 @@ def test_credential_sanitization_in_error():
             assert "admin" not in error_msg
 
 
-# ---------------------------------------------------------------------------
-# New Tests — Runtime Reconnect
-# ---------------------------------------------------------------------------
-
-
 def test_runtime_frame_failure_triggers_reconnect():
     """Temporary runtime frame read failure triggers reconnect, not permanent death."""
     cfg = _make_rtsp_config(
@@ -380,18 +331,17 @@ def test_runtime_frame_failure_triggers_reconnect():
     mock_cap = MagicMock()
     mock_cap.isOpened.return_value = True
 
-    # Callable side_effect: fail once at runtime to trigger reconnect, then keep running
     call_count = 0
 
     def read_effect():
         nonlocal call_count
         call_count += 1
         if call_count == 1:
-            return (True, frame)   # startup handshake ok
+            return (True, frame)
         elif call_count == 2:
-            return (False, None)   # runtime failure → triggers reconnect
+            return (False, None)
         else:
-            return (True, frame)   # reconnect handshake + resumed runtime
+            return (True, frame)
 
     mock_cap.read.side_effect = read_effect
 
@@ -399,17 +349,11 @@ def test_runtime_frame_failure_triggers_reconnect():
         started = worker.start()
         assert started is True
 
-        # Give capture loop time to process the failure and reconnect
         time.sleep(0.5)
 
         assert worker.is_running() is True
 
     worker.stop()
-
-
-# ---------------------------------------------------------------------------
-# New Tests — MJPEG Preview After Startup
-# ---------------------------------------------------------------------------
 
 
 def test_mjpeg_preview_available_after_startup():
@@ -428,18 +372,13 @@ def test_mjpeg_preview_available_after_startup():
     assert started is True
     jpeg = worker.get_latest_jpeg()
     assert jpeg is not None
-    assert jpeg[:2] == b"\xff\xd8"  # JPEG magic bytes
+    assert jpeg[:2] == b"\xff\xd8"
 
     stats = worker.get_stats()
     assert stats["frames_captured"] >= 1
     assert stats["last_frame_at"] is not None
 
     worker.stop()
-
-
-# ---------------------------------------------------------------------------
-# New Tests — Successful Stop Cleanup
-# ---------------------------------------------------------------------------
 
 
 def test_successful_stop_releases_resources():
@@ -463,11 +402,6 @@ def test_successful_stop_releases_resources():
     assert worker.is_connected() is False
 
 
-# ---------------------------------------------------------------------------
-# Additional Production Tests — Restart, Config Bounds, and Edge Cases
-# ---------------------------------------------------------------------------
-
-
 def test_camera_worker_restart():
     """Worker restart() must cleanly stop and restart the worker."""
     cfg = _make_rtsp_config()
@@ -482,7 +416,6 @@ def test_camera_worker_restart():
         assert worker.start() is True
         assert worker.is_running() is True
 
-        # Restart
         restarted = worker.restart()
         assert restarted is True
         assert worker.is_running() is True
@@ -500,7 +433,7 @@ def test_camera_worker_config_boundary_safety():
         "height": 0,
         "target_fps": -5,
         "jpeg_quality": 200,
-        "preview_max_fps": 0,  # Must not cause ZeroDivisionError
+        "preview_max_fps": 0,
         "startup_timeout": -10,
         "startup_retry_interval": -0.5,
         "reconnect_interval": -3,
@@ -518,12 +451,10 @@ def test_camera_worker_config_boundary_safety():
 
 def test_source_resolution_file_and_http():
     """Test resolution of file and http sources."""
-    # HTTP source
     http_cfg = {"type": "http", "url": "http://192.168.1.50:8080/video"}
     w_http = CameraWorker("CAM-HTTP", http_cfg)
     assert w_http._resolve_source() == "http://192.168.1.50:8080/video"
 
-    # HTTP empty raises ValueError
     w_http_empty = CameraWorker("CAM-HTTP-EMPTY", {"type": "http", "url": ""})
     try:
         w_http_empty._resolve_source()
@@ -531,12 +462,10 @@ def test_source_resolution_file_and_http():
     except ValueError:
         pass
 
-    # File source
     file_cfg = {"type": "file", "file_path": "data/sample.mp4"}
     w_file = CameraWorker("CAM-FILE", file_cfg)
     assert w_file._resolve_source() == "data/sample.mp4"
 
-    # File empty raises ValueError
     w_file_empty = CameraWorker("CAM-FILE-EMPTY", {"type": "file", "file_path": ""})
     try:
         w_file_empty._resolve_source()
@@ -578,27 +507,20 @@ def test_reconnect_max_attempts_exceeded_exits_loop():
         nonlocal call_count
         call_count += 1
         if call_count == 1:
-            return (True, frame)  # Initial startup ok
-        return (False, None)      # All subsequent reads fail
+            return (True, frame)
+        return (False, None)
 
     mock_cap.read.side_effect = read_effect
 
     with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
         assert worker.start() is True
 
-        # Wait for worker thread to exit after exhausting max reconnects
         if worker._thread is not None:
             worker._thread.join(timeout=2.0)
 
-    # Worker thread should have exited
     assert worker.is_running() is False
     assert worker.is_connected() is False
     worker.stop()
-
-
-# ---------------------------------------------------------------------------
-# Requirement 1: Configuration Source of Truth Propagation
-# ---------------------------------------------------------------------------
 
 
 def test_system_config_propagates_to_worker():
@@ -649,11 +571,6 @@ def test_system_config_propagates_to_worker():
             service.stop_camera("CAM-CONFIG-TEST")
 
 
-# ---------------------------------------------------------------------------
-# Requirement 3: Concurrency and Race Condition Tests
-# ---------------------------------------------------------------------------
-
-
 def test_concurrent_start_attempts():
     """Multiple threads calling start() simultaneously must result in exactly one active thread."""
     cfg = _make_rtsp_config()
@@ -677,7 +594,6 @@ def test_concurrent_start_attempts():
     for t in threads:
         t.join()
 
-    # Exactly one start should succeed
     assert results.count(True) == 1
     assert results.count(False) == 4
     assert worker.is_running() is True
@@ -717,7 +633,6 @@ def test_restart_during_reconnect_is_safe():
     mock_cap = MagicMock()
     mock_cap.isOpened.return_value = True
 
-    # Start ok, then fail to trigger reconnect
     call_count = 0
 
     def read_effect():
@@ -726,16 +641,15 @@ def test_restart_during_reconnect_is_safe():
         if call_count == 1:
             return (True, frame)
         elif call_count == 2:
-            return (False, None)  # triggers reconnect
+            return (False, None)
         return (True, frame)
 
     mock_cap.read.side_effect = read_effect
 
     with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
         assert worker.start() is True
-        time.sleep(0.1)  # allow runtime failure
+        time.sleep(0.1)
 
-        # Restart while reconnecting
         assert worker.restart() is True
         assert worker.is_running() is True
         assert worker.is_connected() is True
@@ -756,23 +670,16 @@ def test_failed_startup_followed_by_successful_restart():
     mock_cap_ok.isOpened.return_value = True
     mock_cap_ok.read.return_value = (True, frame)
 
-    # Initial start fails
     with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap_fail):
         assert worker.start() is False
         assert worker.is_running() is False
 
-    # Restart succeeds when capture is ok
     with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap_ok):
         assert worker.restart() is True
         assert worker.is_running() is True
         assert worker.is_connected() is True
 
     worker.stop()
-
-
-# ---------------------------------------------------------------------------
-# Requirement 4: Capture Release Safety on Exception
-# ---------------------------------------------------------------------------
 
 
 def test_capture_release_exception_safety():
@@ -790,17 +697,11 @@ def test_capture_release_exception_safety():
         assert worker.start() is True
         assert worker.is_connected() is True
 
-        # Stop must not propagate exception and must clean up internal state
         worker.stop()
 
     assert worker.is_running() is False
     assert worker._capture is None
     assert worker.is_connected() is False
-
-
-# ---------------------------------------------------------------------------
-# Requirement 5: Reconnect Attempts Semantics (0, 1, 2)
-# ---------------------------------------------------------------------------
 
 
 def test_reconnect_attempts_semantics_zero_infinite():
@@ -823,10 +724,10 @@ def test_reconnect_attempts_semantics_zero_infinite():
         nonlocal call_count
         call_count += 1
         if call_count == 1:
-            return (True, frame)  # startup ok
+            return (True, frame)
         elif call_count <= 4:
-            return (False, None)  # 3 reconnect attempts fail
-        return (True, frame)      # 4th reconnect succeeds
+            return (False, None)
+        return (True, frame)
 
     mock_cap.read.side_effect = read_effect
 
@@ -870,11 +771,6 @@ def test_reconnect_attempts_semantics_one():
 
     assert worker.is_running() is False
     worker.stop()
-
-
-# ---------------------------------------------------------------------------
-# Requirement 7: Credential Masking for Complex Password Strings
-# ---------------------------------------------------------------------------
 
 
 def test_credential_masking_complex_password():

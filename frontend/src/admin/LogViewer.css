@@ -156,7 +156,6 @@
     color: var(--text-primary);
 }
 
-/* Terminal View Styling */
 .logs-terminal-container {
     background: rgba(30, 32, 35, 0.88);
     border: 1px solid var(--border);
@@ -286,7 +285,6 @@
     white-space: nowrap;
 }
 
-/* Severity specific log row styles */
 .log-row-item.warning {
     border-left: 2px solid var(--status-investigating);
     background: rgba(255, 209, 102, 0.02);
@@ -317,9 +315,6 @@
     opacity: 0.6;
 }
 
-/* ===================== */
-/* Log Detail Modal      */
-/* ===================== */
 .log-detail-overlay {
     position: fixed;
     top: 0;

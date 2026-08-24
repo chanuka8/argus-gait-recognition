@@ -24,7 +24,6 @@ class TestSystemAuditVerification(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
-    # 1. Cross camera identity transfer simulation
     def test_cross_camera_identity_transfer_simulation(self):
         tracker = CrossCameraTracker(max_transition_time_seconds=10.0)
         gid_cam_a = tracker.get_or_create_global_id("camera_A", local_track_id=101, identity="subject_X")
@@ -37,7 +36,6 @@ class TestSystemAuditVerification(unittest.TestCase):
         self.assertEqual(history["transitions"][0]["from"], "camera_A")
         self.assertEqual(history["transitions"][0]["to"], "camera_B")
 
-    # 2. Track expiration and cleanup
     def test_track_expiration_and_cleanup(self):
         tracker = CrossCameraTracker(max_transition_time_seconds=0.01)
         gid = tracker.get_or_create_global_id("cam1", local_track_id=1, identity="subject_Y")
@@ -46,7 +44,6 @@ class TestSystemAuditVerification(unittest.TestCase):
         self.assertEqual(removed, 1)
         self.assertIsNone(tracker.get_track_history(gid))
 
-    # 3. Cache TTL expiration
     def test_cache_ttl_expiration(self):
         cache = ReIDCache(ttl_seconds=0.02, max_entries=10)
         cache.put("item1", np.ones((128,)))
@@ -54,19 +51,17 @@ class TestSystemAuditVerification(unittest.TestCase):
         time.sleep(0.04)
         self.assertIsNone(cache.get("item1"))
 
-    # 4. Cache maximum size handling
     def test_cache_maximum_size_handling(self):
         cache = ReIDCache(ttl_seconds=60.0, max_entries=3)
         cache.put("k1", "val1")
         cache.put("k2", "val2")
         cache.put("k3", "val3")
         self.assertEqual(cache.size(), 3)
-        cache.put("k4", "val4")  # Should trigger eviction of oldest
+        cache.put("k4", "val4")
         self.assertEqual(cache.size(), 3)
         self.assertIsNone(cache.get("k1"))
         self.assertIsNotNone(cache.get("k4"))
 
-    # 5. Concurrent cache access
     def test_concurrent_cache_access(self):
         cache = ReIDCache(ttl_seconds=10.0, max_entries=100)
         errors = []
@@ -87,14 +82,12 @@ class TestSystemAuditVerification(unittest.TestCase):
 
         self.assertEqual(len(errors), 0)
 
-    # 6. Duplicate alert suppression
     def test_duplicate_alert_suppression(self):
         persistence = IdentityPersistence(suppression_window_seconds=5.0)
         self.assertFalse(persistence.should_suppress_alert("target_1"))
         self.assertTrue(persistence.should_suppress_alert("target_1"))
         self.assertTrue(persistence.should_suppress_alert("target_1"))
 
-    # 7. Confidence accumulation consistency
     def test_confidence_accumulation_consistency(self):
         p1 = IdentityPersistence(score_accumulation_decay=0.9)
         p2 = IdentityPersistence(score_accumulation_decay=0.9)
@@ -107,7 +100,6 @@ class TestSystemAuditVerification(unittest.TestCase):
         self.assertAlmostEqual(res1["accumulated_score"], res2["accumulated_score"], places=6)
         self.assertEqual(res1["detections"], 4)
 
-    # 8. Gallery scan non-blocking behavior
     def test_gallery_scan_non_blocking(self):
         workflow = MissingPersonWorkflow(alert_threshold=0.80, cooldown_seconds=1.0)
         workflow.register_target("target_A")
@@ -117,10 +109,8 @@ class TestSystemAuditVerification(unittest.TestCase):
             workflow.process_match("target_A", 0.85, "cam1")
         elapsed = time.monotonic() - start
 
-        # 50 matches should process in under 0.1 seconds (non-blocking)
         self.assertLess(elapsed, 0.1)
 
-    # 9. Event queue overflow handling
     def test_event_queue_overflow_handling(self):
         workflow = MissingPersonWorkflow(alert_threshold=0.80, cooldown_seconds=0.001)
         workflow.register_target("target_B")
@@ -132,7 +122,6 @@ class TestSystemAuditVerification(unittest.TestCase):
         events = workflow.get_recent_events()
         self.assertGreater(len(events), 0)
 
-    # 10. Evidence filename collision
     def test_evidence_filename_collision(self):
         mgr = EvidenceManager(base_evidence_dir=self.temp_dir)
         frame = np.zeros((10, 10, 3), dtype=np.uint8)
@@ -144,20 +133,18 @@ class TestSystemAuditVerification(unittest.TestCase):
         self.assertTrue(os.path.exists(saved1["snapshot"]))
         self.assertTrue(os.path.exists(saved2["snapshot"]))
 
-    # 11. Invalid snapshot handling
     def test_invalid_snapshot_handling(self):
         mgr = EvidenceManager(base_evidence_dir=self.temp_dir)
-        invalid_frame = np.array([], dtype=np.uint8)  # Empty array
+        invalid_frame = np.array([], dtype=np.uint8)
 
         saved = mgr.save_evidence("target_2", "cam1", 0.85, frame=invalid_frame)
         self.assertNotIn("snapshot", saved)
         self.assertIn("metadata", saved)
         self.assertTrue(os.path.exists(saved["metadata"]))
 
-    # 12. Retention cleanup
     def test_retention_cleanup(self):
         mgr = EvidenceManager(base_evidence_dir=self.temp_dir, max_age_days=0)
-        mgr.max_age_seconds = 0.01  # Immediate expiration for test
+        mgr.max_age_seconds = 0.01
 
         mgr.save_evidence("target_old", "cam1", 0.9)
         time.sleep(0.03)

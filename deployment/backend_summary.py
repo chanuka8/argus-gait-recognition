@@ -25,7 +25,6 @@ class BackendStartupSummary:
         self.backend = backend
         self.startup_status = startup_status
 
-        # Resolve repository-relative model path
         if model_path:
             m_path = model_path
         elif getattr(backend, "active_backend", None) == "onnxruntime":
@@ -72,7 +71,6 @@ class BackendStartupSummary:
         global _SUMMARY_EMITTED
         summary_text = self.format_summary()
 
-        # Check sanitization
         if "C:\\Users" in summary_text or "/home/" in summary_text:
             raise ValueError("Absolute user-home path detected in backend summary")
         if "SECRET" in summary_text.upper() and "PATTERNS" not in summary_text.upper():

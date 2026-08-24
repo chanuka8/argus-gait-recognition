@@ -27,7 +27,6 @@ def main():
     run_dir = Path("runs/exp_006_3d")
     run_dir.mkdir(parents=True, exist_ok=True)
 
-    # 1. Train 3D Gait Model
     print("Starting 3D Gait Model Training (15 Epochs, ArcFace + Triplet 0.25)...")
     trainer = Gait3DTrainer(
         data_dir="data/casia_processed/skeletons",
@@ -44,7 +43,6 @@ def main():
     train_results = trainer.train()
     print(f"Training Complete! Best Val Accuracy: {train_results['best_val_acc']*100:.2f}%\n")
 
-    # 2. Strict Subject-Disjoint Evaluation on Test (075-124)
     print("Starting Strict Subject-Disjoint 3D Gait Evaluation on Test Set (075-124)...")
     evaluator = Evaluator3D(
         model_path=str(run_dir / "best_model.pth"),
@@ -54,7 +52,6 @@ def main():
     eval_3d = evaluator.evaluate(output_dir=str(run_dir / "evaluation"))
     print("3D Evaluation Complete!\n")
 
-    # 3. Evaluate 2D Baseline (EXP-003E + EXP-004B) for Direct Comparison
     print("Evaluating 2D Baseline (EXP-003E + EXP-004B) for Comparison...")
     eval_2d = evaluate_checkpoint(
         model_path="runs/exp_003e_hpp_arcface_triplet025/best_model.pth",
@@ -62,7 +59,6 @@ def main():
         margin_threshold=0.05,
     )
 
-    # 4. Save Final Combined Comparison Report
     comparison = {
         "experiment": "EXP-006 3D Gait Branch vs EXP-003E/004B 2D Baseline",
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),

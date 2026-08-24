@@ -62,20 +62,17 @@ def test_confirmed_recognition_report(reporter_config: dict, tmp_path: Path):
     assert "csv" in files
     assert "markdown" in files
 
-    # Verify JSON format validity
     with open(files["json"], "r", encoding="utf-8") as f:
         data = json.load(f)
         assert data["camera_id"] == "cam_01"
         assert data["final_identity"] == "P001"
         assert data["final_decision"] == "KNOWN"
 
-    # Verify CSV format validity
     with open(files["csv"], "r", encoding="utf-8") as f:
         reader = csv.reader(f)
         rows = dict(list(reader))
         assert rows["final_identity"] == "P001"
 
-    # Verify Markdown format validity
     with open(files["markdown"], "r", encoding="utf-8") as f:
         content = f.read()
         assert "# Explainable Recognition Report" in content
@@ -147,10 +144,8 @@ def test_duplicate_suppression_cooldown(reporter_config: dict):
     first_gen = reporter.generate_report(ev)
     assert first_gen is not None
 
-    # Immediate second call should be suppressed by cooldown
     second_gen = reporter.generate_report(ev)
     assert second_gen is None
 
-    # Force export should bypass cooldown
     forced_gen = reporter.generate_report(ev, force_export=True)
     assert forced_gen is not None

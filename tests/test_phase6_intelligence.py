@@ -78,7 +78,6 @@ class TestMissingPersonWorkflow(unittest.TestCase):
         self.assertIsNotNone(event)
         self.assertEqual(event["event_type"], "MISSING_PERSON_MATCH")
 
-        # Cooldown check
         event2 = workflow.process_match("target_101", confidence_score=0.91, camera_id="cam_main")
         self.assertIsNone(event2)
 

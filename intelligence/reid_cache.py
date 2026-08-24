@@ -16,7 +16,6 @@ class ReIDCache:
         self._logger = get_logger("reid_cache")
         self._lock = Lock()
 
-        # key -> {"embedding": Any, "timestamp": float, "metadata": dict}
         self._cache: Dict[str, Dict[str, Any]] = {}
 
     def put(self, key: str, embedding: Any, metadata: Optional[Dict[str, Any]] = None) -> None:

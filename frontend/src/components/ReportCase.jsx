@@ -36,8 +36,6 @@ const ReportCase = () => {
     const [showProfile, setShowProfile] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [isDetectingGPS, setIsDetectingGPS] = useState(false);
-    // Tracks the current processing phase shown in the loading modal
-    // Possible values: null | 'uploading' | 'extracting' | 'done'
     const [processingPhase, setProcessingPhase] = useState(null);
 
     const imageInputRef = useRef(null);
@@ -135,7 +133,6 @@ const ReportCase = () => {
             const caseId = formData.caseId;
             console.log('Submitting case', caseId, 'NIC', formData.nic);
 
-            // ── Step 1: Upload images to Firebase Storage ──────────────────
             const imageUrls = [];
             for (let i = 0; i < images.length; i++) {
                 const file = images[i];
@@ -149,7 +146,6 @@ const ReportCase = () => {
                 imageUrls.push(url);
             }
 
-            // ── Step 2: Upload videos to Firebase Storage ──────────────────
             const videoUrls = [];
             for (let i = 0; i < videos.length; i++) {
                 const file = videos[i];
@@ -163,7 +159,6 @@ const ReportCase = () => {
                 videoUrls.push(url);
             }
 
-            // ── Step 3: Save case and media records to Firestore ───────────
             const lastSeenLocation = {
                 name: formData.locationName,
                 lat: parseFloat(formData.latitude),
@@ -190,7 +185,6 @@ const ReportCase = () => {
                 createdAt: serverTimestamp()
             });
 
-            // ── Step 4: Optional ML embeddings / Gait gallery enrollment ──
             setProcessingPhase('extracting');
             try {
                 const modelResult = await sendMediaToModel(caseId, formData.name, images, videos);

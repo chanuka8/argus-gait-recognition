@@ -25,7 +25,6 @@ from utils.display_renderer import DetectionDisplayRenderer, load_display_config
 from utils.detection_reporter import DetectionReporter, load_reporting_config
 
 
-
 def _load_matching_policy() -> dict:
     config_path = Path("configs/inference.yaml")
 
@@ -416,7 +415,6 @@ class VideoRecognitionPipeline:
         self.crowd_robustness_manager = CrowdRobustnessManager(self.crowd_robustness_config)
         self.track_recovery_manager = TrackRecoveryManager(max_lost_seconds=3.0)
 
-        # CCTV display renderer and detection reporter
         self.renderer = DetectionDisplayRenderer(load_display_config())
         self.reporter = DetectionReporter(
             config=load_reporting_config(),
@@ -503,7 +501,6 @@ class VideoRecognitionPipeline:
         self.interval_processed = 0
         self.interval_skipped = 0
 
-        # ReID module (optional, secondary biometric)
         self.reid_config = _load_reid_config()
         self.reid_extractor = None
         self.reid_matcher = None
@@ -528,7 +525,6 @@ class VideoRecognitionPipeline:
 
             print("[REID] ReID module enabled")
 
-        # Fusion module (optional dual-modal fusion)
         self.fusion_config = _load_fusion_config()
         self.fusion_engine = None
         self.appearance_extractor = None
@@ -547,7 +543,6 @@ class VideoRecognitionPipeline:
             )
             print("[DUAL_MODAL] Dual-Modal ReID + Gait Fusion enabled")
 
-        # Quality Estimator and Temporal Gait Verifier steps
         self.quality_config = _load_quality_config()
         self.quality_estimator = None
 
@@ -575,8 +570,6 @@ class VideoRecognitionPipeline:
             print(
                 f"[TEMPORAL] Temporal Gait Verifier enabled (window_size={self.temporal_config['window_size']})"
             )
-
-
 
 
     def _load_model(
@@ -688,15 +681,12 @@ class VideoRecognitionPipeline:
         low_confidence_high = self.policy["low_confidence_high"]
         unknown_ceiling = self.policy["unknown_ceiling"]
 
-        # If flat matcher returned UNKNOWN
         if flat_identity == "UNKNOWN":
             return "UNKNOWN", flat_score, "UNKNOWN_PERSON"
 
-        # High confidence confirmed match
         if flat_score >= confirmed_threshold:
             return flat_identity, flat_score, "CONFIRMED_MATCH"
 
-        # Mid-range: run centroid, margin, and top-k verification
         if verify_low <= flat_score < verify_high:
             centroid_identity, centroid_score = self.centroid_matcher.match(
                 embedding,
@@ -711,15 +701,12 @@ class VideoRecognitionPipeline:
             else:
                 return flat_identity, flat_score, "REVIEW_REQUIRED"
 
-        # Low confidence zone
         if low_confidence_low <= flat_score < low_confidence_high:
             return flat_identity, flat_score, "LOW_CONFIDENCE"
 
-        # Below floor: unknown
         if flat_score < unknown_ceiling:
             return "UNKNOWN", flat_score, "UNKNOWN_PERSON"
 
-        # Fallback: treat as low confidence
         return flat_identity, flat_score, "LOW_CONFIDENCE"
 
     def _final_identity(
@@ -770,7 +757,6 @@ class VideoRecognitionPipeline:
         if gei is None:
             return None
 
-        # 1. Feature Quality Estimation
         if self.quality_estimator is not None:
             q_res = self.quality_estimator.evaluate(gei)
             if not q_res["accepted"]:
@@ -779,7 +765,6 @@ class VideoRecognitionPipeline:
                 )
                 return None
 
-        # 2. Embedding Extraction & Match
         embedding = self._gei_to_embedding(gei)
 
         if self.temporal_verifier is not None:
@@ -818,7 +803,6 @@ class VideoRecognitionPipeline:
             score=float(score),
         )
 
-        # Determine severity from decision
         if stable_identity == "UNKNOWN":
             decision = "UNKNOWN_PERSON"
             severity = "HIGH"
@@ -904,8 +888,6 @@ class VideoRecognitionPipeline:
                     )
 
 
-
-        # ReID secondary scoring (does not affect gait decision)
         if self.reid_extractor is not None:
             reid_crop = self.reid_crops.get(track_id)
             if reid_crop is not None:
@@ -916,7 +898,6 @@ class VideoRecognitionPipeline:
                     result["reid_embedding"] = reid_embedding
                     result["reid_score"] = 0.0
 
-        # Dual-modal fusion (optional)
         if self.fusion_engine is not None and self.appearance_extractor is not None:
             reid_crop = self.reid_crops.get(track_id)
             track_rel = result.get("track_reliability", 1.0)
@@ -1010,7 +991,6 @@ class VideoRecognitionPipeline:
             camera_id=self.camera_id,
         )
 
-        # Auto-report (cooldown-gated, status-filtered)
         status = self.renderer.get_status(decision)
         bbox = list(map(int, box))
 
@@ -1132,7 +1112,6 @@ class VideoRecognitionPipeline:
             xyxy = detections.xyxy
             tracker_ids = detections.tracker_id
 
-            # Build list of raw detections for stabilizer
             raw_detections = []
             if tracker_ids is not None:
                 confidences = getattr(detections, "confidence", None)
@@ -1143,7 +1122,6 @@ class VideoRecognitionPipeline:
                         float(confidences[i]) if confidences is not None else 1.0
                     ))
 
-            # Update stabilizer
             stable_results = self.box_stabilizer.update(raw_detections, frame.shape)
 
             if not self.cc_config.get("enabled", True):
@@ -1200,7 +1178,6 @@ class VideoRecognitionPipeline:
                     if not is_valid:
                         continue
 
-                    # Bounding box coordinates for display
                     box_to_use = stable_box if self.box_stability_config.get("use_stable_box_for_display", True) else stable_box
                     x1, y1, x2, y2 = box_to_use
                     box_h = y2 - y1
@@ -1263,7 +1240,6 @@ class VideoRecognitionPipeline:
                         box_to_draw = stable_box if self.box_stability_config.get("use_stable_box_for_display", True) else (raw_box if raw_detected else stable_box)
                         self._draw_track(frame, box_to_draw, track_id, is_predicted)
 
-                # Periodic update: sort queue, drop excess, remove inactive, log stats
                 update_interval = self.cc_config["priority_update_interval"]
                 if self.current_frame_index % update_interval == 0:
                     self.queue = [item for item in self.queue if item["track_id"] in active_track_ids]
@@ -1331,7 +1307,6 @@ class VideoRecognitionPipeline:
                         self.last_recognition_frame[tid] = self.current_frame_index
                         self.interval_processed += 1
                         processed_this_frame += 1
-
 
 
             if show:

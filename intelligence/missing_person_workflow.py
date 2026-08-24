@@ -60,13 +60,9 @@ class MissingPersonWorkflow:
         self._logger = get_logger("missing_person_workflow")
         self._lock = Lock()
 
-        # identity -> WatchlistEntry
         self._watchlist_entries: Dict[str, WatchlistEntry] = {}
-        # target_identity -> dict of metadata (for backward compatibility)
         self._target_watchlist: Dict[str, Dict[str, Any]] = {}
-        # target_identity -> last alert timestamp
         self._last_alerts: Dict[str, float] = {}
-        # list of generated event records
         self._events: List[Dict[str, Any]] = []
 
     def register_target(

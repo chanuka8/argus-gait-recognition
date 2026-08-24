@@ -1,4 +1,3 @@
-// Provides GPS coordinate capture, reverse geocoding via Nominatim, and Firestore detection alert logging for surveillance tracking.
 
 import { db } from '../firebaseConfig';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';

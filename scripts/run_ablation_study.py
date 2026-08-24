@@ -76,7 +76,6 @@ def run_experiment(exp: dict, epochs: int = 25, batch_size: int = 16, lr: float 
     print(f" Config: part_bins={exp['part_bins']}, loss_mode={exp['loss_mode']}, triplet_weight={exp['triplet_weight']}")
     print("=======================================================\n")
 
-    # 1. Training Phase
     trainer = Trainer(
         data_dir="data/casia_processed/gei",
         run_dir=str(run_dir),
@@ -92,7 +91,6 @@ def run_experiment(exp: dict, epochs: int = 25, batch_size: int = 16, lr: float 
     )
     trainer.train()
 
-    # 2. Evaluation Phase
     best_ckpt = run_dir / "best_model.pth"
     orig_argv = sys.argv
     sys.argv = [
@@ -107,7 +105,6 @@ def run_experiment(exp: dict, epochs: int = 25, batch_size: int = 16, lr: float 
     finally:
         sys.argv = orig_argv
 
-    # Load summary reports
     with open(eval_dir / "closed_set_eval_report.json", "r", encoding="utf-8") as f:
         closed_res = json.load(f)
     with open(eval_dir / "open_set_report.json", "r", encoding="utf-8") as f:

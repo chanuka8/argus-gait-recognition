@@ -31,10 +31,8 @@ class TemporalGaitVerifier:
         self.logger = get_logger("temporal_gait_verifier")
         self._lock = threading.Lock()
 
-        # track_id -> List[np.ndarray] (up to window_size embeddings)
         self.buffers: Dict[int, List[np.ndarray]] = {}
 
-        # track_id -> str (last verified identity)
         self.last_identities: Dict[int, str] = {}
 
     def add_embedding(
@@ -119,7 +117,6 @@ class TemporalGaitVerifier:
 
         mean_score = float(np.mean(scores))
 
-        # Check for majority (at least 2 out of 3, or > 50% of buffer)
         required_votes = (len(embeddings) // 2) + 1
 
         with self._lock:
@@ -130,7 +127,6 @@ class TemporalGaitVerifier:
                 decision = "MAJORITY_VOTE" if len(embeddings) > 1 else "SINGLE_MATCH"
                 self.last_identities[track_id] = final_identity
             elif prev_identity != "UNKNOWN":
-                # If no majority, fallback to previous verified identity
                 final_identity = prev_identity
                 decision = "PREVIOUS_IDENTITY"
                 self.logger.info(

@@ -135,7 +135,6 @@
     text-transform: capitalize;
 }
 
-/* Investigating — yellow */
 .case-status-badge.status-investigating {
     background: rgba(255, 209, 102, 0.08);
     color: var(--status-investigating);
@@ -149,7 +148,6 @@
     border-radius: 50%;
 }
 
-/* Cold — blue */
 .case-status-badge.status-cold {
     background: rgba(160, 228, 232, 0.08);
     color: var(--ice);
@@ -163,7 +161,6 @@
     border-radius: 50%;
 }
 
-/* Found — green */
 .case-status-badge.status-found {
     background: rgba(6, 214, 160, 0.08);
     color: var(--status-found);
@@ -177,7 +174,6 @@
     border-radius: 50%;
 }
 
-/* Closed — red */
 .case-status-badge.status-closed {
     background: rgba(255, 107, 107, 0.08);
     color: var(--status-missing);
@@ -227,7 +223,6 @@
     font-size: 0.95rem;
 }
 
-/* Deletion Password Modal Styles */
 .delete-modal-overlay {
     position: fixed;
     top: 0;
@@ -428,7 +423,6 @@
     transform: translateY(0);
 }
 
-/* Success Animation for deletion */
 .deletion-success-animation {
     display: flex;
     flex-direction: column;
@@ -469,7 +463,6 @@
     color: var(--text-secondary);
 }
 
-/* Animations */
 @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
@@ -500,7 +493,6 @@
     80% { transform: rotate(5deg); }
 }
 
-/* Spinner */
 .loading-spinner-small {
     width: 28px;
     height: 28px;

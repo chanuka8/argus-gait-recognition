@@ -27,7 +27,6 @@ def sanitize_rtsp_url(url: Optional[str]) -> str:
     """Mask RTSP username and password in any URL or error string for secure logging."""
     if not url or not isinstance(url, str):
         return ""
-    # Matches rtsp://[user]:[pass]@[host...] including special characters in passwords
     pattern = r"(rtsp://)([^:\s]+):(.+)@([^/\s]+(?::\d+)?(?:/[^\s]*)?)"
     def _repl(m):
         return f"{m.group(1)}***:***@{m.group(4)}"
@@ -55,7 +54,6 @@ def extract_rtsp_credentials(url: str) -> Tuple[Optional[str], Optional[str], st
     return None, None, url
 
 
-# Backward-compatibility alias
 extract_url_credentials = extract_rtsp_credentials
 
 
@@ -128,7 +126,6 @@ class CredentialManager:
                 raw_key = None
 
         if not raw_key:
-            # Auto-generate local encryption key for persistent development/testing
             try:
                 generated = Fernet.generate_key().decode("utf-8")
                 key_file.write_text(generated, encoding="utf-8")
@@ -163,7 +160,6 @@ class CredentialManager:
             if not isinstance(data, dict):
                 return {"credentials": {}, "schema_version": 2}
             if "credentials" not in data:
-                # Upgrade v1 legacy format: { camera_id: { username, password } }
                 legacy_creds = {}
                 for cid, cdata in data.items():
                     if isinstance(cdata, dict):
@@ -392,9 +388,6 @@ class CredentialManager:
         store = self._load_raw_store()
         return credential_id in store.get("credentials", {})
 
-    # -----------------------------------------------------------------------
-    # Backward-compatible helpers for legacy code and existing tests
-    # -----------------------------------------------------------------------
 
     def encrypt_credentials(self, credentials_data: Dict[str, Dict[str, str]], output_path: Optional[str] = None) -> Path:
         """Legacy helper: encrypt dictionary of credentials."""
@@ -460,14 +453,12 @@ def resolve_camera_config(
 
     cm = credential_manager or CredentialManager()
 
-    # Priority 1: Explicit credential_id lookup
     if credential_id:
         cred = cm.get_credential(credential_id, user_id=user_id)
         if cred:
             username = cred.get("username")
             password = cred.get("password")
 
-    # Priority 2: Environment variables
     if not (username and password):
         u_env_key = res.get("username_env")
         p_env_key = res.get("password_env")
@@ -483,14 +474,12 @@ def resolve_camera_config(
         if not password:
             password = os.environ.get(f"ARGUS_CAMERA_{clean_id}_PASSWORD") or os.environ.get("ARGUS_RTSP_PASSWORD")
 
-    # Priority 3: Encrypted local credential file by camera_id
     if not (username and password):
         cred = cm.get_credential(camera_id, user_id=user_id)
         if cred:
             username = cred.get("username")
             password = cred.get("password")
 
-    # Priority 4: Plaintext configuration fallback
     raw_url = res.get("url", "")
     url_u, url_p, clean_url = extract_rtsp_credentials(raw_url)
     plain_u = res.get("username") or url_u
@@ -508,7 +497,6 @@ def resolve_camera_config(
         username = plain_u
         password = plain_p
 
-    # Reconstruct RTSP URL or populate fields
     if username or password:
         res["username"] = username or ""
         res["password"] = password or ""

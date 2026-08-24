@@ -42,7 +42,6 @@ def test_smoke_test_backend_initialization_failure(monkeypatch, tmp_path: Path):
 def test_smoke_test_invalid_embedding_output(monkeypatch, tmp_path: Path):
     mock_backend = MagicMock()
 
-    # Return wrong shape array (1, 100) instead of (1, 256)
     mock_backend.predict.return_value = np.zeros((1, 100), dtype=np.float32)
 
     def mock_validate_startup(*args, **kwargs):

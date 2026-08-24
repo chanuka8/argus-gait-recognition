@@ -25,9 +25,7 @@ class CameraLoadBalancer:
         self._logger = get_logger("load_balancer")
         self._lock = Lock()
 
-        # worker_id -> list of camera_ids
         self._worker_assignments: Dict[str, List[str]] = {}
-        # camera_id -> estimated weight / load
         self._camera_weights: Dict[str, float] = {}
 
     def register_worker(self, worker_id: str) -> None:
@@ -45,7 +43,6 @@ class CameraLoadBalancer:
     def set_camera_weight(self, camera_id: str, fps: float = 15.0, width: int = 640, height: int = 480) -> None:
         """Set estimated workload weight for a camera based on resolution and FPS."""
         with self._lock:
-            # Normalized pixel-rate weight
             weight = (width * height * fps) / (640 * 480 * 15)
             self._camera_weights[camera_id] = max(0.1, weight)
 
@@ -112,7 +109,6 @@ class CameraLoadBalancer:
             if loads[max_w] - loads[min_w] < self.imbalance_threshold:
                 return {}
 
-            # Migrate one camera from max_w to min_w if possible
             max_cams = self._worker_assignments[max_w]
             if len(max_cams) <= 1:
                 return {}

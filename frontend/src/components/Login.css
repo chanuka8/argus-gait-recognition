@@ -7,7 +7,6 @@
     background-attachment: fixed;
 }
 
-/* ── Left brand panel ── */
 .login-left {
     flex: 1;
     display: flex;
@@ -84,7 +83,6 @@
     margin-top: 0.2rem;
 }
 
-/* ── Right form panel ── */
 .login-right {
     flex: 1;
     display: flex;
@@ -127,7 +125,6 @@
     font-weight: 400;
 }
 
-/* ── Form elements ── */
 .signin-form {
     width: 100%;
     display: flex;
@@ -178,7 +175,6 @@
     box-shadow: 0 0 0 3px rgba(92,225,230,0.08), var(--glow-sky);
 }
 
-/* ── Error ── */
 .error-message {
     color: var(--status-missing);
     font-size: 0.85rem;
@@ -191,7 +187,6 @@
     animation: fadeIn 0.2s ease;
 }
 
-/* ── Forgot link ── */
 .forgot-password-link {
     width: 100%;
     text-align: right;
@@ -208,7 +203,6 @@
     color: var(--mist);
 }
 
-/* ── Login button ── */
 .login-btn {
     width: 100%;
     margin-top: 1.1rem;
@@ -259,7 +253,6 @@
     transform: none;
 }
 
-/* ── Responsive ── */
 @media (max-width: 900px) {
     .login-container {
         flex-direction: column;
@@ -294,7 +287,6 @@
     }
 }
 
-/* Role Selection Styles */
 .role-selection-wrapper {
     width: 100%;
     display: flex;
@@ -412,7 +404,6 @@
     color: #C5A3FF;
 }
 
-/* Credentials Step Styles */
 .credentials-form-wrapper {
     width: 100%;
     display: flex;
@@ -445,7 +436,6 @@
     text-transform: uppercase;
 }
 
-/* Login Button Success Morphing & Exit */
 .login-btn.success {
     background: #06D6A0 !important;
     border-color: #06D6A0 !important;
@@ -484,7 +474,6 @@
     }
 }
 
-/* ── Forgot Password Step ── */
 .forgot-password-wrapper {
     width: 100%;
     display: flex;

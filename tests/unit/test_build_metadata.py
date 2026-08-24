@@ -20,7 +20,6 @@ def test_git_metadata_extraction_and_fallback(monkeypatch, tmp_path: Path):
     assert len(commit) >= 4 or commit == "UNKNOWN"
     assert len(branch) >= 1 or branch == "UNKNOWN"
 
-    # Simulate Git failure
     def mock_subprocess_run(*args, **kwargs):
         raise FileNotFoundError("git not installed")
 

@@ -54,7 +54,6 @@ export const GaitProvider = ({ children }) => {
         setIsConnected(true);
         if (newEvent) {
           setEvents((prev) => {
-            // Deduplicate if same event_id already present
             const exists = prev.some((e) => e.event_id === newEvent.event_id);
             if (exists) return prev;
             return [newEvent, ...prev.slice(0, 99)];
@@ -134,7 +133,6 @@ export const GaitProvider = ({ children }) => {
   return <GaitContext.Provider value={value}>{children}</GaitContext.Provider>;
 };
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const useGait = () => {
   const context = useContext(GaitContext);
   if (!context) {

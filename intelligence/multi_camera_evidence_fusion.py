@@ -76,7 +76,6 @@ class MultiCameraEvidenceFusion:
         else:
             self.weights = default_weights
 
-        # (global_track_id or entity_key) -> list of CameraObservationRecord
         self.observations: Dict[str, List[CameraObservationRecord]] = {}
 
     def is_enabled(self) -> bool:
@@ -130,7 +129,6 @@ class MultiCameraEvidenceFusion:
 
         buf = self.observations[entity_key]
 
-        # Prevent duplicate evidence from exact same camera and timestamp
         dup = False
         for existing in buf:
             if existing.camera_id == camera_id and abs(existing.timestamp - now) < 1e-4:
@@ -140,7 +138,6 @@ class MultiCameraEvidenceFusion:
         if not dup:
             buf.append(record)
 
-        # TTL eviction
         buf[:] = [r for r in buf if (now - r.timestamp) <= self.evidence_ttl_seconds]
 
     def fuse_evidence(
@@ -176,7 +173,6 @@ class MultiCameraEvidenceFusion:
                 reason="No observations recorded for entity",
             )
 
-        # Filter active unexpired observations
         obs_list = [r for r in self.observations[entity_key] if (now - r.timestamp) <= self.evidence_ttl_seconds]
         if not obs_list:
             return MultiCameraFusionResult(
@@ -188,7 +184,6 @@ class MultiCameraEvidenceFusion:
                 reason="All observations expired",
             )
 
-        # Group by candidate identity (filtering out UNKNOWN)
         valid_obs = [r for r in obs_list if r.identity_candidate != "UNKNOWN"]
         if not valid_obs:
             return MultiCameraFusionResult(
@@ -204,13 +199,11 @@ class MultiCameraEvidenceFusion:
         for r in valid_obs:
             candidates.setdefault(r.identity_candidate, []).append(r)
 
-        # Evaluate fused scores for each candidate identity
         identity_scores: Dict[str, Tuple[float, Dict[str, float], List[str]]] = {}
 
         for identity, records in candidates.items():
             cameras = list({r.camera_id for r in records})
 
-            # Calculate weighted average for each component, weighted by observation quality & low-occlusion
             total_obs_weight = 0.0
             comp_sums = {
                 "gait": 0.0,
@@ -222,7 +215,6 @@ class MultiCameraEvidenceFusion:
             }
 
             for r in records:
-                # Observation quality weight: high quality + low occlusion
                 w_obs = max(0.1, r.quality_score * (1.0 - 0.5 * r.occlusion_score))
                 total_obs_weight += w_obs
 
@@ -235,12 +227,10 @@ class MultiCameraEvidenceFusion:
 
             comp_scores = {k: float(v / total_obs_weight) for k, v in comp_sums.items()} if total_obs_weight > 0 else comp_sums
 
-            # Combined score using configured feature weights
             fused_score = float(sum(self.weights[k] * comp_scores[k] for k in self.weights))
 
             identity_scores[identity] = (fused_score, comp_scores, cameras)
 
-        # Select top identity (deterministic tie-breaking: highest score, then alphabetical identity)
         sorted_candidates = sorted(
             identity_scores.items(),
             key=lambda x: (x[1][0], [-ord(c) for c in x[0]]),
@@ -249,7 +239,6 @@ class MultiCameraEvidenceFusion:
 
         best_id, (best_score, best_comps, best_cams) = sorted_candidates[0]
 
-        # Check multi-camera confirmation conditions
         unique_cam_count = len(best_cams)
         if unique_cam_count < self.minimum_cameras:
             return MultiCameraFusionResult(

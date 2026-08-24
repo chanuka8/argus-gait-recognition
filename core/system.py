@@ -15,17 +15,14 @@ class ArgusSystem:
         self.shutdown_manager = get_shutdown_manager()
 
     def start(self) -> None:
-        # Register signal handlers for graceful SIGINT/SIGTERM handling
         self.shutdown_manager.register_signal_handlers()
 
         self.logger.info(f"Starting ARGUS system in {self.mode} mode")
 
-        # 1. Pre-flight startup health validation
         validator = DeploymentStartupValidator()
         startup_summary = validator.validate_startup(raise_on_failure=True)
         self.logger.info(f"Startup health validation status: {startup_summary['status']}")
 
-        # 2. Emit structured backend startup summary
         backend = startup_summary.get("backend")
         if backend is not None:
             summary_obj = BackendStartupSummary(

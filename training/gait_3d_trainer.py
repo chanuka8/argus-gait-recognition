@@ -81,7 +81,6 @@ class Gait3DTrainer:
 
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
 
-        # Set seed
         torch.manual_seed(seed)
         np.random.seed(seed)
 
@@ -119,7 +118,6 @@ class Gait3DTrainer:
         num_classes = len(train_ds.label_to_index)
         self.logger.info(f"Encoder: {self.encoder_type.upper()} | Train samples: {len(train_ds)} | Val samples: {len(val_ds)} | Classes: {num_classes}")
 
-        # Models
         lifter = PoseLifter3D().to(self.device)
         gait_net = get_gait3d_model(encoder_type=self.encoder_type, embedding_dim=256).to(self.device)
         arcface = ArcMarginProduct(in_features=256, out_features=num_classes, s=self.arcface_scale, m=self.arcface_margin).to(self.device)
@@ -171,7 +169,6 @@ class Gait3DTrainer:
             train_loss = total_train_loss / max(train_total, 1)
             train_acc = train_correct / max(train_total, 1)
 
-            # Validation
             lifter.eval()
             gait_net.eval()
             arcface.eval()
@@ -204,7 +201,6 @@ class Gait3DTrainer:
 
             self.logger.info(f"[{self.encoder_type.upper()}] Epoch {epoch:02d}/{self.epochs} | Train Loss: {train_loss:.4f} | Train Acc: {train_acc*100:.2f}% | Val Acc: {val_acc*100:.2f}%")
 
-            # Save best checkpoint
             if val_acc >= best_val_acc or epoch == 1:
                 best_val_acc = val_acc
                 torch.save(
@@ -221,7 +217,6 @@ class Gait3DTrainer:
                     self.run_dir / "best_model.pth",
                 )
 
-            # Save last checkpoint
             torch.save(
                 {
                     "lifter": lifter.state_dict(),
@@ -236,7 +231,6 @@ class Gait3DTrainer:
                 self.run_dir / "last_model.pth",
             )
 
-        # Save metadata and metrics
         with open(self.run_dir / "training_metrics.json", "w", encoding="utf-8") as f:
             json.dump({"metrics": metrics_history, "best_val_acc": round(best_val_acc, 4)}, f, indent=4)
 

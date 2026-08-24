@@ -50,11 +50,9 @@ class CameraTransitionModel:
         self._lock = Lock()
         self._time_provider = time_provider or time.monotonic
 
-        # Topology mapping: src_cam -> {dest_cam -> CameraTransitionRule}
         self._topology: Dict[str, Dict[str, CameraTransitionRule]] = {}
         self._exits: Dict[Tuple[str, Any], ExitRecord] = {}
 
-        # Default weights
         self._weight_identity = 0.6
         self._weight_probability = 0.2
         self._weight_time = 0.2
@@ -136,7 +134,6 @@ class CameraTransitionModel:
                         self._logger.warning(f"Failed to parse transition rule numbers for {src_cam_str} -> {dest_cam_str}: {e}")
                         continue
 
-                    # Validation rules
                     if min_t < 0.0:
                         self._logger.warning(f"Invalid min_travel_seconds ({min_t}) for {src_cam_str} -> {dest_cam_str}; must be >= 0.")
                         continue
@@ -254,42 +251,34 @@ class CameraTransitionModel:
             for key, exit_rec in self._exits.items():
                 src_cam = exit_rec.camera_id
 
-                # Prevent same-camera transitions unless explicitly allowed
                 if src_cam == dest_camera_id:
                     rule = self._topology.get(src_cam, {}).get(dest_camera_id)
                     if not rule or not self._allow_same_camera:
                         continue
 
-                # Topology constraint: dest_camera_id must be in topology for src_cam
                 rule = self._topology.get(src_cam, {}).get(dest_camera_id)
                 if not rule:
                     continue
 
-                # Travel time delta constraint
                 delta_t = now - exit_rec.exit_timestamp
                 if delta_t < rule.min_travel_seconds:
-                    continue  # Too early
+                    continue
                 if delta_t > rule.max_travel_seconds:
-                    continue  # Too late
+                    continue
 
-                # Zone constraints (optional matching when available)
                 if rule.exit_zone and exit_rec.exit_zone and rule.exit_zone != exit_rec.exit_zone:
                     continue
                 if rule.entry_zone and entry_zone and rule.entry_zone != entry_zone:
                     continue
 
-                # Identity matching / similarity calculation
                 id_sim = self._calculate_identity_similarity(
                     identity, feature_vector, exit_rec.identity, exit_rec.feature_vector
                 )
 
-                # Travel time likelihood (centered score)
                 time_like = self._calculate_travel_time_likelihood(delta_t, rule.min_travel_seconds, rule.max_travel_seconds)
 
-                # Transition probability from rule
                 trans_prob = rule.probability
 
-                # Weighted score calculation
                 final_score = (
                     self._weight_identity * id_sim
                     + self._weight_probability * trans_prob
@@ -311,11 +300,6 @@ class CameraTransitionModel:
             if not valid_candidates:
                 return None
 
-            # Deterministic tie resolution:
-            # 1. Higher final score (descending)
-            # 2. Closer to window center (ascending)
-            # 3. Earlier exit timestamp (ascending)
-            # 4. Lexicographical source key (ascending)
             valid_candidates.sort(
                 key=lambda c: (
                     -c["score"],

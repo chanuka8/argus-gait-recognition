@@ -36,7 +36,6 @@ class CameraSourceResolver:
         self._config_path = config_path
         self._credential_manager = credential_manager or CredentialManager()
 
-        # source_key -> camera_id
         self._reserved_sources: Dict[str, str] = {}
 
         self._registered_cameras: List[Dict[str, Any]] = []
@@ -255,9 +254,6 @@ class CameraSourceResolver:
         """
         resolved_credential_id = credential_id
 
-        # ---------------------------------------------------------------
-        # 1. Explicit source requested
-        # ---------------------------------------------------------------
         if requested_source and requested_source.strip().lower() != "auto":
             clean_req = str(requested_source).strip()
             normalized = normalize_camera_source(clean_req)
@@ -283,7 +279,6 @@ class CameraSourceResolver:
 
             else:
                 normalized_str = str(normalized).strip()
-                # Check if it's an IP address or hostname or stream URL
                 if normalized_str.lower().startswith("rtsp://"):
                     raw_url = normalized_str
                     source_type = "rtsp"
@@ -291,7 +286,6 @@ class CameraSourceResolver:
                     raw_url = normalized_str
                     source_type = "http"
                 else:
-                    # Auto-detect IP / host as RTSP
                     source_type = "rtsp"
                     if ":" in normalized_str or "/" in normalized_str:
                         raw_url = f"rtsp://{normalized_str}"
@@ -301,7 +295,6 @@ class CameraSourceResolver:
                 extracted_user, extracted_pass, clean_url = extract_rtsp_credentials(raw_url)
 
                 if extracted_pass:
-                    # Explicit URL has embedded credentials: extract and store in secure store
                     if not resolved_credential_id:
                         meta = self._credential_manager.store_credential(
                             owner_user_id=user_id or "default_user",
@@ -317,7 +310,6 @@ class CameraSourceResolver:
                     label = f"{source_type.upper()} Stream {sanitize_rtsp_url(raw_url)}"
 
                 elif resolved_credential_id:
-                    # User referenced a stored credential_id
                     if not self._credential_manager.can_access(resolved_credential_id, user_id=user_id):
                         raise RuntimeError(
                             f"User '{user_id}' is not authorized to access credential '{resolved_credential_id}'"
@@ -339,7 +331,6 @@ class CameraSourceResolver:
                     label = f"{source_type.upper()} Stream {sanitize_rtsp_url(clean_url)} [credential={resolved_credential_id}]"
 
                 else:
-                    # Clean URL without credentials
                     internal_source = raw_url
                     safe_presentation_source = clean_url
                     source_key = f"stream:{clean_url}"
@@ -367,9 +358,6 @@ class CameraSourceResolver:
                 "credential_configured": bool(resolved_credential_id),
             }
 
-        # ---------------------------------------------------------------
-        # 2. Priority 1: Free local USB / Webcams
-        # ---------------------------------------------------------------
         for dev_idx in range(max_usb_scan):
             source_key = f"usb:{dev_idx}"
 
@@ -397,9 +385,6 @@ class CameraSourceResolver:
                 "credential_configured": False,
             }
 
-        # ---------------------------------------------------------------
-        # 3. Priority 2: Registered RTSP/HTTP CCTV streams
-        # ---------------------------------------------------------------
         for cam_cfg in self._registered_cameras:
             if not cam_cfg.get("enabled", True):
                 continue
@@ -458,7 +443,4 @@ class CameraSourceResolver:
                 "credential_configured": bool(cam_cred_id or clean_pass),
             }
 
-        # ---------------------------------------------------------------
-        # 4. No physical source available
-        # ---------------------------------------------------------------
         raise RuntimeError("Unable to detect camera source: No connected local webcam or reachable RTSP stream found.")

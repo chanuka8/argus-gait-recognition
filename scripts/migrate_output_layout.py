@@ -49,7 +49,6 @@ def get_destination_mapping(relative_path: Path) -> Path:
     elif first == "images":
         return Path("media/images") / Path(*parts[1:])
     elif first == "logs":
-        # Check if file is camera log vs system log
         if len(parts) > 1 and "camera" in parts[1].lower():
             return Path("logs/camera") / Path(*parts[1:])
         return Path("logs/system") / Path(*parts[1:])
@@ -102,7 +101,6 @@ def migrate_outputs(outputs_dir: Path, dry_run: bool = False) -> List[Tuple[Path
 
     moved_records: List[Tuple[Path, Path]] = []
 
-    # Target root subdirectories to exclude from walking legacy sources
     new_top_level = {
         "reports",
         "logs",
@@ -120,7 +118,6 @@ def migrate_outputs(outputs_dir: Path, dry_run: bool = False) -> List[Tuple[Path
             continue
         legacy_items.append(item)
 
-    # Also check outputs/logs and outputs/reports if they contain loose files
     for sub in ("logs", "reports"):
         sub_path = outputs_dir / sub
         if sub_path.is_dir():
@@ -164,7 +161,6 @@ def migrate_outputs(outputs_dir: Path, dry_run: bool = False) -> List[Tuple[Path
                     moved_records.append((src_file, target_file))
 
             if not dry_run:
-                # Remove empty dir tree if empty
                 try:
                     shutil.rmtree(str(item))
                 except Exception:

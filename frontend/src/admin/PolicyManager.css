@@ -184,7 +184,6 @@
     width: 120px;
 }
 
-/* Switch Toggle switch styling */
 .switch-toggle {
     position: relative;
     display: inline-block;
@@ -295,7 +294,6 @@
     animation: spin 0.8s linear infinite;
 }
 
-/* Sidebar Info Cards */
 .policy-sidebar-hint {
     display: flex;
     flex-direction: column;
@@ -338,7 +336,6 @@
     line-height: 1.4;
 }
 
-/* Success Toast popup */
 .policy-success-toast {
     position: fixed;
     bottom: 2rem;

@@ -34,16 +34,13 @@ const PolicyManager = () => {
         e.preventDefault();
         setIsSaving(true);
 
-        // Simulate secure API handshake
         setTimeout(() => {
             localStorage.setItem('argus_system_policies', JSON.stringify(policies));
             setIsSaving(false);
             setShowToast(true);
 
-            // Record policy save event
             addLog('info', 'Security policies updated and deployed', `Policies saved: Biometric match ${policies.biometricMatch}%, Alert severity ${policies.alertSeverity}, Session timeout ${policies.sessionTimeout}min, Data retention ${policies.dataRetention} days, Backup ${policies.backupFrequency}.`, 'admin');
 
-            // Hide toast after 3 seconds
             setTimeout(() => {
                 setShowToast(false);
             }, 3000);
@@ -244,7 +241,6 @@ const PolicyManager = () => {
                 </div>
             </main>
 
-            {/* Glowing Success Toast */}
             {showToast && (
                 <div className="policy-success-toast">
                     <CheckCircle size={20} color="var(--status-found)" />

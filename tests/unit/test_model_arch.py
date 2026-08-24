@@ -21,7 +21,6 @@ class TestModelArchitecture(unittest.TestCase):
         self.assertEqual(output.shape, (4, 256))
         self.assertTrue(torch.all(torch.isfinite(output)))
 
-        # Verify L2 norm is 1.0
         norms = torch.norm(output, p=2, dim=1)
         self.assertTrue(torch.allclose(norms, torch.ones_like(norms), atol=1e-5))
 
@@ -58,7 +57,6 @@ class TestModelArchitecture(unittest.TestCase):
         model_part4 = ByGaitLight(embedding_dim=256, part_bins=4)
         model_part1 = ByGaitLight(embedding_dim=256, part_bins=1)
 
-        # Legacy checkpoint state_dict (part_bins=1)
         state_part1 = model_part1.state_dict()
 
         with self.assertRaises(ValueError) as ctx:

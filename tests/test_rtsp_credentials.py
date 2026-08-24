@@ -20,7 +20,6 @@ class TestRTSPCredentials(unittest.TestCase):
     def tearDown(self):
         if self.test_enc_file.exists():
             self.test_enc_file.unlink()
-        # Clean environment variables
         for key in list(os.environ.keys()):
             if key.startswith("ARGUS_CAMERA_") or key.startswith("ARGUS_RTSP_") or key.startswith("ARGUS_LEGACY_"):
                 del os.environ[key]

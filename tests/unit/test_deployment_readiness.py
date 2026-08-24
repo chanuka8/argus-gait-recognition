@@ -18,7 +18,6 @@ def _has_onnx_pkgs() -> bool:
     return (importlib.util.find_spec("onnx") is not None) and (importlib.util.find_spec("onnxruntime") is not None)
 
 
-
 def test_valid_onnx_export_metadata(tmp_path: Path):
     ckpt_file = tmp_path / "model.pth"
     import torch
@@ -51,7 +50,6 @@ def test_valid_onnx_export_metadata(tmp_path: Path):
     else:
         assert success is False
         assert data["export_succeeded"] is False
-
 
 
 def test_missing_onnx_file_handling(tmp_path: Path):
@@ -110,7 +108,6 @@ def test_onnx_numerical_parity_pass_and_fail(tmp_path: Path):
     json_report = tmp_path / "onnx_report.json"
     md_report = tmp_path / "onnx_report.md"
 
-    # Pass case
     pass_ok = export_onnx(
         model_path=str(ckpt_file),
         output_onnx_path=str(target_onnx),
@@ -121,7 +118,6 @@ def test_onnx_numerical_parity_pass_and_fail(tmp_path: Path):
     )
     assert pass_ok is True
 
-    # Fail case with impossibly strict tolerances
     fail_ok = export_onnx(
         model_path=str(ckpt_file),
         output_onnx_path=str(target_onnx),
@@ -172,8 +168,6 @@ def test_onnx_backend_readiness(tmp_path: Path):
     assert out.shape == (1, 256)
 
 
-
-
 def test_onnx_to_pytorch_fallback(tmp_path: Path):
     cfg = {"backend": "onnxruntime", "onnx_path": str(tmp_path / "missing.onnx"), "allow_fallback": True}
     backend = get_inference_backend(config=cfg)
@@ -198,7 +192,6 @@ def test_invalid_yaml_handling(tmp_path: Path):
 def test_missing_checkpoint_handling():
     backend = get_inference_backend(config={"backend": "pytorch"}, model_path="non_existent_model.pth")
     assert backend.active_backend == "pytorch"
-    # PyTorch backend initializes randomly when checkpoint missing
     out = backend.predict(np.zeros((1, 1, 128, 64), dtype=np.float32))
     assert out.shape == (1, 256)
 

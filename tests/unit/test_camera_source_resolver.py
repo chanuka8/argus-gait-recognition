@@ -36,12 +36,10 @@ def test_source_resolver_free_usb_discovery():
         assert "Webcam 0" in res["resolved_source_label"]
         assert resolver.is_source_reserved("usb:0") is True
 
-        # Next worker gets next free device index
         res2 = resolver.resolve_source(camera_id="CCTV-TEST-2", requested_source="auto")
         assert res2["resolved_source"] == "1"
         assert "Webcam 1" in res2["resolved_source_label"]
 
-        # Release first worker source
         resolver.release_source_by_camera_id("CCTV-TEST-1")
         assert resolver.is_source_reserved("usb:0") is False
 
@@ -53,7 +51,6 @@ def test_source_resolver_skip_unavailable_usb_and_select_rtsp():
         {"id": "camera_01", "name": "Main Gate", "url": "rtsp://192.168.1.100:554/stream1", "enabled": True}
     ]
 
-    # USB fails, RTSP stream probe succeeds
     with patch.object(resolver, "probe_usb_webcam", return_value=False), \
          patch.object(resolver, "probe_stream", return_value=True):
         res = resolver.resolve_source(camera_id="CCTV-TEST-RTSP", requested_source="auto")
@@ -83,7 +80,6 @@ def test_gait_service_auto_source_lifecycle():
 
     with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap), \
          patch.object(service.source_resolver, "probe_usb_webcam", return_value=True):
-        # Start with source: "auto"
         info = service.start_camera(
             camera_id="CCTV-AUTO-1",
             source="auto",
@@ -97,7 +93,6 @@ def test_gait_service_auto_source_lifecycle():
         assert info["zone_id"] == "Z01"
         assert "usb:0" in service.source_resolver._reserved_sources
 
-        # Stop releases reservation
         stopped = service.stop_camera("CCTV-AUTO-1")
         assert stopped is True
         assert "usb:0" not in service.source_resolver._reserved_sources
@@ -112,7 +107,6 @@ def test_api_cameras_start_auto_contract():
     with TestClient(app) as client, \
          patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap), \
          patch("services.camera_source_resolver.CameraSourceResolver.probe_usb_webcam", return_value=True):
-        # Start worker via API
         resp = client.post(
             "/api/v1/cameras/start",
             json={
@@ -130,7 +124,6 @@ def test_api_cameras_start_auto_contract():
         assert data["source_type"] in ["webcam", "usb", "rtsp"]
         assert data["resolved_source_label"] is not None
 
-        # Verify listed in GET /api/v1/cameras
         list_resp = client.get("/api/v1/cameras")
         assert list_resp.status_code == 200
         cams = list_resp.json()
@@ -139,7 +132,6 @@ def test_api_cameras_start_auto_contract():
         assert matching[0]["resolved_source_label"] is not None
         assert matching[0]["source_type"] in ["webcam", "usb", "rtsp"]
 
-        # Stop
         stop_resp = client.post(
             "/api/v1/cameras/stop",
             json={"camera_id": "CCTV-API-AUTO"}

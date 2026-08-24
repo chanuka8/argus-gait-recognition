@@ -14,14 +14,9 @@ from intelligence.crowd_density_estimator import (
 def test_compute_iou():
     box1 = [0, 0, 100, 100]
     box2 = [50, 0, 150, 100]
-    # Intersection = 50x100 = 5000
-    # Area1 = 10000, Area2 = 10000
-    # Union = 20000 - 5000 = 15000
-    # IoU = 5000 / 15000 = 1/3 ~ 0.3333
     iou = compute_iou(box1, box2)
     assert pytest.approx(iou, 0.01) == 0.3333
 
-    # Non-overlapping
     box3 = [200, 200, 300, 300]
     assert compute_iou(box1, box3) == 0.0
 
@@ -59,7 +54,6 @@ def test_moderate_density():
 
 def test_severe_density_overlapping():
     estimator = CrowdDensityEstimator(severe_overlap_count=3, strong_overlap_threshold=0.20)
-    # Create 4 heavily overlapping boxes
     detections = [
         {"bbox": [100, 100, 200, 300]},
         {"bbox": [120, 100, 220, 300]},

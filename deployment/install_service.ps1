@@ -1,5 +1,3 @@
-# ARGUS AI Windows Service Installation Script
-# Uses NSSM (Non-Sucking Service Manager) to register ARGUS AI as an automatic Windows Service.
 
 param (
     [string]$NssmPath = "nssm.exe",
@@ -16,14 +14,12 @@ Write-Host "============================================================" -Foreg
 Write-Host " ARGUS AI Windows Service Installation" -ForegroundColor Cyan
 Write-Host "============================================================" -ForegroundColor Cyan
 
-# Resolve Project Root if not provided
 if ([string]::IsNullOrWhiteSpace($ProjectRoot)) {
     $ProjectRoot = (Get-Item -Path $PSScriptRoot\..).FullName
 }
 
 Write-Host "[INFO] Project Root: $ProjectRoot" -ForegroundColor Yellow
 
-# Resolve Python Executable if not provided
 if ([string]::IsNullOrWhiteSpace($PythonPath)) {
     $VenvPython = Join-Path $ProjectRoot "venv\Scripts\python.exe"
     if (Test-Path $VenvPython) {
@@ -39,7 +35,6 @@ if (-not (Test-Path $PythonPath)) {
 
 Write-Host "[INFO] Python Executable: $PythonPath" -ForegroundColor Yellow
 
-# Check NSSM availability
 $NssmCmd = Get-Command $NssmPath -ErrorAction SilentlyContinue
 if ($null -eq $NssmCmd -and -not (Test-Path $NssmPath)) {
     Write-Host "[WARNING] NSSM not found in PATH. Checking local directory..." -ForegroundColor Yellow
@@ -51,7 +46,6 @@ if ($null -eq $NssmCmd -and -not (Test-Path $NssmPath)) {
     }
 }
 
-# Stop existing service if installed
 Write-Host "[INFO] Checking existing service '$ServiceName'..." -ForegroundColor Yellow
 & $NssmPath status $ServiceName 2>$null
 if ($LASTEXITCODE -eq 0) {
@@ -60,7 +54,6 @@ if ($LASTEXITCODE -eq 0) {
     & $NssmPath remove $ServiceName confirm
 }
 
-# Install service
 Write-Host "[INFO] Installing service '$ServiceName'..." -ForegroundColor Green
 $ServiceScript = Join-Path $ProjectRoot "services\argus_service.py"
 
@@ -72,7 +65,6 @@ $ServiceScript = Join-Path $ProjectRoot "services\argus_service.py"
 & $NssmPath set $ServiceName AppExit Default Restart
 & $NssmPath set $ServiceName AppRestartDelay 5000
 
-# Configure logging redirect in NSSM
 $LogDir = Join-Path $ProjectRoot "outputs\logs\system"
 if (-not (Test-Path $LogDir)) {
     New-Item -ItemType Directory -Path $LogDir | Out-Null

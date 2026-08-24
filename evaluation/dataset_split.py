@@ -8,9 +8,9 @@ if str(ROOT) not in sys.path:
 
 DEFAULT_SPLIT_CONFIG_PATH = "configs/subject_split.json"
 
-DEFAULT_TRAIN_RANGE = (1, 62)    # 001 - 062
-DEFAULT_VAL_RANGE = (63, 74)     # 063 - 074
-DEFAULT_TEST_RANGE = (75, 124)   # 075 - 124
+DEFAULT_TRAIN_RANGE = (1, 62)
+DEFAULT_VAL_RANGE = (63, 74)
+DEFAULT_TEST_RANGE = (75, 124)
 
 
 def format_subject_id(subject_num: int) -> str:
@@ -31,7 +31,6 @@ def generate_subject_split_manifest(
     val_subjects = [format_subject_id(i) for i in range(val_range[0], val_range[1] + 1)]
     test_subjects = [format_subject_id(i) for i in range(test_range[0], test_range[1] + 1)]
 
-    # Count actual available sample sequences per subject if directory exists
     def count_samples(subject_list: list[str]) -> dict[str, int]:
         counts = {}
         for sub in subject_list:

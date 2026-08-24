@@ -52,7 +52,6 @@ class TestSilhouetteUNetPipeline(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_zip = Path(tmp_dir) / "test_casia.zip"
 
-            # Create a synthetic 64x64 standing human-like silhouette mask
             synthetic_mask = np.zeros((64, 64), dtype=np.uint8)
             cv2.rectangle(synthetic_mask, (16, 8), (48, 56), 255, -1)
             _, png_bytes = cv2.imencode(".png", synthetic_mask)
@@ -91,7 +90,6 @@ class TestSilhouetteUNetPipeline(unittest.TestCase):
         """Fully self-contained unit test using mocked ONNX session."""
         segmenter = LearnedSilhouetteSegmenter(model_path="non_existent_model.onnx")
 
-        # Mock session & outputs
         mock_session = MagicMock()
         mock_session.get_inputs.return_value = [MagicMock(name="input")]
         mock_session.get_outputs.return_value = [MagicMock(name="output")]

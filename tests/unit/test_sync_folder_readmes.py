@@ -126,7 +126,7 @@ class TestCheckFolderReadme(unittest.TestCase):
             folder = Path(td)
             (folder / "module_a.py").write_text("# mod", encoding="utf-8")
             (folder / "module_b.py").write_text("# mod", encoding="utf-8")
-            self._make_valid_readme(folder, ["module_a.py"])  # missing module_b
+            self._make_valid_readme(folder, ["module_a.py"])
             is_valid, issues = check_folder_readme(folder)
             self.assertFalse(is_valid)
             self.assertTrue(any("module_b.py" in i for i in issues))
@@ -361,7 +361,6 @@ class TestPreCommitHook(unittest.TestCase):
         self.assertIn("docs/README_INDEX.md", HOOK_CONTENT)
 
     def test_hook_does_not_use_git_add_dot(self):
-        # git add . would stage all unrelated changes
         self.assertNotIn("git add .", HOOK_CONTENT)
         self.assertNotIn("git add -A", HOOK_CONTENT)
 

@@ -103,7 +103,6 @@ class LiveGEI:
             self.duplicate_frames += 1
             return
 
-        # Motion signal: width of silhouette bounding box or non-zero width sum
         non_zero_cols = np.where(binary_frame.sum(axis=0) > 0)[0]
         width_val = float(non_zero_cols[-1] - non_zero_cols[0] + 1) if len(non_zero_cols) > 0 else 0.0
 

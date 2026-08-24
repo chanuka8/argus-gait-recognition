@@ -47,8 +47,8 @@ def compute_iou(box1: List[float], box2: List[float]) -> float:
 class TrackOcclusionState:
     camera_id: str
     track_id: Any
-    history: List[float] = field(default_factory=list)  # raw occlusion scores
-    clean_history: List[bool] = field(default_factory=list)  # clean frame booleans
+    history: List[float] = field(default_factory=list)
+    clean_history: List[bool] = field(default_factory=list)
     last_seen: float = 0.0
     smooth_occlusion_score: float = 0.0
     clean_frame_ratio: float = 1.0
@@ -86,7 +86,6 @@ class CrowdOcclusionAnalyzer:
         self.minimum_clean_frames = int(cfg.get("minimum_clean_frames", 18))
         self.minimum_clean_ratio = float(cfg.get("minimum_clean_ratio", 0.70))
 
-        # (camera_id, track_id) -> TrackOcclusionState
         self.track_states: Dict[Tuple[str, Any], TrackOcclusionState] = {}
 
     def is_enabled(self) -> bool:
@@ -142,7 +141,6 @@ class CrowdOcclusionAnalyzer:
         )
         total_area_ratio = float(total_bbox_area / frame_area)
 
-        # Pairwise IoUs
         raw_occlusions = [0.0] * n_boxes
         total_iou = 0.0
         pair_count = 0
@@ -162,7 +160,6 @@ class CrowdOcclusionAnalyzer:
 
         avg_pairwise_overlap = float(total_iou / pair_count) if pair_count > 0 else 0.0
 
-        # Crowd density score in [0.0, 1.0]
         density_score = float(
             min(1.0, 0.4 * (person_count / 20.0)
             + 0.3 * (total_area_ratio / 0.50)
@@ -178,7 +175,6 @@ class CrowdOcclusionAnalyzer:
         else:
             density_level = CrowdDensityLevel.LOW
 
-        # Per-track occlusion state update
         track_occlusions = {}
         clean_frame_ratios = {}
         silhouette_acceptance = {}
@@ -197,11 +193,9 @@ class CrowdOcclusionAnalyzer:
             if len(state.history) > self.smoothing_window:
                 state.history.pop(0)
 
-            # Smoothed occlusion score
             smooth_score = float(np.mean(state.history)) if state.history else raw_occ
             state.smooth_occlusion_score = smooth_score
 
-            # Clean frame determination (clean if raw occlusion < moderate_threshold)
             is_clean = raw_occ < self.moderate_threshold
             state.clean_history.append(is_clean)
             if len(state.clean_history) > max(30, self.smoothing_window * 6):
@@ -211,8 +205,6 @@ class CrowdOcclusionAnalyzer:
             state.clean_frame_ratio = clean_ratio
             state.clean_frame_count = sum(state.clean_history)
 
-            # Silhouette acceptance decision
-            # Reject silhouette if smoothed occlusion score >= high_threshold (0.60)
             accepted = smooth_score < self.high_threshold
 
             track_occlusions[key] = round(smooth_score, 4)

@@ -38,7 +38,6 @@ def test_missing_engine_tensorrt_fallback(tmp_path: Path):
         "warmup_iterations": 0,
     }
     backend = get_inference_backend(config=cfg)
-    # Should safely fall back to PyTorch backend without crashing
     assert isinstance(backend, PyTorchBackend)
 
     dummy_input = np.zeros((1, 1, 128, 64), dtype=np.float32)
@@ -86,8 +85,6 @@ def test_onnx_export_script_execution(tmp_path: Path):
         assert success is False
 
 
-
-
 def test_strict_onnx_mode_no_fallback_when_disabled(tmp_path: Path):
     cfg = {
         "backend": "onnxruntime",
@@ -100,7 +97,6 @@ def test_strict_onnx_mode_no_fallback_when_disabled(tmp_path: Path):
         get_inference_backend(config=cfg)
 
 
-
 def test_tensorrt_backend_instantiation_without_tensorrt_package(tmp_path: Path):
     cfg = {
         "backend": "tensorrt",
@@ -109,7 +105,6 @@ def test_tensorrt_backend_instantiation_without_tensorrt_package(tmp_path: Path)
         "device": "cpu",
         "warmup_iterations": 0,
     }
-    # Test that when tensorrt is absent, fallback PyTorch backend works seamlessly
     trt_backend = TensorRTBackend(config=cfg)
     assert not trt_backend.is_available()
 
@@ -192,7 +187,6 @@ def test_backend_validator_and_report_generation(tmp_path: Path):
     assert report_file.exists()
 
 
-
 def test_genuine_onnx_session_properties_and_metrics(tmp_path: Path):
     ckpt_file = tmp_path / "model.pth"
     import torch
@@ -254,7 +248,6 @@ def test_cpu_only_onnx_provider_selection_emits_no_cuda_warning(tmp_path: Path, 
             onnx_be = ONNXBackend(config=cfg)
             if onnx_be.is_available():
                 assert onnx_be.execution_provider == "CPUExecutionProvider"
-                # Confirm no CUDA warnings in recorded warnings
                 cuda_warns = [w for w in record if "CUDAExecutionProvider" in str(w.message)]
                 assert len(cuda_warns) == 0
     except Exception:
@@ -287,14 +280,12 @@ def test_pytorch_fallback_parity_is_exact(tmp_path: Path):
     }
     backend = get_inference_backend(config=cfg)
 
-    # --- 1. Fallback metadata ---
     assert backend.requested_backend == "tensorrt"
     assert backend.active_backend == "pytorch"
     assert backend.fallback_used is True
     assert backend.fallback_reason is not None
     assert len(backend.fallback_reason) > 0
 
-    # --- 2 & 3. Inference succeeds with correct shape/dtype ---
     np.random.seed(42)
     test_input = np.random.randn(1, 1, 128, 64).astype(np.float32)
 
@@ -304,13 +295,11 @@ def test_pytorch_fallback_parity_is_exact(tmp_path: Path):
     assert embedding.shape == (1, 256)
     assert embedding.dtype == np.float32
 
-    # --- 4. Self-consistency: same model + same input → identical output ---
     embedding_again = backend.predict(test_input)
     assert np.array_equal(embedding, embedding_again), (
         "Same backend instance must produce identical output for identical input"
     )
 
-    # --- 5. L2 normalization ---
     norm = float(np.linalg.norm(embedding))
     assert np.isclose(norm, 1.0, atol=1e-5), f"Expected L2 norm ≈ 1.0, got {norm}"
 
@@ -358,7 +347,6 @@ def test_repeated_inference_resource_safety():
         assert np.isclose(np.linalg.norm(out), 1.0, atol=1e-5)
 
     assert id(backend) == initial_id
-
 
 
 def test_benchmark_output_labelled_embedding_only():

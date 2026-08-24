@@ -21,9 +21,7 @@ class TestQualityEstimator:
     def test_valid_gei_evaluation(self):
         estimator = QualityEstimator(quality_threshold=0.5)
 
-        # Create a synthetic clear GEI (128x64)
         gei = np.zeros((128, 64), dtype=np.uint8)
-        # Head, torso, legs
         gei[10:30, 24:40] = 200
         gei[35:75, 20:44] = 230
         gei[80:115, 22:42] = 210
@@ -38,7 +36,6 @@ class TestQualityEstimator:
 
     def test_quality_threshold_filtering(self):
         estimator = QualityEstimator(quality_threshold=0.99)
-        # Uniform low-contrast noisy box that should fail high quality threshold
         gei = np.full((128, 64), 30, dtype=np.uint8)
 
         res = estimator.evaluate(gei)
@@ -51,7 +48,6 @@ class TestTemporalGaitVerifier:
         verifier = TemporalGaitVerifier(window_size=3)
         assert len(verifier.get_buffer(track_id=1)) == 0
 
-        # Push 4 embeddings
         emb1 = np.ones(256, dtype=np.float32) * 0.1
         emb2 = np.ones(256, dtype=np.float32) * 0.2
         emb3 = np.ones(256, dtype=np.float32) * 0.3
@@ -65,13 +61,11 @@ class TestTemporalGaitVerifier:
         verifier.add_embedding(1, emb4)
         buf = verifier.get_buffer(1)
         assert len(buf) == 3
-        # First embedding emb1 should have been popped
         assert np.allclose(buf[0], emb2)
 
     def test_majority_voting(self):
         verifier = TemporalGaitVerifier(window_size=3)
 
-        # Mock matcher returning fixed identity
         def mock_matcher(emb, gf, gl, meta):
             val = emb[0]
             if val < 0.2:
@@ -81,9 +75,9 @@ class TestTemporalGaitVerifier:
             else:
                 return [("Subject_B", 0.88)]
 
-        verifier.add_embedding(1, np.ones(256) * 0.1)  # Subject_A
-        verifier.add_embedding(1, np.ones(256) * 0.2)  # Subject_A
-        verifier.add_embedding(1, np.ones(256) * 0.5)  # Subject_B
+        verifier.add_embedding(1, np.ones(256) * 0.1)
+        verifier.add_embedding(1, np.ones(256) * 0.2)
+        verifier.add_embedding(1, np.ones(256) * 0.5)
 
         identity, score, decision = verifier.verify_identity(
             track_id=1,
@@ -98,7 +92,6 @@ class TestTemporalGaitVerifier:
     def test_fallback_and_track_cleanup(self):
         verifier = TemporalGaitVerifier(window_size=3)
 
-        # 3 different predictions -> no majority vote
         def mock_matcher_split(emb, gf, gl, meta):
             val = emb[0]
             if val < 0.2:
@@ -122,6 +115,5 @@ class TestTemporalGaitVerifier:
         assert identity == "UNKNOWN"
         assert decision == "UNCERTAIN"
 
-        # Verify track cleanup
         verifier.clear_track(1)
         assert len(verifier.get_buffer(1)) == 0

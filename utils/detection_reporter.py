@@ -26,10 +26,6 @@ import numpy as np
 import yaml
 
 
-# ---------------------------------------------------------------------------
-# Config loader
-# ---------------------------------------------------------------------------
-
 def load_reporting_config() -> dict:
     """Load the ``reporting`` section from ``configs/inference.yaml``.
 
@@ -72,10 +68,6 @@ def load_reporting_config() -> dict:
     return merged
 
 
-# ---------------------------------------------------------------------------
-# CSV field order
-# ---------------------------------------------------------------------------
-
 _CSV_FIELDS = [
     "timestamp",
     "date",
@@ -92,10 +84,6 @@ _CSV_FIELDS = [
     "snapshot_path",
 ]
 
-
-# ---------------------------------------------------------------------------
-# Reporter
-# ---------------------------------------------------------------------------
 
 class DetectionReporter:
     """Thread-safe detection event reporter with cooldown deduplication.
@@ -123,7 +111,6 @@ class DetectionReporter:
         self._save_snapshots: bool = bool(self.cfg.get("save_snapshots", True))
         self._cooldown: float = float(self.cfg.get("cooldown_seconds", 10))
 
-        # Status reporting flags
         self._report_flags: dict[str, bool] = {
             "DETECTION": bool(self.cfg.get("report_detection", False)),
             "TRACKING": bool(self.cfg.get("report_tracking", False)),
@@ -133,7 +120,6 @@ class DetectionReporter:
         }
 
 
-        # Output paths
         output_dir = Path(self.cfg.get("output_dir", "outputs/media/detections"))
         output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -146,21 +132,15 @@ class DetectionReporter:
         if self._save_snapshots:
             self._snapshot_dir.mkdir(parents=True, exist_ok=True)
 
-        # Thread safety
         self._lock = threading.Lock()
 
-        # Cooldown tracker: key → last report unix timestamp
         self._cooldown_map: dict[str, float] = {}
 
-        # Initialise CSV header if needed
         if self._save_csv and not self._csv_path.exists():
             with open(self._csv_path, "w", newline="", encoding="utf-8") as f:
                 writer = csv.DictWriter(f, fieldnames=_CSV_FIELDS)
                 writer.writeheader()
 
-    # ------------------------------------------------------------------
-    # Public API
-    # ------------------------------------------------------------------
 
     def report(
         self,
@@ -204,11 +184,9 @@ class DetectionReporter:
         if not self._enabled:
             return False
 
-        # Status gate
         if not self._report_flags.get(status, False):
             return False
 
-        # Cooldown gate
         cooldown_key = f"{camera_id}:{track_id}:{identity}:{status}"
         now = time.time()
 
@@ -218,7 +196,6 @@ class DetectionReporter:
                 return False
             self._cooldown_map[cooldown_key] = now
 
-        # Build record
         ts = datetime.now()
         snapshot_path = ""
 
@@ -243,7 +220,6 @@ class DetectionReporter:
             "snapshot_path": snapshot_path,
         }
 
-        # Include optional crowd-intelligence extra fields if provided
         for extra_key in [
             "crowd_density_level",
             "crowd_density_score",
@@ -276,9 +252,6 @@ class DetectionReporter:
 
         return True
 
-    # ------------------------------------------------------------------
-    # Internals
-    # ------------------------------------------------------------------
 
     def _write_jsonl(self, record: dict) -> None:
         with open(self._jsonl_path, "a", encoding="utf-8") as f:
@@ -286,7 +259,6 @@ class DetectionReporter:
 
     def _write_csv(self, record: dict) -> None:
         row = dict(record)
-        # Serialise bbox list and complex objects to string for CSV
         for k, v in row.items():
             if isinstance(v, (list, dict)):
                 row[k] = str(v)

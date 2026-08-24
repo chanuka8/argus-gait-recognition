@@ -41,20 +41,16 @@ class TestThresholdManager(unittest.TestCase):
             margin_threshold=thresholds.margin_threshold,
         )
 
-        # 1. Score below unknown -> UNKNOWN
         res_unknown = recognizer.evaluate_open_set_decision([("target1", 0.50)])
         self.assertEqual(res_unknown.state, OpenSetState.UNKNOWN)
         self.assertEqual(res_unknown.identity, "UNKNOWN")
 
-        # 2. Score in gray zone -> UNCERTAIN
         res_gray = recognizer.evaluate_open_set_decision([("target1", 0.78)])
         self.assertEqual(res_gray.state, OpenSetState.UNCERTAIN)
 
-        # 3. High score + insufficient margin -> UNCERTAIN
         res_margin = recognizer.evaluate_open_set_decision([("target1", 0.90), ("target2", 0.88)])
         self.assertEqual(res_margin.state, OpenSetState.UNCERTAIN)
 
-        # 4. High score + sufficient margin -> KNOWN
         res_known = recognizer.evaluate_open_set_decision([("target1", 0.90), ("target2", 0.70)])
         self.assertEqual(res_known.state, OpenSetState.KNOWN)
         self.assertEqual(res_known.identity, "target1")

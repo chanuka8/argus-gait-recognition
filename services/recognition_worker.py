@@ -205,7 +205,6 @@ class RecognitionWorker:
             return True
         except Full:
             try:
-                # Discard stale frame and insert newest
                 self._input_queue.get_nowait()
             except Empty:
                 pass
@@ -238,7 +237,6 @@ class RecognitionWorker:
         if thread is not None and thread.is_alive():
             thread.join(timeout=timeout)
 
-        # Clear queues and cache
         while not self._input_queue.empty():
             try:
                 self._input_queue.get_nowait()
@@ -279,10 +277,8 @@ class RecognitionWorker:
             iso_now = datetime.now(timezone.utc).isoformat()
 
             try:
-                # 1. Person Detection
                 raw_detections = self.detector.detect(frame)
 
-                # 2. Multi-Object Tracking
                 tracked_objects = self.tracker.update(raw_detections, frame.shape)
                 with self._lock:
                     self._active_track_count = len(tracked_objects)
@@ -291,12 +287,10 @@ class RecognitionWorker:
                     track_id = int(obj["track_id"])
                     bbox = [int(b) for b in obj["bbox"]]
 
-                    # 3. Silhouette Extraction
                     silhouette = self.silhouette_extractor.extract_from_frame(frame, bbox)
                     if silhouette is not None:
                         self.gei_builder.add_silhouette(track_id, silhouette)
 
-                    # 4. Check Cooldown / Cache State
                     cached = self.cache.get(self.camera_id, track_id)
                     last_rec_time = self._last_recognition_times.get(track_id, 0.0)
                     time_since_rec = now - last_rec_time
@@ -304,7 +298,6 @@ class RecognitionWorker:
                     gei_ready = self.gei_builder.is_ready(track_id)
                     gei_count = self.gei_builder.get_frame_count(track_id)
 
-                    # If already confirmed and within cooldown, maintain identity with updated bbox
                     if cached is not None and cached.status == "CONFIRMED" and time_since_rec < self.cooldown_seconds:
                         cached.bbox = bbox
                         cached.timestamp = now
@@ -313,7 +306,6 @@ class RecognitionWorker:
                         self.cache.put(cached)
                         continue
 
-                    # 5. Execute Gait Recognition if GEI is ready
                     if gei_ready and time_since_rec >= self.cooldown_seconds:
                         gei = self.gei_builder.build_gei(track_id)
                         if gei is not None:
@@ -353,7 +345,6 @@ class RecognitionWorker:
 
                             continue
 
-                    # 6. Provisional Tracking / Detection State if not yet recognized
                     provisional_status = "TRACKING" if gei_count >= 3 else "DETECTION"
                     provisional_identity = "UNKNOWN" if cached is None else cached.identity
                     provisional_similarity = 0.0 if cached is None else cached.similarity
@@ -373,7 +364,6 @@ class RecognitionWorker:
                     )
                     self.cache.put(res)
 
-                # Periodic cleanup of inactive tracks
                 if self._frame_count % 150 == 0:
                     self.tracker.cleanup_inactive(max_idle_seconds=5.0)
                     self.gei_builder.cleanup_inactive(max_idle_seconds=6.0)
@@ -382,7 +372,6 @@ class RecognitionWorker:
             except Exception as err:
                 self._logger.error(f"Recognition error in frame {self._frame_count}: {sanitize_rtsp_url(str(err))}")
 
-            # Pacing to maintain target recognition FPS
             elapsed = time.monotonic() - loop_start
             sleep_time = self._frame_interval - elapsed
             if sleep_time > 0:
@@ -406,7 +395,6 @@ class RecognitionWorker:
             if embedding is None or len(embedding) == 0:
                 return "UNKNOWN", 0.0, "UNKNOWN_PERSON", "UNKNOWN"
 
-            # Gallery matching
             identity, score = self.matcher.match(
                 query_feature=embedding,
                 gallery_features=g_features,
@@ -414,7 +402,6 @@ class RecognitionWorker:
                 metadata=g_meta,
             )
 
-            # Open-set evaluation
             top_matches = self.matcher.top_k_matches(
                 query_feature=embedding,
                 gallery_features=g_features,

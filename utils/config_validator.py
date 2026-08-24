@@ -88,7 +88,6 @@ class ConfigValidator:
         if not isinstance(max_batch, int) or max_batch < 1:
             errors.append(f"max_batch_size must be a positive integer, got: {max_batch}")
 
-        # Validate threshold parameters if present
         for key in ("evaluation_threshold", "live_threshold", "security_threshold"):
             val = config.get(key)
             if val is not None and not (isinstance(val, (int, float)) and 0.0 <= val <= 1.0):

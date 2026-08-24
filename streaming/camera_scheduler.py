@@ -74,7 +74,6 @@ class CameraScheduler:
                 last_t = self._last_scheduled.get(cid, now)
                 wait_time = now - last_t
 
-                # Starvation boost: lower priority cameras gain higher boost per second of waiting to prevent starvation
                 starvation_boost = (
                     (wait_time / self.starvation_threshold) * (11 - p) * 2.0
                     if wait_time > self.starvation_threshold
@@ -97,7 +96,6 @@ class CameraScheduler:
     def calculate_dynamic_poll_interval(self, system_load_factor: float = 0.5) -> float:
         """Calculate dynamic polling interval based on current system load (0.0 to 1.0)."""
         load = max(0.0, min(1.0, system_load_factor))
-        # Higher load -> slightly longer poll interval to avoid CPU thrashing
         interval = self.min_poll_interval + load * (
             self.max_poll_interval - self.min_poll_interval
         )

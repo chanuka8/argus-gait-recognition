@@ -162,7 +162,6 @@ class TestVectorStoreSecurity(unittest.TestCase):
     def test_no_active_allow_pickle_true_remains_in_first_party_code(self):
         cmd = ["git", "grep", "-n", "allow_pickle=True"]
         res = subprocess.run(cmd, capture_output=True, text=True)
-        # Filter python production source files (exclude tests and markdown docs)
         prod_matches = [
             line for line in res.stdout.splitlines()
             if ".py:" in line and not line.startswith("tests/")

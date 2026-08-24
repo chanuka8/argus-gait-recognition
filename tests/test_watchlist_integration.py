@@ -102,7 +102,7 @@ class TestWatchlistManager(unittest.TestCase):
         self.manager.register_target(identity="subject_delta")
         match = self.manager.process_match(
             identity="subject_delta",
-            confidence_score=0.80,  # Below threshold 0.85
+            confidence_score=0.80,
             camera_id="cam_main",
         )
         self.assertIsNone(match)
@@ -110,11 +110,9 @@ class TestWatchlistManager(unittest.TestCase):
     def test_process_match_cooldown(self):
         self.manager.register_target(identity="subject_epsilon")
 
-        # First match succeeds
         m1 = self.manager.process_match("subject_epsilon", 0.92, "cam1")
         self.assertIsNotNone(m1)
 
-        # Immediate second match is suppressed by cooldown
         m2 = self.manager.process_match("subject_epsilon", 0.92, "cam1")
         self.assertIsNone(m2)
 

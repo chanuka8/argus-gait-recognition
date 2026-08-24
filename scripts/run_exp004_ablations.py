@@ -57,7 +57,6 @@ def run_decision_ablations_on_exp003e():
     ckpt_path = "runs/exp_003e_hpp_arcface_triplet025/best_model.pth"
     model = load_model(ckpt_path, part_bins=4)
 
-    # 1. Validation Set (063-074) for Calibration
     val_known = val_subs[:len(val_subs)//2]
     val_gal_items, _ = build_gallery_and_probe_sets(val_known, "data/casia_processed/gei")
     _, val_prb_items = build_gallery_and_probe_sets(val_subs, "data/casia_processed/gei")
@@ -65,7 +64,6 @@ def run_decision_ablations_on_exp003e():
     val_gal_feats = np.asarray([image_to_embedding(model, i["path"]) for i in val_gal_items], dtype=np.float32)
     val_gal_labels = np.asarray([i["subject_id"] for i in val_gal_items])
 
-    # Compute validation predictions
     val_known_set = set(val_known)
     val_top1, val_top2, val_gen = [], [], []
     for prb in val_prb_items:
@@ -86,7 +84,6 @@ def run_decision_ablations_on_exp003e():
     val_gen = np.asarray(val_gen)
     val_margins = val_top1 - val_top2
 
-    # Find best margin on Validation set that maximizes F1 or TAR at low FAR
     best_val_f1 = 0.0
     for m in [0.02, 0.05, 0.08, 0.10]:
         accepted = (val_top1 >= 0.55) & (val_margins >= m)
@@ -98,7 +95,6 @@ def run_decision_ablations_on_exp003e():
         if f1 > best_val_f1:
             best_val_f1 = f1
 
-    # 2. Test Set (075-124) Evaluation
     test_known = test_subs[:25]
     test_gal_items, _ = build_gallery_and_probe_sets(test_known, "data/casia_processed/gei")
     _, test_prb_items = build_gallery_and_probe_sets(test_subs, "data/casia_processed/gei")
@@ -107,7 +103,6 @@ def run_decision_ablations_on_exp003e():
     test_gal_labels = np.asarray([i["subject_id"] for i in test_gal_items])
     test_known_set = set(test_known)
 
-    # Precompute Centroids for EXP-004C
     unique_test_labels = sorted(list(set(test_gal_labels)))
     centroid_feats = []
     for lbl in unique_test_labels:
@@ -118,14 +113,12 @@ def run_decision_ablations_on_exp003e():
     centroid_feats = np.asarray(centroid_feats, dtype=np.float32)
     centroid_labels = np.asarray(unique_test_labels)
 
-    # Precompute per-identity threshold statistics for EXP-004D
     id_thresholds = {}
     for lbl in unique_test_labels:
         mask = (test_gal_feats == lbl)
         same_feats = test_gal_feats[mask]
         if len(same_feats) > 1:
             sim_matrix = np.dot(same_feats, same_feats.T)
-            # take upper triangle off-diagonal
             sim_vals = sim_matrix[np.triu_indices(len(same_feats), k=1)]
             mu = float(np.mean(sim_vals))
             sigma = float(np.std(sim_vals))
@@ -134,14 +127,12 @@ def run_decision_ablations_on_exp003e():
             id_th = 0.55
         id_thresholds[lbl] = id_th
 
-    # Collect Probe Predictions for all methods
     probes_data = []
     for prb in test_prb_items:
         feat = image_to_embedding(model, prb["path"])
         actual_id = prb["subject_id"]
         cond = prb["condition"]
 
-        # Multi-template matching
         sims = np.dot(test_gal_feats, feat)
         top_idx = np.argsort(sims)[::-1]
         t1_score = float(sims[top_idx[0]])
@@ -149,7 +140,6 @@ def run_decision_ablations_on_exp003e():
         diff_id_indices = [idx for idx in top_idx if test_gal_labels[idx] != t1_id]
         t2_score = float(sims[diff_id_indices[0]]) if diff_id_indices else t1_score
 
-        # Centroid matching
         c_sims = np.dot(centroid_feats, feat)
         c_top_idx = np.argsort(c_sims)[::-1]
         c_t1_score = float(c_sims[c_top_idx[0]])
@@ -174,14 +164,12 @@ def run_decision_ablations_on_exp003e():
             "is_gen_c": is_gen_c,
         })
 
-    # Evaluate EXP-004A..EXP-004E
     results = {}
 
-    # EXP-004A: Global Cosine Threshold (Sweep and select best operating point)
     scores_4a = [p["t1_score"] for p in probes_data]
     gen_4a = [p["is_gen"] for p in probes_data]
     roc_4a = compute_roc_auc_eer(scores_4a, gen_4a)
-    rates_4a = compute_biometric_rates(scores_4a, gen_4a, threshold=0.5806) # EER threshold
+    rates_4a = compute_biometric_rates(scores_4a, gen_4a, threshold=0.5806)
     results["EXP-004A"] = {
         "id": "EXP-004A",
         "name": "Global Cosine Threshold",
@@ -197,7 +185,6 @@ def run_decision_ablations_on_exp003e():
         "decision": "REFERENCE BASELINE",
     }
 
-    # EXP-004B: Cosine Threshold + Top1/Top2 Margin Rejection (best_margin=0.08)
     margin_val = 0.08
     thresh_val = 0.55
     accepted_4b = [(p["t1_score"] >= thresh_val) and (p["margin"] >= margin_val) for p in probes_data]
@@ -223,7 +210,6 @@ def run_decision_ablations_on_exp003e():
         "decision": "KEEP AS POLICY CANDIDATE",
     }
 
-    # EXP-004C: Centroid Matching + Margin
     scores_4c = [p["c_t1_score"] for p in probes_data]
     gen_4c = [p["is_gen_c"] for p in probes_data]
     roc_4c = compute_roc_auc_eer(scores_4c, gen_4c)
@@ -248,7 +234,6 @@ def run_decision_ablations_on_exp003e():
         "decision": "KEEP AS POLICY CANDIDATE",
     }
 
-    # EXP-004D: Identity-Specific Thresholding
     accepted_4d = [(p["t1_score"] >= id_thresholds.get(p["t1_id"], 0.55)) for p in probes_data]
     tp_4d = sum(a and g for a, g in zip(accepted_4d, gen_4a))
     fp_4d = sum(a and not g for a, g in zip(accepted_4d, gen_4a))
@@ -270,7 +255,6 @@ def run_decision_ablations_on_exp003e():
         "decision": "REJECT",
     }
 
-    # EXP-004E: Cohort Normalization (Z-score norm)
     imp_scores = [p["t1_score"] for p in probes_data if not p["is_gen"]]
     mu_imp = np.mean(imp_scores)
     sigma_imp = np.std(imp_scores)
@@ -292,7 +276,6 @@ def run_decision_ablations_on_exp003e():
         "decision": "KEEP AS POLICY CANDIDATE",
     }
 
-    # Print Summary Table for Phase 3/4
     print(f"{'Exp ID':<10} | {'Method':<30} | {'Thresh':<7} | {'Margin':<7} | {'FAR':<7} | {'FRR':<7} | {'TAR':<7} | {'ROC-AUC':<7} | {'EER':<7} | {'Decision':<20}")
     print("-" * 125)
     for k, v in results.items():
@@ -335,7 +318,6 @@ def run_retrain_ablation(exp_id: str, exp_name: str, condition_balanced: bool, c
     history = trainer.train()
     print(f"[{exp_id}] Training complete. Best val accuracy: {history['best_val_accuracy']*100:.2f}%")
 
-    # Run subject-disjoint evaluation
     ckpt_path = f"{run_dir}/best_model.pth"
     eval_dir = f"{run_dir}/evaluation_subject_disjoint"
     print(f"[{exp_id}] Running subject-disjoint evaluation...")
@@ -357,7 +339,6 @@ def run_retrain_ablation(exp_id: str, exp_name: str, condition_balanced: bool, c
     finally:
         _sys.argv = original_argv
 
-    # Load and return evaluation results
     results = {"exp_id": exp_id, "name": exp_name}
     eval_path = Path(eval_dir)
 
@@ -465,7 +446,6 @@ def main():
     if retrain_results:
         print_comparison_table(retrain_results)
 
-        # Save combined results
         combined_path = Path("runs/exp004_retrain_comparison.json")
         with open(combined_path, "w", encoding="utf-8") as f:
             json.dump(retrain_results, f, indent=4)

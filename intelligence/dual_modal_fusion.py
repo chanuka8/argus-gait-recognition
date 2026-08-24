@@ -97,22 +97,18 @@ class DualModalFusion:
         crowd density, occlusion ratio, and track reliability.
         Falls back to gait-only mode if appearance embedding or score is absent.
         """
-        # Compute cosine similarity if raw scores are None but embeddings provided
         if gait_score is None and gait_embedding is not None and gait_gallery_embedding is not None:
             gait_score = self.compute_cosine_similarity(gait_embedding, gait_gallery_embedding)
 
         if reid_score is None and reid_embedding is not None and reid_gallery_embedding is not None:
             reid_score = self.compute_cosine_similarity(reid_embedding, reid_gallery_embedding)
 
-        # Normalize scores
         norm_gait = self.normalizer.normalize_gait(gait_score)
         norm_reid = self.normalizer.normalize_reid(reid_score)
 
-        # Modality score presence
         g_present = norm_gait is not None
         r_present = norm_reid is not None
 
-        # Assess modality quality
         gait_quality = (
             self.quality_assessor.evaluate_gait_quality(
                 gei_frame_count=gei_frame_count if gei_frame_count > 0 else 30,
@@ -132,10 +128,7 @@ class DualModalFusion:
             else 0.0
         )
 
-        # Dynamic context adjustments:
-        # High gait quality & high track reliability -> boost gait quality factor
         adjusted_gait_q = gait_quality * max(0.2, track_reliability)
-        # Heavy crowd & high occlusion -> penalty on gait quality factor, boost appearance weight
         crowd_occlusion_factor = max(0.0, min(1.0, 0.5 * crowd_density + 0.5 * occlusion_score))
         if crowd_occlusion_factor > 0.3:
             adjusted_gait_q = adjusted_gait_q * (1.0 - 0.5 * crowd_occlusion_factor)

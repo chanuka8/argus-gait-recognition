@@ -253,7 +253,6 @@
     color: var(--text-secondary);
 }
 
-/* Modal layout styling */
 .add-modal-overlay {
     position: fixed;
     inset: 0;
@@ -281,7 +280,6 @@
     overflow-y: auto;
 }
 
-/* Styled Scrollbar for Modal Card */
 .add-modal-card::-webkit-scrollbar {
     width: 6px;
 }
@@ -426,7 +424,6 @@
     margin: 0 auto;
 }
 
-/* Registration Success Animation Screen */
 .registration-success-animation {
     display: flex;
     flex-direction: column;
@@ -490,7 +487,6 @@
     }
 }
 
-/* Custom Profile Image Upload Section */
 .profile-image-upload-wrapper {
     display: flex;
     flex-direction: column;
@@ -597,7 +593,6 @@
     opacity: 0.8;
 }
 
-/* Deletion Password Modal Styles */
 .delete-modal-overlay {
     position: fixed;
     top: 0;
@@ -740,7 +735,6 @@
     transform: translateY(0);
 }
 
-/* Success Animation for deletion */
 .deletion-success-animation {
     display: flex;
     flex-direction: column;

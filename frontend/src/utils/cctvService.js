@@ -1,4 +1,3 @@
-// Provides surveillance zone definitions, CCTV camera node data, and simulated detection alert logging for the ARGUS CCTV network.
 
 import { db } from '../firebaseConfig';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';

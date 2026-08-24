@@ -23,7 +23,6 @@ def test_shutdown_manager_idempotent():
     assert sm.shutdown() is True
     assert callback_count[0] == 1
 
-    # Second shutdown call should be idempotent and return completed status without running callback again
     assert sm.shutdown() is True
     assert callback_count[0] == 1
 
@@ -55,7 +54,6 @@ def test_shutdown_manager_handles_join_timeout():
     reset_shutdown_manager()
     sm = ShutdownManager(join_timeout_sec=0.1)
 
-    # Thread that ignores stop signal
     def stubborn_worker():
         time.sleep(0.5)
 
@@ -63,7 +61,6 @@ def test_shutdown_manager_handles_join_timeout():
     t.start()
     sm.register_thread(t)
 
-    # Shutdown should complete without hanging indefinitely
     assert sm.shutdown() is True
     t.join(timeout=1.0)
 
@@ -77,7 +74,6 @@ def test_shutdown_manager_signal_registration(monkeypatch):
 
     sm.register_signal_handlers()
 
-    # Should register SIGINT handler
     assert mock_signal.called
     sig_args = [call[0][0] for call in mock_signal.call_args_list]
     assert signal.SIGINT in sig_args

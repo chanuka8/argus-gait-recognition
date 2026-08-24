@@ -33,7 +33,6 @@ def extract_all_skeletons(zip_path: str = "data/casia_b_raw.zip", out_root: str 
     print(f"Opening Zip archive: {zip_path}...")
     t0 = time.time()
 
-    # Map: (sub, cond, view) -> list of (frame_idx, filename)
     seq_map = defaultdict(list)
 
     with zipfile.ZipFile(zip_path, "r") as z:

@@ -17,9 +17,6 @@ import { getStreamUrl } from '../config/apiConfig';
 import './CctvNetwork.css';
 import './History.css';
 
-/**
- * Live Camera Stream Component with Error Recovery and Loading State.
- */
 const LiveCameraFeed = ({ cameraId, cameraName, workerActive, telemetry }) => {
     const [streamError, setStreamError] = useState(false);
     const [isLoaded, setIsLoaded] = useState(false);
@@ -239,7 +236,6 @@ const CctvNetwork = ({ isAdmin = false }) => {
                 await stopCamera(cam.id);
                 setActionFeedback({ type: 'success', message: `Camera worker [${cam.id}] stopped.` });
             } else {
-                // Auto-resolve source: use explicit cam.source if present; otherwise default to 'auto'
                 const source = (cam.source && String(cam.source).trim() !== '')
                     ? String(cam.source).trim()
                     : 'auto';
@@ -344,7 +340,6 @@ const CctvNetwork = ({ isAdmin = false }) => {
             </header>
 
             <main className="cctv-body">
-                {/* Navigation Header */}
                 <div className="cctv-nav-header">
                     <div>
                         <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -394,7 +389,6 @@ const CctvNetwork = ({ isAdmin = false }) => {
                     </div>
                 )}
 
-                {/* Zone Sector Tabs */}
                 <div className="zone-tabs-section">
                     <div className="tabs-list">
                         {SURVEILLANCE_ZONES.map((z) => {
@@ -422,7 +416,6 @@ const CctvNetwork = ({ isAdmin = false }) => {
                     </button>
                 </div>
 
-                {/* Active Zone Summary Card */}
                 <div className="zone-summary-card">
                     <div className="zone-summary-left">
                         <h2>{activeZone.name}</h2>
@@ -446,7 +439,6 @@ const CctvNetwork = ({ isAdmin = false }) => {
                     </div>
                 </div>
 
-                {/* CCTV Cameras Grid */}
                 <section className="cctv-grid-section">
                     <div className="cctv-grid-header">
                         <h3>Deployed Camera Nodes in {activeZone.name.split('(')[0]} ({activeZoneCameras.length})</h3>
@@ -463,16 +455,13 @@ const CctvNetwork = ({ isAdmin = false }) => {
                                 const loading = Boolean(actionLoading[cam.id]);
                                 const error = actionErrors[cam.id];
 
-                                // Connected requires worker to be active, connected, and capturing frames
                                 const isConnected = Boolean(gaitCam && (gaitCam.status === 'ACTIVE' || gaitCam.status === 'connected') && (gaitCam.processed_frames > 0 || (gaitCam.fps && gaitCam.fps > 0)));
                                 const workerActive = Boolean(gaitCam && (gaitCam.status === 'ACTIVE' || gaitCam.status === 'connected'));
 
-                                // Active source type ONLY when isConnected is true and source_type exists
                                 const rawSourceType = isConnected ? (gaitCam?.source_type || gaitCam?.resolved_source_type || null) : null;
                                 const isWebcam = rawSourceType ? (String(rawSourceType).toLowerCase() === 'webcam' || String(rawSourceType).toLowerCase() === 'usb') : false;
                                 const detectedSourceLabel = rawSourceType ? (isWebcam ? 'Webcam' : 'RTSP') : null;
 
-                                // State Machine for connection status
                                 let statusLabel = 'Standby';
                                 let statusColor = 'var(--text-muted)';
                                 let statusDotColor = '#888';
@@ -504,7 +493,6 @@ const CctvNetwork = ({ isAdmin = false }) => {
                                         <div className="cam-card-header">
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                 <span className="cam-id-tag">{cam.id}</span>
-                                                {/* Source badge ONLY rendered when connected with active source */}
                                                 {isConnected && detectedSourceLabel && (
                                                     <span className={`cam-source-badge ${isWebcam ? 'source-webcam' : 'source-rtsp'}`}>
                                                         {isWebcam ? <Video size={12} /> : <Radio size={12} />}
@@ -521,7 +509,6 @@ const CctvNetwork = ({ isAdmin = false }) => {
                                         <div className="cam-card-body">
                                             <h4>{cam.name}</h4>
 
-                                            {/* Live MJPEG Stream / Standby Interface */}
                                             <LiveCameraFeed
                                                 cameraId={cam.id}
                                                 cameraName={cam.name}
@@ -530,7 +517,6 @@ const CctvNetwork = ({ isAdmin = false }) => {
                                             />
 
                                             <div className="cam-specs-list">
-                                                {/* Source row ONLY shown when connected with active source */}
                                                 {isConnected && detectedSourceLabel && (
                                                     <div className="spec-row">
                                                         <span>Source</span>
@@ -615,7 +601,6 @@ const CctvNetwork = ({ isAdmin = false }) => {
                 </section>
             </main>
 
-            {/* Modal: Live Camera Stream Overlay */}
             {selectedCamStream && (
                 <div className="cctv-modal-overlay">
                     <div className="cctv-modal-card" style={{ maxWidth: '680px' }}>
@@ -627,7 +612,6 @@ const CctvNetwork = ({ isAdmin = false }) => {
                         </div>
 
                         <div style={{ padding: '1rem 0' }}>
-                            {/* Live MJPEG Stream Display in Modal */}
                             <div style={{ marginBottom: '1rem', borderRadius: '8px', overflow: 'hidden', border: '2px solid #00E5FF' }}>
                                 <LiveCameraFeed
                                     cameraId={selectedCamStream.id}
@@ -680,7 +664,6 @@ const CctvNetwork = ({ isAdmin = false }) => {
                 </div>
             )}
 
-            {/* Modal: Deploy New Custom CCTV Node */}
             {showAddModal && (
                 <div className="cctv-modal-overlay">
                     <form className="cctv-modal-card" onSubmit={handleAddCameraSubmit}>

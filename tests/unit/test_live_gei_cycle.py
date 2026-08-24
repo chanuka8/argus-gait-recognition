@@ -36,7 +36,6 @@ class TestLiveGEICycle(unittest.TestCase):
         initial_count = self.gei.count()
         self.assertEqual(initial_count, 1)
 
-        # Add identical frame -> should be rejected as duplicate
         self.gei.add(mask)
         self.assertEqual(self.gei.count(), 1)
         self.assertGreater(self.gei.duplicate_frames, 0)
@@ -61,7 +60,6 @@ class TestLiveGEICycle(unittest.TestCase):
         self.assertAlmostEqual(self.gei.last_cycle_detected, period, delta=2)
 
     def test_no_cycle_fallback(self) -> None:
-        # Random non-periodic width masks
         np.random.seed(42)
         for i in range(12):
             w = 15 + (i % 3) * 5

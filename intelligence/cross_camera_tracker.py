@@ -24,9 +24,7 @@ class CrossCameraTracker:
         self._lock = Lock()
         self._time_provider = time_provider or time.monotonic
 
-        # global_track_id -> dict of track info
         self._global_tracks: Dict[str, Dict[str, Any]] = {}
-        # (camera_id, local_track_id) -> global_track_id
         self._local_to_global: Dict[tuple, str] = {}
 
     def get_or_create_global_id(
@@ -64,7 +62,6 @@ class CrossCameraTracker:
                     )
                 return gid
 
-            # Check Camera Transition Model first if enabled
             if self.transition_model and self.transition_model.is_enabled():
                 match_res = self.transition_model.find_best_transition_candidate(
                     dest_camera_id=camera_id,
@@ -108,7 +105,6 @@ class CrossCameraTracker:
                         )
                         return gid
 
-            # Check if identity was recently seen on another camera for continuity (legacy fallback)
             if identity:
                 for gid, data in self._global_tracks.items():
                     if data.get("identity") == identity and (now - data["last_seen"]) <= self.max_transition_time:
@@ -132,7 +128,6 @@ class CrossCameraTracker:
                             )
                         return gid
 
-            # Create new global track ID
             gid = f"GTRACK-{uuid.uuid4().hex[:8].upper()}"
             self._global_tracks[gid] = {
                 "global_id": gid,

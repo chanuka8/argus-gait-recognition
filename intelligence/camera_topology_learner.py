@@ -49,9 +49,7 @@ class CameraTopologyLearner:
         self.transition_model = transition_model
         self.last_sync_time = -float("inf")
 
-        # (source_camera, destination_camera) -> LearnedEdgeStats
         self.learned_edges: Dict[Tuple[str, str], LearnedEdgeStats] = {}
-        # (camera_id, identity) -> (exit_timestamp, reliability, occlusion)
         self.exit_events: Dict[Tuple[str, str], Tuple[float, float, float]] = {}
 
     def set_transition_model(self, transition_model: Any) -> None:
@@ -98,11 +96,9 @@ class CameraTopologyLearner:
 
         now = timestamp if timestamp is not None else time.monotonic()
 
-        # Reject self-transitions if same camera
         if source_camera == destination_camera:
             return False
 
-        # Reject low-confidence or unconfirmed observations
         if (
             not is_known_identity
             or not is_temporally_confirmed
@@ -112,7 +108,6 @@ class CameraTopologyLearner:
         ):
             return False
 
-        # Look up exit record from source camera for this identity
         exit_key = (source_camera, identity)
         if exit_key not in self.exit_events:
             return False
@@ -120,15 +115,12 @@ class CameraTopologyLearner:
         exit_time, exit_rel, exit_occ = self.exit_events[exit_key]
         travel_time = now - exit_time
 
-        # Validate travel time safety bounds
         if travel_time < 0.5 or travel_time > self.maximum_travel_seconds:
             return False
 
-        # Reject if exit observation had low reliability or high occlusion
         if exit_rel < 0.70 or exit_occ >= 0.35:
             return False
 
-        # Record valid transition
         edge_key = (source_camera, destination_camera)
         if edge_key not in self.learned_edges:
             self.learned_edges[edge_key] = LearnedEdgeStats(
@@ -140,11 +132,9 @@ class CameraTopologyLearner:
         edge.transition_count += 1
         edge.travel_time_samples.append(float(travel_time))
 
-        # Bound sample memory (max 100 samples)
         if len(edge.travel_time_samples) > 100:
             edge.travel_time_samples.pop(0)
 
-        # Compute robust statistics
         samples = np.array(edge.travel_time_samples, dtype=np.float32)
         edge.mean_travel_time = float(np.mean(samples))
         edge.median_travel_time = float(np.median(samples))
@@ -159,7 +149,6 @@ class CameraTopologyLearner:
 
         edge.last_update_time = now
 
-        # Update normalized transition probabilities across destination cameras for source_camera
         self._update_transition_probabilities(source_camera)
 
         return True

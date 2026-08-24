@@ -46,7 +46,7 @@ def build_gallery_and_probe_sets(
     gei_root: str = "data/casia_processed/gei",
     gallery_seqs: list[str] | None = None,
     probe_seqs_by_condition: dict[str, list[str]] | None = None,
-    gallery_view_filter: str | None = None,  # e.g., "090" or None for all views
+    gallery_view_filter: str | None = None,
 ) -> tuple[list[dict], list[dict]]:
     if gallery_seqs is None:
         gallery_seqs = DEFAULT_GALLERY_SEQS
@@ -65,7 +65,6 @@ def build_gallery_and_probe_sets(
     for seq_list in probe_seqs_by_condition.values():
         all_probe_seqs.update(seq_list)
 
-    # Verify no overlap between gallery seqs and probe seqs
     gallery_seq_set = set(gallery_seqs)
     seq_overlap = gallery_seq_set & all_probe_seqs
     if seq_overlap:
@@ -86,11 +85,9 @@ def build_gallery_and_probe_sets(
             meta = parse_filename_meta(image_path)
             meta_path = meta["path"]
 
-            # Subject membership check
             if meta["subject_id"] not in subject_set:
                 raise ValueError(f"Sample subject {meta['subject_id']} not in allowed subject set")
 
-            # Check if gallery candidate
             if meta["seq"] in gallery_seq_set:
                 if gallery_view_filter is None or meta["angle"] == gallery_view_filter:
                     if meta_path in gallery_paths:
@@ -98,14 +95,12 @@ def build_gallery_and_probe_sets(
                     gallery_paths.add(meta_path)
                     gallery_items.append(meta)
 
-            # Check if probe candidate
             elif meta["seq"] in all_probe_seqs:
                 if meta_path in probe_paths:
                     raise ValueError(f"Duplicate probe path detected: {meta_path}")
                 probe_paths.add(meta_path)
                 probe_items.append(meta)
 
-    # Disjointness Assertion
     path_overlap = gallery_paths & probe_paths
     if path_overlap:
         raise ValueError(f"CRITICAL: Data leakage detected! Path overlap between gallery and probe: {len(path_overlap)} files")

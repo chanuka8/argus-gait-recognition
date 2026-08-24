@@ -23,21 +23,18 @@ def test_pipeline_crowd_robustness_initialization(
 
     cfg = _load_crowd_robustness_config()
     assert "enabled" in cfg
-    assert cfg["enabled"] is False  # Must be disabled by default
+    assert cfg["enabled"] is False
 
-    # Verify VideoRecognitionPipeline instantiates manager safely without checkpoint dependency
     pipe = VideoRecognitionPipeline()
     assert hasattr(pipe, "crowd_robustness_manager")
     assert pipe.crowd_robustness_manager.is_enabled() is False
 
-    # Verify LiveRecognitionPipeline instantiates manager safely without checkpoint dependency
     live_pipe = LiveRecognitionPipeline()
     assert hasattr(live_pipe, "crowd_robustness_manager")
     assert live_pipe.crowd_robustness_manager.is_enabled() is False
 
 
 def test_crowd_robustness_end_to_end_simulation():
-    # Enable manager programmatically to simulate dense crowd processing
     config = {
         "enabled": True,
         "strong_overlap_iou": 0.25,
@@ -51,7 +48,6 @@ def test_crowd_robustness_end_to_end_simulation():
     mgr = CrowdRobustnessManager(config)
     assert mgr.is_enabled() is True
 
-    # Simulate 8 detections with overlaps
     detections = []
     for i in range(8):
         detections.append({
@@ -72,7 +68,6 @@ def test_inference_skipping_when_evidence_insufficient():
     from intelligence.crowd_intelligence_system import CrowdIntelligenceSystem
     system = CrowdIntelligenceSystem({"enabled": True, "recognition_deferral": {"enabled": True, "minimum_confirmations": 3}})
 
-    # First observation should defer
     res = system.evaluate_track_recognition(
         camera_id="cam_00",
         track_id=1,
@@ -85,6 +80,5 @@ def test_inference_skipping_when_evidence_insufficient():
         occlusion_score=0.10,
         timestamp=1.0,
     )
-    # Deferral state is returned directly, avoiding unneeded identity confirmation or alert trigger
     assert res.recognition_state == "DEFERRED_INSUFFICIENT_EVIDENCE"
     assert res.should_alert is False

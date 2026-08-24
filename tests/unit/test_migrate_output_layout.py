@@ -28,13 +28,11 @@ class TestMigrateOutputLayout(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             outputs_dir = Path(tmpdir) / "outputs"
 
-            # Create legacy file
             legacy_sec = outputs_dir / "security_logs"
             legacy_sec.mkdir(parents=True, exist_ok=True)
             sec_file = legacy_sec / "security_events.csv"
             sec_file.write_text("event_1\n", encoding="utf-8")
 
-            # Create existing destination file to trigger conflict resolution
             dest_sec = outputs_dir / "logs" / "security"
             dest_sec.mkdir(parents=True, exist_ok=True)
             existing_dest = dest_sec / "security_events.csv"
@@ -43,7 +41,6 @@ class TestMigrateOutputLayout(unittest.TestCase):
             moved = migrate_outputs(outputs_dir, dry_run=False)
             self.assertEqual(len(moved), 1)
 
-            # Verification
             self.assertFalse(sec_file.exists())
             self.assertTrue(existing_dest.exists())
             conflict_file = dest_sec / "security_events_1.csv"

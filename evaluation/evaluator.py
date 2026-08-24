@@ -49,7 +49,6 @@ class SubjectDisjointEvaluator:
 
         self.matcher = MatchingStep(threshold=threshold)
 
-        # Validate disjointness upfront
         assert_subject_disjointness(
             self.split_manifest["train_subjects"],
             self.split_manifest["val_subjects"],
@@ -100,7 +99,6 @@ class SubjectDisjointEvaluator:
         if image is None:
             raise RuntimeError(f"Failed to read image: {image_path}")
 
-        # Resize to (64, 128) - matching training GEIDataset
         image = cv2.resize(image, (64, 128))
         image = image.astype(np.float32) / 255.0
         tensor = torch.from_numpy(image).unsqueeze(0).unsqueeze(0)
@@ -108,7 +106,6 @@ class SubjectDisjointEvaluator:
         with torch.no_grad():
             embedding = self.model(tensor).cpu().numpy().flatten().astype(np.float32)
 
-        # L2 Normalize
         norm = np.linalg.norm(embedding)
         embedding = embedding / (norm + 1e-8)
 
@@ -118,14 +115,12 @@ class SubjectDisjointEvaluator:
     def evaluate(self, gallery_view_filter: str | None = None) -> dict:
         test_subjects = self.split_manifest["test_subjects"]
 
-        # Build gallery & probe items
         gallery_items, probe_items = build_gallery_and_probe_sets(
             subjects=test_subjects,
             gei_root=str(self.gei_root),
             gallery_view_filter=gallery_view_filter,
         )
 
-        # Assert no path overlap and no train subjects
         assert_gallery_probe_disjointness(
             gallery_paths=[i["path"] for i in gallery_items],
             probe_paths=[i["path"] for i in probe_items],

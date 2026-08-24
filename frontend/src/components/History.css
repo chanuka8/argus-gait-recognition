@@ -10,7 +10,6 @@
     animation: fadeInUp 0.4s ease both;
 }
 
-/* ── Header ── */
 .history-header {
     display: flex;
     justify-content: space-between;
@@ -72,7 +71,6 @@
     gap: 1rem;
 }
 
-/* ── Controls ── */
 .history-controls {
     display: flex;
     justify-content: center;
@@ -84,7 +82,6 @@
     flex-shrink: 0;
 }
 
-/* ── Search ── */
 .search-bar {
     display: flex;
     align-items: center;
@@ -116,7 +113,6 @@
     color: var(--text-muted);
 }
 
-/* ── Dropdown ── */
 .custom-dropdown-container {
     position: relative;
     user-select: none;
@@ -187,7 +183,6 @@
     font-weight: 700;
 }
 
-/* ── Content ── */
 .history-content {
     flex: 1;
     padding: 1rem 2.5rem 1.5rem;
@@ -197,7 +192,6 @@
     min-height: 0;
 }
 
-/* ── History Container ── */
 .history-container {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -242,7 +236,6 @@
     color: var(--ice);
 }
 
-/* ── Cases List ── */
 .cases-list {
     display: flex;
     flex-direction: column;
@@ -253,7 +246,6 @@
     min-height: 0;
 }
 
-/* ── Case Card ── */
 .case-card {
     background: var(--surface-2);
     border: 1px solid var(--border);
@@ -317,7 +309,6 @@
     gap: 1rem;
 }
 
-/* ── Status Badge ── */
 .status-badge {
     background: rgba(35, 37, 40, 0.60);
     border: 1px solid var(--border);
@@ -333,7 +324,6 @@
     justify-content: center;
 }
 
-/* ── Per-status badge text + border colors ── */
 .status-badge.investigating {
     color: var(--status-investigating);
     border-color: rgba(255, 209, 102, 0.30);
@@ -358,7 +348,6 @@
     background: rgba(255, 107, 107, 0.06);
 }
 
-/* ── Status Dots ── */
 .status-dot {
     width: 9px;
     height: 9px;
@@ -413,7 +402,6 @@
     letter-spacing: 0.2px;
 }
 
-/* ── More Button ── */
 .more-btn {
     background: rgba(92, 225, 230, 0.04);
     border: 1px solid var(--border);
@@ -434,7 +422,6 @@
     transform: scale(1.05);
 }
 
-/* ── Responsive ── */
 @media (max-width: 768px) {
 
     .history-header,
@@ -464,7 +451,6 @@
     }
 }
 
-/* ── Loading / Error / Empty ── */
 .history-loading-container,
 .history-error-container,
 .history-empty-container {

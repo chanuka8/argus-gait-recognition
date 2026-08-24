@@ -50,7 +50,7 @@ class RecognitionEvent(BaseModel):
     camera_id: str
     track_id: int = 1
     identity: str
-    decision: str  # KNOWN | UNCERTAIN | UNKNOWN
+    decision: str
     confidence: float
     quality: float = 0.85
     bbox: List[int] = Field(default_factory=lambda: [0, 0, 0, 0])
@@ -93,7 +93,6 @@ class CameraInfoResponse(BaseModel):
     last_frame_at: Optional[str] = None
     credential_id: Optional[str] = None
     credential_configured: Optional[bool] = False
-
 
 
 class CredentialCreateRequest(BaseModel):

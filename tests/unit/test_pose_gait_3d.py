@@ -31,7 +31,6 @@ class TestPoseGait3D(unittest.TestCase):
         self.assertEqual(normalized.shape, (2, 30, 17, 3))
         self.assertTrue(torch.all(torch.isfinite(normalized)))
 
-        # Backward pass gradient check
         loss = normalized.sum()
         loss.backward()
         self.assertIsNotNone(dummy_joints.grad)
@@ -39,7 +38,7 @@ class TestPoseGait3D(unittest.TestCase):
 
     def test_pose_lifter_forward_and_backward(self) -> None:
         lifter = PoseLifter3D()
-        dummy_2d = torch.randn(2, 30, 17, 3, requires_grad=True)  # x, y, conf
+        dummy_2d = torch.randn(2, 30, 17, 3, requires_grad=True)
         joints_3d = lifter(dummy_2d)
 
         self.assertEqual(joints_3d.shape, (2, 30, 17, 3))
@@ -57,11 +56,9 @@ class TestPoseGait3D(unittest.TestCase):
         self.assertEqual(emb.shape, (4, 256))
         self.assertTrue(torch.all(torch.isfinite(emb)))
 
-        # Verify L2 norm is 1.0
         norms = torch.norm(emb, p=2, dim=1)
         self.assertTrue(torch.allclose(norms, torch.ones_like(norms), atol=1e-5))
 
-        # Backward pass
         loss = emb.sum()
         loss.backward()
         self.assertIsNotNone(dummy_3d.grad)
@@ -73,7 +70,7 @@ class TestPoseGait3D(unittest.TestCase):
         for i in range(10):
             kpts = np.random.randn(17, 3).astype(np.float32)
             if i == 3:
-                kpts[0, 2] = 0.10  # Low confidence
+                kpts[0, 2] = 0.10
             else:
                 kpts[0, 2] = 0.90
             buffer.add_keypoints(track_id, kpts)
@@ -90,7 +87,6 @@ class TestPoseGait3D(unittest.TestCase):
         self.assertIsNone(emb)
 
     def test_gait_3d_step_invalid_checkpoint_graceful_fallback(self) -> None:
-        # Invalid weights path should fail gracefully and set enabled=False
         step = Gait3DStep(enabled=True, weights_path="invalid_path_to_ckpt.pth")
         self.assertFalse(step.enabled)
 
@@ -115,7 +111,6 @@ class TestPoseGait3D(unittest.TestCase):
         gal_paths = {g["path"] for g in gallery_items}
         prb_paths = {p["path"] for p in probe_items}
 
-        # Verify zero overlap between gallery and probe file paths
         self.assertEqual(len(gal_paths.intersection(prb_paths)), 0)
 
 

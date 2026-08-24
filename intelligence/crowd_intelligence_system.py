@@ -53,13 +53,11 @@ class CrowdIntelligenceSystem:
         self.enabled = bool(cfg.get("enabled", False))
         self.transition_model = transition_model
 
-        # Component configurations
         occ_cfg = cfg.get("occlusion", {})
         def_cfg = cfg.get("recognition_deferral", {})
         fus_cfg = cfg.get("multi_camera_fusion", {})
         top_cfg = cfg.get("topology_learning", {})
 
-        # Sub-engines
         self.occlusion_analyzer = CrowdOcclusionAnalyzer(occ_cfg)
         self.deferral_engine = RecognitionDeferralEngine(def_cfg)
         self.fusion_engine = MultiCameraEvidenceFusion(fus_cfg)
@@ -127,7 +125,6 @@ class CrowdIntelligenceSystem:
                 data = yaml.safe_load(f) or {}
                 ci_section = data.get("crowd_intelligence", {})
                 if isinstance(ci_section, dict):
-                    # Merge defaults recursively
                     for key, val in defaults.items():
                         if key not in ci_section:
                             ci_section[key] = val
@@ -175,7 +172,6 @@ class CrowdIntelligenceSystem:
         now = timestamp if timestamp is not None else time.monotonic()
         entity_key = global_track_id or f"{camera_id}_{track_id}"
 
-        # Baseline mode if overall crowd_intelligence is disabled
         if not self.enabled:
             is_confirmed = (open_set_state == "KNOWN" and similarity >= 0.85 and identity_candidate != "UNKNOWN")
             return CrowdIntelligenceEvaluation(
@@ -195,7 +191,6 @@ class CrowdIntelligenceSystem:
                 should_alert=is_confirmed,
             )
 
-        # Stage 2: Deferral & Accumulation
         def_res = self.deferral_engine.evaluate_and_accumulate(
             camera_id=camera_id,
             track_id=track_id,
@@ -211,7 +206,6 @@ class CrowdIntelligenceSystem:
             timestamp=now,
         )
 
-        # Stage 3: Multi-Camera Evidence Fusion
         if self.fusion_engine.is_enabled():
             self.fusion_engine.add_observation(
                 camera_id=camera_id,
@@ -239,7 +233,6 @@ class CrowdIntelligenceSystem:
                 "contributing_cameras": [camera_id],
             })()
 
-        # Stage 4: Topology Learning
         topology_accepted = False
         if self.topology_learner.is_enabled():
             self.topology_learner.record_camera_exit(

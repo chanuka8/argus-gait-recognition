@@ -21,7 +21,6 @@ import json
 from pathlib import Path
 import sys
 
-# Ensure repository root is on sys.path when executed directly
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
@@ -55,14 +54,12 @@ def run_deployment_smoke_test(
     }
 
     try:
-        # 1. Runtime Manifest Check
         manifest = get_runtime_manifest()
         m_val = manifest.validate_runtime_assets()
         report["checks"]["runtime_manifest"] = "PASSED" if m_val["valid"] else "FAILED"
         if not m_val["valid"]:
             report["defects"].append(f"Missing runtime manifest assets: {m_val['missing']}")
 
-        # 2. Startup Health Validation Check
         validator = DeploymentStartupValidator()
         s_res = validator.validate_startup(raise_on_failure=False)
         report["checks"]["startup_validator"] = "PASSED" if s_res["success"] else "FAILED"
@@ -70,7 +67,6 @@ def run_deployment_smoke_test(
             for defect in s_res["blocking_issues"]:
                 report["defects"].append(f"Startup validator issue: {defect}")
 
-        # 3. Backend Initialization & Metadata
         backend = s_res.get("backend")
         if backend is None:
             report["checks"]["backend_initialization"] = "FAILED"
@@ -80,14 +76,12 @@ def run_deployment_smoke_test(
             b_meta = getattr(backend, "metadata", {})
             report["checks"]["backend_metadata"] = "PASSED" if b_meta else "WARNING"
 
-            # Emits backend summary once
             summary_obj = BackendStartupSummary(
                 backend=backend,
                 startup_status=s_res.get("status", "READY_FOR_CONTROLLED_GAIT_RECOGNITION_TESTING"),
             )
             summary_obj.emit(print_cli=True)
 
-        # 4. Synthetic Inference & Embedding Normalization Test
         if backend is not None:
             try:
                 dummy_gei = np.zeros((1, 1, 128, 64), dtype=np.float32)
@@ -109,24 +103,20 @@ def run_deployment_smoke_test(
                 report["checks"]["synthetic_inference"] = "FAILED"
                 report["defects"].append(f"Synthetic inference exception: {e}")
 
-        # 5. Gallery Validation Check
         g_valid, g_err, g_count = validate_gallery_files(gallery_dir=Path("models/gallery"), expected_dim=256)
         report["checks"]["gallery_validation"] = "PASSED" if g_valid or "files missing" in (g_err or "").lower() else "FAILED"
         if not g_valid and "files missing" not in (g_err or "").lower():
             report["defects"].append(f"Gallery validation defect: {g_err}")
 
-        # 6. Extract Build Metadata
         build_meta = extract_build_metadata(backend=backend)
         report["build_metadata"] = build_meta.to_dict()
 
-        # 7. Graceful Shutdown Verification
         sm = ShutdownManager()
         sd_ok = sm.shutdown()
         report["checks"]["graceful_shutdown"] = "PASSED" if sd_ok else "FAILED"
         if not sd_ok:
             report["defects"].append("Shutdown manager returned failure during smoke test")
 
-        # Determine Final Outcome & Exit Code
         if len(report["defects"]) == 0:
             report["status"] = "PASSED"
             report["exit_code"] = 0
@@ -142,7 +132,6 @@ def run_deployment_smoke_test(
         report["defects"].append(f"Unhandled smoke test exception: {e}")
         exit_code = 2
 
-    # Write Smoke Test Report Artifacts
     try:
         out_p = Path(output_dir)
         out_p.mkdir(parents=True, exist_ok=True)

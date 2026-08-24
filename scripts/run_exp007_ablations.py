@@ -35,7 +35,6 @@ def evaluate_on_val(model_path: str, sequence_length: int = 30) -> float:
     split_manifest = load_or_create_subject_split("configs/subject_split.json", "data/casia_processed/gei")
     val_subs = split_manifest["val_subjects"]
 
-    # Build gallery (NM-01..02) and probe (NM-03..06, BG, CL) for VAL subjects
     gal_items, prb_items = evaluator._build_gallery_and_probes(val_subs)
     if not gal_items or not prb_items:
         return 0.0
@@ -79,7 +78,6 @@ def main():
     base_dir = Path("runs/exp_007_ablations")
     base_dir.mkdir(parents=True, exist_ok=True)
 
-    # Matrix of candidate configurations for VAL optimization
     configs = [
         {"name": "exp007_tcn_seq30", "encoder": "tcn", "seq_len": 30, "s": 30.0, "m": 0.50, "triplet_w": 0.25},
         {"name": "exp007_stgcn_seq30", "encoder": "stgcn", "seq_len": 30, "s": 30.0, "m": 0.50, "triplet_w": 0.25},
@@ -115,7 +113,6 @@ def main():
         train_res = trainer.train()
         ckpt_path = str(run_dir / "best_model.pth")
 
-        # Evaluate on VAL only
         val_rank1 = evaluate_on_val(ckpt_path, sequence_length=cfg["seq_len"])
         print(f"[{cfg['name']}] VAL Rank-1 Accuracy: {val_rank1*100:.2f}% (Val Training Acc: {train_res['best_val_acc']*100:.2f}%)")
 
@@ -137,7 +134,6 @@ def main():
     print(f"  VAL Rank-1 Accuracy: {best_val_score*100:.2f}%")
     print("=======================================================\n")
 
-    # Promote winning checkpoint to models/candidates/
     cand_dir = Path("models/candidates")
     cand_dir.mkdir(parents=True, exist_ok=True)
     promoted_path = cand_dir / "gait_3d_exp007_best.pth"
@@ -146,7 +142,6 @@ def main():
     torch.save(best_ckpt, promoted_path)
     print(f"Promoted winning checkpoint to: {promoted_path}")
 
-    # Evaluate BEST Candidate ONCE on TEST Set (075-124)
     print("\nStarting Final TEST Evaluation of Promoted Candidate (075-124)...")
     evaluator = Evaluator3D(
         model_path=str(promoted_path),
@@ -156,14 +151,12 @@ def main():
     )
     test_eval_3d = evaluator.evaluate(output_dir=str(base_dir / "best_test_eval"))
 
-    # Evaluate 2D Baseline for direct comparison
     test_eval_2d = evaluate_checkpoint(
         model_path="runs/exp_003e_hpp_arcface_triplet025/best_model.pth",
         output_dir=str(base_dir / "eval_2d_baseline"),
         margin_threshold=0.05,
     )
 
-    # Save summary report
     summary = {
         "experiment": "EXP-007 3D Pose Gait Ablation and Optimization Study",
         "best_config": best_config,

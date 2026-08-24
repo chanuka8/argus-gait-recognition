@@ -86,7 +86,6 @@ class CameraStream:
                 try:
                     self.queue.put_nowait(frame)
                 except Full:
-                    # Drop oldest frame and push new one
                     try:
                         self.queue.get_nowait()
                     except Empty:

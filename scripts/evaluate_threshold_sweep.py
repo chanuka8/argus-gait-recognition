@@ -81,7 +81,6 @@ class SweepEvaluator(SplitEvaluator):
         if tested == 0:
             return {}
 
-        # 1. Prepare gallery once
         gallery_features_act, gallery_labels_act = self.matcher._prepare_gallery(
             gallery_features,
             gallery_labels,
@@ -91,7 +90,6 @@ class SweepEvaluator(SplitEvaluator):
         if gallery_features_act is None or gallery_labels_act is None:
             return {}
 
-        # 2. Extract and L2-normalize all queries in batch
         query_features = np.asarray(
             [self._image_to_embedding(item[0]) for item in test_items],
             dtype=np.float32,
@@ -99,14 +97,11 @@ class SweepEvaluator(SplitEvaluator):
         norms = np.linalg.norm(query_features, axis=1, keepdims=True)
         query_features = query_features / (norms + 1e-8)
 
-        # Normalize active gallery features
         gallery_norms = np.linalg.norm(gallery_features_act, axis=1, keepdims=True)
         gallery_features_act_norm = gallery_features_act / (gallery_norms + 1e-8)
 
-        # 3. Batch matrix dot product
         scores = np.dot(query_features, gallery_features_act_norm.T)
 
-        # 4. Compute metrics
         rank1 = 0
         rank5 = 0
         rank10 = 0
@@ -122,7 +117,6 @@ class SweepEvaluator(SplitEvaluator):
             t_start = time.perf_counter()
 
             query_scores = scores[idx]
-            # Get indices sorted by score descending
             top10_idx = np.argsort(query_scores)[::-1][:10]
 
             top10 = [

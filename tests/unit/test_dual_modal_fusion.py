@@ -20,7 +20,6 @@ def test_dual_modal_fusion_defaults_and_config():
 def test_dual_modal_fusion_scoring_math():
     fusion = DualModalFusion(default_gait_weight=0.70, default_reid_weight=0.30, enabled=True)
 
-    # Both scores present
     res = fusion.fuse(gait_score=0.80, reid_score=0.60)
     assert "final_score" in res
     assert "fusion_weight_gait" in res
@@ -32,7 +31,6 @@ def test_dual_modal_fusion_scoring_math():
 def test_dual_modal_fusion_fallback_gait_only():
     fusion = DualModalFusion(default_gait_weight=0.70, default_reid_weight=0.30, enabled=True)
 
-    # Appearance score missing (None)
     res = fusion.fuse(gait_score=0.88, reid_score=None)
     assert res["final_score"] == pytest.approx(0.88)
     assert res["fusion_weight_gait"] == 1.0
@@ -42,7 +40,6 @@ def test_dual_modal_fusion_fallback_gait_only():
 def test_dual_modal_fusion_adaptive_quality():
     fusion = DualModalFusion(default_gait_weight=0.70, default_reid_weight=0.30, enabled=True)
 
-    # Heavy crowd & high occlusion should increase appearance weight relative to clean
     res_clean = fusion.fuse(
         gait_score=0.80,
         reid_score=0.80,

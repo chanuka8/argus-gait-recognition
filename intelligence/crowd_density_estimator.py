@@ -114,14 +114,12 @@ class CrowdDensityEstimator:
         frame_h, frame_w = frame_shape[:2]
         frame_area = float(max(1, frame_h * frame_w))
 
-        # Extract bboxes
         bboxes = [d["bbox"] for d in detections if "bbox" in d]
         total_bbox_area = sum(
             float(max(0, b[2] - b[0]) * max(0, b[3] - b[1])) for b in bboxes
         )
         total_area_ratio = float(total_bbox_area / frame_area)
 
-        # Pairwise overlap analysis
         total_iou = 0.0
         pair_count = 0
         strongly_overlapping_count = 0
@@ -137,7 +135,6 @@ class CrowdDensityEstimator:
 
         avg_pairwise_overlap = float(total_iou / pair_count) if pair_count > 0 else 0.0
 
-        # Classification logic
         if (
             person_count >= self.severe_count
             or strongly_overlapping_count >= self.severe_overlap_count

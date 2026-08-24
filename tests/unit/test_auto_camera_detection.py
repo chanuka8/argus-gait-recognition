@@ -20,20 +20,13 @@ def _dummy_frame(w: int = 640, h: int = 480):
     return frame
 
 
-# ==============================================================================
-# TEST 01: Camera Card Initially Loads (Standby State)
-# ==============================================================================
 def test_01_camera_standby_initial_state_source_hidden():
     """Verify camera in standby before start stream does NOT have active source_type."""
     service = GaitService()
-    # Before stream starts, camera is not in active_cameras
     cam_info = service.get_camera_info("UNSTARTED_CAM")
-    assert cam_info is None  # Source type remains null / unknown
+    assert cam_info is None
 
 
-# ==============================================================================
-# TEST 02: Click Start Stream for a Webcam
-# ==============================================================================
 def test_02_start_stream_webcam_success():
     """Verify Start Stream for webcam connects, captures frames, and exposes source_type='webcam'."""
     service = GaitService()
@@ -52,9 +45,6 @@ def test_02_start_stream_webcam_success():
         service.stop_camera("CAM-WC-01")
 
 
-# ==============================================================================
-# TEST 03: Click Start Stream for RTSP
-# ==============================================================================
 def test_03_start_stream_rtsp_success():
     """Verify Start Stream for RTSP connects, captures frames, and exposes source_type='rtsp'."""
     service = GaitService()
@@ -76,9 +66,6 @@ def test_03_start_stream_rtsp_success():
         service.stop_camera("CAM-RTSP-01")
 
 
-# ==============================================================================
-# TEST 04: Webcam Connection Fails
-# ==============================================================================
 def test_04_webcam_connection_failure():
     """Verify webcam failure hides source, releases lock, and returns descriptive error."""
     service = GaitService()
@@ -101,13 +88,9 @@ def test_04_webcam_connection_failure():
             service.start_camera(camera_id="CAM-WC-FAIL", source="auto")
         assert "Unable to establish stream connection" in str(exc.value)
 
-        # Ensure camera is not active and source is not reserved
         assert "CAM-WC-FAIL" not in service.active_cameras
 
 
-# ==============================================================================
-# TEST 05: RTSP Connection Fails
-# ==============================================================================
 def test_05_rtsp_connection_failure():
     """Verify unreachable RTSP stream failure hides source and raises descriptive error."""
     service = GaitService()
@@ -134,9 +117,6 @@ def test_05_rtsp_connection_failure():
         assert "CAM-RTSP-FAIL" not in service.active_cameras
 
 
-# ==============================================================================
-# TEST 06: Connected Camera is Stopped
-# ==============================================================================
 def test_06_stop_stream_hides_source():
     """Verify stopping an active camera releases worker and removes active stream source."""
     service = GaitService()
@@ -151,13 +131,9 @@ def test_06_stop_stream_hides_source():
         assert service.get_camera_info("CAM-STOP-01")["status"] == "ACTIVE"
 
         service.stop_camera("CAM-STOP-01")
-        # After stopping, camera is no longer active
         assert service.get_camera_info("CAM-STOP-01") is None
 
 
-# ==============================================================================
-# TEST 07: Unexpected Disconnect Reconnect Mechanism
-# ==============================================================================
 def test_07_unexpected_disconnect_recovery():
     """Verify camera worker watchdog initiates reconnect on stream drop."""
     mock_cap = MagicMock()
@@ -183,9 +159,6 @@ def test_07_unexpected_disconnect_recovery():
         worker.stop(timeout=1.0)
 
 
-# ==============================================================================
-# TEST 08: Start Stream Again After Disconnect
-# ==============================================================================
 def test_08_reconnect_detects_runtime_source_again():
     """Verify restarting a previously stopped camera re-detects and confirms active source."""
     service = GaitService()
@@ -196,21 +169,16 @@ def test_08_reconnect_detects_runtime_source_again():
     with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap), \
          patch.object(service.source_resolver, "probe_usb_webcam", return_value=True):
 
-        # First run
         info1 = service.start_camera(camera_id="CAM-RESTART", source="auto")
         assert info1["source_type"] == "webcam"
         service.stop_camera("CAM-RESTART")
 
-        # Second run: re-connects cleanly
         info2 = service.start_camera(camera_id="CAM-RESTART", source="auto")
         assert info2["source_type"] == "webcam"
         assert info2["status"] == "ACTIVE"
         service.stop_camera("CAM-RESTART")
 
 
-# ==============================================================================
-# TEST 09: Multiple Cameras Independent Active Sources
-# ==============================================================================
 def test_09_multiple_cameras_independent_sources():
     """Verify multiple camera cards show their own source independently upon start."""
     service = GaitService()
@@ -232,9 +200,6 @@ def test_09_multiple_cameras_independent_sources():
         service.stop_camera("CAM-MULTI-2")
 
 
-# ==============================================================================
-# TEST 10: FastAPI Endpoint & Schema Validation
-# ==============================================================================
 def test_10_api_start_stream_endpoint_contract():
     """Verify FastAPI /api/v1/cameras/start returns valid CameraInfoResponse with runtime source."""
     from fastapi.testclient import TestClient
@@ -262,7 +227,6 @@ def test_10_api_start_stream_endpoint_contract():
             assert data["status"] == "ACTIVE"
             assert data["source_type"] == "webcam"
 
-            # Stop camera
             stop_res = client.post(
                 "/api/v1/cameras/stop",
                 json={"camera_id": "API-TEST-CAM"},

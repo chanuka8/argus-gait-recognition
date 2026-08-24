@@ -1,5 +1,3 @@
-/* eslint-disable react-refresh/only-export-components */
-// Provides Firebase-backed authentication, session management, and role-based login/logout logic for ARGUS operators.
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { db } from '../firebaseConfig';

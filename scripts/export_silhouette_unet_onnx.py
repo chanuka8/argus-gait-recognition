@@ -1,13 +1,11 @@
 import sys
 from pathlib import Path
 
-# Fix Windows console UTF-8 printing
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 if hasattr(sys.stderr, "reconfigure"):
     sys.stderr.reconfigure(encoding="utf-8")
 
-# Ensure repository root is on sys.path
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -56,7 +54,6 @@ def export_and_validate_onnx(
             dynamo=False,
         )
     except TypeError:
-        # If dynamo param is not supported in this torch version
         torch.onnx.export(
             model,
             dummy_input,
@@ -71,12 +68,10 @@ def export_and_validate_onnx(
 
     print(f"[SUCCESS] ONNX model exported to: {onnx_file}")
 
-    # Copy to engines path
     with open(onnx_file, "rb") as f_in, open(engine_file, "wb") as f_out:
         f_out.write(f_in.read())
     print(f"[SUCCESS] Mirrored ONNX asset to: {engine_file}")
 
-    # Validate ONNX Runtime inference vs PyTorch
     session = ort.InferenceSession(str(onnx_file), providers=["CPUExecutionProvider"])
     in_name = session.get_inputs()[0].name
     out_name = session.get_outputs()[0].name

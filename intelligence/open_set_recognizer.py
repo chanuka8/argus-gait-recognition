@@ -89,7 +89,6 @@ class OpenSetRecognizer:
                 details={"reason": "Identity labeled UNKNOWN or non-positive score"},
             )
 
-        # Check for quality failure
         if quality_score < self.quality_threshold:
             return OpenSetDecisionResult(
                 state=OpenSetState.UNCERTAIN,
@@ -99,14 +98,12 @@ class OpenSetRecognizer:
                 details={"reason": "GEI quality below threshold", "quality_score": quality_score},
             )
 
-        # Calculate candidate margin (top-1 score minus top-2 score)
         margin = 1.0
         if len(top_matches) > 1:
             margin = top_score - float(top_matches[1][1])
             if not (isinstance(margin, (int, float)) and margin >= 0.0):
                 margin = 0.0
 
-        # 1. Definite UNKNOWN: Score below unknown_threshold
         if top_score < self.unknown_threshold:
             return OpenSetDecisionResult(
                 state=OpenSetState.UNKNOWN,
@@ -116,7 +113,6 @@ class OpenSetRecognizer:
                 details={"reason": "Score below unknown_threshold", "margin": margin},
             )
 
-        # 2. Definite KNOWN: High score and sufficient margin
         if top_score >= self.known_threshold:
             if margin < self.margin_threshold:
                 return OpenSetDecisionResult(
@@ -144,7 +140,6 @@ class OpenSetRecognizer:
                 details={"reason": "Confirmed match", "margin": margin},
             )
 
-        # 3. UNCERTAIN: Score in gray zone between unknown_threshold and known_threshold
         return OpenSetDecisionResult(
             state=OpenSetState.UNCERTAIN,
             identity=top_id,

@@ -30,7 +30,6 @@ def test_disabled_mode_preserves_old_output():
 def test_insufficient_evidence_defers():
     engine = RecognitionDeferralEngine({"enabled": True, "minimum_confirmations": 3})
 
-    # Only 1 observation -> should defer
     res = engine.evaluate_and_accumulate(
         camera_id="cam_01",
         track_id=1,
@@ -44,7 +43,7 @@ def test_insufficient_evidence_defers():
     )
     assert res.recognition_state == RecognitionState.DEFERRED_INSUFFICIENT_EVIDENCE
     assert res.recognition_deferred is True
-    assert res.should_alert is False  # No alert when deferred!
+    assert res.should_alert is False
     assert "Confirmations count" in res.defer_reason
 
 
@@ -109,11 +108,9 @@ def test_uncertain_remains_deferred():
 def test_ttl_expiry_and_cleanup():
     engine = RecognitionDeferralEngine({"enabled": True, "evidence_ttl_seconds": 5.0, "minimum_confirmations": 3})
 
-    # Add 2 observations at timestamp 1.0
     engine.evaluate_and_accumulate("cam_01", 1, "Person_A", 0.90, 0.80, "KNOWN", "MAJORITY_VOTE", 0.85, 0.10, timestamp=1.0)
     engine.evaluate_and_accumulate("cam_01", 1, "Person_A", 0.90, 0.80, "KNOWN", "MAJORITY_VOTE", 0.85, 0.10, timestamp=2.0)
 
-    # Next observation at timestamp 10.0 (> 5s later) -> previous 2 observations expired
     res = engine.evaluate_and_accumulate("cam_01", 1, "Person_A", 0.90, 0.80, "KNOWN", "MAJORITY_VOTE", 0.85, 0.10, timestamp=10.0)
     assert res.recognition_state == RecognitionState.DEFERRED_INSUFFICIENT_EVIDENCE
     assert res.accumulated_evidence_count == 1

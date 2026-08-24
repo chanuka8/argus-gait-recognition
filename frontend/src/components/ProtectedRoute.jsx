@@ -1,4 +1,3 @@
-// Guards routes by verifying session role and live Firestore account status, redirecting unauthorized or suspended users.
 import React, { useEffect } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';

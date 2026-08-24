@@ -10,12 +10,10 @@ const LogViewer = () => {
     const [selectedLevel, setSelectedLevel] = useState('all');
     const [selectedLog, setSelectedLog] = useState(null);
 
-    // Load logs from the centralized service
     const refreshLogs = useCallback(() => {
         setLogs(getLogs());
     }, []);
 
-    // Listen for real-time log events from other components
     useEffect(() => {
         const handleLogUpdate = () => {
             refreshLogs();
@@ -137,7 +135,6 @@ const LogViewer = () => {
                 </div>
             </main>
 
-            {/* Log Detail Modal */}
             {selectedLog && (
                 <div className="log-detail-overlay" onClick={() => setSelectedLog(null)}>
                     <div className="log-detail-modal" onClick={(e) => e.stopPropagation()}>

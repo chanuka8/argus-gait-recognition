@@ -33,7 +33,6 @@ def main() -> None:
     print("      ARGUS SUBJECT-DISJOINT EVALUATION PIPELINE       ")
     print("=======================================================")
 
-    # 1. Load Subject Split Manifest
     split_manifest = load_or_create_subject_split(config_path=args.split_config, data_dir=args.gei_root)
     train_subs = split_manifest["train_subjects"]
     val_subs = split_manifest["val_subjects"]
@@ -44,7 +43,6 @@ def main() -> None:
     print(f"  - Val Subjects   ({len(val_subs)}): {val_subs[0]} .. {val_subs[-1]}")
     print(f"  - Test Subjects  ({len(test_subs)}): {test_subs[0]} .. {test_subs[-1]}")
 
-    # 2. Threshold Calibration on Validation Set ONLY
     print(f"\n[2/6] Calibrating Operating Threshold on Validation Set ({len(val_subs)} subjects)...")
     evaluator_base = SubjectDisjointEvaluator(
         gei_root=args.gei_root,
@@ -67,10 +65,8 @@ def main() -> None:
     print(f"  -> Calibration Criterion: {args.calibration_criterion}")
     print(f"  -> Selected Operating Threshold: {calibrated_threshold}")
 
-    # Assert no test subjects were used in calibration
     assert_no_test_threshold_calibration(val_subs, test_subs)
 
-    # 3. Closed-Set Identification on Test Set
     print(f"\n[3/6] Running Subject-Disjoint Closed-Set Evaluation on Test Set ({len(test_subs)} subjects)...")
     evaluator = SubjectDisjointEvaluator(
         gei_root=args.gei_root,
@@ -85,7 +81,6 @@ def main() -> None:
     print(f"  -> Rank-5 Accuracy:  {closed_set_res['rank5_accuracy']*100:.2f}%")
     print(f"  -> Rank-10 Accuracy: {closed_set_res['rank10_accuracy']*100:.2f}%")
 
-    # 4. Cross-View Matrix Evaluation
     print("\n[4/6] Running 11 x 11 Cross-View Matrix Evaluation...")
     cv_evaluator = SubjectDisjointCrossViewEvaluator(
         gei_root=args.gei_root,
@@ -99,7 +94,6 @@ def main() -> None:
     print(f"  -> Same-View Avg:                  {cv_res['same_view_average_rank1']*100:.2f}%")
     print(f"  -> Overall Matrix Avg:            {cv_res['overall_average_rank1']*100:.2f}%")
 
-    # 5. Open-Set Unknown Rejection Evaluation
     print("\n[5/6] Running Open-Set Evaluation (Known 075-099 vs Unknown 100-124)...")
     open_set_evaluator = SubjectDisjointOpenSetEvaluator(
         gei_root=args.gei_root,
@@ -115,7 +109,6 @@ def main() -> None:
     print(f"  -> FAR at threshold:       {open_set_res['operating_metrics']['FAR']*100:.2f}%")
     print(f"  -> FRR at threshold:       {open_set_res['operating_metrics']['FRR']*100:.2f}%")
 
-    # 6. CPU Inference Speed Benchmark
     print("\n[6/6] Running Inference Speed Benchmark...")
     test_sample = list(Path(args.gei_root).glob("*/*.png"))[0]
     latencies = []

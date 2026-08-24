@@ -36,7 +36,6 @@ def test_ordered_event_accumulation_and_deduplication(timeline_config: dict):
     reconstructor.record_event("TRACK_CREATED", camera_id="cam_1", local_track_id=10)
     reconstructor.record_event("IDENTITY_CANDIDATE", camera_id="cam_1", local_track_id=10, identity_id="P001")
 
-    # Duplicate call should be suppressed
     dup = reconstructor.record_event("IDENTITY_CANDIDATE", camera_id="cam_1", local_track_id=10, identity_id="P001")
     assert dup is None
 
@@ -77,7 +76,6 @@ def test_maximum_event_bound(timeline_config: dict):
         reconstructor.record_event(f"EVENT_{i}", camera_id="cam_1", local_track_id=30)
 
     events = reconstructor.get_timeline("track_cam_1_30")
-    # Bound is set to 5 in fixture
     assert len(events) == 5
     assert events[-1].event_type == "EVENT_9"
 

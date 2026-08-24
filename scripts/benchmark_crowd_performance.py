@@ -22,7 +22,6 @@ def run_performance_benchmark(num_frames: int = 200, num_tracks_per_frame: int =
 
     latencies_ms = []
 
-    # Generate synthetic crowded frame detections
     rng = np.random.RandomState(42)
 
     for f in range(num_frames):
@@ -40,10 +39,8 @@ def run_performance_benchmark(num_frames: int = 200, num_tracks_per_frame: int =
 
         t0 = time.perf_counter()
 
-        # Stage 1: Frame process
         frame_analysis = system.process_frame(detections, (1080, 1920), "cam_01", timestamp=float(f))
 
-        # Stage 2-4: Per track evaluation
         for det in detections:
             tid = det["track_id"]
             occ = frame_analysis.track_occlusions.get(("cam_01", tid), 0.1)
@@ -79,7 +76,7 @@ def run_performance_benchmark(num_frames: int = 200, num_tracks_per_frame: int =
         "mean_overhead_ms": round(mean_ms, 3),
         "median_overhead_ms": round(median_ms, 3),
         "p95_overhead_ms": round(p95_ms, 3),
-        "memory_growth_bytes": 0,  # bounded memory allocations
+        "memory_growth_bytes": 0,
     }
     return results
 

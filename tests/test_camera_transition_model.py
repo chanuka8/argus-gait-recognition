@@ -9,7 +9,6 @@ from intelligence.camera_transition_model import CameraTransitionModel
 from intelligence.cross_camera_tracker import CrossCameraTracker
 
 
-
 class MockClock:
     """Injectable deterministic clock for unit testing."""
 
@@ -60,7 +59,7 @@ class TestCameraTransitionModel(unittest.TestCase):
         tracker = CrossCameraTracker(transition_model=model, time_provider=self.clock.now)
 
         gid1 = tracker.get_or_create_global_id("cam_a", local_track_id=1, identity="person_alpha")
-        self.clock.advance(15.0)  # 15 seconds travel time (valid: min=5, max=30)
+        self.clock.advance(15.0)
 
         gid2 = tracker.get_or_create_global_id("cam_b", local_track_id=10, identity="person_alpha")
         self.assertEqual(gid1, gid2)
@@ -80,7 +79,6 @@ class TestCameraTransitionModel(unittest.TestCase):
         self.clock.advance(15.0)
 
         gid2 = tracker.get_or_create_global_id("cam_c", local_track_id=5, identity=None)
-        # Without identity match and with topology rejecting A -> C, a new global ID must be assigned
         self.assertNotEqual(gid1, gid2)
 
     def test_too_early_arrival(self) -> None:
@@ -89,7 +87,7 @@ class TestCameraTransitionModel(unittest.TestCase):
         tracker = CrossCameraTracker(transition_model=model, time_provider=self.clock.now)
 
         gid1 = tracker.get_or_create_global_id("cam_a", local_track_id=1, identity=None)
-        self.clock.advance(3.0)  # min travel is 5.0s
+        self.clock.advance(3.0)
 
         gid2 = tracker.get_or_create_global_id("cam_b", local_track_id=2, identity=None)
         self.assertNotEqual(gid1, gid2)
@@ -100,14 +98,13 @@ class TestCameraTransitionModel(unittest.TestCase):
         tracker = CrossCameraTracker(transition_model=model, time_provider=self.clock.now)
 
         gid1 = tracker.get_or_create_global_id("cam_a", local_track_id=1, identity=None)
-        self.clock.advance(35.0)  # max travel is 30.0s
+        self.clock.advance(35.0)
 
         gid2 = tracker.get_or_create_global_id("cam_b", local_track_id=2, identity=None)
         self.assertNotEqual(gid1, gid2)
 
     def test_exact_minimum_and_maximum_boundaries(self) -> None:
         """Exact min_travel_seconds (5.0s) and max_travel_seconds (30.0s) must be accepted."""
-        # Boundary 1: Exact Min
         clock1 = MockClock(1000.0)
         model1 = CameraTransitionModel(config=self.sample_config, time_provider=clock1.now)
         tracker1 = CrossCameraTracker(transition_model=model1, time_provider=clock1.now)
@@ -117,7 +114,6 @@ class TestCameraTransitionModel(unittest.TestCase):
         gid2 = tracker1.get_or_create_global_id("cam_b", local_track_id=2, identity="subj_min")
         self.assertEqual(gid1, gid2)
 
-        # Boundary 2: Exact Max
         clock2 = MockClock(1000.0)
         model2 = CameraTransitionModel(config=self.sample_config, time_provider=clock2.now)
         tracker2 = CrossCameraTracker(transition_model=model2, time_provider=clock2.now)
@@ -136,25 +132,24 @@ class TestCameraTransitionModel(unittest.TestCase):
         gid1 = tracker.get_or_create_global_id("cam_x", local_track_id=1, identity="person_beta")
         self.clock.advance(10.0)
         gid2 = tracker.get_or_create_global_id("cam_y", local_track_id=1, identity="person_beta")
-        self.assertEqual(gid1, gid2)  # Legacy identity fallback works
+        self.assertEqual(gid1, gid2)
 
     def test_invalid_configuration_handling(self) -> None:
         """Configuration with invalid rules must fail safely with warnings."""
         invalid_config = {
             "camera_transitions": {
-                "": {"cam_b": {"min_travel_seconds": 5}},  # Empty src
+                "": {"cam_b": {"min_travel_seconds": 5}},
                 "cam_a": {
-                    "": {"min_travel_seconds": 5},  # Empty dest
-                    "cam_b": {"min_travel_seconds": -5},  # Negative min
-                    "cam_c": {"min_travel_seconds": 20, "max_travel_seconds": 10},  # max < min
-                    "cam_d": {"min_travel_seconds": 5, "max_travel_seconds": 20, "probability": 1.5},  # prob > 1
-                    "cam_e": {"min_travel_seconds": 5, "max_travel_seconds": 20, "probability": 0.8},  # Valid!
+                    "": {"min_travel_seconds": 5},
+                    "cam_b": {"min_travel_seconds": -5},
+                    "cam_c": {"min_travel_seconds": 20, "max_travel_seconds": 10},
+                    "cam_d": {"min_travel_seconds": 5, "max_travel_seconds": 20, "probability": 1.5},
+                    "cam_e": {"min_travel_seconds": 5, "max_travel_seconds": 20, "probability": 0.8},
                 },
             }
         }
         model = CameraTransitionModel(config=invalid_config, time_provider=self.clock.now)
         self.assertTrue(model.is_enabled())
-        # Only cam_a -> cam_e rule should be stored
         with model._lock:
             self.assertIn("cam_a", model._topology)
             self.assertIn("cam_e", model._topology["cam_a"])
@@ -172,7 +167,6 @@ class TestCameraTransitionModel(unittest.TestCase):
         gid2 = tracker.get_or_create_global_id("cam_b", local_track_id=42, identity="subject_1")
 
         self.assertEqual(gid1, gid2)
-        # Checking local to global map separation
         self.assertIn(("cam_a", 42), tracker._local_to_global)
         self.assertIn(("cam_b", 42), tracker._local_to_global)
 
@@ -180,7 +174,6 @@ class TestCameraTransitionModel(unittest.TestCase):
         """Resolve candidate ties deterministically."""
         model = CameraTransitionModel(config=self.sample_config, time_provider=self.clock.now)
 
-        # Record two exit candidates on cam_a at different timestamps
         emb = np.ones((128,), dtype=np.float32)
 
         model.record_exit(
@@ -200,10 +193,6 @@ class TestCameraTransitionModel(unittest.TestCase):
             timestamp=1005.0,
         )
 
-        # Query candidate at timestamp 1020.0 (delta_t1=20s, delta_t2=15s)
-        # Midpoint of [5, 30] is 17.5s.
-        # delta_t2=15s is closer to 17.5s than delta_t1=20s (|15-17.5|=2.5 vs |20-17.5|=2.5 -> tied dist_from_mid!).
-        # Tie broken by exit timestamp (1000.0 vs 1005.0)
         res = model.find_best_transition_candidate(
             dest_camera_id="cam_b",
             dest_local_track_id=99,
@@ -220,7 +209,7 @@ class TestCameraTransitionModel(unittest.TestCase):
         model = CameraTransitionModel(config=self.sample_config, time_provider=self.clock.now)
         model.record_exit("cam_a", local_track_id=1, global_id="GTRACK-OLD", timestamp=1000.0)
 
-        self.clock.advance(350.0)  # Max history is 300.0s
+        self.clock.advance(350.0)
         cleaned = model.cleanup_stale_exits()
         self.assertEqual(cleaned, 1)
         self.assertEqual(len(model._exits), 0)
@@ -231,11 +220,10 @@ class TestCameraTransitionModel(unittest.TestCase):
         tracker = CrossCameraTracker(transition_model=model, time_provider=self.clock.now)
 
         gid1 = tracker.get_or_create_global_id("cam_a", local_track_id=1, identity="user_x")
-        self.clock.advance(400.0)  # Exceeds max history and track age
+        self.clock.advance(400.0)
 
         tracker.cleanup_stale_tracks(max_age_seconds=300.0)
 
-        # New track on cam_a reusing local_track_id=1
         gid2 = tracker.get_or_create_global_id("cam_a", local_track_id=1, identity="user_y")
         self.assertNotEqual(gid1, gid2)
 
@@ -290,7 +278,6 @@ class TestMultiCameraPipelineTransitionIntegration(unittest.TestCase):
         self.assertIsNotNone(pipeline.transition_model)
         self.assertIsNotNone(pipeline.cross_camera_tracker)
 
-        # Configure transition topology on the live pipeline
         topology_config = {
             "camera_transitions": {
                 "camera_01": {
@@ -306,7 +293,6 @@ class TestMultiCameraPipelineTransitionIntegration(unittest.TestCase):
         pipeline.transition_model.load_config(topology_config)
         self.assertTrue(pipeline.transition_model.is_enabled())
 
-        # Simulate track on camera_01
         worker1 = pipeline.workers.get("camera_01")
         cam1_id = worker1.camera_id if worker1 else "camera_01"
 
@@ -316,14 +302,12 @@ class TestMultiCameraPipelineTransitionIntegration(unittest.TestCase):
             identity="subject_alpha",
         )
 
-        # Simulate track exit from camera_01
         pipeline.cross_camera_tracker.record_track_exit(
             camera_id=cam1_id,
             local_track_id=100,
             identity="subject_alpha",
         )
 
-        # Simulate track entry on camera_02 after 5 seconds
         cam2_id = "camera_02"
 
         gid2 = pipeline.cross_camera_tracker.get_or_create_global_id(
@@ -332,7 +316,6 @@ class TestMultiCameraPipelineTransitionIntegration(unittest.TestCase):
             identity="subject_alpha",
         )
 
-        # Verify global track continuity via transition model
         self.assertEqual(gid1, gid2)
 
 

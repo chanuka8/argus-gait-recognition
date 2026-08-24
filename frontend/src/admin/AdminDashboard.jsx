@@ -7,7 +7,6 @@ import { db } from '../firebaseConfig';
 import { collection, getDocs } from 'firebase/firestore';
 import './AdminDashboard.css';
 
-// Helper to convert log timestamp to relative time
 const formatTimeAgo = (timestamp) => {
     const now = new Date();
     const logTime = new Date(timestamp.replace(' ', 'T'));
@@ -25,7 +24,6 @@ const formatTimeAgo = (timestamp) => {
 const AdminDashboard = () => {
     const navigate = useNavigate();
 
-    // Pull recent logs from centralized log service
     const [recentLogs, setRecentLogs] = useState([]);
 
     const refreshDashboardLogs = useCallback(() => {
@@ -50,16 +48,13 @@ const AdminDashboard = () => {
         return () => window.removeEventListener('argus-log-update', handleLogUpdate);
     }, [refreshDashboardLogs]);
 
-    // Fetch cases from Firebase
     const [cases, setCases] = useState([]);
     const [casesLoading, setCasesLoading] = useState(true);
 
-    // Fetch operators from Firebase
     const [adminCount, setAdminCount] = useState(0);
     const [investigatorCount, setInvestigatorCount] = useState(0);
     const [operatorsLoading, setOperatorsLoading] = useState(true);
 
-    // Fetch surveillance feeds from Firebase
     const [cameraCount, setCameraCount] = useState(0);
     const [onlineCameraCount, setOnlineCameraCount] = useState(0);
     const [camerasLoading, setCamerasLoading] = useState(true);

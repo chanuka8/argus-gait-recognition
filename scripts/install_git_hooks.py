@@ -56,7 +56,6 @@ def install_pre_commit_hook(root_dir: Path) -> bool:
     pre_commit_path = git_hooks_dir / "pre-commit"
     pre_commit_path.write_text(HOOK_CONTENT, encoding="utf-8")
 
-    # Make executable on POSIX systems
     try:
         st = os.stat(pre_commit_path)
         os.chmod(pre_commit_path, st.st_mode | stat.S_IEXEC)

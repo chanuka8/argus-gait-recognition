@@ -24,7 +24,6 @@ const Login = () => {
     useEffect(() => {
         const fetchAdminEmails = async () => {
             try {
-                // 1. Fetch Root Admins specifically
                 const qRoot = query(collection(db, 'admins'), where('role', '==', 'Root Admin'));
                 const rootSnapshot = await getDocs(qRoot);
                 const roots = [];
@@ -38,7 +37,6 @@ const Login = () => {
                 });
                 setRootAdminEmails(roots.length > 0 ? roots : ['admin', 'rootadmin@argus.com']);
 
-                // 2. Fetch all active admin emails
                 const qActive = query(collection(db, 'admins'), where('status', '==', 'Active'));
                 const activeSnapshot = await getDocs(qActive);
                 const activeEmails = [];
@@ -83,11 +81,9 @@ const Login = () => {
 
             const loggedUser = await login(username, password, selectedRole);
 
-            // Trigger button checkmark and card exit states
             setIsSuccess(true);
             setLoading(false);
 
-            // Redirect after 1.2s to show success feedback animation
             setTimeout(() => {
                 const roleLower = (loggedUser.role || '').toLowerCase();
                 if (roleLower === 'admin' || roleLower === 'root admin') {

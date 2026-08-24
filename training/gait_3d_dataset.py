@@ -26,7 +26,7 @@ class Gait3DSkeletonDataset(Dataset):
         self.subjects = set(subjects)
         self.sequence_length = sequence_length
 
-        self.samples: List[Tuple[Path, str, str, str]] = []  # (path, subject_id, condition, view)
+        self.samples: List[Tuple[Path, str, str, str]] = []
         self.label_to_index: Dict[str, int] = {}
         self.index_to_label: Dict[int, str] = {}
 
@@ -46,7 +46,6 @@ class Gait3DSkeletonDataset(Dataset):
                 continue
 
             for npy_path in sorted(sub_dir.glob("*.npy")):
-                # Format: {subject}_{condition}_{view}.npy
                 stem = npy_path.stem
                 parts = stem.split("_")
                 if len(parts) >= 3:
@@ -70,9 +69,8 @@ class Gait3DSkeletonDataset(Dataset):
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, int, str]:
         npy_path, sub_id, cond, _view = self.samples[idx]
-        seq = np.load(npy_path)  # (T, 17, 3)
+        seq = np.load(npy_path)
 
-        # Interpolate / pad / sample to fixed sequence_length (T=30)
         T_curr = len(seq)
         if T_curr == 0:
             seq_fixed = np.zeros((self.sequence_length, 17, 3), dtype=np.float32)

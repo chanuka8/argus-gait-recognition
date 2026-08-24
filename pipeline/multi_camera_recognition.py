@@ -29,7 +29,6 @@ from utils.display_renderer import DetectionDisplayRenderer, load_display_config
 from utils.detection_reporter import DetectionReporter, load_reporting_config
 
 
-
 def _load_matching_policy() -> dict:
     from core.threshold_manager import ThresholdManager
 
@@ -259,9 +258,6 @@ def _load_temporal_config() -> dict:
     return merged
 
 
-
-
-
 def _load_transition_config() -> dict:
     """Load Camera Transition Model config with safe defaults."""
     config_path = Path("configs/inference.yaml")
@@ -441,11 +437,9 @@ class CameraWorkerState:
     ) -> None:
         self.camera_id = camera_id
 
-        # Per-camera stateful components
         self.tracker = TrackingStep()
         self.silhouette_step = SilhouetteStep()
 
-        # Per-camera mutable dictionaries
         self.buffers: dict[int, LiveGEI] = {}
         self.last_results: dict[int, dict] = {}
         self.frame_counters: dict[int, int] = {}
@@ -471,7 +465,6 @@ class CameraWorkerState:
         self.reid_crops: dict[int, np.ndarray] = {}
 
 
-
 class MultiCameraRecognitionPipeline:
     """
     Multi-camera orchestrator using Option B architecture.
@@ -491,7 +484,6 @@ class MultiCameraRecognitionPipeline:
         recognition_interval: int = 10,
         gallery_dir: str = "models/live_gallery",
     ) -> None:
-        # Load camera configuration
         self.cameras_config = self._load_cameras_config(
             cameras_config_path,
         )
@@ -508,7 +500,6 @@ class MultiCameraRecognitionPipeline:
             "orchestrator", {},
         )
 
-        # Filter to enabled cameras and apply max limit
         max_cameras = self.orchestrator_config.get(
             "max_cameras", 2,
         )
@@ -524,7 +515,6 @@ class MultiCameraRecognitionPipeline:
                 "No enabled cameras found in cameras.yaml"
             )
 
-        # Load matching policy
         self.policy = _load_matching_policy()
         self.cc_config = _load_crowd_control_config()
         self.threshold = threshold
@@ -537,12 +527,9 @@ class MultiCameraRecognitionPipeline:
         self.crowd_robustness_manager = CrowdRobustnessManager(self.crowd_robustness_config)
         self.track_recovery_manager = TrackRecoveryManager(max_lost_seconds=3.0)
 
-        # Shared resources (read-only, thread-safe)
 
-        # Shared: neural network model (eval mode)
         self.model = self._load_model(model_path)
 
-        # Shared: gallery embeddings
         gait_gallery = VectorStore(
             gallery_dir=gallery_dir,
         ).load()
@@ -558,7 +545,6 @@ class MultiCameraRecognitionPipeline:
                 self.metadata,
             ) = gait_gallery
 
-        # Shared: stateless matchers
         self.matcher = MatchingStep(
             threshold=threshold,
         )
@@ -576,7 +562,6 @@ class MultiCameraRecognitionPipeline:
             top_k=self.policy["top_k"],
         )
 
-        # Shared: thread-safe loggers
         self.event_logger = EventLogger()
 
         self.alert_manager = AlertManager(
@@ -595,7 +580,6 @@ class MultiCameraRecognitionPipeline:
             confidence_threshold=security_threshold,
         )
 
-        # Per-camera isolated state
 
         self.workers: dict[str, CameraWorkerState] = {}
 
@@ -609,7 +593,6 @@ class MultiCameraRecognitionPipeline:
                 recognition_interval=recognition_interval,
             )
 
-        # Multi-stream engine
 
         queue_max_size = self.orchestrator_config.get(
             "queue_max_size", 20,
@@ -620,12 +603,10 @@ class MultiCameraRecognitionPipeline:
             queue_max_size=queue_max_size,
         )
 
-        # GUI configuration
         self.show_gui = self.orchestrator_config.get(
             "show_gui", True,
         )
 
-        # CCTV display renderer (shared, stateless) and detection reporter (shared, thread-safe)
         self.renderer = DetectionDisplayRenderer(load_display_config())
         self.reporter = DetectionReporter(
             config=load_reporting_config(),
@@ -636,20 +617,16 @@ class MultiCameraRecognitionPipeline:
         self.explainable_reporter = ExplainableRecognitionReporter()
         self.timeline_reconstructor = EventTimelineReconstructor()
 
-        # Per-camera location lookup (fallback: "Unknown Location")
         self.camera_locations: dict[str, str] = {}
         for cam_cfg in self.camera_list:
             cid = str(cam_cfg["id"])
             self.camera_locations[cid] = cam_cfg.get("location", "Unknown Location")
 
-        # Frame storage for main-thread rendering
         self.latest_frames: dict[str, np.ndarray] = {}
         self.frame_lock = threading.Lock()
 
-        # Control flag
         self.running = False
 
-        # ReID module (optional, secondary biometric)
         self.reid_config = _load_reid_config()
         self.reid_extractor = None
         self.reid_matcher = None
@@ -673,7 +650,6 @@ class MultiCameraRecognitionPipeline:
 
             print("[REID] ReID module enabled")
 
-        # Fusion module (optional dual-modal fusion)
         self.fusion_config = _load_fusion_config()
         self.fusion_engine = None
         self.appearance_extractor = None
@@ -692,7 +668,6 @@ class MultiCameraRecognitionPipeline:
             )
             print("[DUAL_MODAL] Dual-Modal ReID + Gait Fusion enabled")
 
-        # Quality Estimator and Temporal Gait Verifier steps
         self.quality_config = _load_quality_config()
         self.quality_estimator = None
 
@@ -721,7 +696,6 @@ class MultiCameraRecognitionPipeline:
                 f"[TEMPORAL] Temporal Gait Verifier enabled (window_size={self.temporal_config['window_size']})"
             )
 
-        # Camera Transition Model & Cross-Camera Tracker
         self.transition_config = _load_transition_config()
         self.transition_model = CameraTransitionModel(config=self.transition_config)
         self.cross_camera_tracker = CrossCameraTracker(transition_model=self.transition_model)
@@ -736,10 +710,6 @@ class MultiCameraRecognitionPipeline:
             min_reliability_threshold=self.tr_config.get("min_reliability_threshold", 0.50),
         )
 
-
-
-
-    # Config loading
 
     @staticmethod
     def _load_cameras_config(
@@ -808,7 +778,6 @@ class MultiCameraRecognitionPipeline:
 
         return model
 
-    # Processing helpers
 
     @staticmethod
     def _crop_person(
@@ -906,7 +875,6 @@ class MultiCameraRecognitionPipeline:
             == 0
         )
 
-    # Recognition
 
     def _match_single_embedding(
         self,
@@ -943,7 +911,6 @@ class MultiCameraRecognitionPipeline:
         if gei is None:
             return
 
-        # 1. Feature Quality Estimation
         if self.quality_estimator is not None:
             q_res = self.quality_estimator.evaluate(gei)
             if not q_res["accepted"]:
@@ -952,7 +919,6 @@ class MultiCameraRecognitionPipeline:
                 )
                 return
 
-        # 2. Embedding Extraction & Match
         embedding = self._gei_to_embedding(gei)
 
         if self.temporal_verifier is not None:
@@ -986,7 +952,6 @@ class MultiCameraRecognitionPipeline:
                 flat_score=flat_score,
             )
 
-        # Prediction smoothing
         stable_identity = worker.smoother.update(
             track_id,
             raw_identity,
@@ -994,7 +959,6 @@ class MultiCameraRecognitionPipeline:
             threshold=self.threshold,
         )
 
-        # Severity classification
         if stable_identity == "UNKNOWN":
             score = 0.0
             decision = "UNKNOWN_PERSON"
@@ -1010,7 +974,6 @@ class MultiCameraRecognitionPipeline:
         else:
             severity = "INFO"
 
-        # Thread-safe logging with camera_id
         self.event_logger.log(
             track_id=track_id,
             identity=stable_identity,
@@ -1034,7 +997,6 @@ class MultiCameraRecognitionPipeline:
             camera_id=worker.camera_id,
         )
 
-        # Global identity tracking via CrossCameraTracker and CameraTransitionModel
         global_id = self.cross_camera_tracker.get_or_create_global_id(
             camera_id=worker.camera_id,
             local_track_id=track_id,
@@ -1047,7 +1009,6 @@ class MultiCameraRecognitionPipeline:
             temporal_decision=decision,
         )
 
-        # Store result in per-camera state
         res_dict = {
             "identity": stable_identity,
             "raw_identity": raw_identity,
@@ -1094,8 +1055,6 @@ class MultiCameraRecognitionPipeline:
         worker.last_results[track_id] = res_dict
 
 
-
-        # ReID secondary scoring (does not affect gait decision)
         if self.reid_extractor is not None:
             reid_crop = worker.reid_crops.get(track_id)
             if reid_crop is not None:
@@ -1106,7 +1065,6 @@ class MultiCameraRecognitionPipeline:
                     worker.last_results[track_id]["reid_embedding"] = reid_embedding
                     worker.last_results[track_id]["reid_score"] = 0.0
 
-        # Dual-modal fusion (optional)
         if self.fusion_engine is not None and self.appearance_extractor is not None:
             res = worker.last_results[track_id]
             reid_crop = worker.reid_crops.get(track_id)
@@ -1165,8 +1123,6 @@ class MultiCameraRecognitionPipeline:
             )
 
 
-    # Drawing
-
     def _draw_track(
         self,
         frame: np.ndarray,
@@ -1204,7 +1160,6 @@ class MultiCameraRecognitionPipeline:
             camera_id=worker.camera_id,
         )
 
-        # Auto-report (cooldown-gated, status-filtered)
         status = self.renderer.get_status(decision)
         bbox = list(map(int, box))
         location = self.camera_locations.get(worker.camera_id, "Unknown Location")
@@ -1234,7 +1189,6 @@ class MultiCameraRecognitionPipeline:
             frame=frame,
         )
 
-    # Frame processing
 
     def _process_camera_frame(
         self,
@@ -1256,7 +1210,6 @@ class MultiCameraRecognitionPipeline:
             xyxy = detections.xyxy
             tracker_ids = detections.tracker_id
 
-            # Build list of raw detections for stabilizer
             raw_detections = []
             if tracker_ids is not None:
                 confidences = getattr(detections, "confidence", None)
@@ -1267,7 +1220,6 @@ class MultiCameraRecognitionPipeline:
                         float(confidences[i]) if confidences is not None else 1.0
                     ))
 
-            # Update stabilizer
             stable_results = worker.box_stabilizer.update(raw_detections, frame.shape)
 
             if not self.cc_config.get("enabled", True):
@@ -1311,7 +1263,6 @@ class MultiCameraRecognitionPipeline:
                     if not is_valid:
                         continue
 
-                    # Bounding box coordinates for display
                     box_to_use = stable_box if worker.box_stability_config.get("use_stable_box_for_display", True) else stable_box
                     x1, y1, x2, y2 = box_to_use
                     box_h = y2 - y1
@@ -1374,7 +1325,6 @@ class MultiCameraRecognitionPipeline:
                         box_to_draw = stable_box if worker.box_stability_config.get("use_stable_box_for_display", True) else (raw_box if raw_detected else stable_box)
                         self._draw_track(frame, box_to_draw, track_id, worker, is_predicted)
 
-                # Periodic update: sort queue, drop excess, remove inactive, log stats
                 update_interval = self.cc_config["priority_update_interval"]
                 if worker.current_frame_index % update_interval == 0:
                     worker.queue = [item for item in worker.queue if item["track_id"] in active_track_ids]
@@ -1443,11 +1393,9 @@ class MultiCameraRecognitionPipeline:
                 f"processing error: {e}"
             )
 
-        # Push annotated frame for main-thread rendering
         with self.frame_lock:
             self.latest_frames[camera_id] = frame
 
-    # Worker thread
 
     def _camera_loop(
         self,
@@ -1480,7 +1428,6 @@ class MultiCameraRecognitionPipeline:
                     )
                     break
 
-                # No frame available yet, brief sleep
                 time.sleep(0.01)
                 continue
 
@@ -1491,7 +1438,6 @@ class MultiCameraRecognitionPipeline:
             f"worker stopped"
         )
 
-    # Main entry point
 
     def run(self) -> None:
         """
@@ -1533,7 +1479,6 @@ class MultiCameraRecognitionPipeline:
         print("Press Q to quit")
         print("=" * 60)
 
-        # Start all camera streams
         start_results = self.stream_engine.start_all()
 
         active = [
@@ -1552,7 +1497,6 @@ class MultiCameraRecognitionPipeline:
 
         self.running = True
 
-        # Start per-camera worker threads
         threads = []
 
         for camera_id in active:
@@ -1565,7 +1509,6 @@ class MultiCameraRecognitionPipeline:
             t.start()
             threads.append(t)
 
-        # Main thread: GUI rendering loop
         try:
             while self.running:
                 if self.show_gui:
@@ -1594,7 +1537,6 @@ class MultiCameraRecognitionPipeline:
                 else:
                     time.sleep(0.1)
 
-                # Check if all cameras are dead
                 any_alive = any(
                     self.stream_engine.streams[cid].is_opened()
                     for cid in active
@@ -1615,7 +1557,6 @@ class MultiCameraRecognitionPipeline:
             )
             self.running = False
 
-        # Cleanup
 
         self.stream_engine.stop_all()
 
@@ -1625,7 +1566,6 @@ class MultiCameraRecognitionPipeline:
         if self.show_gui:
             cv2.destroyAllWindows()
 
-        # Print statistics
         print("\n=== MULTI-CAM STATS ===")
 
         for camera_id, stats in (

@@ -60,7 +60,6 @@ class GaitService:
         self.silhouette_extractor = SilhouetteExtractor(target_size=(64, 128))
         self.open_set_recognizer = OpenSetRecognizer()
 
-        # Detector fallback if YOLO weights exist
         self.detector = None
         try:
             self.detector = PersonDetector()
@@ -99,7 +98,6 @@ class GaitService:
             self.gallery_labels = []
             self.metadata = []
 
-        # Sync gallery across all active camera workers
         for worker in self.camera_workers.values():
             if worker.recognition_worker is not None:
                 worker.recognition_worker.update_gallery(
@@ -145,13 +143,12 @@ class GaitService:
         self.stats["processed_images"] += 1
         h, w = frame.shape[:2]
 
-        # 1. Detect person bounding box or default to full frame crop
         bbox = [0, 0, w, h]
         if self.detector is not None:
             try:
                 detections = self.detector.detect(frame)
                 if detections and len(detections) > 0:
-                    bbox = detections[0]["bbox"]  # [x1, y1, x2, y2]
+                    bbox = detections[0]["bbox"]
             except Exception as err:
                 self.logger.warning(f"Detection failed; using full frame: {err}")
 
@@ -160,18 +157,14 @@ class GaitService:
         if crop.size == 0:
             crop = frame
 
-        # 2. Extract silhouette mask (UNet primary + Otsu fallback)
         silhouette = self.silhouette_extractor.extract_from_crop(crop)
         if silhouette is None:
-            # Create standardized fallback grayscale crop
             gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
             silhouette = cv2.resize(gray, (64, 128))
 
-        # 3. Extract gait embedding using ByGaitLight encoder
         sil_norm = silhouette.astype(np.float32) / 255.0
         embedding = self.extractor.backend.predict(sil_norm).flatten().astype(np.float32)
 
-        # 4. Open-set recognition matching against gallery
         identity = "UNKNOWN"
         decision = "UNKNOWN"
         confidence = 0.0
@@ -218,7 +211,6 @@ class GaitService:
 
         self.stats["total_events"] += 1
 
-        # Async broadcast event to WebSocket clients
         try:
             loop = asyncio.get_event_loop()
             if loop.is_running():
@@ -260,7 +252,6 @@ class GaitService:
                 "embeddings_added": 0,
             }
 
-        # Add to VectorStore
         new_features = np.vstack(embeddings)
         new_labels = [person_id] * added_embeddings
 
@@ -324,11 +315,9 @@ class GaitService:
         credential_id: Optional[str] = None,
     ) -> dict:
         """Starts camera tracking worker state with automatic or explicit source resolution."""
-        # If camera is already active, return existing deterministically
         if camera_id in self.active_cameras:
             return self.get_camera_info(camera_id)
 
-        # Resolve available physical source (USB Webcam / RTSP / Explicit)
         resolution = self.source_resolver.resolve_source(
             camera_id=camera_id,
             requested_source=source or "auto",
@@ -344,10 +333,8 @@ class GaitService:
         res_cred_id = resolution.get("credential_id")
         res_cred_conf = resolution.get("credential_configured", False)
 
-        # Sanitize source (mask passwords in RTSP URLs)
         sanitized_source = sanitize_rtsp_url(resolved_source)
 
-        # Load system-level camera defaults and overlay resolved hardware parameters
         camera_defaults = self._load_camera_config()
         worker_cfg = {
             **camera_defaults,
@@ -356,7 +343,6 @@ class GaitService:
             "device_index": int(resolved_source) if source_type == "webcam" and str(resolved_source).isdigit() else 0,
         }
 
-        # Initialize decoupled real-time recognition worker
         recognition_worker = None
         try:
             from services.recognition_worker import RecognitionWorker

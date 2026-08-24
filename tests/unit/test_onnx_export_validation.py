@@ -75,10 +75,8 @@ def test_onnx_export_atomic_replacement_and_reports(tmp_path: Path):
         assert success is False
         assert data["export_succeeded"] is False
 
-    # Confirm temp file was cleaned up
     tmp_file = target_onnx.with_name(f"{target_onnx.name}.tmp")
     assert not tmp_file.exists()
-
 
 
 def test_onnx_export_failure_preserves_sha256_bytes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
@@ -95,7 +93,6 @@ def test_onnx_export_failure_preserves_sha256_bytes(tmp_path: Path, monkeypatch:
     json_report = tmp_path / "onnx_validation.json"
     md_report = tmp_path / "onnx_validation.md"
 
-    # Force torch.onnx.export to fail
     def fake_export(*args, **kwargs):
         raise RuntimeError("Simulated export failure")
 

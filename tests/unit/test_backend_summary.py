@@ -19,13 +19,11 @@ def test_backend_summary_emitted_once(capsys):
 
     summary_obj = BackendStartupSummary(mock_backend, startup_status="READY_FOR_CONTROLLED_GAIT_RECOGNITION_TESTING")
 
-    # First call emits to stdout
     text1 = summary_obj.emit(print_cli=True)
     captured1 = capsys.readouterr().out
     assert "ARGUS Backend Startup Summary" in captured1
     assert "Active Backend    : pytorch" in text1
 
-    # Second call does not re-print to stdout
     summary_obj.emit(print_cli=True)
     captured2 = capsys.readouterr().out
     assert captured2 == ""

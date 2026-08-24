@@ -1,5 +1,3 @@
-# ARGUS AI Windows Service Uninstallation Script
-# Removes the ARGUS AI Windows service registered with NSSM.
 
 param (
     [string]$NssmPath = "nssm.exe",
@@ -12,7 +10,6 @@ Write-Host "============================================================" -Foreg
 Write-Host " ARGUS AI Windows Service Uninstallation" -ForegroundColor Cyan
 Write-Host "============================================================" -ForegroundColor Cyan
 
-# Check NSSM availability
 $NssmCmd = Get-Command $NssmPath -ErrorAction SilentlyContinue
 if ($null -eq $NssmCmd -and -not (Test-Path $NssmPath)) {
     $LocalNssm = Join-Path $PSScriptRoot "nssm.exe"

@@ -49,12 +49,10 @@ class QualityAssessment:
         if h < self.min_crop_height or w < self.min_crop_width:
             return 0.0
 
-        # 1. Resolution factor
         ideal_area = self.ideal_crop_height * self.ideal_crop_width
         actual_area = h * w
         res_factor = min(1.0, actual_area / ideal_area)
 
-        # 2. Sharpness / blur factor (Laplacian variance)
         try:
             gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
             lap_var = float(cv2.Laplacian(gray, cv2.CV_64F).var())
@@ -62,10 +60,8 @@ class QualityAssessment:
         except Exception:
             blur_factor = 0.5
 
-        # 3. Confidence factor
         conf_factor = max(0.0, min(1.0, float(confidence)))
 
-        # Weighted combination of classical image metrics
         quality = 0.4 * res_factor + 0.4 * blur_factor + 0.2 * conf_factor
         return float(max(0.0, min(1.0, quality)))
 
@@ -84,14 +80,11 @@ class QualityAssessment:
         if gei_frame_count <= 0:
             return 0.0
 
-        # 1. Sequence completeness factor
         seq_factor = min(1.0, gei_frame_count / max(1, self.target_gei_frames))
 
-        # 2. Silhouette clarity / density factor
         density_factor = 0.5
         if gei is not None and gei.size > 0:
             non_zero_ratio = float(np.count_nonzero(gei)) / float(gei.size)
-            # Optimal GEI silhouette coverage is typically 10% - 40% of GEI crop
             if 0.05 <= non_zero_ratio <= 0.5:
                 density_factor = 1.0
             elif non_zero_ratio > 0.0:
@@ -99,7 +92,6 @@ class QualityAssessment:
             else:
                 density_factor = 0.0
 
-        # 3. Confidence factor
         conf_factor = max(0.0, min(1.0, float(confidence)))
 
         quality = 0.5 * seq_factor + 0.3 * density_factor + 0.2 * conf_factor

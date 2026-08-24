@@ -65,7 +65,6 @@ class QualityEstimator:
             gray = (np.clip(gray, 0, 1) * 255).astype(np.uint8) if gray.max() <= 1.0 else gray.astype(np.uint8)
 
         lap_var = float(cv2.Laplacian(gray, cv2.CV_64F).var())
-        # Normalization: typical clear GEI lap_var ranges from 50 to 500+
         norm_score = min(1.0, lap_var / 300.0)
         return float(max(0.0, norm_score))
 
@@ -85,7 +84,6 @@ class QualityEstimator:
         else:
             gray = gei
 
-        # Evaluate background regions (outer margins of GEI)
         h, w = gray.shape
         margin_h = max(1, h // 10)
         margin_w = max(1, w // 10)
@@ -97,7 +95,6 @@ class QualityEstimator:
 
         bg_std = (np.std(top) + np.std(bottom) + np.std(left) + np.std(right)) / 4.0
 
-        # Normalization: lower std means cleaner background
         noise_penalty = min(1.0, bg_std / 50.0)
         return float(max(0.0, 1.0 - noise_penalty))
 
@@ -120,12 +117,10 @@ class QualityEstimator:
         h, w = gray.shape
         bottom_region = gray[int(h * 0.85) :, :]
 
-        # Ground shadows produce low-intensity non-zero pixels at the bottom
 
         shadow_pixels = np.logical_and(bottom_region > 10, bottom_region < 100)
         shadow_ratio = float(np.sum(shadow_pixels)) / float(max(1, bottom_region.size))
 
-        # Higher shadow ratio penalizes the score
         score = max(0.0, 1.0 - shadow_ratio * 3.0)
         return float(min(1.0, score))
 
@@ -148,7 +143,6 @@ class QualityEstimator:
         h, w = gray.shape
         non_zero_ratio = float(np.count_nonzero(gray > 15)) / float(gray.size)
 
-        # Expected GEI silhouette coverage is typically 10% to 45% of box area
         if 0.10 <= non_zero_ratio <= 0.45:
             coverage_score = 1.0
         elif non_zero_ratio < 0.10:
@@ -156,7 +150,6 @@ class QualityEstimator:
         else:
             coverage_score = max(0.0, 1.0 - (non_zero_ratio - 0.45) * 2.0)
 
-        # Check vertical distribution (head, torso, legs should all be present)
         head_present = np.any(gray[: int(h * 0.3), :] > 15)
         torso_present = np.any(gray[int(h * 0.3) : int(h * 0.7), :] > 15)
         legs_present = np.any(gray[int(h * 0.7) :, :] > 15)
@@ -181,7 +174,6 @@ class QualityEstimator:
         h, w = gei.shape[:2]
         ratio = float(h) / float(max(1, w)) if box_aspect_ratio is None else box_aspect_ratio
 
-        # Ideal human aspect ratio is between 1.5 and 3.0
         if 1.5 <= ratio <= 3.0:
             stability = 1.0
         elif ratio < 1.5:
@@ -242,7 +234,6 @@ class QualityEstimator:
         reason = None
 
         if not accepted:
-            # Find lowest metric for detailed log reason
             lowest_metric = min(metrics, key=metrics.get)
             reason = (
                 f"GEI quality score ({overall_quality:.3f}) below threshold "

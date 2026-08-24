@@ -76,7 +76,6 @@ class AppearanceEmbeddingExtractor:
         cached_entry = self._cache.get(track_id)
         cached_embedding = cached_entry["embedding"] if cached_entry else None
 
-        # Gating check: performance optimization
         if not track_reliable or recognition_deferred:
             return cached_embedding
 
@@ -88,7 +87,6 @@ class AppearanceEmbeddingExtractor:
             if frame_index - last_frame < self.update_interval:
                 return cached_embedding
 
-        # Perform CNN extraction
         new_embedding = self._extract_raw(crop)
         if new_embedding is not None:
             self._cache[track_id] = {
@@ -113,7 +111,6 @@ class AppearanceEmbeddingExtractor:
             if vec.size == 0:
                 return None
 
-            # Ensure 512D output space (pad or trim if backbone varies)
             if vec.size != 512:
                 if vec.size < 512:
                     padded = np.zeros((512,), dtype=np.float32)

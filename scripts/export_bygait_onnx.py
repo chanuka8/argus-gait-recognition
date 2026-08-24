@@ -135,7 +135,6 @@ def export_onnx(
         _write_reports(report_status, report_json_path, report_md_path)
         return False
 
-    # Structural ONNX validation
     try:
         import onnx
 
@@ -152,7 +151,6 @@ def export_onnx(
         _write_reports(report_status, report_json_path, report_md_path)
         return False
 
-    # Validate parity if onnxruntime is available
     parity_passed = False
     try:
         import onnxruntime as ort

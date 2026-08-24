@@ -40,7 +40,6 @@ class TrackRecoveryManager:
         self.max_buffered_tracks = max_buffered_tracks
         self.min_recovery_iou = min_recovery_iou
 
-        # (camera_id, track_id) -> LostTrackRecord
         self.lost_tracks: Dict[Tuple[str, int], LostTrackRecord] = {}
 
     def register_lost_track(
@@ -67,7 +66,6 @@ class TrackRecoveryManager:
             quality=quality,
         )
 
-        # Enforce max buffer size
         if len(self.lost_tracks) >= self.max_buffered_tracks:
             oldest_key = min(self.lost_tracks.keys(), key=lambda k: self.lost_tracks[k].last_seen_time)
             del self.lost_tracks[oldest_key]
@@ -92,7 +90,6 @@ class TrackRecoveryManager:
         if key in self.lost_tracks:
             return self.lost_tracks[key]
 
-        # Clean expired tracks first
         self.cleanup_expired(now)
 
         best_match: Optional[LostTrackRecord] = None
@@ -126,7 +123,6 @@ class TrackRecoveryManager:
                 best_match = record
 
         if best_match:
-            # Remove recovered track from lost buffer
             old_key = (best_match.camera_id, best_match.track_id)
             self.lost_tracks.pop(old_key, None)
             return best_match

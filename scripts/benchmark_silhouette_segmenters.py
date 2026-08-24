@@ -2,13 +2,11 @@ import sys
 import time
 from pathlib import Path
 
-# Fix Windows console UTF-8 printing
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 if hasattr(sys.stderr, "reconfigure"):
     sys.stderr.reconfigure(encoding="utf-8")
 
-# Ensure repository root is on sys.path
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -52,7 +50,6 @@ def benchmark_silhouette_segmenters(
         rgb_crop = val_ds._render_synthetic_rgb_crop(gt_mask, idx)
         target_gt = (gt_mask > 128).astype(np.float32)
 
-        # 1. Learned UNet Inference
         t0 = time.perf_counter()
         learned_raw_mask = learned.segment(rgb_crop)
         learned_dt = (time.perf_counter() - t0) * 1000.0
@@ -74,7 +71,6 @@ def benchmark_silhouette_segmenters(
             learned_prec_list.append(prec)
             learned_rec_list.append(rec)
 
-        # 2. Otsu Fallback Inference
         t0 = time.perf_counter()
         otsu_raw_mask = otsu.extract_mask(rgb_crop)
         otsu_dt = (time.perf_counter() - t0) * 1000.0

@@ -74,7 +74,6 @@ class DeploymentStartupValidator:
             try:
                 test_file.unlink(missing_ok=True)
             except OSError:
-                # Cleanup failure must not hide the original writability result.
                 pass
 
     def validate_startup(
@@ -113,7 +112,6 @@ class DeploymentStartupValidator:
         unable_to_verify: list[str] = []
         backend_metadata: dict[str, Any] = {}
 
-        # 1. Logging initialization verification
         try:
             logger = get_logger("system")
             logger.debug("Startup validator verifying system log stream.")
@@ -123,7 +121,6 @@ class DeploymentStartupValidator:
                 f"Logging initialization failed: {sanitized_error}"
             )
 
-        # 2. Configuration validation
         try:
             config_results = self.config_validator.validate_all()
 
@@ -139,7 +136,6 @@ class DeploymentStartupValidator:
                 f"Configuration validation failed: {sanitized_error}"
             )
 
-        # 3. Runtime manifest asset verification
         try:
             manifest = get_runtime_manifest()
             manifest_result = manifest.validate_runtime_assets()
@@ -166,7 +162,6 @@ class DeploymentStartupValidator:
                 f"Runtime manifest validation failed: {sanitized_error}"
             )
 
-        # 4. Inference backend and model verification
         if override_backend is not None:
             self._backend = override_backend
 
@@ -237,7 +232,6 @@ class DeploymentStartupValidator:
                     f"Backend verification failed: {sanitized_error}"
                 )
 
-        # 5. Gallery validation
         gallery_dir = Path("models/gallery")
 
         try:
@@ -273,20 +267,17 @@ class DeploymentStartupValidator:
                 f"Gallery validation failed: {sanitized_error}"
             )
 
-        # 6. Output and report storage writability
         for directory_name in ("outputs", "outputs/reports"):
             self._validate_storage_path(
                 target_dir=Path(directory_name),
                 blocking_issues=blocking_issues,
             )
 
-        # 7. Non-interactive camera/network notice
         unable_to_verify.append(
             "Live RTSP camera streams "
             "(network check deferred to runtime pipeline launch)"
         )
 
-        # Determine approved readiness status
         if blocking_issues:
             status = self.STATUS_NOT_READY
             success = False

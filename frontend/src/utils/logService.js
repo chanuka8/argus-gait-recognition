@@ -1,4 +1,3 @@
-// Centralized localStorage-backed logging service that persists system events and dispatches real-time updates for the LogViewer.
 
 const STORAGE_KEY = 'argus_system_logs_live';
 

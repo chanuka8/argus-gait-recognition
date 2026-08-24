@@ -16,9 +16,7 @@ class IdentityPersistence:
         self._logger = get_logger("identity_persistence")
         self._lock = Lock()
 
-        # identity_id -> {"accumulated_score": float, "last_seen": float, "detections": int, "history": list}
         self._identities: Dict[str, Dict[str, Any]] = {}
-        # identity_id -> last alert timestamp
         self._alert_cooldowns: Dict[str, float] = {}
 
     def update_identity(self, identity: str, confidence_score: float, camera_id: str = "") -> Dict[str, Any]:

@@ -18,21 +18,12 @@ import numpy as np
 import yaml
 
 
-# ---------------------------------------------------------------------------
-# Status constants
-# ---------------------------------------------------------------------------
-
 STATUS_DETECTION = "DETECTION"
 STATUS_TRACKING = "TRACKING"
 STATUS_UNKNOWN = "UNKNOWN"
 STATUS_UNCERTAIN = "UNCERTAIN"
 STATUS_CONFIRMED = "CONFIRMED"
 
-
-
-# ---------------------------------------------------------------------------
-# Config loader
-# ---------------------------------------------------------------------------
 
 def load_display_config() -> dict:
     """Load the ``display`` section from ``configs/inference.yaml``.
@@ -87,10 +78,6 @@ def load_display_config() -> dict:
     return merged
 
 
-# ---------------------------------------------------------------------------
-# Decision → CCTV status mapping
-# ---------------------------------------------------------------------------
-
 def _map_decision_to_status(decision: str) -> str:
     """Map an internal ARGUS decision string to one of 4 CCTV statuses.
 
@@ -114,13 +101,8 @@ def _map_decision_to_status(decision: str) -> str:
         return STATUS_UNKNOWN
     if decision in ("CONFIRMED_MATCH", "VERIFIED_MATCH"):
         return STATUS_CONFIRMED
-    # Fallback: treat anything else as DETECTION
     return STATUS_DETECTION
 
-
-# ---------------------------------------------------------------------------
-# Renderer
-# ---------------------------------------------------------------------------
 
 class DetectionDisplayRenderer:
     """Draws professional CCTV-style overlays on video frames.
@@ -138,7 +120,6 @@ class DetectionDisplayRenderer:
     def __init__(self, config: Optional[dict] = None) -> None:
         self.cfg = config if config is not None else load_display_config()
 
-        # Pre-resolve colour tuples (BGR ints) for each status tier.
         colors_raw = self.cfg.get("colors", {})
         self._colors: dict[str, tuple[int, int, int]] = {
             STATUS_DETECTION: tuple(colors_raw.get("detection", [0, 0, 255])),
@@ -155,9 +136,6 @@ class DetectionDisplayRenderer:
         self._show_tid: bool = bool(self.cfg.get("show_track_id", True))
         self._show_score: bool = bool(self.cfg.get("show_score", True))
 
-    # ------------------------------------------------------------------
-    # Public helpers
-    # ------------------------------------------------------------------
 
     def get_status(self, decision: str) -> str:
         """Return the CCTV status string for a given ARGUS decision."""
@@ -167,9 +145,6 @@ class DetectionDisplayRenderer:
         """Return the BGR colour tuple for *status*."""
         return self._colors.get(status, (0, 255, 255))
 
-    # ------------------------------------------------------------------
-    # Main draw entry-point
-    # ------------------------------------------------------------------
 
     def draw(
         self,
@@ -207,10 +182,8 @@ class DetectionDisplayRenderer:
         status = self.get_status(decision)
         color = self.get_color(status)
 
-        # --- Bounding box ---------------------------------------------------
         cv2.rectangle(frame, (x1, y1), (x2, y2), color, self._thickness)
 
-        # --- Label assembly --------------------------------------------------
         label = self._build_label(
             camera_id=camera_id,
             track_id=track_id,
@@ -219,12 +192,8 @@ class DetectionDisplayRenderer:
             score=score,
         )
 
-        # --- Draw filled label background + text ----------------------------
         self._draw_label(frame, label, x1, y1, color)
 
-    # ------------------------------------------------------------------
-    # Internals
-    # ------------------------------------------------------------------
 
     def _build_label(
         self,
@@ -246,13 +215,11 @@ class DetectionDisplayRenderer:
         if self._show_tid:
             parts.append(f"T{track_id}")
 
-        # Separator before status
         if parts:
             label_prefix = " ".join(parts) + " | "
         else:
             label_prefix = ""
 
-        # Display identity: for DETECTION/TRACKING show the status itself
         if status in (STATUS_DETECTION, STATUS_TRACKING):
             display_name = status
         else:
@@ -279,18 +246,15 @@ class DetectionDisplayRenderer:
 
         (tw, th), baseline = cv2.getTextSize(text, font, font_scale, thickness)
 
-        # Position the label above the bounding box top-left
         label_y = max(th + baseline + 4, y - 6)
         bg_y1 = label_y - th - baseline - 2
         bg_y2 = label_y + 2
         bg_x2 = x + tw + 6
 
-        # Filled background rectangle (semi-dark)
         overlay = frame.copy()
         cv2.rectangle(overlay, (x, bg_y1), (bg_x2, bg_y2), (0, 0, 0), cv2.FILLED)
         cv2.addWeighted(overlay, 0.65, frame, 0.35, 0, frame)
 
-        # Text
         cv2.putText(
             frame,
             text,

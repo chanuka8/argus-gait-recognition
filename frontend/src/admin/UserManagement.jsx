@@ -41,7 +41,6 @@ const UserManagement = () => {
     const [showAddModal, setShowAddModal] = useState(false);
     const fileInputRef = useRef(null);
 
-    // Add user form states
     const [newName, setNewName] = useState('');
     const [newUsername, setNewUsername] = useState('');
     const [newRole, setNewRole] = useState('Investigator');
@@ -54,7 +53,6 @@ const UserManagement = () => {
     const [showNewPassword, setShowNewPassword] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
 
-    // Deletion verification states
     const [deletingOperator, setDeletingOperator] = useState(null);
     const [confirmPassword, setConfirmPassword] = useState('');
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -97,13 +95,11 @@ const UserManagement = () => {
         setShowAddModal(false);
     };
 
-    // Fetch operators from both firestore collections on mount
     const fetchOperators = async () => {
         try {
             setIsLoading(true);
             const mergedUsers = [];
 
-            // 1. Fetch from 'admins'
             const adminSnapshot = await getDocs(collection(db, 'admins'));
             adminSnapshot.forEach((doc) => {
                 const data = doc.data();
@@ -121,7 +117,6 @@ const UserManagement = () => {
                 });
             });
 
-            // 2. Fetch from 'investigators' (table is automatically created in Firebase when an admin adds the first investigator)
             const invSnapshot = await getDocs(collection(db, 'investigators'));
             invSnapshot.forEach((doc) => {
                 const data = doc.data();
@@ -149,7 +144,6 @@ const UserManagement = () => {
         fetchOperators();
     }, []);
 
-    // Handle adding users
     const handleAddUser = async (e) => {
         if (e && typeof e.preventDefault === 'function') {
             e.preventDefault();
@@ -161,7 +155,6 @@ const UserManagement = () => {
             return;
         }
 
-        // Validate password rules
         const passwordError = validatePassword(newPassword);
         if (passwordError) {
             setFormError(passwordError);
@@ -171,25 +164,21 @@ const UserManagement = () => {
         const rootAdminCount = users.filter(u => u.role.toLowerCase() === 'root admin').length;
         const isRootAdmin = currentUser?.role?.toLowerCase() === 'root admin';
 
-        // Restrict Root Admin creation
         if (newRole === 'Root Admin' && !isRootAdmin) {
             setFormError('Only a Root Admin can create another Root Admin.');
             return;
         }
 
-        // Restrict maximum active Root Admins to 2
         if (newRole === 'Root Admin' && rootAdminCount >= 2) {
             setFormError('Only two Root Admins can act in the system.');
             return;
         }
 
-        // Only Root Admin can set/change passwords for Admin / Root Admin accounts
         if ((newRole === 'Admin' || newRole === 'Root Admin') && !isRootAdmin) {
             setFormError('Only a Root Admin can set or change Admin/Root Admin passwords.');
             return;
         }
 
-        // Validate that username contains role identifiers and replace internal spaces with underscores
         let finalUsername = newUsername.trim().toLowerCase().replace(/\s+/g, '_');
         if (newRole === 'Admin' && !finalUsername.includes('admin')) {
             finalUsername = `admin_${finalUsername}`;
@@ -199,7 +188,6 @@ const UserManagement = () => {
             finalUsername = `inv_${finalUsername}`;
         }
 
-        // Check duplicates locally first
         if (users.some(u => u.username.toLowerCase() === finalUsername.toLowerCase())) {
             setFormError('Operator with this username already exists.');
             return;
@@ -208,7 +196,6 @@ const UserManagement = () => {
         setIsUploading(true);
 
         try {
-            // Upload to storage if file is present
             let finalImageUrl = '';
             if (imageFile) {
                 const fileRef = ref(storage, `profiles/${finalUsername}/${imageFile.name}`);
@@ -218,7 +205,6 @@ const UserManagement = () => {
                 });
                 finalImageUrl = await getDownloadURL(fileRef);
             } else {
-                // Default fallback avatar seed using the username
                 finalImageUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${finalUsername}`;
             }
 
@@ -240,7 +226,6 @@ const UserManagement = () => {
 
             await setDoc(docRef, newDocData);
 
-            // Add to local state to avoid refetching
             setUsers(prev => [
                 ...prev,
                 {
@@ -255,10 +240,8 @@ const UserManagement = () => {
                 }
             ]);
 
-            // Trigger success animation
             setIsRegisterSuccess(true);
 
-            // Wait 1.8s to show success state before resetting/closing
             setTimeout(() => {
                 setNewName('');
                 setNewUsername('');
@@ -271,7 +254,6 @@ const UserManagement = () => {
                 setShowAddModal(false);
             }, 1800);
 
-            // Record user creation in system logs
             addLog('info', `New operator registered: ${finalUsername}`, `Operator ${newName} was created with role ${newRole}. NIC: ${newNic}. Account status: Active.`, 'admin');
         } catch (error) {
             console.error('Error creating operator:', error);
@@ -292,25 +274,21 @@ const UserManagement = () => {
         const rootAdminCount = users.filter(u => u.role.toLowerCase() === 'root admin').length;
         const isRootAdmin = currentUser?.role?.toLowerCase() === 'root admin';
 
-        // Block non-root admins from changing anything on a Root Admin account, or promoting to Root Admin
         if ((editingUser.role.toLowerCase() === 'root admin' || newRole === 'Root Admin') && !isRootAdmin) {
             setFormError('Only a Root Admin can manage Root Admin accounts.');
             return;
         }
 
-        // Limit to 2 Root Admins
         if (newRole === 'Root Admin' && editingUser.role.toLowerCase() !== 'root admin' && rootAdminCount >= 2) {
             setFormError('Only two Root Admins can act in the system.');
             return;
         }
 
-        // Ensure at least 1 Root Admin remains in the system
         if (editingUser.role.toLowerCase() === 'root admin' && newRole !== 'Root Admin' && rootAdminCount <= 1) {
             setFormError('At least one Root Admin must remain in the system at all times.');
             return;
         }
 
-        // Validate password rules only if a new one is typed
         if (newPassword.trim()) {
             const passwordError = validatePassword(newPassword);
             if (passwordError) {
@@ -318,7 +296,6 @@ const UserManagement = () => {
                 return;
             }
 
-            // Only Root Admin can change passwords for Admin / Root Admin accounts
             if ((editingUser.role === 'Admin' || editingUser.role.toLowerCase() === 'root admin' || newRole === 'Admin' || newRole === 'Root Admin') && !isRootAdmin) {
                 setFormError('Only a Root Admin can change Admin/Root Admin passwords.');
                 return;
@@ -328,10 +305,8 @@ const UserManagement = () => {
         setIsUploading(true);
 
         try {
-            // Find existing image URL
             let finalImageUrl = editingUser.image || '';
 
-            // Upload to storage if new file is selected
             if (imageFile) {
                 const fileRef = ref(storage, `profiles/${editingUser.username}/${imageFile.name}`);
                 const uploadTask = uploadBytesResumable(fileRef, imageFile);
@@ -340,7 +315,6 @@ const UserManagement = () => {
                 });
                 finalImageUrl = await getDownloadURL(fileRef);
 
-                // Try to delete old image if it was a Storage file and different
                 if (editingUser.image && editingUser.image.includes('firebasestorage.googleapis.com') && editingUser.image !== finalImageUrl) {
                     try {
                         const oldImageRef = ref(storage, editingUser.image);
@@ -354,13 +328,11 @@ const UserManagement = () => {
             const roleLower = newRole.toLowerCase();
             const targetCollection = (roleLower === 'admin' || roleLower === 'root admin') ? 'admins' : 'investigators';
 
-            // Check if role changed (e.g. from Admin to Investigator)
             const oldRoleLower = editingUser.role.toLowerCase();
             const roleChanged = (oldRoleLower === 'admin' || oldRoleLower === 'root admin') !== (roleLower === 'admin' || roleLower === 'root admin');
 
-            const docId = editingUser.id; // Document ID (usually username)
+            const docId = editingUser.id;
 
-            // Define update data
             const updatedData = {
                 name: newName,
                 username: editingUser.username,
@@ -371,35 +343,30 @@ const UserManagement = () => {
                 lastLogin: editingUser.lastLogin || 'Never'
             };
 
-            // Only update password if a new one is typed
             if (newPassword.trim()) {
                 updatedData.password = newPassword;
             } else {
-                // Fetch the existing password from Firestore to preserve it
                 const oldCollection = (oldRoleLower === 'admin' || oldRoleLower === 'root admin') ? 'admins' : 'investigators';
                 const oldDocRef = doc(db, oldCollection, docId);
                 const oldDocSnap = await getDoc(oldDocRef);
                 if (oldDocSnap.exists()) {
                     updatedData.password = oldDocSnap.data().password;
                 } else {
-                    updatedData.password = ''; // fallback
+                    updatedData.password = '';
                 }
             }
 
             if (roleChanged) {
-                // Delete from old collection and write to new collection
                 const oldDocRef = doc(db, (oldRoleLower === 'admin' || oldRoleLower === 'root admin') ? 'admins' : 'investigators', docId);
                 await deleteDoc(oldDocRef);
 
                 const newDocRef = doc(db, targetCollection, docId);
                 await setDoc(newDocRef, updatedData);
             } else {
-                // Standard update
                 const docRef = doc(db, targetCollection, docId);
                 await setDoc(docRef, updatedData);
             }
 
-            // Update local state
             setUsers(prev => prev.map(u =>
                 u.id === docId ? {
                     ...u,
@@ -410,10 +377,8 @@ const UserManagement = () => {
                 } : u
             ));
 
-            // Trigger success animation
             setIsRegisterSuccess(true);
 
-            // Wait 1.8s to show success state before resetting/closing
             setTimeout(() => {
                 setNewName('');
                 setNewUsername('');
@@ -427,7 +392,6 @@ const UserManagement = () => {
                 setShowAddModal(false);
             }, 1800);
 
-            // Record update in system logs
             addLog('info', `Operator updated: ${editingUser.username}`, `Operator account ${editingUser.username} was updated. Role: ${newRole}.`, 'admin');
         } catch (error) {
             console.error('Error updating operator:', error);
@@ -448,7 +412,6 @@ const UserManagement = () => {
         }
     };
 
-    // Toggle user status in Firestore
     const toggleStatus = async (id, role, currentStatus, username) => {
         const targetCollection = (role.toLowerCase() === 'admin' || role.toLowerCase() === 'root admin') ? 'admins' : 'investigators';
         const newStatus = currentStatus === 'Active' ? 'Suspended' : 'Active';
@@ -457,12 +420,10 @@ const UserManagement = () => {
             const docRef = doc(db, targetCollection, id);
             await updateDoc(docRef, { status: newStatus });
 
-            // Update local state
             setUsers(users.map(u =>
                 u.id === id ? { ...u, status: newStatus } : u
             ));
 
-            // Record status change in system logs
             addLog('warning', `Operator ${username} status changed to ${newStatus}`, `Account status for operator ${username} was changed from ${currentStatus} to ${newStatus} by administrator.`, 'admin');
         } catch (error) {
             console.error('Error updating status:', error);
@@ -470,21 +431,17 @@ const UserManagement = () => {
         }
     };
 
-    // Trigger delete confirmation modal
     const handleDeleteClick = (user) => {
-        // Only Root Admin can delete operators
         if (currentUser?.role?.toLowerCase() !== 'root admin') {
             alert('Access Denied: Only a Root Admin can delete operators.');
             return;
         }
 
-        // Prevent self-deletion
         if (user.username === currentUser?.username) {
             alert('Access Denied: You cannot delete your own Root Admin account.');
             return;
         }
 
-        // Ensure at least one Root Admin is preserved in the system
         if (user.role?.toLowerCase() === 'root admin' && users.filter(u => u.role?.toLowerCase() === 'root admin').length <= 1) {
             alert('Access Denied: At least one Root Admin must remain in the system at all times.');
             return;
@@ -497,7 +454,6 @@ const UserManagement = () => {
         setIsDeleteSuccess(false);
     };
 
-    // Confirm password and delete operator
     const handleConfirmDelete = async (e) => {
         e.preventDefault();
         setPasswordError('');
@@ -510,7 +466,6 @@ const UserManagement = () => {
         setIsAuthorizing(true);
 
         try {
-            // Verify admin password by querying username
             const adminQuery = query(
                 collection(db, 'admins'),
                 where('username', '==', currentUser?.username || '')
@@ -531,17 +486,14 @@ const UserManagement = () => {
                 return;
             }
 
-            // Password is correct, perform deletion:
             const role = deletingOperator.role;
             const targetCollection = (role.toLowerCase() === 'admin' || role.toLowerCase() === 'root admin') ? 'admins' : 'investigators';
             
             const docRef = doc(db, targetCollection, deletingOperator.id);
             await deleteDoc(docRef);
 
-            // Update local state
             setUsers(users.filter(u => u.id !== deletingOperator.id));
 
-            // If user has an uploaded profile picture, remove it from Storage
             if (deletingOperator.image && deletingOperator.image.includes('firebasestorage.googleapis.com')) {
                 try {
                     const imageRef = ref(storage, deletingOperator.image);
@@ -552,13 +504,10 @@ const UserManagement = () => {
                 }
             }
 
-            // Record deletion in system logs
             addLog('critical', `Operator ${deletingOperator.username} removed from system`, `Operator account ${deletingOperator.username} (${role}) was permanently deleted by administrator.`, currentUser.username);
 
-            // Trigger success state
             setIsDeleteSuccess(true);
 
-            // Reset and close after delay
             setTimeout(() => {
                 setDeletingOperator(null);
                 setConfirmPassword('');
@@ -573,7 +522,6 @@ const UserManagement = () => {
         }
     };
 
-    // Filter users
     const filteredUsers = users.filter(u => {
         const term = searchTerm.toLowerCase();
         return u.name.toLowerCase().includes(term) ||
@@ -704,7 +652,6 @@ const UserManagement = () => {
                     </table>
                 </div>
             </main>
-            {/* Modal for adding/editing user */}
             {showAddModal && (
                 <div
                     className="add-modal-overlay"
@@ -898,7 +845,6 @@ const UserManagement = () => {
                 </div>
             )}
 
-            {/* Password Verification Modal for Operator Deletion */}
             {deletingOperator && (
                 <div
                     className="delete-modal-overlay"

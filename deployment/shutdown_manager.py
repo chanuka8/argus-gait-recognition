@@ -55,7 +55,6 @@ class ShutdownManager:
         """Register SIGINT and SIGTERM signal handlers safely once."""
         global _SIGNAL_HANDLERS_REGISTERED
 
-        # Only register handlers if running in the main thread
         if threading.current_thread() is not threading.main_thread():
             return
 
@@ -95,21 +94,18 @@ class ShutdownManager:
 
         self.logger.info("[SHUTDOWN] Graceful shutdown sequence started...")
 
-        # Step 1: Signal all stop events
         for evt in self._stop_events:
             try:
                 evt.set()
             except Exception as e:
                 self.logger.warning(f"Error setting stop event: {e}")
 
-        # Step 2: Run cleanup callbacks in reverse order of registration
         for cb in reversed(self._cleanup_callbacks):
             try:
                 cb()
             except Exception as e:
                 self.logger.warning(f"Error executing shutdown callback: {e}")
 
-        # Step 3: Join registered worker threads with timeout
         for t in self._registered_threads:
             if t.is_alive():
                 self.logger.debug(f"Joining thread {t.name} (timeout={self.join_timeout_sec}s)...")
