@@ -14,11 +14,14 @@ async function request(endpoint, options = {}) {
     const response = await fetch(url, options);
     if (!response.ok) {
       const errData = await response.json().catch(() => ({}));
-      throw new Error(errData.detail || `HTTP Error ${response.status}`);
+      throw new Error(errData.detail || `HTTP Error ${response.status}: ${response.statusText}`);
     }
     return await response.json();
   } catch (error) {
     console.error(`[gaitApi] Request failed for ${endpoint}:`, error);
+    if (error instanceof TypeError && error.message.toLowerCase().includes('fetch')) {
+      throw new Error('Unable to reach ARGUS backend server (is the API server running on port 8000?)');
+    }
     throw error;
   }
 }

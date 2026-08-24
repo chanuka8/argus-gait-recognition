@@ -37,6 +37,15 @@
     "VIRTUAL_ENV": "${workspaceFolder}\\venv",
     "PATH": "${workspaceFolder}\\venv\\Scripts;${env:PATH}"
   },
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}"
+  ],
+  "python.autoComplete.extraPaths": [
+    "${workspaceFolder}"
+  ],
+  "eslint.workingDirectories": [
+    "./frontend"
+  ],
   "python.analysis.exclude": [
     "**/venv/**",
     "**/.venv/**",

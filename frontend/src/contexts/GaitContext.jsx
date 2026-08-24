@@ -134,6 +134,7 @@ export const GaitProvider = ({ children }) => {
   return <GaitContext.Provider value={value}>{children}</GaitContext.Provider>;
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useGait = () => {
   const context = useContext(GaitContext);
   if (!context) {

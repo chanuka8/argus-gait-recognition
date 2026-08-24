@@ -20,7 +20,8 @@ class CameraService:
             self._config = raw_config
         self._logger = get_logger("camera")
 
-        self._source_type: str = self._config.get("type", "usb")
+        raw_type = str(self._config.get("type") or self._config.get("source_type") or "usb").lower()
+        self._source_type: str = raw_type
         self._rtsp_url: str = self._config.get("url", "")
         self._device_index: int = int(self._config.get("device_index", 0))
         self._file_path: str = self._config.get("file_path", "")
@@ -49,7 +50,7 @@ class CameraService:
         config_path = Path("configs/system.yaml")
 
         defaults = {
-            "type": "usb",
+            "type": "webcam",
             "url": "",
             "device_index": 0,
             "file_path": "",
@@ -104,7 +105,7 @@ class CameraService:
                 self._capture = None
                 return False
 
-            if self._source_type == "usb":
+            if self._source_type in ("usb", "webcam"):
                 self._capture.set(cv2.CAP_PROP_FRAME_WIDTH, self._width)
                 self._capture.set(cv2.CAP_PROP_FRAME_HEIGHT, self._height)
 

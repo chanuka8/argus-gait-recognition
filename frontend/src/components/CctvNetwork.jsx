@@ -160,6 +160,7 @@ const CctvNetwork = ({ isAdmin = false }) => {
     const [selectedCamStream, setSelectedCamStream] = useState(null);
     const [isDetectingGPS, setIsDetectingGPS] = useState(false);
     const [actionLoading, setActionLoading] = useState({});
+    const [actionErrors, setActionErrors] = useState({});
     const [actionFeedback, setActionFeedback] = useState(null);
 
     const [newCam, setNewCam] = useState({
@@ -226,27 +227,34 @@ const CctvNetwork = ({ isAdmin = false }) => {
 
     const isGaitWorkerActive = (camId) => {
         const cam = getGaitCamera(camId);
-        return Boolean(cam && cam.status === 'ACTIVE');
+        return Boolean(cam && (cam.status === 'ACTIVE' || cam.status === 'connected'));
     };
 
     const handleToggleGaitWorker = async (cam) => {
         setActionLoading(prev => ({ ...prev, [cam.id]: true }));
+        setActionErrors(prev => ({ ...prev, [cam.id]: null }));
         setActionFeedback(null);
         try {
             if (isGaitWorkerActive(cam.id)) {
                 await stopCamera(cam.id);
-                setActionFeedback({ type: 'success', message: `Gait AI Worker stopped for camera [${cam.id}]` });
+                setActionFeedback({ type: 'success', message: `Camera worker [${cam.id}] stopped.` });
             } else {
-                // If IP is configured, use rtsp source, otherwise use auto-source identifier
-                const source = cam.ip ? `rtsp://${cam.ip}:554/live` : 'auto';
-                await startCamera(cam.id, source, cam.name, cam.zoneId || activeZoneId);
+                // Auto-resolve source: use explicit cam.source if present; otherwise default to 'auto'
+                const source = (cam.source && String(cam.source).trim() !== '')
+                    ? String(cam.source).trim()
+                    : 'auto';
+                const res = await startCamera(cam.id, source, cam.name, cam.zoneId || activeZoneId);
+                const detectedType = (res?.source_type === 'webcam' || res?.resolved_source_type === 'webcam' || res?.resolved_source_type === 'usb') ? 'Webcam' : 'RTSP';
                 setActionFeedback({
                     type: 'success',
-                    message: `Gait AI Worker started for [${cam.id}] ${cam.name}`
+                    message: `Camera [${cam.id}] connected (Auto-detected Source: ${detectedType})`
                 });
             }
         } catch (err) {
-            setActionFeedback({ type: 'error', message: `Gait Worker Action Failed: ${err.message}` });
+            console.error(`Camera action failed for ${cam.id}:`, err);
+            const userMsg = err.message || 'Unable to connect to camera source';
+            setActionErrors(prev => ({ ...prev, [cam.id]: userMsg }));
+            setActionFeedback({ type: 'error', message: `Camera Connection Failed: ${userMsg}` });
         } finally {
             setActionLoading(prev => ({ ...prev, [cam.id]: false }));
         }
@@ -299,7 +307,7 @@ const CctvNetwork = ({ isAdmin = false }) => {
             ip: `192.168.${Math.floor(10 + Math.random() * 80)}.${Math.floor(10 + Math.random() * 240)}`,
             status: 'ONLINE'
         });
-        setActionFeedback({ type: 'success', message: `Node ${newCamObj.id} deployed to ${activeZone.name}` });
+        setActionFeedback({ type: 'success', message: `Node ${newCamObj.id} deployed to ${activeZone.name}. Source will be auto-detected on connect.` });
     };
 
     const streamEvents = selectedCamStream
@@ -344,7 +352,7 @@ const CctvNetwork = ({ isAdmin = false }) => {
                             <span>CCTV Zones & Live Camera Stream</span>
                         </h1>
                         <p style={{ margin: '4px 0 0 0', fontSize: '0.9rem', color: 'rgba(255,255,255,0.6)' }}>
-                            Real-time ByGaitLight & UNet biometric surveillance network and automated event telemetry
+                            Real-time ByGaitLight & UNet biometric surveillance network with automatic camera-source detection
                         </p>
                     </div>
                     <div className="nav-stats-pills" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
@@ -447,21 +455,66 @@ const CctvNetwork = ({ isAdmin = false }) => {
                     <div className="cameras-grid">
                         {activeZoneCameras.length === 0 ? (
                             <div style={{ color: '#888', padding: '2rem 0' }}>
-                                No surveillance nodes currently deployed in this sector. Use "Deploy CCTV Node" to add simulated hardware.
+                                No surveillance nodes currently deployed in this sector. Use "Deploy CCTV Node" to add camera hardware.
                             </div>
                         ) : (
                             activeZoneCameras.map((cam) => {
                                 const gaitCam = getGaitCamera(cam.id);
-                                const workerActive = Boolean(gaitCam && gaitCam.status === 'ACTIVE');
-                                const loading = actionLoading[cam.id];
+                                const loading = Boolean(actionLoading[cam.id]);
+                                const error = actionErrors[cam.id];
+
+                                // Connected requires worker to be active, connected, and capturing frames
+                                const isConnected = Boolean(gaitCam && (gaitCam.status === 'ACTIVE' || gaitCam.status === 'connected') && (gaitCam.processed_frames > 0 || (gaitCam.fps && gaitCam.fps > 0)));
+                                const workerActive = Boolean(gaitCam && (gaitCam.status === 'ACTIVE' || gaitCam.status === 'connected'));
+
+                                // Active source type ONLY when isConnected is true and source_type exists
+                                const rawSourceType = isConnected ? (gaitCam?.source_type || gaitCam?.resolved_source_type || null) : null;
+                                const isWebcam = rawSourceType ? (String(rawSourceType).toLowerCase() === 'webcam' || String(rawSourceType).toLowerCase() === 'usb') : false;
+                                const detectedSourceLabel = rawSourceType ? (isWebcam ? 'Webcam' : 'RTSP') : null;
+
+                                // State Machine for connection status
+                                let statusLabel = 'Standby';
+                                let statusColor = 'var(--text-muted)';
+                                let statusDotColor = '#888';
+
+                                if (loading) {
+                                    statusLabel = 'Connecting...';
+                                    statusColor = '#00E5FF';
+                                    statusDotColor = '#00E5FF';
+                                } else if (isConnected) {
+                                    statusLabel = 'Connected';
+                                    statusColor = '#06D6A0';
+                                    statusDotColor = '#06D6A0';
+                                } else if (error) {
+                                    statusLabel = 'Connection Failed';
+                                    statusColor = '#FF6B6B';
+                                    statusDotColor = '#FF6B6B';
+                                } else if (cam.status === 'OFFLINE') {
+                                    statusLabel = 'Disconnected';
+                                    statusColor = 'var(--text-muted)';
+                                    statusDotColor = '#888';
+                                } else {
+                                    statusLabel = 'Standby';
+                                    statusColor = 'var(--text-muted)';
+                                    statusDotColor = '#888';
+                                }
 
                                 return (
                                     <div key={cam.id} className="cctv-camera-card">
                                         <div className="cam-card-header">
-                                            <span className="cam-id-tag">{cam.id}</span>
-                                            <span className="cam-status-indicator" style={{ color: workerActive ? '#00E5FF' : '#4CAF50' }}>
-                                                <span className="status-dot" style={{ background: workerActive ? '#00E5FF' : '#4CAF50' }}></span>
-                                                {workerActive ? 'LIVE STREAM ACTIVE' : (cam.status || 'CONFIGURED NODE')}
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <span className="cam-id-tag">{cam.id}</span>
+                                                {/* Source badge ONLY rendered when connected with active source */}
+                                                {isConnected && detectedSourceLabel && (
+                                                    <span className={`cam-source-badge ${isWebcam ? 'source-webcam' : 'source-rtsp'}`}>
+                                                        {isWebcam ? <Video size={12} /> : <Radio size={12} />}
+                                                        Source: {detectedSourceLabel}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <span className="cam-status-indicator" style={{ color: statusColor }}>
+                                                <span className="status-dot" style={{ background: statusDotColor }}></span>
+                                                Status: {statusLabel}
                                             </span>
                                         </div>
 
@@ -477,6 +530,21 @@ const CctvNetwork = ({ isAdmin = false }) => {
                                             />
 
                                             <div className="cam-specs-list">
+                                                {/* Source row ONLY shown when connected with active source */}
+                                                {isConnected && detectedSourceLabel && (
+                                                    <div className="spec-row">
+                                                        <span>Source</span>
+                                                        <span className="spec-val" style={{ color: isWebcam ? '#00E5FF' : '#5CE1E6', fontWeight: 700 }}>
+                                                            {detectedSourceLabel} {gaitCam?.resolved_source_label ? `(${gaitCam.resolved_source_label})` : ''}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                                <div className="spec-row">
+                                                    <span>Status</span>
+                                                    <span className="spec-val" style={{ color: statusColor, fontWeight: 700 }}>
+                                                        {statusLabel}
+                                                    </span>
+                                                </div>
                                                 <div className="spec-row">
                                                     <span>Resolution / Stream</span>
                                                     <span className="spec-val">{cam.resolution}</span>
@@ -489,8 +557,8 @@ const CctvNetwork = ({ isAdmin = false }) => {
                                                 </div>
                                                 <div className="spec-row">
                                                     <span>Backend Worker</span>
-                                                    <span className="spec-val" style={{ color: workerActive ? '#06D6A0' : 'var(--text-muted)' }}>
-                                                        {workerActive ? `🟢 Active (${gaitCam?.fps || 15} FPS)` : '⚪ Standby'}
+                                                    <span className="spec-val" style={{ color: isConnected ? '#06D6A0' : 'var(--text-muted)' }}>
+                                                        {isConnected ? `🟢 Active (${gaitCam?.fps || 15} FPS)` : (loading ? '🟡 Connecting...' : '⚪ Standby')}
                                                     </span>
                                                 </div>
                                             </div>
@@ -588,9 +656,10 @@ const CctvNetwork = ({ isAdmin = false }) => {
                             <div style={{ fontSize: '0.9rem', lineHeight: '1.6', color: 'var(--text-secondary)' }}>
                                 <div><strong>Landmark Installation:</strong> {selectedCamStream.name}</div>
                                 <div><strong>Assigned Sector:</strong> {activeZone.name}</div>
-                                <div><strong>Hardware IP Endpoint:</strong> <code>{selectedCamStream.ip}</code></div>
+                                <div><strong>Detected Source:</strong> <span style={{ color: isGaitWorkerActive(selectedCamStream.id) && getGaitCamera(selectedCamStream.id)?.source_type ? '#00E5FF' : 'var(--text-muted)', fontWeight: 700 }}>{isGaitWorkerActive(selectedCamStream.id) && getGaitCamera(selectedCamStream.id)?.source_type ? String(getGaitCamera(selectedCamStream.id)?.source_type || '').toUpperCase() : 'STANDBY (NOT CONNECTED)'}</span></div>
+                                <div><strong>Hardware Source Endpoint:</strong> <code>{isGaitWorkerActive(selectedCamStream.id) ? (getGaitCamera(selectedCamStream.id)?.source || selectedCamStream.ip || 'Auto-Detected Device') : 'Standby'}</code></div>
                                 <div><strong>Exact GPS Placement:</strong> <code>{selectedCamStream.lat ? selectedCamStream.lat.toFixed(4) : '0.0000'}, {selectedCamStream.lng ? selectedCamStream.lng.toFixed(4) : '0.0000'}</code></div>
-                                <div><strong>Backend Worker State:</strong> <code>{isGaitWorkerActive(selectedCamStream.id) ? 'ACTIVE' : 'INACTIVE'}</code></div>
+                                <div><strong>Connection Status:</strong> <code style={{ color: isGaitWorkerActive(selectedCamStream.id) ? '#06D6A0' : '#888' }}>{isGaitWorkerActive(selectedCamStream.id) ? 'CONNECTED (ACTIVE)' : 'STANDBY'}</code></div>
                                 <div><strong>Active Stream Consumers:</strong> <code>{getGaitCamera(selectedCamStream.id)?.active_clients ?? 0}</code></div>
                             </div>
                         </div>

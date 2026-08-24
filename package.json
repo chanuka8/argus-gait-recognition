@@ -1,0 +1,14 @@
+{
+  "name": "argus-ai",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/dev.js",
+    "dev:frontend": "npm --prefix frontend run dev:frontend",
+    "build": "npm --prefix frontend run build",
+    "lint": "npm --prefix frontend run lint",
+    "preview": "npm --prefix frontend run preview"
+  },
+  "description": "ARGUS AI - Gait Recognition and Intelligent CCTV Surveillance ML System"
+}

@@ -338,7 +338,8 @@ class GaitService:
         )
 
         resolved_source = resolution["resolved_source"]
-        resolved_type = resolution["resolved_source_type"]
+        resolved_type = resolution.get("resolved_source_type") or resolution.get("source_type") or "webcam"
+        source_type = "webcam" if resolved_type in ("usb", "webcam", "local") else ("rtsp" if resolved_type == "rtsp" else resolved_type)
         resolved_label = resolution["resolved_source_label"]
         res_cred_id = resolution.get("credential_id")
         res_cred_conf = resolution.get("credential_configured", False)
@@ -350,9 +351,9 @@ class GaitService:
         camera_defaults = self._load_camera_config()
         worker_cfg = {
             **camera_defaults,
-            "type": resolved_type,
-            "url": resolved_source if resolved_type != "usb" else "",
-            "device_index": int(resolved_source) if resolved_type == "usb" else 0,
+            "type": source_type,
+            "url": resolved_source if source_type != "webcam" else "",
+            "device_index": int(resolved_source) if source_type == "webcam" and str(resolved_source).isdigit() else 0,
         }
 
         # Initialize decoupled real-time recognition worker
@@ -386,7 +387,7 @@ class GaitService:
         started = worker.start()
         if not started:
             self.source_resolver.release_source_by_camera_id(camera_id)
-            raise RuntimeError(f"Failed to open video capture for {sanitized_source} ({camera_id})")
+            raise RuntimeError(f"Unable to establish stream connection for {sanitized_source} ({camera_id}): failed to capture video frames")
 
         self.camera_workers[camera_id] = worker
 
@@ -397,6 +398,7 @@ class GaitService:
             "camera_id": camera_id,
             "zone_id": zone_id,
             "source": sanitized_source,
+            "source_type": source_type,
             "location": location,
             "status": "ACTIVE",
             "fps": round(stats.get("fps", 0.0), 1),
@@ -405,7 +407,7 @@ class GaitService:
             "recognition_active": stats.get("recognition_active", False),
             "requested_source": sanitize_rtsp_url(source),
             "resolved_source": sanitized_source,
-            "resolved_source_type": resolved_type,
+            "resolved_source_type": source_type,
             "resolved_source_label": sanitize_rtsp_url(resolved_label),
             "preview_url": f"/api/v1/cameras/{camera_id}/stream",
             "started_at": datetime.now(timezone.utc).isoformat(),
@@ -415,7 +417,7 @@ class GaitService:
             "credential_configured": res_cred_conf,
         }
         self.active_cameras[camera_id] = cam_info
-        self.logger.info(f"Camera worker {camera_id} active with {sanitize_rtsp_url(resolved_label)}")
+        self.logger.info(f"Camera worker {camera_id} active with {sanitize_rtsp_url(resolved_label)} [type={source_type}]")
         return cam_info
 
     def stop_camera(self, camera_id: str) -> bool:
@@ -455,6 +457,8 @@ class GaitService:
             cam["recognized_identities"] = stats.get("recognized_identities", [])
             cam["preview_url"] = f"/api/v1/cameras/{camera_id}/stream"
             cam["last_frame_at"] = stats.get("last_frame_at")
+            cam["source_type"] = cam.get("source_type") or stats.get("source_type", "webcam")
+            cam["status"] = "ACTIVE" if worker.is_running() and worker.is_connected() else ("ACTIVE" if worker.is_running() else "STOPPED")
         return cam
 
     def list_all_cameras(self) -> List[dict]:

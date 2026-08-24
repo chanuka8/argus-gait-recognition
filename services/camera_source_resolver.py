@@ -6,6 +6,7 @@ and HTTP streams) for surveillance zones with thread-safe resource
 reservation and credential-safe logging.
 """
 
+import sys
 import threading
 from typing import Any, Dict, List, Optional
 
@@ -121,7 +122,7 @@ class CameraSourceResolver:
 
     def probe_usb_webcam(self, device_index: int) -> bool:
         """
-        Probe whether a local USB webcam is connected and readable.
+        Probe whether a local camera (built-in, integrated, or USB) is connected and readable.
 
         The camera is opened temporarily, tested using one frame, and
         released safely.
@@ -134,7 +135,17 @@ class CameraSourceResolver:
         capture = None
 
         try:
-            capture = cv2.VideoCapture(device_index)
+            if sys.platform == "win32":
+                capture = cv2.VideoCapture(device_index, cv2.CAP_DSHOW)
+                if not capture.isOpened():
+                    if capture is not None:
+                        try:
+                            capture.release()
+                        except Exception:
+                            pass
+                    capture = cv2.VideoCapture(device_index)
+            else:
+                capture = cv2.VideoCapture(device_index)
 
             if not capture.isOpened():
                 return False
@@ -149,7 +160,7 @@ class CameraSourceResolver:
 
         except Exception as exc:
             self._logger.debug(
-                f"USB probe failed for index {device_index}: {exc}"
+                f"Local camera probe failed for index {device_index}: {exc}"
             )
             return False
 
@@ -159,9 +170,10 @@ class CameraSourceResolver:
                     capture.release()
                 except Exception as exc:
                     self._logger.debug(
-                        f"USB probe release failed for index "
+                        f"Local camera probe release failed for index "
                         f"{device_index}: {exc}"
                     )
+                capture = None
 
     def probe_stream(self, url: str) -> bool:
         """
@@ -218,12 +230,17 @@ class CameraSourceResolver:
         credential_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
-        Resolve an available camera source with user-scoped credential resolution.
+        Resolve an available camera source automatically with deterministic hardware and stream probing.
 
         Priority:
-        1. Explicitly requested source (USB index, RTSP/HTTP URL, or URL + credential_id).
-        2. Free local USB webcam (0..max_usb_scan-1).
-        3. Free registered RTSP/HTTP CCTV streams from configs/cameras.yaml.
+        1. Explicitly requested source:
+           - Numeric device index / 'webcam' / 'usb' -> Local Webcam ('webcam')
+           - RTSP URL ('rtsp://...') or IP address -> RTSP Stream ('rtsp')
+           - HTTP/HTTPS URL -> HTTP Stream ('http')
+        2. 'auto' or empty source:
+           - Priority 1: Free local Webcam device index (0..max_usb_scan-1)
+           - Priority 2: Free registered RTSP/HTTP CCTV stream from configs/cameras.yaml
+        3. If no usable source is found, raises RuntimeError with clear user message.
 
         Args:
             camera_id: Unique camera identifier.
@@ -239,23 +256,49 @@ class CameraSourceResolver:
         resolved_credential_id = credential_id
 
         # ---------------------------------------------------------------
-        # Explicit source requested
+        # 1. Explicit source requested
         # ---------------------------------------------------------------
         if requested_source and requested_source.strip().lower() != "auto":
-            normalized = normalize_camera_source(requested_source)
+            clean_req = str(requested_source).strip()
+            normalized = normalize_camera_source(clean_req)
 
             if isinstance(normalized, int):
                 source_key = f"usb:{normalized}"
-                source_type = "usb"
+                source_type = "webcam"
+                resolved_source_type = "usb"
                 label = f"USB Webcam {normalized}"
+
+                with self._lock:
+                    existing_camera_id = self._reserved_sources.get(source_key)
+                    if (
+                        existing_camera_id is not None
+                        and existing_camera_id != camera_id
+                    ):
+                        raise RuntimeError(
+                            f"Requested USB device {normalized} is already in use by active worker {existing_camera_id}"
+                        )
+
                 internal_source = str(normalized)
                 safe_presentation_source = str(normalized)
 
             else:
-                normalized_str = str(normalized)
-                source_type = "rtsp" if normalized_str.lower().startswith("rtsp://") else "http"
+                normalized_str = str(normalized).strip()
+                # Check if it's an IP address or hostname or stream URL
+                if normalized_str.lower().startswith("rtsp://"):
+                    raw_url = normalized_str
+                    source_type = "rtsp"
+                elif normalized_str.lower().startswith("http://") or normalized_str.lower().startswith("https://"):
+                    raw_url = normalized_str
+                    source_type = "http"
+                else:
+                    # Auto-detect IP / host as RTSP
+                    source_type = "rtsp"
+                    if ":" in normalized_str or "/" in normalized_str:
+                        raw_url = f"rtsp://{normalized_str}"
+                    else:
+                        raw_url = f"rtsp://{normalized_str}:554/live"
 
-                extracted_user, extracted_pass, clean_url = extract_rtsp_credentials(normalized_str)
+                extracted_user, extracted_pass, clean_url = extract_rtsp_credentials(raw_url)
 
                 if extracted_pass:
                     # Explicit URL has embedded credentials: extract and store in secure store
@@ -271,7 +314,7 @@ class CameraSourceResolver:
                     internal_source = build_rtsp_url(clean_url, extracted_user, extracted_pass)
                     safe_presentation_source = clean_url
                     source_key = f"stream:{clean_url}"
-                    label = f"{source_type.upper()} Stream {sanitize_rtsp_url(normalized_str)}"
+                    label = f"{source_type.upper()} Stream {sanitize_rtsp_url(raw_url)}"
 
                 elif resolved_credential_id:
                     # User referenced a stored credential_id
@@ -297,23 +340,27 @@ class CameraSourceResolver:
 
                 else:
                     # Clean URL without credentials
-                    internal_source = normalized_str
-                    safe_presentation_source = normalized_str
-                    source_key = f"stream:{normalized_str}"
-                    label = f"{source_type.upper()} Stream {sanitize_rtsp_url(normalized_str)}"
+                    internal_source = raw_url
+                    safe_presentation_source = clean_url
+                    source_key = f"stream:{clean_url}"
+                    label = f"{source_type.upper()} Stream {sanitize_rtsp_url(clean_url)}"
+
+                resolved_source_type = source_type
+                with self._lock:
+                    existing_camera_id = self._reserved_sources.get(source_key)
+                    if existing_camera_id is not None and existing_camera_id != camera_id:
+                        raise RuntimeError(
+                            f"Requested source {label} is already in use by active worker {existing_camera_id}"
+                        )
 
             with self._lock:
-                existing_camera_id = self._reserved_sources.get(source_key)
-                if existing_camera_id is not None and existing_camera_id != camera_id:
-                    raise RuntimeError(
-                        f"Requested source {label} is already in use by active worker {existing_camera_id}"
-                    )
                 self._reserved_sources[source_key] = camera_id
 
             return {
                 "source": safe_presentation_source,
+                "source_type": source_type,
                 "resolved_source": internal_source,
-                "resolved_source_type": source_type,
+                "resolved_source_type": resolved_source_type,
                 "resolved_source_label": label,
                 "source_key": source_key,
                 "credential_id": resolved_credential_id,
@@ -321,7 +368,7 @@ class CameraSourceResolver:
             }
 
         # ---------------------------------------------------------------
-        # Priority 1: Free local USB webcams
+        # 2. Priority 1: Free local USB / Webcams
         # ---------------------------------------------------------------
         for dev_idx in range(max_usb_scan):
             source_key = f"usb:{dev_idx}"
@@ -337,10 +384,11 @@ class CameraSourceResolver:
                     continue
                 self._reserved_sources[source_key] = camera_id
 
-            self._logger.info(f"Auto-resolved USB Webcam {dev_idx} for camera {camera_id}")
+            self._logger.info(f"Auto-detected Local Webcam {dev_idx} for camera {camera_id}")
 
             return {
                 "source": str(dev_idx),
+                "source_type": "webcam",
                 "resolved_source": str(dev_idx),
                 "resolved_source_type": "usb",
                 "resolved_source_label": f"USB Webcam {dev_idx}",
@@ -350,7 +398,7 @@ class CameraSourceResolver:
             }
 
         # ---------------------------------------------------------------
-        # Priority 2: Registered RTSP/HTTP CCTV streams
+        # 3. Priority 2: Registered RTSP/HTTP CCTV streams
         # ---------------------------------------------------------------
         for cam_cfg in self._registered_cameras:
             if not cam_cfg.get("enabled", True):
@@ -397,19 +445,20 @@ class CameraSourceResolver:
             cam_name = str(cam_cfg.get("name", "RTSP Camera"))
             source_type = "rtsp" if raw_url.lower().startswith("rtsp://") else "http"
 
-            self._logger.info(f"Auto-resolved {cam_name} ({safe_url}) for camera {camera_id}")
+            self._logger.info(f"Auto-detected RTSP stream for {cam_name} ({safe_url}) for camera {camera_id}")
 
             return {
                 "source": clean_url,
+                "source_type": source_type,
                 "resolved_source": internal_url,
                 "resolved_source_type": source_type,
-                "resolved_source_label": f"{source_type.upper()} CCTV {cam_name} ({safe_url})",
+                "resolved_source_label": f"{source_type.upper()} Stream {cam_name} ({safe_url})",
                 "source_key": source_key,
                 "credential_id": cam_cred_id,
                 "credential_configured": bool(cam_cred_id or clean_pass),
             }
 
         # ---------------------------------------------------------------
-        # No physical source available
+        # 4. No physical source available
         # ---------------------------------------------------------------
-        raise RuntimeError("No free connected or registered camera source is available.")
+        raise RuntimeError("Unable to detect camera source: No connected local webcam or reachable RTSP stream found.")

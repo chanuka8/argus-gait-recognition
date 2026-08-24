@@ -1,3 +1,4 @@
+import sys
 import threading
 import time
 from datetime import datetime, timezone
@@ -22,6 +23,14 @@ def normalize_camera_source(source) -> int | str:
     if normalized.isdigit():
         return int(normalized)
 
+    lower = normalized.lower()
+    if lower.startswith("webcam:") or lower.startswith("usb:"):
+        parts = lower.split(":", 1)
+        if len(parts) > 1 and parts[1].strip().isdigit():
+            return int(parts[1].strip())
+    if lower in ("webcam", "usb"):
+        return 0
+
     return normalized
 
 
@@ -45,9 +54,20 @@ class CameraWorker:
         self._logger = get_logger(f"camera.{camera_id}")
         self._renderer = DetectionDisplayRenderer(load_display_config())
 
-        self._source_type = camera_config.get("type", "usb")
+        raw_type = str(camera_config.get("type") or camera_config.get("source_type") or "webcam").lower()
+        if raw_type in ("usb", "webcam", "local", "device"):
+            self._source_type = "webcam"
+        elif raw_type == "rtsp":
+            self._source_type = "rtsp"
+        elif raw_type == "http":
+            self._source_type = "http"
+        elif raw_type == "file":
+            self._source_type = "file"
+        else:
+            self._source_type = "webcam"
+
         self._url = camera_config.get("url", "")
-        self._device_index = int(camera_config.get("device_index", 0))
+        self._device_index = int(normalize_camera_source(camera_config.get("device_index", 0)))
         self._width = max(16, int(camera_config.get("width", 640)))
         self._height = max(16, int(camera_config.get("height", 480)))
         self._target_fps = max(0, int(camera_config.get("target_fps", 15)))
@@ -75,6 +95,7 @@ class CameraWorker:
         self._recognized_identities: list[str] = []
 
         self.stats = {
+            "source_type": self._source_type,
             "frames_captured": 0,
             "frames_dropped": 0,
             "fps": 0.0,
@@ -109,8 +130,11 @@ class CameraWorker:
             if not file_path:
                 raise ValueError(f"Camera {self.camera_id}: Video file path is empty")
             return file_path
-        else:
-            return normalize_camera_source(self.config.get("device_index", self._device_index))
+        else:  # webcam
+            source_val = self.config.get("device_index")
+            if source_val is None:
+                source_val = self.config.get("source", self._device_index)
+            return normalize_camera_source(source_val)
 
     def _wait_for_first_frame(self, safe_source: str) -> bool:
         """Wait for the first valid frame with bounded retry.
@@ -182,7 +206,22 @@ class CameraWorker:
             safe_source = sanitize_rtsp_url(str(source))
             self._logger.info(f"Opening camera source: {safe_source}")
 
-            self._capture = cv2.VideoCapture(source)
+            if isinstance(source, int) or (isinstance(source, str) and source.isdigit()):
+                dev_idx = int(source)
+                if sys.platform == "win32":
+                    self._capture = cv2.VideoCapture(dev_idx, cv2.CAP_DSHOW)
+                    if not self._capture.isOpened():
+                        self._logger.debug(f"DirectShow open failed for index {dev_idx}, falling back to default backend")
+                        if self._capture is not None:
+                            try:
+                                self._capture.release()
+                            except Exception:
+                                pass
+                        self._capture = cv2.VideoCapture(dev_idx)
+                else:
+                    self._capture = cv2.VideoCapture(dev_idx)
+            else:
+                self._capture = cv2.VideoCapture(source)
 
             if not self._capture.isOpened():
                 self._logger.error(f"Failed to open camera source: {safe_source}")

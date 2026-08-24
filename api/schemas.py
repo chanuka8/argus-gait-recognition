@@ -73,6 +73,7 @@ class CameraStopRequest(BaseModel):
 class CameraInfoResponse(BaseModel):
     camera_id: str
     source: str
+    source_type: Optional[str] = "webcam"
     location: str
     status: str
     fps: float = 0.0
@@ -120,8 +121,22 @@ class CredentialShareRequest(BaseModel):
     target_user_id: str
 
 
+class EnrollRequest(BaseModel):
+    folder_path: str
+
+
 class EnrollResponse(BaseModel):
     success: bool
     person_id: str
     message: str
     embeddings_added: int
+
+
+class IdentifyRequest(BaseModel):
+    image_path: str
+
+
+class IdentifyResponse(BaseModel):
+    identity: str
+    score: float
+

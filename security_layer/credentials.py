@@ -27,9 +27,11 @@ def sanitize_rtsp_url(url: Optional[str]) -> str:
     """Mask RTSP username and password in any URL or error string for secure logging."""
     if not url or not isinstance(url, str):
         return ""
-    # Matches rtsp://[user]:[pass]@[host...]
-    pattern = r"(rtsp://)([^:@\s]+):([^@\s]+)@"
-    return re.sub(pattern, r"\1***:***@", url, flags=re.IGNORECASE)
+    # Matches rtsp://[user]:[pass]@[host...] including special characters in passwords
+    pattern = r"(rtsp://)([^:\s]+):(.+)@([^/\s]+(?::\d+)?(?:/[^\s]*)?)"
+    def _repl(m):
+        return f"{m.group(1)}***:***@{m.group(4)}"
+    return re.sub(pattern, _repl, url, flags=re.IGNORECASE)
 
 
 def extract_rtsp_credentials(url: str) -> Tuple[Optional[str], Optional[str], str]:
@@ -42,7 +44,7 @@ def extract_rtsp_credentials(url: str) -> Tuple[Optional[str], Optional[str], st
     if not url or not isinstance(url, str):
         return None, None, ""
 
-    match = re.search(r"rtsp://([^:@\s]+):([^@\s]+)@(.+)", url, flags=re.IGNORECASE)
+    match = re.search(r"rtsp://([^:\s]+):(.+)@([^/\s]+(?::\d+)?(?:/.*)?)$", url, flags=re.IGNORECASE)
     if match:
         user = unquote(match.group(1))
         passwd = unquote(match.group(2))
