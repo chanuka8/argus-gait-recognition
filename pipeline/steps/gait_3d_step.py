@@ -35,7 +35,8 @@ class Gait3DStep:
         self.enabled = enabled
         self.sequence_length = sequence_length
         self.conf_threshold = conf_threshold
-        self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+        from automation.device_manager import DeviceManager
+        self.device = DeviceManager.get_instance().resolve_component_device(device)
 
         self.pose_estimator = None
         self.pose_lifter = None

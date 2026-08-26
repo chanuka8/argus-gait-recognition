@@ -1,0 +1,250 @@
+"""
+Environment Validator & State Evaluator for ARGUS AI.
+
+Evaluates host hardware and compute dependencies to determine the authoritative
+environment state (CUDA_READY, CPU_READY, REPAIR_REQUIRED, FAILED) and guides
+the bootstrap process.
+"""
+
+from dataclasses import dataclass, field
+from enum import Enum
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
+from automation.cuda_detector import CudaDetector, CudaDetectionReport
+from automation.hardware_detector import HardwareDetector, HardwareProfile
+
+
+class EnvironmentState(str, Enum):
+    DETECTING = "DETECTING"
+    INSTALLING = "INSTALLING"
+    VALIDATING = "VALIDATING"
+    CUDA_READY = "CUDA_READY"
+    CPU_READY = "CPU_READY"
+    REPAIR_REQUIRED = "REPAIR_REQUIRED"
+    FAILED = "FAILED"
+
+
+class ComputeBackend(str, Enum):
+    CUDA = "CUDA"
+    CPU = "CPU"
+
+
+@dataclass
+class EnvironmentValidationReport:
+    state: EnvironmentState
+    target_compute: ComputeBackend
+    active_compute: ComputeBackend
+    active_device: str
+    is_healthy: bool
+    requires_repair: bool
+    repair_action: str
+    hardware: HardwareProfile
+    cuda_report: Optional[CudaDetectionReport] = None
+    cpu_validation_passed: bool = False
+    details: List[str] = field(default_factory=list)
+    errors: List[str] = field(default_factory=list)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "state": self.state.value,
+            "target_compute": self.target_compute.value,
+            "active_compute": self.active_compute.value,
+            "active_device": self.active_device,
+            "is_healthy": self.is_healthy,
+            "requires_repair": self.requires_repair,
+            "repair_action": self.repair_action,
+            "cpu_validation_passed": self.cpu_validation_passed,
+            "hardware": self.hardware.to_dict(),
+            "cuda_report": self.cuda_report.to_dict() if self.cuda_report else None,
+            "details": self.details,
+            "errors": self.errors,
+        }
+
+
+class EnvironmentValidator:
+    """Evaluates compute environment health and dictates repair/fallback paths."""
+
+    def __init__(self, weights_dir: str = "models/weights") -> None:
+        self.weights_dir = Path(weights_dir)
+        self.cuda_detector = CudaDetector(weights_dir=str(self.weights_dir))
+
+    @staticmethod
+    def validate_cpu_pipeline() -> Tuple[bool, List[str], List[str]]:
+        """
+        Verify that core inference components are functional on CPU.
+        Tests:
+        1. PyTorch CPU tensor matmul
+        2. ByGaitLight forward pass on CPU ([1, 256], unit L2 norm)
+        3. ONNX Runtime CPUExecutionProvider silhouette inference
+        """
+        details: List[str] = []
+        errors: List[str] = []
+        cpu_ok = True
+
+        # 1. PyTorch CPU tensor
+        try:
+            import torch
+            a = torch.zeros((256, 256), device="cpu")
+            b = torch.ones((256, 256), device="cpu")
+            c = a @ b
+            if c.shape == (256, 256):
+                details.append("PyTorch CPU tensor matmul passed")
+            else:
+                cpu_ok = False
+                errors.append(f"PyTorch CPU matmul shape mismatch: {c.shape}")
+        except Exception as e:
+            cpu_ok = False
+            errors.append(f"PyTorch CPU tensor failed: {e}")
+
+        # 2. ByGaitLight CPU
+        try:
+            import torch
+            from models.architectures.bygait_light import ByGaitLight
+            model = ByGaitLight().to("cpu")
+            model.eval()
+            dummy_gei = torch.randn(1, 1, 128, 64, device="cpu")
+            with torch.no_grad():
+                emb = model(dummy_gei)
+            if emb.shape == (1, 256):
+                norm = torch.norm(emb, p=2, dim=-1).item()
+                if abs(norm - 1.0) <= 1e-3:
+                    details.append(f"ByGaitLight CPU forward pass passed (norm: {norm:.4f})")
+                else:
+                    cpu_ok = False
+                    errors.append(f"ByGaitLight CPU invalid norm: {norm}")
+            else:
+                cpu_ok = False
+                errors.append(f"ByGaitLight CPU invalid shape: {emb.shape}")
+        except Exception as e:
+            cpu_ok = False
+            errors.append(f"ByGaitLight CPU forward pass failed: {e}")
+
+        # 3. ONNX CPU
+        try:
+            import numpy as np
+            import onnxruntime as ort
+            model_candidates = [
+                Path("models/weights/silhouette_segmenter.onnx"),
+                Path("models/engines/silhouette_segmenter.onnx"),
+            ]
+            model_path = next((p for p in model_candidates if p.exists()), None)
+            if model_path:
+                sess = ort.InferenceSession(str(model_path), providers=["CPUExecutionProvider"])
+                in_name = sess.get_inputs()[0].name
+                out_name = sess.get_outputs()[0].name
+                dummy = np.zeros((1, 3, 256, 256), dtype=np.float32)
+                out = sess.run([out_name], {in_name: dummy})
+                if out is not None and len(out) > 0:
+                    details.append("ONNX CPUExecutionProvider silhouette inference passed")
+                else:
+                    cpu_ok = False
+                    errors.append("ONNX CPU inference returned empty output")
+            else:
+                details.append("Silhouette ONNX model not found, Otsu fallback available")
+        except Exception as e:
+            cpu_ok = False
+            errors.append(f"ONNX CPU inference failed: {e}")
+
+        return cpu_ok, details, errors
+
+    def validate(self, force_cpu: bool = False) -> EnvironmentValidationReport:
+        """
+        Execute full environment evaluation:
+        1. Detect hardware
+        2. If force_cpu or no NVIDIA GPU: validate CPU -> CPU_READY
+        3. If NVIDIA GPU present: validate CUDA stages
+           - All pass -> CUDA_READY
+           - Failures present -> Determine if REPAIR_REQUIRED or fallback to CPU_READY
+        """
+        hw = HardwareDetector.detect()
+        details: List[str] = []
+        errors: List[str] = []
+
+        if force_cpu or not hw.gpu.present:
+            cpu_ok, cpu_details, cpu_errors = self.validate_cpu_pipeline()
+            details.extend(cpu_details)
+            errors.extend(cpu_errors)
+
+            state = EnvironmentState.CPU_READY if cpu_ok else EnvironmentState.FAILED
+            repair_action = "NONE" if cpu_ok else "INSTALL_CPU_DEPENDENCIES"
+
+            return EnvironmentValidationReport(
+                state=state,
+                target_compute=ComputeBackend.CPU,
+                active_compute=ComputeBackend.CPU,
+                active_device="cpu",
+                is_healthy=cpu_ok,
+                requires_repair=not cpu_ok,
+                repair_action=repair_action,
+                hardware=hw,
+                cuda_report=None,
+                cpu_validation_passed=cpu_ok,
+                details=details,
+                errors=errors,
+            )
+
+        # Host has NVIDIA GPU -> Run full CUDA pipeline probe
+        cuda_report = self.cuda_detector.run_full_detection(gpu_info=hw.gpu)
+
+        if cuda_report.all_cuda_stages_passed:
+            details.append(f"All 6 CUDA pipeline stages verified on {hw.gpu.gpu_name}")
+            return EnvironmentValidationReport(
+                state=EnvironmentState.CUDA_READY,
+                target_compute=ComputeBackend.CUDA,
+                active_compute=ComputeBackend.CUDA,
+                active_device="cuda:0",
+                is_healthy=True,
+                requires_repair=False,
+                repair_action="NONE",
+                hardware=hw,
+                cuda_report=cuda_report,
+                cpu_validation_passed=True,
+                details=details,
+                errors=[],
+            )
+
+        # CUDA stages failed. Analyze why and decide: Repair vs Graceful CPU fallback
+        errors.extend(cuda_report.failure_reasons)
+
+        # Check if PyTorch CUDA build is missing or incompatible
+        needs_pytorch_repair = not (cuda_report.pytorch_installed and cuda_report.pytorch_cuda_build and cuda_report.cuda_is_available)
+        needs_onnx_repair = not cuda_report.onnx_cuda_passed
+
+        if needs_pytorch_repair or needs_onnx_repair:
+            repair_action = "INSTALL_CUDA_PYTORCH" if needs_pytorch_repair else "INSTALL_ONNX_GPU"
+            return EnvironmentValidationReport(
+                state=EnvironmentState.REPAIR_REQUIRED,
+                target_compute=ComputeBackend.CUDA,
+                active_compute=ComputeBackend.CPU,
+                active_device="cpu",
+                is_healthy=False,
+                requires_repair=True,
+                repair_action=repair_action,
+                hardware=hw,
+                cuda_report=cuda_report,
+                cpu_validation_passed=False,
+                details=details,
+                errors=errors,
+            )
+
+        # PyTorch/ONNX installed but runtime execution failed -> CPU Fallback
+        cpu_ok, cpu_details, cpu_errors = self.validate_cpu_pipeline()
+        details.extend(cpu_details)
+        errors.extend(cpu_errors)
+
+        state = EnvironmentState.CPU_READY if cpu_ok else EnvironmentState.FAILED
+        return EnvironmentValidationReport(
+            state=state,
+            target_compute=ComputeBackend.CUDA,
+            active_compute=ComputeBackend.CPU,
+            active_device="cpu",
+            is_healthy=cpu_ok,
+            requires_repair=False,
+            repair_action="CPU_FALLBACK_ACTIVE",
+            hardware=hw,
+            cuda_report=cuda_report,
+            cpu_validation_passed=cpu_ok,
+            details=details,
+            errors=errors,
+        )

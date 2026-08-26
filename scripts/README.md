@@ -18,7 +18,7 @@ This folder contains project maintenance, automation, development, validation, e
 | [benchmark_crowd_performance.py](benchmark_crowd_performance.py) | Performance Measurement Benchmark for Crowd Intelligence Features. | `python scripts/benchmark_crowd_performance.py` |
 | [benchmark_inference_backends.py](benchmark_inference_backends.py) | Inference Backend Performance and Parity Benchmark Script for ARGUS AI. | `python scripts/benchmark_inference_backends.py` |
 | [benchmark_silhouette_segmenters.py](benchmark_silhouette_segmenters.py) | Performance benchmark script for benchmark silhouette segmenters. | `python scripts/benchmark_silhouette_segmenters.py` |
-| [bootstrap_env.ps1](bootstrap_env.ps1) | ARGUS AI - Automated Environment Bootstrap & Repair with Real-Time Progress. | `powershell -ExecutionPolicy Bypass -File scripts/bootstrap_env.ps1` |
+| [bootstrap_env.ps1](bootstrap_env.ps1) | ARGUS AI - Production-Grade Automated Environment Bootstrap & Repair. | `powershell -ExecutionPolicy Bypass -File scripts/bootstrap_env.ps1` |
 | [build_gallery.py](build_gallery.py) | Utility script for build gallery. | `python scripts/build_gallery.py` |
 | [build_tensorrt_engine.py](build_tensorrt_engine.py) | Build TensorRT engine from ONNX model file and verify output parity. | `python scripts/build_tensorrt_engine.py` |
 | [clean_live_gallery.py](clean_live_gallery.py) | Clean contaminated identities from ARGUS live gallery | `python scripts/clean_live_gallery.py` |
@@ -88,7 +88,7 @@ This folder contains project maintenance, automation, development, validation, e
 | [benchmark_crowd_performance.py](benchmark_crowd_performance.py) | Development | No | No | No | No | Performance Measurement Benchmark for Crowd Intelligence ... |
 | [benchmark_inference_backends.py](benchmark_inference_backends.py) | Development | Yes | No | No | No | Inference Backend Performance and Parity Benchmark Script... |
 | [benchmark_silhouette_segmenters.py](benchmark_silhouette_segmenters.py) | Development | No | No | No | No | Performance benchmark script for benchmark silhouette seg... |
-| [bootstrap_env.ps1](bootstrap_env.ps1) | Environment | No | No | No | No | ARGUS AI - Automated Environment Bootstrap & Repair with ... |
+| [bootstrap_env.ps1](bootstrap_env.ps1) | Environment | No | No | No | No | ARGUS AI - Production-Grade Automated Environment Bootstr... |
 | [build_gallery.py](build_gallery.py) | Dataset | No | No | No | No | Utility script for build gallery. |
 | [build_tensorrt_engine.py](build_tensorrt_engine.py) | Conversion | Yes | No | No | No | Build TensorRT engine from ONNX model file and verify out... |
 | [clean_live_gallery.py](clean_live_gallery.py) | Dataset | Yes | No | No | No | Clean contaminated identities from ARGUS live gallery |
@@ -794,7 +794,7 @@ Development helper scripts run benchmarks, evaluations, training pipelines, and 
 - **[benchmark_crowd_performance.py](benchmark_crowd_performance.py)**: Performance Measurement Benchmark for Crowd Intelligence Features. (`python scripts/benchmark_crowd_performance.py`)
 - **[benchmark_inference_backends.py](benchmark_inference_backends.py)**: Inference Backend Performance and Parity Benchmark Script for ARGUS AI. (`python scripts/benchmark_inference_backends.py`)
 - **[benchmark_silhouette_segmenters.py](benchmark_silhouette_segmenters.py)**: Performance benchmark script for benchmark silhouette segmenters. (`python scripts/benchmark_silhouette_segmenters.py`)
-- **[bootstrap_env.ps1](bootstrap_env.ps1)**: ARGUS AI - Automated Environment Bootstrap & Repair with Real-Time Progress. (`powershell -ExecutionPolicy Bypass -File scripts/bootstrap_env.ps1`)
+- **[bootstrap_env.ps1](bootstrap_env.ps1)**: ARGUS AI - Production-Grade Automated Environment Bootstrap & Repair. (`powershell -ExecutionPolicy Bypass -File scripts/bootstrap_env.ps1`)
 - **[detect_environment.py](detect_environment.py)**: ARGUS AI Hardware & Compute Environment Detector CLI. (`python scripts/detect_environment.py`)
 - **[doctor.py](doctor.py)**: ARGUS AI Non-Destructive Deployment Health Checker CLI (doctor.py). (`python scripts/doctor.py`)
 - **[download_package.py](download_package.py)**: ARGUS AI Real-Time Package & Large File Streaming Downloader. (`python scripts/download_package.py`)
@@ -836,7 +836,7 @@ Development helper scripts run benchmarks, evaluations, training pipelines, and 
 | `python scripts/benchmark_crowd_performance.py` | Performance Measurement Benchmark for Crowd Intelligence Features. |
 | `python scripts/benchmark_inference_backends.py` | Inference Backend Performance and Parity Benchmark Script for ARGUS... |
 | `python scripts/benchmark_silhouette_segmenters.py` | Performance benchmark script for benchmark silhouette segmenters. |
-| `powershell -ExecutionPolicy Bypass -File scripts/bootstrap_env.ps1` | ARGUS AI - Automated Environment Bootstrap & Repair with Real-Time ... |
+| `powershell -ExecutionPolicy Bypass -File scripts/bootstrap_env.ps1` | ARGUS AI - Production-Grade Automated Environment Bootstrap & Repair. |
 | `python scripts/build_gallery.py` | Utility script for build gallery. |
 | `python scripts/build_tensorrt_engine.py` | Build TensorRT engine from ONNX model file and verify output parity. |
 | `python scripts/clean_live_gallery.py` | Clean contaminated identities from ARGUS live gallery |

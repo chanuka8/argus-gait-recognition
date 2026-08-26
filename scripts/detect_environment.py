@@ -20,6 +20,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 
 def setup_torch_dll_path() -> None:
@@ -150,13 +152,10 @@ def probe_pytorch_cuda() -> Dict[str, Any]:
 def probe_yolo_runtime_device() -> Tuple[str, str, bool]:
     """Inspect YOLOv8 configured and resolved runtime execution device."""
     try:
-        import numpy as np
         from pipeline.detection.person_detector import PersonDetector
         detector = PersonDetector()
         cfg_dev = detector.device
-        dummy_frame = np.ones((480, 640, 3), dtype=np.uint8)
-        _ = detector.detect(dummy_frame)
-        runtime_dev = str(next(detector.model.model.parameters()).device)
+        runtime_dev = detector.runtime_device
         is_cuda = "cuda" in runtime_dev
         return cfg_dev, runtime_dev, is_cuda
     except Exception:

@@ -5,6 +5,7 @@ import numpy as np
 import yaml
 from ultralytics import YOLO
 
+from automation.device_manager import DeviceManager
 from monitoring.logging_config import get_logger
 
 
@@ -25,9 +26,11 @@ class PersonDetector:
         raw_classes = self.config.get("classes", [0])
         self.classes = list(raw_classes) if isinstance(raw_classes, list) else [0]
 
-        self.device = str(self.config.get("device", "cpu")).lower()
-        if self.device not in {"cpu", "cuda", "0", "1", "auto"}:
-            self.device = "cpu"
+        raw_device = str(self.config.get("device", "auto")).lower()
+        if raw_device not in {"cpu", "cuda", "cuda:0", "0", "1", "auto"}:
+            raw_device = "auto"
+        self.device = raw_device
+        self.runtime_device = DeviceManager.get_instance().resolve_component_device(self.device)
 
         raw_imgsz = self.config.get("img_size", 640)
         self.img_size = int(raw_imgsz) if isinstance(raw_imgsz, int) and raw_imgsz > 0 else 640
@@ -36,6 +39,12 @@ class PersonDetector:
             self.model = YOLO(str(model_path))
         else:
             self.model = YOLO("yolov8n.pt")
+
+        if self.runtime_device:
+            try:
+                self.model.to(self.runtime_device)
+            except Exception:
+                pass
 
     @staticmethod
     def _load_config(config_path: str) -> dict:
@@ -74,8 +83,8 @@ class PersonDetector:
             "verbose": False,
             "imgsz": self.img_size,
         }
-        if self.device and self.device != "auto":
-            kwargs["device"] = self.device
+        if self.runtime_device:
+            kwargs["device"] = self.runtime_device
 
         with self.lock:
             results = self.model(

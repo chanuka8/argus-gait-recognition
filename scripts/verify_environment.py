@@ -132,12 +132,12 @@ def run_verification() -> bool:
         if is_cuda_avail:
             gpu_name = torch.cuda.get_device_name(0)
             pytorch_cuda_ready = True
-            print(f"  [ARGUS CUDA] Availability                    : PASS (True)")
+            print("  [ARGUS CUDA] Availability                    : PASS (True)")
             print(f"  [ARGUS CUDA] Device                          : {gpu_name}")
             print(f"  [ARGUS CUDA] Build                           : {cuda_build}")
-            print(f"  [ARGUS CUDA] Status                          : VERIFIED")
+            print("  [ARGUS CUDA] Status                          : VERIFIED")
         else:
-            print(f"  [ARGUS CUDA] Availability                    : FALSE (CPU Fallback)")
+            print("  [ARGUS CUDA] Availability                    : FALSE (CPU Fallback)")
     except Exception as err:
         print(f"  [ARGUS CUDA] Probe Error                     : FAIL ({err})")
         overall_pass = False
@@ -166,6 +166,7 @@ def run_verification() -> bool:
     print("\n[PHASE 4] Verifying ByGaitLight Gait Recognition CNN...")
     try:
         import torch
+
         from models.architectures.bygait_light import ByGaitLight
 
         device = "cuda" if is_cuda_avail else "cpu"
@@ -178,7 +179,7 @@ def run_verification() -> bool:
 
         if emb.shape == (1, 256):
             l2_norm = torch.norm(emb, p=2, dim=-1).item()
-            print(f"  [ARGUS MODEL] ByGaitLight Forward Pass       : PASS")
+            print("  [ARGUS MODEL] ByGaitLight Forward Pass       : PASS")
             print(f"  [ARGUS MODEL] Device                         : {device}:0" if device == "cuda" else f"  [ARGUS MODEL] Device                         : {device}")
             print(f"  [ARGUS MODEL] Output Shape                   : {list(emb.shape)}")
             print(f"  [ARGUS MODEL] L2 Norm                        : {l2_norm:.4f} (PASS)")
@@ -194,8 +195,9 @@ def run_verification() -> bool:
     yolo_cuda_ready = False
     yolo_runtime_dev = "cpu"
     try:
-        from pipeline.detection.person_detector import PersonDetector
         import numpy as np
+
+        from pipeline.detection.person_detector import PersonDetector
 
         detector = PersonDetector()
         cfg_device = detector.device
@@ -218,15 +220,15 @@ def run_verification() -> bool:
     onnx_selected_provider = "CPUExecutionProvider"
 
     try:
-        import onnxruntime as ort
         import numpy as np
+        import onnxruntime as ort
 
         onnx_ver = ort.__version__
         providers = ort.get_available_providers()
         cuda_avail = "CUDAExecutionProvider" in providers
         print(f"  [ARGUS ONNX CUDA] Runtime Version            : {onnx_ver}")
         print(f"  [ARGUS ONNX CUDA] CUDA Provider              : {'AVAILABLE' if cuda_avail else 'UNAVAILABLE'}")
-        print(f"  [ARGUS ONNX CUDA] CPU Provider               : AVAILABLE")
+        print("  [ARGUS ONNX CUDA] CPU Provider               : AVAILABLE")
 
         model_path = ROOT / "models/weights/silhouette_segmenter.onnx"
         if model_path.exists():

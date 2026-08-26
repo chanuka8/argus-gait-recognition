@@ -1,0 +1,5 @@
+# ARGUS AI - CPU Compute Stack
+-r base.txt
+torch>=2.0.0
+torchvision>=0.15.0
+onnxruntime>=1.15.0

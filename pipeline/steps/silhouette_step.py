@@ -39,22 +39,16 @@ class LearnedSilhouetteSegmenter:
         if target_path is None or not target_path.exists():
             return
         try:
-            import os
-            try:
-                import torch
-                torch_lib = Path(torch.__file__).parent / "lib"
-                if torch_lib.exists():
-                    os.environ["PATH"] = str(torch_lib) + os.pathsep + os.environ.get("PATH", "")
-                    if hasattr(os, "add_dll_directory"):
-                        os.add_dll_directory(str(torch_lib))
-            except Exception:
-                pass
+            from automation.device_manager import DeviceManager
+            from automation.dll_manager import setup_cuda_dll_paths
+            setup_cuda_dll_paths()
 
             import onnxruntime as ort
 
+            dm = DeviceManager.get_instance()
             providers = ort.get_available_providers()
             provider_list = []
-            if "CUDAExecutionProvider" in providers:
+            if dm.is_cuda and "CUDAExecutionProvider" in providers:
                 provider_list.append("CUDAExecutionProvider")
             provider_list.append("CPUExecutionProvider")
             self.session = ort.InferenceSession(str(target_path), providers=provider_list)

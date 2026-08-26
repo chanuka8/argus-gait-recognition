@@ -108,15 +108,24 @@ def get_status(
     service: GaitService = Depends(get_gait_service),
 ):
     """Return the operational status of the ARGUS backend."""
-
-    import torch
+    from automation.device_manager import DeviceManager
 
     metrics = service.get_metrics()
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    dm = DeviceManager.get_instance()
 
     return {
         "status": "operational",
-        "device": device,
+        "device": dm.backend,
+        "compute": {
+            "backend": dm.backend,
+            "device": dm.device,
+            "gpu": dm.gpu_name,
+            "vram_mb": dm.vram_mb,
+            "cuda_available": dm.cuda_available,
+            "pytorch_version": dm.pytorch_version,
+            "cuda_version": dm.cuda_version,
+            "onnx_provider": dm.onnx_provider,
+        },
         "thresholds": {
             "known_threshold": 0.85,
             "unknown_threshold": 0.70,

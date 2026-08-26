@@ -1,0 +1,5 @@
+# ARGUS AI - CUDA Accelerated Compute Stack
+-r base.txt
+# Note: torch (2.5.1+cu121), torchvision (0.20.1+cu121), and onnxruntime-gpu (1.20.0)
+# are managed and installed via automation.pytorch_manager and automation.onnx_manager
+# to avoid dependency conflicts.

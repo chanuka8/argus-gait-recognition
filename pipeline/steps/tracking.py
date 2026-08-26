@@ -32,9 +32,12 @@ class TrackingStep:
         raw_classes = self.config.get("classes", [0])
         self.classes = list(raw_classes) if isinstance(raw_classes, list) else [0]
 
-        self.device = str(self.config.get("device", "cpu")).lower()
-        if self.device not in {"cpu", "cuda", "0", "1", "auto"}:
-            self.device = "cpu"
+        from automation.device_manager import DeviceManager
+        raw_device = str(self.config.get("device", "auto")).lower()
+        if raw_device not in {"cpu", "cuda", "cuda:0", "0", "1", "auto"}:
+            raw_device = "auto"
+        self.device = raw_device
+        self.runtime_device = DeviceManager.get_instance().resolve_component_device(self.device)
 
         raw_imgsz = self.config.get("img_size", 640)
         self.img_size = int(raw_imgsz) if isinstance(raw_imgsz, int) and raw_imgsz > 0 else 640
@@ -43,6 +46,12 @@ class TrackingStep:
             self.detector = YOLO(str(self.model_path))
         else:
             self.detector = YOLO("yolov8n.pt")
+
+        if self.runtime_device:
+            try:
+                self.detector.to(self.runtime_device)
+            except Exception:
+                pass
 
         self.tracker = ByteTrackTracker()
 
@@ -68,8 +77,8 @@ class TrackingStep:
             "verbose": False,
             "imgsz": self.img_size,
         }
-        if self.device and self.device != "auto":
-            kwargs["device"] = self.device
+        if self.runtime_device:
+            kwargs["device"] = self.runtime_device
 
         result = self.detector(
             frame,

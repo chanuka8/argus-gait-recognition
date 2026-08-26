@@ -17,9 +17,21 @@ class HealthResponse(BaseModel):
     )
 
 
+class ComputeInfo(BaseModel):
+    backend: str = "cpu"
+    device: str = "cpu"
+    gpu: Optional[str] = None
+    vram_mb: float = 0.0
+    cuda_available: bool = False
+    pytorch_version: Optional[str] = None
+    cuda_version: Optional[str] = None
+    onnx_provider: str = "CPUExecutionProvider"
+
+
 class StatusResponse(BaseModel):
     status: str = "operational"
     device: str = "cuda"
+    compute: Optional[ComputeInfo] = None
     thresholds: dict[str, float] = Field(
         default_factory=lambda: {
             "known_threshold": 0.85,

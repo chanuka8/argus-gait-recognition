@@ -31,17 +31,23 @@ class ONNXBackend(BaseInferenceBackend):
         self._initialized = False
         self._init_session(model_path=model_path)
 
-    def _init_session(self, model_path: Optional[str] = None) -> None:
         """Initialize ONNX Runtime inference session lazily."""
         try:
+            from automation.device_manager import DeviceManager
+            from automation.dll_manager import setup_cuda_dll_paths
+            setup_cuda_dll_paths()
+
             import onnxruntime as ort
 
             if not self.onnx_path.exists():
                 raise FileNotFoundError(f"ONNX model file not found: {self.onnx_path}")
 
+            dm = DeviceManager.get_instance()
+            target_device = dm.resolve_component_device(self.device_str)
+
             available_providers = ort.get_available_providers()
             providers = []
-            if self.device_str != "cpu" and "CUDAExecutionProvider" in available_providers:
+            if "cuda" in target_device and "CUDAExecutionProvider" in available_providers:
                 providers.append("CUDAExecutionProvider")
             providers.append("CPUExecutionProvider")
 

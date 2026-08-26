@@ -32,19 +32,17 @@ class PyTorchBackend(BaseInferenceBackend):
         self.warmup()
 
     def _resolve_device(self, device_str: str) -> torch.device:
-        """Resolve target PyTorch execution device."""
-        if device_str in ("cuda", "gpu") and torch.cuda.is_available():
-            return torch.device("cuda")
-        if device_str == "auto":
-            return torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        return torch.device("cpu")
+        """Resolve target PyTorch execution device via centralized DeviceManager."""
+        from automation.device_manager import DeviceManager
+        resolved = DeviceManager.get_instance().resolve_component_device(device_str)
+        return torch.device(resolved)
 
     def _load_model(self) -> ByGaitLight:
         """Instantiate ByGaitLight model and load weights if checkpoint exists."""
         model = ByGaitLight()
         if self.model_path.exists():
             try:
-                checkpoint = torch.load(self.model_path, map_location="cpu")
+                checkpoint = torch.load(self.model_path, map_location="cpu", weights_only=True)
                 filtered = {}
                 for key, value in checkpoint.items():
                     if key.startswith("backbone."):
