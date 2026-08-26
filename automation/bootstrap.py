@@ -134,9 +134,9 @@ class EnvironmentBootstrap:
             cuda_det = CudaDetector()
             t_ok, t_details, t_err = cuda_det.probe_cuda_tensor_execution()
             if t_ok:
-                print(f"[PASS] torch.cuda.is_available(): TRUE")
+                print("[PASS] torch.cuda.is_available(): TRUE")
                 print(f"[PASS] Device: {gpu_info.gpu_name}")
-                print(f"[PASS] CUDA tensor execution: PASS")
+                print("[PASS] CUDA tensor execution: PASS")
             else:
                 print(f"[FAIL] CUDA tensor probe failed: {t_err}")
                 print("[WARN] Falling back to CPU backend...")
