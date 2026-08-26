@@ -39,6 +39,17 @@ class LearnedSilhouetteSegmenter:
         if target_path is None or not target_path.exists():
             return
         try:
+            import os
+            try:
+                import torch
+                torch_lib = Path(torch.__file__).parent / "lib"
+                if torch_lib.exists():
+                    os.environ["PATH"] = str(torch_lib) + os.pathsep + os.environ.get("PATH", "")
+                    if hasattr(os, "add_dll_directory"):
+                        os.add_dll_directory(str(torch_lib))
+            except Exception:
+                pass
+
             import onnxruntime as ort
 
             providers = ort.get_available_providers()

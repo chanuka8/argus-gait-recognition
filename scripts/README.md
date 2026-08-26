@@ -18,10 +18,13 @@ This folder contains project maintenance, automation, development, validation, e
 | [benchmark_crowd_performance.py](benchmark_crowd_performance.py) | Performance Measurement Benchmark for Crowd Intelligence Features. | `python scripts/benchmark_crowd_performance.py` |
 | [benchmark_inference_backends.py](benchmark_inference_backends.py) | Inference Backend Performance and Parity Benchmark Script for ARGUS AI. | `python scripts/benchmark_inference_backends.py` |
 | [benchmark_silhouette_segmenters.py](benchmark_silhouette_segmenters.py) | Performance benchmark script for benchmark silhouette segmenters. | `python scripts/benchmark_silhouette_segmenters.py` |
+| [bootstrap_env.ps1](bootstrap_env.ps1) | ARGUS AI - Automated Environment Bootstrap & Repair with Real-Time Progress. | `powershell -ExecutionPolicy Bypass -File scripts/bootstrap_env.ps1` |
 | [build_gallery.py](build_gallery.py) | Utility script for build gallery. | `python scripts/build_gallery.py` |
 | [build_tensorrt_engine.py](build_tensorrt_engine.py) | Build TensorRT engine from ONNX model file and verify output parity. | `python scripts/build_tensorrt_engine.py` |
 | [clean_live_gallery.py](clean_live_gallery.py) | Clean contaminated identities from ARGUS live gallery | `python scripts/clean_live_gallery.py` |
+| [detect_environment.py](detect_environment.py) | ARGUS AI Hardware & Compute Environment Detector CLI. | `python scripts/detect_environment.py` |
 | [doctor.py](doctor.py) | ARGUS AI Non-Destructive Deployment Health Checker CLI (doctor.py). | `python scripts/doctor.py` |
+| [download_package.py](download_package.py) | ARGUS AI Real-Time Package & Large File Streaming Downloader. | `python scripts/download_package.py` |
 | [evaluate_cross_view.py](evaluate_cross_view.py) | Evaluate ARGUS Cross-View Gait Recognition Metrics | `python scripts/evaluate_cross_view.py` |
 | [evaluate_exp004.py](evaluate_exp004.py) | EXP-004 Evaluation & Reporting Script. | `python scripts/evaluate_exp004.py` |
 | [evaluate_model.py](evaluate_model.py) | Evaluate ARGUS gait recognition model | `python scripts/evaluate_model.py` |
@@ -36,6 +39,7 @@ This folder contains project maintenance, automation, development, validation, e
 | [manage_venv.ps1](manage_venv.ps1) | ARGUS AI - Safe Virtual Environment Manager for Windows. | `powershell -ExecutionPolicy Bypass -File scripts/manage_venv.ps1` |
 | [migrate_output_layout.py](migrate_output_layout.py) | One-time runtime output layout migration script. | `python scripts/migrate_output_layout.py` |
 | [preprocess_casia.py](preprocess_casia.py) | Build GEI images from CASIA-B ZIP dataset | `python scripts/preprocess_casia.py` |
+| [process_runner.py](process_runner.py) | ARGUS AI Real-Time Subprocess Execution & Streamer. | `python scripts/process_runner.py` |
 | [remove_gallery_identity.py](remove_gallery_identity.py) | Remove an identity from ARGUS gallery | `python scripts/remove_gallery_identity.py` |
 | [remove_numeric_gallery_identities.py](remove_numeric_gallery_identities.py) | Remove numeric CASIA-B identities from ARGUS gallery | `python scripts/remove_numeric_gallery_identities.py` |
 | [run_ablation_study.py](run_ablation_study.py) | Run Full ARGUS Gait Ablation Study (EXP-003A..E) | `python scripts/run_ablation_study.py` |
@@ -69,6 +73,7 @@ This folder contains project maintenance, automation, development, validation, e
 | [test_visualizer.py](test_visualizer.py) | Validation test script for visualizer. | `pytest scripts/test_visualizer.py` |
 | [test_webcam_detection.py](test_webcam_detection.py) | Validation test script for webcam detection. | `pytest scripts/test_webcam_detection.py` |
 | [train_model.py](train_model.py) | Train ARGUS ByGaitLight model with metric learning (HPP + ArcFace + Triplet). | `python scripts/train_model.py` |
+| [verify_environment.py](verify_environment.py) | ARGUS AI Complete Environment & Model Verification Suite. | `python scripts/verify_environment.py` |
 <!-- END SYNC: KEY_MODULES -->
 
 ## Script Metadata
@@ -83,10 +88,13 @@ This folder contains project maintenance, automation, development, validation, e
 | [benchmark_crowd_performance.py](benchmark_crowd_performance.py) | Development | No | No | No | No | Performance Measurement Benchmark for Crowd Intelligence ... |
 | [benchmark_inference_backends.py](benchmark_inference_backends.py) | Development | Yes | No | No | No | Inference Backend Performance and Parity Benchmark Script... |
 | [benchmark_silhouette_segmenters.py](benchmark_silhouette_segmenters.py) | Development | No | No | No | No | Performance benchmark script for benchmark silhouette seg... |
+| [bootstrap_env.ps1](bootstrap_env.ps1) | Environment | No | No | No | No | ARGUS AI - Automated Environment Bootstrap & Repair with ... |
 | [build_gallery.py](build_gallery.py) | Dataset | No | No | No | No | Utility script for build gallery. |
 | [build_tensorrt_engine.py](build_tensorrt_engine.py) | Conversion | Yes | No | No | No | Build TensorRT engine from ONNX model file and verify out... |
 | [clean_live_gallery.py](clean_live_gallery.py) | Dataset | Yes | No | No | No | Clean contaminated identities from ARGUS live gallery |
+| [detect_environment.py](detect_environment.py) | Validation | Yes | No | No | No | ARGUS AI Hardware & Compute Environment Detector CLI. |
 | [doctor.py](doctor.py) | Development | No | No | No | No | ARGUS AI Non-Destructive Deployment Health Checker CLI (d... |
+| [download_package.py](download_package.py) | Environment | Yes | No | No | No | ARGUS AI Real-Time Package & Large File Streaming Downloa... |
 | [evaluate_cross_view.py](evaluate_cross_view.py) | Development | Yes | No | No | No | Evaluate ARGUS Cross-View Gait Recognition Metrics |
 | [evaluate_exp004.py](evaluate_exp004.py) | Development | Yes | No | No | No | EXP-004 Evaluation & Reporting Script. |
 | [evaluate_model.py](evaluate_model.py) | Development | Yes | No | No | No | Evaluate ARGUS gait recognition model |
@@ -98,9 +106,10 @@ This folder contains project maintenance, automation, development, validation, e
 | [export_silhouette_unet_onnx.py](export_silhouette_unet_onnx.py) | Development | No | No | No | No | Utility script for export silhouette unet onnx. |
 | [extract_casia_skeletons.py](extract_casia_skeletons.py) | Development | Yes | No | No | No | Extract per-frame 2D COCO-17 pose keypoints from raw CASI... |
 | [install_git_hooks.py](install_git_hooks.py) | Git | No | No | No | No | Installs Git pre-commit hooks for automated ARGUS AI READ... |
-| [manage_venv.ps1](manage_venv.ps1) | Development | No | No | No | No | ARGUS AI - Safe Virtual Environment Manager for Windows. |
+| [manage_venv.ps1](manage_venv.ps1) | Environment | No | No | No | No | ARGUS AI - Safe Virtual Environment Manager for Windows. |
 | [migrate_output_layout.py](migrate_output_layout.py) | Conversion | Yes | No | No | No | One-time runtime output layout migration script. |
 | [preprocess_casia.py](preprocess_casia.py) | Dataset | Yes | No | No | No | Build GEI images from CASIA-B ZIP dataset |
+| [process_runner.py](process_runner.py) | Environment | Yes | No | No | No | ARGUS AI Real-Time Subprocess Execution & Streamer. |
 | [remove_gallery_identity.py](remove_gallery_identity.py) | Dataset | Yes | No | No | No | Remove an identity from ARGUS gallery |
 | [remove_numeric_gallery_identities.py](remove_numeric_gallery_identities.py) | Dataset | Yes | No | No | No | Remove numeric CASIA-B identities from ARGUS gallery |
 | [run_ablation_study.py](run_ablation_study.py) | Development | Yes | No | No | No | Run Full ARGUS Gait Ablation Study (EXP-003A..E) |
@@ -134,6 +143,7 @@ This folder contains project maintenance, automation, development, validation, e
 | [test_visualizer.py](test_visualizer.py) | Validation | No | No | No | No | Validation test script for visualizer. |
 | [test_webcam_detection.py](test_webcam_detection.py) | Validation | No | No | No | No | Validation test script for webcam detection. |
 | [train_model.py](train_model.py) | Development | Yes | No | No | No | Train ARGUS ByGaitLight model with metric learning (HPP +... |
+| [verify_environment.py](verify_environment.py) | Validation | No | No | No | No | ARGUS AI Complete Environment & Model Verification Suite. |
 <!-- END SYNC: SCRIPT_METADATA_TABLE -->
 
 ## CLI Reference
@@ -195,6 +205,48 @@ python scripts/build_tensorrt_engine.py --onnx-path models/engines/bygait_light.
 ```bash
 python scripts/clean_live_gallery.py
 python scripts/clean_live_gallery.py --gallery-dir models/live_gallery
+```
+
+</details>
+
+<details>
+<summary><strong>detect_environment.py</strong> — ARGUS Hardware & Environment Detector</summary>
+
+**Usage**: `python scripts/detect_environment.py`
+
+| Flag / Argument | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `--json` | flag | No | None | Output results in JSON format |
+
+**Examples**:
+
+```bash
+python scripts/detect_environment.py
+python scripts/detect_environment.py --json
+```
+
+</details>
+
+<details>
+<summary><strong>download_package.py</strong> — ARGUS AI Live Streaming Downloader</summary>
+
+**Usage**: `python scripts/download_package.py`
+
+| Flag / Argument | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `url` | — | No | None | Download URL |
+| `output` | — | No | None | Destination file path |
+| `--name` | — | No | None | Display package name |
+| `--version` | — | No | None | Package version string |
+| `--platform` | — | No | None | Platform tag |
+| `--source` | — | No | None | Download source label |
+| `--sha256` | — | No | None | Expected SHA-256 hash |
+| `--retries` | int | No | None | Maximum retry attempts |
+
+**Examples**:
+
+```bash
+python scripts/download_package.py
 ```
 
 </details>
@@ -417,6 +469,26 @@ python scripts/migrate_output_layout.py --dry-run --outputs-dir outputs
 ```bash
 python scripts/preprocess_casia.py
 python scripts/preprocess_casia.py --zip data/casia_b_raw.zip --output data/casia_processed/gei
+```
+
+</details>
+
+<details>
+<summary><strong>process_runner.py</strong> — ARGUS Subprocess Streaming Runner</summary>
+
+**Usage**: `python scripts/process_runner.py`
+
+| Flag / Argument | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `--tag` | — | No | None | Prefix tag for output lines (e.g. PIP) |
+| `--cwd` | — | No | None | Working directory |
+| `--timeout` | int | No | None | Timeout in seconds |
+| `command` | — | No | None | Command and arguments to execute |
+
+**Examples**:
+
+```bash
+python scripts/process_runner.py
 ```
 
 </details>
@@ -722,7 +794,10 @@ Development helper scripts run benchmarks, evaluations, training pipelines, and 
 - **[benchmark_crowd_performance.py](benchmark_crowd_performance.py)**: Performance Measurement Benchmark for Crowd Intelligence Features. (`python scripts/benchmark_crowd_performance.py`)
 - **[benchmark_inference_backends.py](benchmark_inference_backends.py)**: Inference Backend Performance and Parity Benchmark Script for ARGUS AI. (`python scripts/benchmark_inference_backends.py`)
 - **[benchmark_silhouette_segmenters.py](benchmark_silhouette_segmenters.py)**: Performance benchmark script for benchmark silhouette segmenters. (`python scripts/benchmark_silhouette_segmenters.py`)
+- **[bootstrap_env.ps1](bootstrap_env.ps1)**: ARGUS AI - Automated Environment Bootstrap & Repair with Real-Time Progress. (`powershell -ExecutionPolicy Bypass -File scripts/bootstrap_env.ps1`)
+- **[detect_environment.py](detect_environment.py)**: ARGUS AI Hardware & Compute Environment Detector CLI. (`python scripts/detect_environment.py`)
 - **[doctor.py](doctor.py)**: ARGUS AI Non-Destructive Deployment Health Checker CLI (doctor.py). (`python scripts/doctor.py`)
+- **[download_package.py](download_package.py)**: ARGUS AI Real-Time Package & Large File Streaming Downloader. (`python scripts/download_package.py`)
 - **[evaluate_cross_view.py](evaluate_cross_view.py)**: Evaluate ARGUS Cross-View Gait Recognition Metrics (`python scripts/evaluate_cross_view.py`)
 - **[evaluate_exp004.py](evaluate_exp004.py)**: EXP-004 Evaluation & Reporting Script. (`python scripts/evaluate_exp004.py`)
 - **[evaluate_model.py](evaluate_model.py)**: Evaluate ARGUS gait recognition model (`python scripts/evaluate_model.py`)
@@ -733,6 +808,7 @@ Development helper scripts run benchmarks, evaluations, training pipelines, and 
 - **[export_silhouette_unet_onnx.py](export_silhouette_unet_onnx.py)**: Utility script for export silhouette unet onnx. (`python scripts/export_silhouette_unet_onnx.py`)
 - **[extract_casia_skeletons.py](extract_casia_skeletons.py)**: Extract per-frame 2D COCO-17 pose keypoints from raw CASIA-B video frame sequences (`python scripts/extract_casia_skeletons.py`)
 - **[manage_venv.ps1](manage_venv.ps1)**: ARGUS AI - Safe Virtual Environment Manager for Windows. (`powershell -ExecutionPolicy Bypass -File scripts/manage_venv.ps1`)
+- **[process_runner.py](process_runner.py)**: ARGUS AI Real-Time Subprocess Execution & Streamer. (`python scripts/process_runner.py`)
 - **[run_ablation_study.py](run_ablation_study.py)**: Run Full ARGUS Gait Ablation Study (EXP-003A..E) (`python scripts/run_ablation_study.py`)
 - **[run_exp004_ablations.py](run_exp004_ablations.py)**: Run EXP-004 Open-Set & CL Robustness Ablations (`python scripts/run_exp004_ablations.py`)
 - **[run_exp006_3d.py](run_exp006_3d.py)**: EXP-006 Controlled Experiment: (`python scripts/run_exp006_3d.py`)
@@ -745,6 +821,7 @@ Development helper scripts run benchmarks, evaluations, training pipelines, and 
 - **[start_system.bat](start_system.bat)**: System startup launcher script. (`scripts/start_system.bat`)
 - **[start_system.sh](start_system.sh)**: System startup launcher script. (`scripts/start_system.sh`)
 - **[train_model.py](train_model.py)**: Train ARGUS ByGaitLight model with metric learning (HPP + ArcFace + Triplet). (`python scripts/train_model.py`)
+- **[verify_environment.py](verify_environment.py)**: ARGUS AI Complete Environment & Model Verification Suite. (`python scripts/verify_environment.py`)
 <!-- END SYNC: DEVELOPMENT_SCRIPTS -->
 
 ## Command Index
@@ -759,10 +836,13 @@ Development helper scripts run benchmarks, evaluations, training pipelines, and 
 | `python scripts/benchmark_crowd_performance.py` | Performance Measurement Benchmark for Crowd Intelligence Features. |
 | `python scripts/benchmark_inference_backends.py` | Inference Backend Performance and Parity Benchmark Script for ARGUS... |
 | `python scripts/benchmark_silhouette_segmenters.py` | Performance benchmark script for benchmark silhouette segmenters. |
+| `powershell -ExecutionPolicy Bypass -File scripts/bootstrap_env.ps1` | ARGUS AI - Automated Environment Bootstrap & Repair with Real-Time ... |
 | `python scripts/build_gallery.py` | Utility script for build gallery. |
 | `python scripts/build_tensorrt_engine.py` | Build TensorRT engine from ONNX model file and verify output parity. |
 | `python scripts/clean_live_gallery.py` | Clean contaminated identities from ARGUS live gallery |
+| `python scripts/detect_environment.py` | ARGUS AI Hardware & Compute Environment Detector CLI. |
 | `python scripts/doctor.py` | ARGUS AI Non-Destructive Deployment Health Checker CLI (doctor.py). |
+| `python scripts/download_package.py` | ARGUS AI Real-Time Package & Large File Streaming Downloader. |
 | `python scripts/evaluate_cross_view.py` | Evaluate ARGUS Cross-View Gait Recognition Metrics |
 | `python scripts/evaluate_exp004.py` | EXP-004 Evaluation & Reporting Script. |
 | `python scripts/evaluate_model.py` | Evaluate ARGUS gait recognition model |
@@ -777,6 +857,7 @@ Development helper scripts run benchmarks, evaluations, training pipelines, and 
 | `powershell -ExecutionPolicy Bypass -File scripts/manage_venv.ps1` | ARGUS AI - Safe Virtual Environment Manager for Windows. |
 | `python scripts/migrate_output_layout.py` | One-time runtime output layout migration script. |
 | `python scripts/preprocess_casia.py` | Build GEI images from CASIA-B ZIP dataset |
+| `python scripts/process_runner.py` | ARGUS AI Real-Time Subprocess Execution & Streamer. |
 | `python scripts/remove_gallery_identity.py` | Remove an identity from ARGUS gallery |
 | `python scripts/remove_numeric_gallery_identities.py` | Remove numeric CASIA-B identities from ARGUS gallery |
 | `python scripts/run_ablation_study.py` | Run Full ARGUS Gait Ablation Study (EXP-003A..E) |
@@ -810,6 +891,7 @@ Development helper scripts run benchmarks, evaluations, training pipelines, and 
 | `pytest scripts/test_visualizer.py` | Validation test script for visualizer. |
 | `pytest scripts/test_webcam_detection.py` | Validation test script for webcam detection. |
 | `python scripts/train_model.py` | Train ARGUS ByGaitLight model with metric learning (HPP + ArcFace +... |
+| `python scripts/verify_environment.py` | ARGUS AI Complete Environment & Model Verification Suite. |
 <!-- END SYNC: COMMAND_INDEX -->
 
 ## Script Dependency Graph
@@ -846,8 +928,8 @@ flowchart TD
 <!-- BEGIN SYNC: SCRIPT_EXECUTION_ORDER -->
 ```mermaid
 flowchart TD
-    step1["1. Environment"]
-    step2["2. Validation (16 scripts)"]
+    step1["1. Environment (5 scripts)"]
+    step2["2. Validation (18 scripts)"]
     step1 --> step2
     step3["3. Documentation"]
     step2 --> step3
@@ -857,7 +939,7 @@ flowchart TD
     step4 --> step5
     step6["6. Conversion (3 scripts)"]
     step5 --> step6
-    step7["7. Development (27 scripts)"]
+    step7["7. Development (26 scripts)"]
     step6 --> step7
     step8["8. Deployment (2 scripts)"]
     step7 --> step8
@@ -876,10 +958,13 @@ flowchart TD
 | [benchmark_crowd_performance.py](benchmark_crowd_performance.py) | `No file modifications` |
 | [benchmark_inference_backends.py](benchmark_inference_backends.py) | `outputs/reports/benchmark` |
 | [benchmark_silhouette_segmenters.py](benchmark_silhouette_segmenters.py) | `No file modifications` |
+| [bootstrap_env.ps1](bootstrap_env.ps1) | `No file modifications` |
 | [build_gallery.py](build_gallery.py) | `models/gallery` |
 | [build_tensorrt_engine.py](build_tensorrt_engine.py) | `models/engines/bygait_light_fp16.engine` |
 | [clean_live_gallery.py](clean_live_gallery.py) | `Runtime-determined paths` |
+| [detect_environment.py](detect_environment.py) | `No file modifications` |
 | [doctor.py](doctor.py) | `Runtime-determined paths` |
+| [download_package.py](download_package.py) | `Runtime-determined paths` |
 | [evaluate_cross_view.py](evaluate_cross_view.py) | `No file modifications` |
 | [evaluate_exp004.py](evaluate_exp004.py) | `Runtime-determined paths` |
 | [evaluate_model.py](evaluate_model.py) | `outputs/reports/evaluation` |
@@ -894,6 +979,7 @@ flowchart TD
 | [manage_venv.ps1](manage_venv.ps1) | `No file modifications` |
 | [migrate_output_layout.py](migrate_output_layout.py) | `Runtime-determined paths` |
 | [preprocess_casia.py](preprocess_casia.py) | `data/casia_processed/gei` |
+| [process_runner.py](process_runner.py) | `No file modifications` |
 | [remove_gallery_identity.py](remove_gallery_identity.py) | `models/appearance_gallery`, `models/live_gallery` |
 | [remove_numeric_gallery_identities.py](remove_numeric_gallery_identities.py) | `Runtime-determined paths` |
 | [run_ablation_study.py](run_ablation_study.py) | `runs` |
@@ -927,6 +1013,7 @@ flowchart TD
 | [test_visualizer.py](test_visualizer.py) | `No file modifications` |
 | [test_webcam_detection.py](test_webcam_detection.py) | `No file modifications` |
 | [train_model.py](train_model.py) | `No file modifications` |
+| [verify_environment.py](verify_environment.py) | `Runtime-determined paths` |
 <!-- END SYNC: CHANGE_IMPACT -->
 
 ## Safety Classification
@@ -936,11 +1023,11 @@ flowchart TD
 |---|---|
 | **Deployment** | [start_system.bat](start_system.bat), [start_system.sh](start_system.sh) |
 | **Documentation** | [sync_folder_readmes.py](sync_folder_readmes.py) |
-| **Environment** | [activate_venv.ps1](activate_venv.ps1) |
+| **Environment** | [activate_venv.ps1](activate_venv.ps1), [bootstrap_env.ps1](bootstrap_env.ps1), [download_package.py](download_package.py), [manage_venv.ps1](manage_venv.ps1), [process_runner.py](process_runner.py) |
 | **Git** | [install_git_hooks.py](install_git_hooks.py) |
-| **Read-Only** | [analyze_cl_part_similarity.py](analyze_cl_part_similarity.py), [analyze_open_set_and_cl.py](analyze_open_set_and_cl.py), [benchmark_crowd_performance.py](benchmark_crowd_performance.py), [benchmark_silhouette_segmenters.py](benchmark_silhouette_segmenters.py), [evaluate_cross_view.py](evaluate_cross_view.py), [evaluate_open_set.py](evaluate_open_set.py), [manage_venv.ps1](manage_venv.ps1), [preprocess_casia.py](preprocess_casia.py), [run_auto_enrollment.py](run_auto_enrollment.py), [run_folder_recognition.py](run_folder_recognition.py), [run_video_recognition.py](run_video_recognition.py), [setup_silhouette_model.py](setup_silhouette_model.py), [system_check.py](system_check.py), [train_model.py](train_model.py) |
+| **Read-Only** | [analyze_cl_part_similarity.py](analyze_cl_part_similarity.py), [analyze_open_set_and_cl.py](analyze_open_set_and_cl.py), [benchmark_crowd_performance.py](benchmark_crowd_performance.py), [benchmark_silhouette_segmenters.py](benchmark_silhouette_segmenters.py), [detect_environment.py](detect_environment.py), [evaluate_cross_view.py](evaluate_cross_view.py), [evaluate_open_set.py](evaluate_open_set.py), [preprocess_casia.py](preprocess_casia.py), [run_auto_enrollment.py](run_auto_enrollment.py), [run_folder_recognition.py](run_folder_recognition.py), [run_video_recognition.py](run_video_recognition.py), [setup_silhouette_model.py](setup_silhouette_model.py), [system_check.py](system_check.py), [train_model.py](train_model.py) |
 | **Repository Modification** | [benchmark.py](benchmark.py), [benchmark_inference_backends.py](benchmark_inference_backends.py), [build_gallery.py](build_gallery.py), [build_tensorrt_engine.py](build_tensorrt_engine.py), [clean_live_gallery.py](clean_live_gallery.py), [doctor.py](doctor.py), [evaluate_exp004.py](evaluate_exp004.py), [evaluate_model.py](evaluate_model.py), [evaluate_open_set_threshold_sweep.py](evaluate_open_set_threshold_sweep.py), [evaluate_subject_disjoint.py](evaluate_subject_disjoint.py), [evaluate_threshold_sweep.py](evaluate_threshold_sweep.py), [export_bygait_onnx.py](export_bygait_onnx.py), [export_silhouette_unet_onnx.py](export_silhouette_unet_onnx.py), [extract_casia_skeletons.py](extract_casia_skeletons.py), [migrate_output_layout.py](migrate_output_layout.py), [remove_gallery_identity.py](remove_gallery_identity.py), [remove_numeric_gallery_identities.py](remove_numeric_gallery_identities.py), [run_ablation_study.py](run_ablation_study.py), [run_exp004_ablations.py](run_exp004_ablations.py), [run_exp006_3d.py](run_exp006_3d.py), [run_exp006_full.py](run_exp006_full.py), [run_exp007_ablations.py](run_exp007_ablations.py), [set_gallery_identity_status.py](set_gallery_identity_status.py), [smoke_test_deployment.py](smoke_test_deployment.py) |
-| **Validation** | [test_confidence_scorer.py](test_confidence_scorer.py), [test_enrollment.py](test_enrollment.py), [test_events.py](test_events.py), [test_folder_watcher.py](test_folder_watcher.py), [test_gallery_match.py](test_gallery_match.py), [test_gei.py](test_gei.py), [test_inference_pipeline.py](test_inference_pipeline.py), [test_live_gei.py](test_live_gei.py), [test_live_recognition.py](test_live_recognition.py), [test_security_layer.py](test_security_layer.py), [test_silhouette.py](test_silhouette.py), [test_streaming_optimization.py](test_streaming_optimization.py), [test_tracking.py](test_tracking.py), [test_visualizer.py](test_visualizer.py), [test_webcam_detection.py](test_webcam_detection.py) |
+| **Validation** | [test_confidence_scorer.py](test_confidence_scorer.py), [test_enrollment.py](test_enrollment.py), [test_events.py](test_events.py), [test_folder_watcher.py](test_folder_watcher.py), [test_gallery_match.py](test_gallery_match.py), [test_gei.py](test_gei.py), [test_inference_pipeline.py](test_inference_pipeline.py), [test_live_gei.py](test_live_gei.py), [test_live_recognition.py](test_live_recognition.py), [test_security_layer.py](test_security_layer.py), [test_silhouette.py](test_silhouette.py), [test_streaming_optimization.py](test_streaming_optimization.py), [test_tracking.py](test_tracking.py), [test_visualizer.py](test_visualizer.py), [test_webcam_detection.py](test_webcam_detection.py), [verify_environment.py](verify_environment.py) |
 <!-- END SYNC: SAFETY_CLASSIFICATION -->
 
 ## Script Execution Flow

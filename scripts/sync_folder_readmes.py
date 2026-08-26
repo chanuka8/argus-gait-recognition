@@ -326,9 +326,9 @@ def _get_script_category(name: str) -> str:
         return "Documentation"
     if name == "install_git_hooks.py":
         return "Git"
-    if name == "activate_venv.ps1":
+    if name in ("activate_venv.ps1", "manage_venv.ps1", "bootstrap_env.ps1", "download_package.py", "process_runner.py"):
         return "Environment"
-    if name.startswith("test_") or name == "system_check.py":
+    if name.startswith("test_") or name in ("system_check.py", "detect_environment.py", "verify_environment.py"):
         return "Validation"
     if name in ("start_system.bat", "start_system.sh"):
         return "Deployment"
@@ -361,13 +361,13 @@ def _get_safety_classification(name: str, path: Path) -> str:
         return "Documentation"
     if name == "install_git_hooks.py":
         return "Git"
-    if name == "activate_venv.ps1":
+    if name in ("activate_venv.ps1", "manage_venv.ps1", "bootstrap_env.ps1", "download_package.py", "process_runner.py"):
         return "Environment"
     if name in ("start_system.bat", "start_system.sh"):
         return "Deployment"
-    if name.startswith("test_"):
+    if name.startswith("test_") or name == "verify_environment.py":
         return "Validation"
-    if name == "system_check.py":
+    if name in ("system_check.py", "detect_environment.py"):
         return "Read-Only"
 
     if not path.exists():

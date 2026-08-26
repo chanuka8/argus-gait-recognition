@@ -2,5 +2,5 @@ model_path: "models/weights/yolov8n.pt"
 confidence: 0.4
 iou_threshold: 0.45
 classes: [0]
-device: "cpu"
+device: "auto"
 img_size: 640
