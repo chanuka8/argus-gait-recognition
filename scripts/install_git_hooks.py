@@ -14,11 +14,21 @@ HOOK_CONTENT = """#!/bin/sh
 
 echo "[pre-commit] Automatically synchronizing ARGUS AI package documentation..."
 
-# Detect Python interpreter
-if [ -f "./venv/Scripts/python.exe" ]; then
+# Detect Python interpreter (prefer project-local .venv standard)
+if [ -f "./.venv/Scripts/python.exe" ]; then
+    PYTHON_CMD="./.venv/Scripts/python.exe"
+elif [ -f "./.venv/bin/python" ]; then
+    PYTHON_CMD="./.venv/bin/python"
+elif [ -n "$VIRTUAL_ENV" ] && [ -f "$VIRTUAL_ENV/Scripts/python.exe" ]; then
+    PYTHON_CMD="$VIRTUAL_ENV/Scripts/python.exe"
+elif [ -n "$VIRTUAL_ENV" ] && [ -f "$VIRTUAL_ENV/bin/python" ]; then
+    PYTHON_CMD="$VIRTUAL_ENV/bin/python"
+elif [ -f "./venv/Scripts/python.exe" ]; then
     PYTHON_CMD="./venv/Scripts/python.exe"
 elif [ -f "./venv/bin/python" ]; then
     PYTHON_CMD="./venv/bin/python"
+elif command -v py >/dev/null 2>&1; then
+    PYTHON_CMD="py -3"
 elif command -v python3 >/dev/null 2>&1; then
     PYTHON_CMD="python3"
 elif command -v python >/dev/null 2>&1; then

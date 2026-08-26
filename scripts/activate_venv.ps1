@@ -6,7 +6,7 @@
     Activates the project venv when a terminal is opened inside
     the ARGUS AI repository. Designed to be launched via:
 
-        powershell -NoExit -ExecutionPolicy Bypass -File activate_venv.ps1
+        powershell -NoExit -ExecutionPolicy Bypass -File scripts/activate_venv.ps1
 
     Safety guarantees:
       - Skips activation when the correct venv is already active.
@@ -15,21 +15,38 @@
         is missing.
       - Performs no network, testing, linting, compilation, Git, or
         package-installation operations.
+#>
 
 $ErrorActionPreference = 'Stop'
 
-$RepoRoot = Split-Path -Parent (Split-Path -Parent $PSCommandPath)
+if ($PSCommandPath) {
+    $ScriptDir = Split-Path -Parent $PSCommandPath
+}
+elseif ($PSScriptRoot) {
+    $ScriptDir = $PSScriptRoot
+}
+else {
+    $ScriptDir = (Get-Location).Path
+}
+
+$RepoRoot = Split-Path -Parent $ScriptDir
 $RepoRoot = [System.IO.Path]::GetFullPath($RepoRoot)
 
 Set-Location -LiteralPath $RepoRoot
 
-$VenvDir = Join-Path $RepoRoot 'venv'
+$VenvDir = Join-Path $RepoRoot '.venv'
+if (-not (Test-Path -LiteralPath $VenvDir -PathType Container)) {
+    $LegacyVenv = Join-Path $RepoRoot 'venv'
+    if (Test-Path -LiteralPath $LegacyVenv -PathType Container) {
+        $VenvDir = $LegacyVenv
+    }
+}
 $ActivateScript = Join-Path $VenvDir 'Scripts\Activate.ps1'
 $PythonExe = Join-Path $VenvDir 'Scripts\python.exe'
 
 if (-not (Test-Path -LiteralPath $VenvDir -PathType Container)) {
     Write-Warning "[ARGUS] Virtual environment not found: $VenvDir"
-    Write-Warning "[ARGUS] Create it with: python -m venv `"$VenvDir`""
+    Write-Warning "[ARGUS] Create it with: powershell -File scripts/manage_venv.ps1 -Action Recreate"
     return
 }
 

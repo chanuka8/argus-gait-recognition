@@ -33,6 +33,7 @@ This folder contains project maintenance, automation, development, validation, e
 | [export_silhouette_unet_onnx.py](export_silhouette_unet_onnx.py) | Utility script for export silhouette unet onnx. | `python scripts/export_silhouette_unet_onnx.py` |
 | [extract_casia_skeletons.py](extract_casia_skeletons.py) | Extract per-frame 2D COCO-17 pose keypoints from raw CASIA-B video frame sequences | `python scripts/extract_casia_skeletons.py` |
 | [install_git_hooks.py](install_git_hooks.py) | Installs Git pre-commit hooks for automated ARGUS AI README synchronization. | `python scripts/install_git_hooks.py` |
+| [manage_venv.ps1](manage_venv.ps1) | ARGUS AI - Safe Virtual Environment Manager for Windows. | `powershell -ExecutionPolicy Bypass -File scripts/manage_venv.ps1` |
 | [migrate_output_layout.py](migrate_output_layout.py) | One-time runtime output layout migration script. | `python scripts/migrate_output_layout.py` |
 | [preprocess_casia.py](preprocess_casia.py) | Build GEI images from CASIA-B ZIP dataset | `python scripts/preprocess_casia.py` |
 | [remove_gallery_identity.py](remove_gallery_identity.py) | Remove an identity from ARGUS gallery | `python scripts/remove_gallery_identity.py` |
@@ -97,6 +98,7 @@ This folder contains project maintenance, automation, development, validation, e
 | [export_silhouette_unet_onnx.py](export_silhouette_unet_onnx.py) | Development | No | No | No | No | Utility script for export silhouette unet onnx. |
 | [extract_casia_skeletons.py](extract_casia_skeletons.py) | Development | Yes | No | No | No | Extract per-frame 2D COCO-17 pose keypoints from raw CASI... |
 | [install_git_hooks.py](install_git_hooks.py) | Git | No | No | No | No | Installs Git pre-commit hooks for automated ARGUS AI READ... |
+| [manage_venv.ps1](manage_venv.ps1) | Development | No | No | No | No | ARGUS AI - Safe Virtual Environment Manager for Windows. |
 | [migrate_output_layout.py](migrate_output_layout.py) | Conversion | Yes | No | No | No | One-time runtime output layout migration script. |
 | [preprocess_casia.py](preprocess_casia.py) | Dataset | Yes | No | No | No | Build GEI images from CASIA-B ZIP dataset |
 | [remove_gallery_identity.py](remove_gallery_identity.py) | Dataset | Yes | No | No | No | Remove an identity from ARGUS gallery |
@@ -730,6 +732,7 @@ Development helper scripts run benchmarks, evaluations, training pipelines, and 
 - **[evaluate_threshold_sweep.py](evaluate_threshold_sweep.py)**: Evaluate ARGUS thresholds via sweep evaluation (`python scripts/evaluate_threshold_sweep.py`)
 - **[export_silhouette_unet_onnx.py](export_silhouette_unet_onnx.py)**: Utility script for export silhouette unet onnx. (`python scripts/export_silhouette_unet_onnx.py`)
 - **[extract_casia_skeletons.py](extract_casia_skeletons.py)**: Extract per-frame 2D COCO-17 pose keypoints from raw CASIA-B video frame sequences (`python scripts/extract_casia_skeletons.py`)
+- **[manage_venv.ps1](manage_venv.ps1)**: ARGUS AI - Safe Virtual Environment Manager for Windows. (`powershell -ExecutionPolicy Bypass -File scripts/manage_venv.ps1`)
 - **[run_ablation_study.py](run_ablation_study.py)**: Run Full ARGUS Gait Ablation Study (EXP-003A..E) (`python scripts/run_ablation_study.py`)
 - **[run_exp004_ablations.py](run_exp004_ablations.py)**: Run EXP-004 Open-Set & CL Robustness Ablations (`python scripts/run_exp004_ablations.py`)
 - **[run_exp006_3d.py](run_exp006_3d.py)**: EXP-006 Controlled Experiment: (`python scripts/run_exp006_3d.py`)
@@ -771,6 +774,7 @@ Development helper scripts run benchmarks, evaluations, training pipelines, and 
 | `python scripts/export_silhouette_unet_onnx.py` | Utility script for export silhouette unet onnx. |
 | `python scripts/extract_casia_skeletons.py` | Extract per-frame 2D COCO-17 pose keypoints from raw CASIA-B video ... |
 | `python scripts/install_git_hooks.py` | Installs Git pre-commit hooks for automated ARGUS AI README synchro... |
+| `powershell -ExecutionPolicy Bypass -File scripts/manage_venv.ps1` | ARGUS AI - Safe Virtual Environment Manager for Windows. |
 | `python scripts/migrate_output_layout.py` | One-time runtime output layout migration script. |
 | `python scripts/preprocess_casia.py` | Build GEI images from CASIA-B ZIP dataset |
 | `python scripts/remove_gallery_identity.py` | Remove an identity from ARGUS gallery |
@@ -816,6 +820,9 @@ flowchart TD
     CI__readme_sync_check_yml["CI: readme_sync_check.yml"]
     sync_folder_readmes_py["sync_folder_readmes.py"]
     CI__readme_sync_check_yml -->|ci| sync_folder_readmes_py
+    activate_venv_ps1["activate_venv.ps1"]
+    manage_venv_ps1["manage_venv.ps1"]
+    activate_venv_ps1 -->|reference| manage_venv_ps1
     build_tensorrt_engine_py["build_tensorrt_engine.py"]
     export_bygait_onnx_py["export_bygait_onnx.py"]
     build_tensorrt_engine_py -->|reference| export_bygait_onnx_py
@@ -823,6 +830,7 @@ flowchart TD
     _git_hooks_pre_commit[".git/hooks/pre-commit"]
     install_git_hooks_py -->|output| _git_hooks_pre_commit
     install_git_hooks_py -->|reference| sync_folder_readmes_py
+    manage_venv_ps1 -->|reference| activate_venv_ps1
     run_ablation_study_py["run_ablation_study.py"]
     evaluate_subject_disjoint_py["evaluate_subject_disjoint.py"]
     run_ablation_study_py -->|reference| evaluate_subject_disjoint_py
@@ -849,7 +857,7 @@ flowchart TD
     step4 --> step5
     step6["6. Conversion (3 scripts)"]
     step5 --> step6
-    step7["7. Development (26 scripts)"]
+    step7["7. Development (27 scripts)"]
     step6 --> step7
     step8["8. Deployment (2 scripts)"]
     step7 --> step8
@@ -883,6 +891,7 @@ flowchart TD
 | [export_silhouette_unet_onnx.py](export_silhouette_unet_onnx.py) | `Runtime-determined paths` |
 | [extract_casia_skeletons.py](extract_casia_skeletons.py) | `Runtime-determined paths` |
 | [install_git_hooks.py](install_git_hooks.py) | `.git/hooks/pre-commit` |
+| [manage_venv.ps1](manage_venv.ps1) | `No file modifications` |
 | [migrate_output_layout.py](migrate_output_layout.py) | `Runtime-determined paths` |
 | [preprocess_casia.py](preprocess_casia.py) | `data/casia_processed/gei` |
 | [remove_gallery_identity.py](remove_gallery_identity.py) | `models/appearance_gallery`, `models/live_gallery` |
@@ -929,7 +938,7 @@ flowchart TD
 | **Documentation** | [sync_folder_readmes.py](sync_folder_readmes.py) |
 | **Environment** | [activate_venv.ps1](activate_venv.ps1) |
 | **Git** | [install_git_hooks.py](install_git_hooks.py) |
-| **Read-Only** | [analyze_cl_part_similarity.py](analyze_cl_part_similarity.py), [analyze_open_set_and_cl.py](analyze_open_set_and_cl.py), [benchmark_crowd_performance.py](benchmark_crowd_performance.py), [benchmark_silhouette_segmenters.py](benchmark_silhouette_segmenters.py), [evaluate_cross_view.py](evaluate_cross_view.py), [evaluate_open_set.py](evaluate_open_set.py), [preprocess_casia.py](preprocess_casia.py), [run_auto_enrollment.py](run_auto_enrollment.py), [run_folder_recognition.py](run_folder_recognition.py), [run_video_recognition.py](run_video_recognition.py), [setup_silhouette_model.py](setup_silhouette_model.py), [system_check.py](system_check.py), [train_model.py](train_model.py) |
+| **Read-Only** | [analyze_cl_part_similarity.py](analyze_cl_part_similarity.py), [analyze_open_set_and_cl.py](analyze_open_set_and_cl.py), [benchmark_crowd_performance.py](benchmark_crowd_performance.py), [benchmark_silhouette_segmenters.py](benchmark_silhouette_segmenters.py), [evaluate_cross_view.py](evaluate_cross_view.py), [evaluate_open_set.py](evaluate_open_set.py), [manage_venv.ps1](manage_venv.ps1), [preprocess_casia.py](preprocess_casia.py), [run_auto_enrollment.py](run_auto_enrollment.py), [run_folder_recognition.py](run_folder_recognition.py), [run_video_recognition.py](run_video_recognition.py), [setup_silhouette_model.py](setup_silhouette_model.py), [system_check.py](system_check.py), [train_model.py](train_model.py) |
 | **Repository Modification** | [benchmark.py](benchmark.py), [benchmark_inference_backends.py](benchmark_inference_backends.py), [build_gallery.py](build_gallery.py), [build_tensorrt_engine.py](build_tensorrt_engine.py), [clean_live_gallery.py](clean_live_gallery.py), [doctor.py](doctor.py), [evaluate_exp004.py](evaluate_exp004.py), [evaluate_model.py](evaluate_model.py), [evaluate_open_set_threshold_sweep.py](evaluate_open_set_threshold_sweep.py), [evaluate_subject_disjoint.py](evaluate_subject_disjoint.py), [evaluate_threshold_sweep.py](evaluate_threshold_sweep.py), [export_bygait_onnx.py](export_bygait_onnx.py), [export_silhouette_unet_onnx.py](export_silhouette_unet_onnx.py), [extract_casia_skeletons.py](extract_casia_skeletons.py), [migrate_output_layout.py](migrate_output_layout.py), [remove_gallery_identity.py](remove_gallery_identity.py), [remove_numeric_gallery_identities.py](remove_numeric_gallery_identities.py), [run_ablation_study.py](run_ablation_study.py), [run_exp004_ablations.py](run_exp004_ablations.py), [run_exp006_3d.py](run_exp006_3d.py), [run_exp006_full.py](run_exp006_full.py), [run_exp007_ablations.py](run_exp007_ablations.py), [set_gallery_identity_status.py](set_gallery_identity_status.py), [smoke_test_deployment.py](smoke_test_deployment.py) |
 | **Validation** | [test_confidence_scorer.py](test_confidence_scorer.py), [test_enrollment.py](test_enrollment.py), [test_events.py](test_events.py), [test_folder_watcher.py](test_folder_watcher.py), [test_gallery_match.py](test_gallery_match.py), [test_gei.py](test_gei.py), [test_inference_pipeline.py](test_inference_pipeline.py), [test_live_gei.py](test_live_gei.py), [test_live_recognition.py](test_live_recognition.py), [test_security_layer.py](test_security_layer.py), [test_silhouette.py](test_silhouette.py), [test_streaming_optimization.py](test_streaming_optimization.py), [test_tracking.py](test_tracking.py), [test_visualizer.py](test_visualizer.py), [test_webcam_detection.py](test_webcam_detection.py) |
 <!-- END SYNC: SAFETY_CLASSIFICATION -->

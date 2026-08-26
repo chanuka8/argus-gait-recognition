@@ -50,14 +50,18 @@ function logError(msg) {
  */
 function resolvePythonPath() {
     const isWin = process.platform === 'win32';
-    const venvPythonWin = path.join(rootDir, 'venv', 'Scripts', 'python.exe');
-    const venvPythonPosix = path.join(rootDir, 'venv', 'bin', 'python');
+    const dotVenvPython = isWin
+        ? path.join(rootDir, '.venv', 'Scripts', 'python.exe')
+        : path.join(rootDir, '.venv', 'bin', 'python');
+    const legacyVenvPython = isWin
+        ? path.join(rootDir, 'venv', 'Scripts', 'python.exe')
+        : path.join(rootDir, 'venv', 'bin', 'python');
 
-    if (isWin && fs.existsSync(venvPythonWin)) {
-        return venvPythonWin;
+    if (fs.existsSync(dotVenvPython)) {
+        return dotVenvPython;
     }
-    if (!isWin && fs.existsSync(venvPythonPosix)) {
-        return venvPythonPosix;
+    if (fs.existsSync(legacyVenvPython)) {
+        return legacyVenvPython;
     }
 
     if (process.env.VIRTUAL_ENV) {
