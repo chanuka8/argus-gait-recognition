@@ -16,12 +16,7 @@ def main():
 
     bus.subscribe("system_started", on_system_started)
 
-    bus.publish(
-        "system_started",
-        {
-            "mode": "inference"
-        }
-    )
+    bus.publish("system_started", {"mode": "inference"})
 
 
 if __name__ == "__main__":

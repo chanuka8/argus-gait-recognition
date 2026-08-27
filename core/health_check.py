@@ -1,10 +1,11 @@
 from pathlib import Path
+from typing import ClassVar
 
 from core.exceptions import BootError
 
 
 class HealthCheck:
-    REQUIRED_DIRECTORIES = [
+    REQUIRED_DIRECTORIES: ClassVar[list[str]] = [
         "core",
         "configs",
         "events",
@@ -18,7 +19,7 @@ class HealthCheck:
         "data",
     ]
 
-    REQUIRED_FILES = [
+    REQUIRED_FILES: ClassVar[list[str]] = [
         "VERSION",
         "configs/base.yaml",
         "configs/inference.yaml",

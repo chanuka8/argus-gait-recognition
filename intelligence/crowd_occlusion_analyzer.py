@@ -5,10 +5,11 @@ Provides lightweight crowd density analysis, per-track bounding-box mutual occlu
 moving-window smoothing, clean-frame ratio calculation, and silhouette acceptance decisions.
 """
 
+import time
 from dataclasses import dataclass, field
 from enum import Enum
-import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
+
 import numpy as np
 
 
@@ -19,7 +20,7 @@ class CrowdDensityLevel(str, Enum):
     SEVERE = "SEVERE"
 
 
-def compute_iou(box1: List[float], box2: List[float]) -> float:
+def compute_iou(box1: list[float], box2: list[float]) -> float:
     """Compute Intersection over Union (IoU) between two bounding boxes [x1, y1, x2, y2]."""
     x1_1, y1_1, x2_1, y2_1 = box1
     x1_2, y1_2, x2_2, y2_2 = box2
@@ -47,8 +48,8 @@ def compute_iou(box1: List[float], box2: List[float]) -> float:
 class TrackOcclusionState:
     camera_id: str
     track_id: Any
-    history: List[float] = field(default_factory=list)
-    clean_history: List[bool] = field(default_factory=list)
+    history: list[float] = field(default_factory=list)
+    clean_history: list[bool] = field(default_factory=list)
     last_seen: float = 0.0
     smooth_occlusion_score: float = 0.0
     clean_frame_ratio: float = 1.0
@@ -63,9 +64,9 @@ class FrameCrowdAnalysis:
     total_area_ratio: float
     avg_pairwise_overlap: float
     strongly_overlapping_count: int
-    track_occlusions: Dict[Tuple[str, Any], float] = field(default_factory=dict)
-    clean_frame_ratios: Dict[Tuple[str, Any], float] = field(default_factory=dict)
-    silhouette_acceptance: Dict[Tuple[str, Any], bool] = field(default_factory=dict)
+    track_occlusions: dict[tuple[str, Any], float] = field(default_factory=dict)
+    clean_frame_ratios: dict[tuple[str, Any], float] = field(default_factory=dict)
+    silhouette_acceptance: dict[tuple[str, Any], bool] = field(default_factory=dict)
 
 
 class CrowdOcclusionAnalyzer:
@@ -75,7 +76,7 @@ class CrowdOcclusionAnalyzer:
 
     def __init__(
         self,
-        config: Optional[Dict[str, Any]] = None,
+        config: dict[str, Any] | None = None,
     ) -> None:
         cfg = config or {}
         self.enabled = bool(cfg.get("enabled", False))
@@ -86,17 +87,17 @@ class CrowdOcclusionAnalyzer:
         self.minimum_clean_frames = int(cfg.get("minimum_clean_frames", 18))
         self.minimum_clean_ratio = float(cfg.get("minimum_clean_ratio", 0.70))
 
-        self.track_states: Dict[Tuple[str, Any], TrackOcclusionState] = {}
+        self.track_states: dict[tuple[str, Any], TrackOcclusionState] = {}
 
     def is_enabled(self) -> bool:
         return self.enabled
 
     def analyze_frame(
         self,
-        detections: List[Dict[str, Any]],
-        frame_shape: Tuple[int, int] = (1080, 1920),
+        detections: list[dict[str, Any]],
+        frame_shape: tuple[int, int] = (1080, 1920),
         camera_id: str = "cam_00",
-        timestamp: Optional[float] = None,
+        timestamp: float | None = None,
     ) -> FrameCrowdAnalysis:
         """
         Analyze crowd density and compute per-track occlusion scores for a frame.
@@ -136,9 +137,7 @@ class CrowdOcclusionAnalyzer:
                 track_keys.append((camera_id, t_id))
 
         n_boxes = len(bboxes)
-        total_bbox_area = sum(
-            float(max(0, b[2] - b[0]) * max(0, b[3] - b[1])) for b in bboxes
-        )
+        total_bbox_area = sum(float(max(0, b[2] - b[0]) * max(0, b[3] - b[1])) for b in bboxes)
         total_area_ratio = float(total_bbox_area / frame_area)
 
         raw_occlusions = [0.0] * n_boxes
@@ -151,19 +150,15 @@ class CrowdOcclusionAnalyzer:
                 iou = compute_iou(bboxes[i], bboxes[j])
                 total_iou += iou
                 pair_count += 1
-                if iou > raw_occlusions[i]:
-                    raw_occlusions[i] = iou
-                if iou > raw_occlusions[j]:
-                    raw_occlusions[j] = iou
+                raw_occlusions[i] = max(raw_occlusions[i], iou)
+                raw_occlusions[j] = max(raw_occlusions[j], iou)
                 if iou >= 0.25:
                     strongly_overlapping_count += 1
 
         avg_pairwise_overlap = float(total_iou / pair_count) if pair_count > 0 else 0.0
 
         density_score = float(
-            min(1.0, 0.4 * (person_count / 20.0)
-            + 0.3 * (total_area_ratio / 0.50)
-            + 0.3 * avg_pairwise_overlap)
+            min(1.0, 0.4 * (person_count / 20.0) + 0.3 * (total_area_ratio / 0.50) + 0.3 * avg_pairwise_overlap)
         )
 
         if density_score >= self.severe_threshold or person_count >= 20 or strongly_overlapping_count >= 8:
@@ -223,7 +218,9 @@ class CrowdOcclusionAnalyzer:
             silhouette_acceptance=silhouette_acceptance,
         )
 
-    def cleanup_inactive(self, max_idle_seconds: float = 10.0, current_time: Optional[float] = None) -> List[Tuple[str, Any]]:
+    def cleanup_inactive(
+        self, max_idle_seconds: float = 10.0, current_time: float | None = None
+    ) -> list[tuple[str, Any]]:
         """Purge inactive track states that have timed out."""
         now = current_time if current_time is not None else time.monotonic()
         purged = []

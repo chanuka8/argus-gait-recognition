@@ -3,6 +3,7 @@ import json
 import sys
 import time
 from pathlib import Path
+
 import numpy as np
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -73,7 +74,9 @@ class SubjectDisjointOpenSetEvaluator(SubjectDisjointEvaluator):
             gallery_subjects=[i["subject_id"] for i in gallery_items],
         )
 
-        print(f"Extracting features for Open-Set Evaluation ({len(gallery_items)} gallery, {len(probe_items)} probes)...")
+        print(
+            f"Extracting features for Open-Set Evaluation ({len(gallery_items)} gallery, {len(probe_items)} probes)..."
+        )
         gal_features = np.asarray([self.image_to_embedding(Path(i["path"])) for i in gallery_items], dtype=np.float32)
         gal_labels = np.asarray([i["subject_id"] for i in gallery_items])
 
@@ -114,16 +117,18 @@ class SubjectDisjointOpenSetEvaluator(SubjectDisjointEvaluator):
             is_gen = actual_id in known_set and actual_id == best_id
             is_genuine.append(is_gen)
 
-            probe_details.append({
-                "probe_path": prb["path"],
-                "actual_id": actual_id,
-                "is_known_subject": actual_id in known_set,
-                "predicted_id": best_id,
-                "score": best_score,
-                "margin": round(margin, 4),
-                "open_set_state": open_set_state,
-                "is_genuine_match": is_gen,
-            })
+            probe_details.append(
+                {
+                    "probe_path": prb["path"],
+                    "actual_id": actual_id,
+                    "is_known_subject": actual_id in known_set,
+                    "predicted_id": best_id,
+                    "score": best_score,
+                    "margin": round(margin, 4),
+                    "open_set_state": open_set_state,
+                    "is_genuine_match": is_gen,
+                }
+            )
 
         scores_arr = np.asarray(scores, dtype=np.float32)
         is_genuine_arr = np.asarray(is_genuine, dtype=bool)
@@ -160,7 +165,9 @@ class SubjectDisjointOpenSetEvaluator(SubjectDisjointEvaluator):
 
         far_values = roc_results["far_list"]
         if len(set(far_values)) <= 1:
-            raise ValueError("CRITICAL METRIC FAILURE: FAR metrics do not change across threshold sweep! Score distribution is degenerate.")
+            raise ValueError(
+                "CRITICAL METRIC FAILURE: FAR metrics do not change across threshold sweep! Score distribution is degenerate."
+            )
 
         report = {
             "evaluation_type": "Subject-Disjoint Open-Set Identification",
@@ -186,7 +193,6 @@ class SubjectDisjointOpenSetEvaluator(SubjectDisjointEvaluator):
             "margin_aware_metrics": margin_aware_rates,
             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
         }
-
 
         json_path = self.report_dir / "open_set_report.json"
         with open(json_path, "w", encoding="utf-8") as f:

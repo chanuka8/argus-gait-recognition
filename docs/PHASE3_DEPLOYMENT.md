@@ -597,17 +597,12 @@ Recommended:
 
 ```python
 {
-  "camera_01": {
-    "status": { ... },
-    "recent_alerts": [
-      {
-        "type": "low_fps",
-        "timestamp": 1721644800.5,
-        "fps": 1.5,
-        "message": "Low FPS for camera_01"
-      }
-    ]
-  }
+    "camera_01": {
+        "status": {...},
+        "recent_alerts": [
+            {"type": "low_fps", "timestamp": 1721644800.5, "fps": 1.5, "message": "Low FPS for camera_01"}
+        ],
+    }
 }
 ```
 

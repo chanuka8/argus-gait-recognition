@@ -1,13 +1,13 @@
 """Unit tests for user-scoped RTSP credential management in ARGUS AI."""
 
-from pathlib import Path
 import re
 import time
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from fastapi.testclient import TestClient
 import numpy as np
 import pytest
+from fastapi.testclient import TestClient
 
 from api.server import app
 from security_layer.credentials import (
@@ -118,8 +118,10 @@ def test_credentials_never_appear_in_logs(caplog, temp_credential_store):
     mock_cap.isOpened.return_value = True
     mock_cap.read.return_value = (True, _dummy_frame())
 
-    with patch("services.camera_source_resolver.cv2.VideoCapture", return_value=mock_cap), \
-         patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
+    with (
+        patch("services.camera_source_resolver.cv2.VideoCapture", return_value=mock_cap),
+        patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
+    ):
         res = resolver.resolve_source(
             camera_id="CAM-LOG-TEST",
             requested_source="rtsp://10.0.0.10:554/live",
@@ -429,12 +431,11 @@ def test_failed_camera_start_releases_credential_reference():
     mock_cap = MagicMock()
     mock_cap.isOpened.return_value = False
 
-    with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
-        with pytest.raises(RuntimeError):
-            service.start_camera(
-                camera_id="CAM-FAIL-REL",
-                source="rtsp://admin:pass@10.0.0.5:554/live",
-            )
+    with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap), pytest.raises(RuntimeError):
+        service.start_camera(
+            camera_id="CAM-FAIL-REL",
+            source="rtsp://admin:pass@10.0.0.5:554/live",
+        )
 
     assert "CAM-FAIL-REL" not in service.active_cameras
     assert not service.source_resolver.is_source_reserved("stream:rtsp://10.0.0.5:554/live")
@@ -484,11 +485,14 @@ def test_restart_preserves_credentials(temp_credential_store):
 def test_no_plaintext_credentials_in_persisted_camera_config():
     """configs/cameras.yaml must not store raw plaintext passwords."""
     import yaml
+
     config_path = Path("configs/cameras.yaml")
     if config_path.exists():
         data = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
         raw_text = config_path.read_text(encoding="utf-8")
-        assert not re.search(r"rtsp://[^:\s]+:[^@\s]+@", raw_text), "Found plaintext credentials in configs/cameras.yaml"
+        assert not re.search(r"rtsp://[^:\s]+:[^@\s]+@", raw_text), (
+            "Found plaintext credentials in configs/cameras.yaml"
+        )
         for cam_id, cam_cfg in data.get("cameras", {}).items():
             assert "password" not in cam_cfg, f"Camera '{cam_id}' has plaintext password field in cameras.yaml"
 
@@ -496,6 +500,7 @@ def test_no_plaintext_credentials_in_persisted_camera_config():
 def test_core_logger_filter_redacts_credentials(tmp_path):
     """core.logger setup_logger must automatically scrub credentials via SensitiveDataFilter."""
     from core.logger import setup_logger
+
     test_logger = setup_logger("ARGUS.TestCoreLogger")
     log_file = Path("outputs/logs/system/argus.log")
 
@@ -511,6 +516,7 @@ def test_core_logger_filter_redacts_credentials(tmp_path):
 def test_monitoring_logger_filter_redacts_credentials():
     """monitoring.logging_config get_logger must automatically scrub credentials."""
     from monitoring.logging_config import get_logger
+
     test_logger = get_logger("camera")
 
     secret_str = "Connecting to rtsp://cctv_admin:MegaSecret123@10.10.10.10:554/feed"
@@ -527,15 +533,14 @@ def test_api_camera_start_error_response_redacts_credentials():
     mock_cap = MagicMock()
     mock_cap.isOpened.return_value = False
 
-    with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
-        with TestClient(app) as client:
-            resp = client.post(
-                "/api/v1/cameras/start",
-                json={
-                    "camera_id": "CAM-ERR-TEST",
-                    "source": "rtsp://leaked_user:LeakedPass999@192.168.1.99:554/live",
-                },
-            )
-            data_str = resp.text
-            assert "LeakedPass999" not in data_str
-            assert "rtsp://***:***@" in data_str
+    with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap), TestClient(app) as client:
+        resp = client.post(
+            "/api/v1/cameras/start",
+            json={
+                "camera_id": "CAM-ERR-TEST",
+                "source": "rtsp://leaked_user:LeakedPass999@192.168.1.99:554/live",
+            },
+        )
+        data_str = resp.text
+        assert "LeakedPass999" not in data_str
+        assert "rtsp://***:***@" in data_str

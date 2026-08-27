@@ -9,13 +9,13 @@ Provides multi-tenant user-isolated RTSP credential management with:
 """
 
 import base64
-from datetime import datetime, timezone
 import json
 import os
-from pathlib import Path
 import re
 import secrets
-from typing import Any, Dict, List, Optional, Tuple
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
 from urllib.parse import quote, unquote
 
 from cryptography.fernet import Fernet
@@ -23,17 +23,19 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 
-def sanitize_rtsp_url(url: Optional[str]) -> str:
+def sanitize_rtsp_url(url: str | None) -> str:
     """Mask RTSP username and password in any URL or error string for secure logging."""
     if not url or not isinstance(url, str):
         return ""
     pattern = r"(rtsp://)([^:\s]+):(.+)@([^/\s]+(?::\d+)?(?:/[^\s]*)?)"
+
     def _repl(m):
         return f"{m.group(1)}***:***@{m.group(4)}"
+
     return re.sub(pattern, _repl, url, flags=re.IGNORECASE)
 
 
-def extract_rtsp_credentials(url: str) -> Tuple[Optional[str], Optional[str], str]:
+def extract_rtsp_credentials(url: str) -> tuple[str | None, str | None, str]:
     """
     Extract embedded username and password from an RTSP URL and return a clean base URL.
 
@@ -59,8 +61,8 @@ extract_url_credentials = extract_rtsp_credentials
 
 def build_rtsp_url(
     base_url: str,
-    username: Optional[str] = None,
-    password: Optional[str] = None,
+    username: str | None = None,
+    password: str | None = None,
 ) -> str:
     """
     Construct a full RTSP connection URL from a base URL and credentials.
@@ -107,22 +109,16 @@ class CredentialManager:
     def __init__(
         self,
         credentials_file: str = "configs/credentials.enc",
-        key: Optional[str] = None,
+        key: str | None = None,
     ) -> None:
-        self.credentials_file = Path(
-            os.environ.get("ARGUS_CREDENTIALS_FILE", credentials_file)
-        )
-        raw_key = (
-            key
-            or os.environ.get("ARGUS_CREDENTIAL_ENCRYPTION_KEY")
-            or os.environ.get("ARGUS_CREDENTIALS_KEY")
-        )
+        self.credentials_file = Path(os.environ.get("ARGUS_CREDENTIALS_FILE", credentials_file))
+        raw_key = key or os.environ.get("ARGUS_CREDENTIAL_ENCRYPTION_KEY") or os.environ.get("ARGUS_CREDENTIALS_KEY")
 
         key_file = Path(".credentials.key")
         if not raw_key and key_file.exists():
             try:
                 raw_key = key_file.read_text(encoding="utf-8").strip()
-            except Exception:
+            except (OSError, UnicodeDecodeError):
                 raw_key = None
 
         if not raw_key:
@@ -130,14 +126,14 @@ class CredentialManager:
                 generated = Fernet.generate_key().decode("utf-8")
                 key_file.write_text(generated, encoding="utf-8")
                 raw_key = generated
-            except Exception:
+            except (OSError, ValueError):
                 raw_key = "argus_default_secure_vault_key"
 
-        self._fernet: Optional[Fernet] = None
+        self._fernet: Fernet | None = None
         if raw_key:
             try:
                 self._fernet = Fernet(raw_key.encode("utf-8"))
-            except Exception:
+            except (ValueError, TypeError):
                 derived = derive_fernet_key(raw_key)
                 self._fernet = Fernet(derived)
 
@@ -146,7 +142,7 @@ class CredentialManager:
         """Generate a random 32-byte URL-safe base64 Fernet key string."""
         return Fernet.generate_key().decode("utf-8")
 
-    def _load_raw_store(self) -> Dict[str, Any]:
+    def _load_raw_store(self) -> dict[str, Any]:
         """Load and decrypt the raw credentials JSON storage."""
         if not self._fernet or not self.credentials_file.exists():
             return {"credentials": {}, "schema_version": 2}
@@ -175,10 +171,10 @@ class CredentialManager:
                         }
                 return {"credentials": legacy_creds, "schema_version": 2}
             return data
-        except Exception:
+        except (OSError, ValueError, KeyError, json.JSONDecodeError):
             return {"credentials": {}, "schema_version": 2}
 
-    def _save_raw_store(self, store_data: Dict[str, Any]) -> None:
+    def _save_raw_store(self, store_data: dict[str, Any]) -> None:
         """Encrypt and write the raw credentials JSON storage to file."""
         if not self._fernet:
             raise ValueError("CredentialManager initialized without a valid encryption key")
@@ -193,10 +189,10 @@ class CredentialManager:
         owner_user_id: str,
         username: str,
         password: str,
-        credential_id: Optional[str] = None,
+        credential_id: str | None = None,
         description: str = "",
-        shared_user_ids: Optional[List[str]] = None,
-    ) -> Dict[str, Any]:
+        shared_user_ids: list[str] | None = None,
+    ) -> dict[str, Any]:
         """
         Store an encrypted RTSP credential associated with an authenticated owner user.
 
@@ -220,7 +216,9 @@ class CredentialManager:
 
         existing = creds.get(credential_id)
         if existing and existing.get("owner_user_id") not in (owner_user_id, "system_admin", "default_user"):
-            raise PermissionError(f"User '{owner_user_id}' cannot overwrite credential '{credential_id}' owned by another user")
+            raise PermissionError(
+                f"User '{owner_user_id}' cannot overwrite credential '{credential_id}' owned by another user"
+            )
 
         creds[credential_id] = {
             "credential_id": credential_id,
@@ -260,16 +258,13 @@ class CredentialManager:
         if user_id in ("system_admin", "*") or owner in ("system_admin", "default_user", user_id):
             return True
 
-        if user_id in shared or "*" in shared:
-            return True
-
-        return False
+        return bool(user_id in shared or "*" in shared)
 
     def get_credential(
         self,
         credential_id: str,
         user_id: str = "default_user",
-    ) -> Optional[Dict[str, str]]:
+    ) -> dict[str, str] | None:
         """
         Retrieve decrypted username and password for internal pipeline use.
 
@@ -292,7 +287,7 @@ class CredentialManager:
         self,
         credential_id: str,
         user_id: str = "default_user",
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """
         Retrieve credential metadata with username/password masked (safe for API responses).
         """
@@ -320,7 +315,7 @@ class CredentialManager:
             "is_owner": record.get("owner_user_id") in (user_id, "default_user", "system_admin"),
         }
 
-    def list_credentials_for_user(self, user_id: str = "default_user") -> List[Dict[str, Any]]:
+    def list_credentials_for_user(self, user_id: str = "default_user") -> list[dict[str, Any]]:
         """List all credentials accessible by user_id with masked secrets."""
         store = self._load_raw_store()
         results = []
@@ -356,11 +351,13 @@ class CredentialManager:
 
         record = creds[credential_id]
         if owner_user_id not in (record.get("owner_user_id"), "system_admin", "default_user"):
-            raise PermissionError(f"User '{owner_user_id}' cannot share credential owned by '{record.get('owner_user_id')}'")
+            raise PermissionError(
+                f"User '{owner_user_id}' cannot share credential owned by '{record.get('owner_user_id')}'"
+            )
 
         shared = set(record.get("shared_user_ids", []))
         shared.add(target_user_id)
-        record["shared_user_ids"] = sorted(list(shared))
+        record["shared_user_ids"] = sorted(shared)
         record["updated_at"] = datetime.now(timezone.utc).isoformat()
         self._save_raw_store(store)
         return True
@@ -374,11 +371,13 @@ class CredentialManager:
 
         record = creds[credential_id]
         if owner_user_id not in (record.get("owner_user_id"), "system_admin", "default_user"):
-            raise PermissionError(f"User '{owner_user_id}' cannot revoke access for credential owned by '{record.get('owner_user_id')}'")
+            raise PermissionError(
+                f"User '{owner_user_id}' cannot revoke access for credential owned by '{record.get('owner_user_id')}'"
+            )
 
         shared = set(record.get("shared_user_ids", []))
         shared.discard(target_user_id)
-        record["shared_user_ids"] = sorted(list(shared))
+        record["shared_user_ids"] = sorted(shared)
         record["updated_at"] = datetime.now(timezone.utc).isoformat()
         self._save_raw_store(store)
         return True
@@ -388,8 +387,7 @@ class CredentialManager:
         store = self._load_raw_store()
         return credential_id in store.get("credentials", {})
 
-
-    def encrypt_credentials(self, credentials_data: Dict[str, Dict[str, str]], output_path: Optional[str] = None) -> Path:
+    def encrypt_credentials(self, credentials_data: dict[str, dict[str, str]], output_path: str | None = None) -> Path:
         """Legacy helper: encrypt dictionary of credentials."""
         for cid, cdata in credentials_data.items():
             self.store_credential(
@@ -400,7 +398,7 @@ class CredentialManager:
             )
         return Path(output_path) if output_path else self.credentials_file
 
-    def load_encrypted_credentials(self) -> Dict[str, Dict[str, str]]:
+    def load_encrypted_credentials(self) -> dict[str, dict[str, str]]:
         """Legacy helper: load dictionary of credentials."""
         store = self._load_raw_store()
         out = {}
@@ -411,7 +409,7 @@ class CredentialManager:
             }
         return out
 
-    def get_credentials(self, camera_id: str) -> Tuple[Optional[str], Optional[str]]:
+    def get_credentials(self, camera_id: str) -> tuple[str | None, str | None]:
         """Legacy helper: retrieve username and password for camera_id."""
         cred = self.get_credential(camera_id, user_id="system_admin")
         if cred:
@@ -419,7 +417,7 @@ class CredentialManager:
         return None, None
 
 
-def is_legacy_plaintext_allowed(config: Dict[str, Any], override: Optional[bool] = None) -> bool:
+def is_legacy_plaintext_allowed(config: dict[str, Any], override: bool | None = None) -> bool:
     """Check if legacy plaintext fallback is enabled via config, env, or override."""
     if override is not None:
         return override
@@ -430,11 +428,11 @@ def is_legacy_plaintext_allowed(config: Dict[str, Any], override: Optional[bool]
 
 
 def resolve_camera_config(
-    camera_config: Dict[str, Any],
-    credential_manager: Optional[CredentialManager] = None,
-    legacy_allow_plaintext: Optional[bool] = None,
+    camera_config: dict[str, Any],
+    credential_manager: CredentialManager | None = None,
+    legacy_allow_plaintext: bool | None = None,
     user_id: str = "default_user",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Resolve camera credentials adhering to priority order without leaking secrets.
 
@@ -448,8 +446,8 @@ def resolve_camera_config(
     camera_id = str(res.get("id") or res.get("name") or "camera_default")
     credential_id = res.get("credential_id")
 
-    username: Optional[str] = None
-    password: Optional[str] = None
+    username: str | None = None
+    password: str | None = None
 
     cm = credential_manager or CredentialManager()
 

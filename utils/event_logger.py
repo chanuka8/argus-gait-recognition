@@ -1,45 +1,23 @@
-from pathlib import Path
-from datetime import datetime
 import csv
 import threading
+from datetime import datetime, timezone
+from pathlib import Path
 
 
 class EventLogger:
-
-    def __init__(
-        self,
-        log_file="outputs/logs/events/recognition_log.csv"
-    ):
+    def __init__(self, log_file="outputs/logs/events/recognition_log.csv"):
 
         self.log_file = Path(log_file)
 
-        self.log_file.parent.mkdir(
-            parents=True,
-            exist_ok=True
-        )
+        self.log_file.parent.mkdir(parents=True, exist_ok=True)
 
         self._lock = threading.Lock()
 
         if not self.log_file.exists():
-
-            with open(
-                self.log_file,
-                "w",
-                newline="",
-                encoding="utf-8"
-            ) as f:
-
+            with open(self.log_file, "w", newline="", encoding="utf-8") as f:
                 writer = csv.writer(f)
 
-                writer.writerow(
-                    [
-                        "timestamp",
-                        "track_id",
-                        "identity",
-                        "score",
-                        "camera_id"
-                    ]
-                )
+                writer.writerow(["timestamp", "track_id", "identity", "score", "camera_id"])
 
     def log(
         self,
@@ -49,22 +27,15 @@ class EventLogger:
         camera_id="default",
     ):
 
-        with self._lock:
-            with open(
-                self.log_file,
-                "a",
-                newline="",
-                encoding="utf-8"
-            ) as f:
+        with self._lock, open(self.log_file, "a", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
 
-                writer = csv.writer(f)
-
-                writer.writerow(
-                    [
-                        datetime.now().isoformat(),
-                        track_id,
-                        identity,
-                        round(score, 4),
-                        camera_id,
-                    ]
-                )
+            writer.writerow(
+                [
+                    datetime.now(timezone.utc).isoformat(),
+                    track_id,
+                    identity,
+                    round(score, 4),
+                    camera_id,
+                ]
+            )

@@ -1,4 +1,5 @@
 import threading
+
 import numpy as np
 
 
@@ -62,10 +63,7 @@ class BoxStabilizer:
             dict: track_id -> (stable_box_xyxy, is_valid, is_predicted)
         """
         if not self.enabled:
-            return {
-                tid: (np.array(box, dtype=np.float32), True, False)
-                for tid, box, _ in raw_detections
-            }
+            return {tid: (np.array(box, dtype=np.float32), True, False) for tid, box, _ in raw_detections}
 
         with self._lock:
             self.current_frame += 1
@@ -126,9 +124,7 @@ class BoxStabilizer:
                         prev_state["missed_frames"] += 1
                         prev_state["is_predicted"] = True
                     else:
-                        prev_state["stable_box"] = (
-                            self.alpha * raw_box + (1.0 - self.alpha) * prev_box
-                        )
+                        prev_state["stable_box"] = self.alpha * raw_box + (1.0 - self.alpha) * prev_box
                         prev_state["missed_frames"] = 0
                         prev_state["last_seen_frame"] = self.current_frame
                         prev_state["is_predicted"] = False

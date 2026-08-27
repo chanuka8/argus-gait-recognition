@@ -69,9 +69,7 @@ def remove_identity(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Remove an identity from ARGUS gallery"
-    )
+    parser = argparse.ArgumentParser(description="Remove an identity from ARGUS gallery")
 
     parser.add_argument(
         "--person-id",

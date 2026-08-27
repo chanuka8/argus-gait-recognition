@@ -5,6 +5,7 @@ Unit tests for 3D Pose Gait module, pipeline step, and evaluator.
 import sys
 import unittest
 from pathlib import Path
+
 import numpy as np
 import torch
 

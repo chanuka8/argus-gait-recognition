@@ -11,12 +11,10 @@ modified or referenced by this module.
 """
 
 from pathlib import Path
-from typing import Optional
 
 import cv2
 import numpy as np
 import yaml
-
 
 STATUS_DETECTION = "DETECTION"
 STATUS_TRACKING = "TRACKING"
@@ -54,7 +52,7 @@ def load_display_config() -> dict:
     try:
         with open(config_path, encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
-    except Exception:
+    except (yaml.YAMLError, OSError, ValueError, KeyError):
         return defaults
 
     section = data.get("display", {})
@@ -68,10 +66,7 @@ def load_display_config() -> dict:
             if not isinstance(raw_colors, dict):
                 merged["colors"] = default_value
             else:
-                merged["colors"] = {
-                    ck: raw_colors.get(ck, cv)
-                    for ck, cv in default_value.items()
-                }
+                merged["colors"] = {ck: raw_colors.get(ck, cv) for ck, cv in default_value.items()}
         else:
             merged[key] = section.get(key, default_value)
 
@@ -117,7 +112,7 @@ class DetectionDisplayRenderer:
         is called automatically so the renderer always has safe defaults.
     """
 
-    def __init__(self, config: Optional[dict] = None) -> None:
+    def __init__(self, config: dict | None = None) -> None:
         self.cfg = config if config is not None else load_display_config()
 
         colors_raw = self.cfg.get("colors", {})
@@ -129,13 +124,11 @@ class DetectionDisplayRenderer:
             STATUS_CONFIRMED: tuple(colors_raw.get("confirmed", [0, 255, 0])),
         }
 
-
         self._thickness: int = int(self.cfg.get("line_thickness", 2))
         self._font_scale: float = float(self.cfg.get("font_scale", 0.6))
         self._show_cam: bool = bool(self.cfg.get("show_camera_id", True))
         self._show_tid: bool = bool(self.cfg.get("show_track_id", True))
         self._show_score: bool = bool(self.cfg.get("show_score", True))
-
 
     def get_status(self, decision: str) -> str:
         """Return the CCTV status string for a given ARGUS decision."""
@@ -144,7 +137,6 @@ class DetectionDisplayRenderer:
     def get_color(self, status: str) -> tuple[int, int, int]:
         """Return the BGR colour tuple for *status*."""
         return self._colors.get(status, (0, 255, 255))
-
 
     def draw(
         self,
@@ -193,7 +185,6 @@ class DetectionDisplayRenderer:
         )
 
         self._draw_label(frame, label, x1, y1, color)
-
 
     def _build_label(
         self,

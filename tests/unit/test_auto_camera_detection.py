@@ -6,6 +6,7 @@ are actually received, and remains hidden on standby, disconnect, or error.
 """
 
 from unittest.mock import MagicMock, patch
+
 import numpy as np
 import pytest
 
@@ -34,9 +35,10 @@ def test_02_start_stream_webcam_success():
     mock_cap.isOpened.return_value = True
     mock_cap.read.return_value = (True, _dummy_frame())
 
-    with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap), \
-         patch.object(service.source_resolver, "probe_usb_webcam", return_value=True):
-
+    with (
+        patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
+        patch.object(service.source_resolver, "probe_usb_webcam", return_value=True),
+    ):
         cam_info = service.start_camera(camera_id="CAM-WC-01", source="auto")
         assert cam_info["status"] == "ACTIVE"
         assert cam_info["source_type"] == "webcam"
@@ -52,9 +54,10 @@ def test_03_start_stream_rtsp_success():
     mock_cap.isOpened.return_value = True
     mock_cap.read.return_value = (True, _dummy_frame())
 
-    with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap), \
-         patch.object(service.source_resolver, "probe_stream", return_value=True):
-
+    with (
+        patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
+        patch.object(service.source_resolver, "probe_stream", return_value=True),
+    ):
         cam_info = service.start_camera(
             camera_id="CAM-RTSP-01",
             source="rtsp://admin:pass@192.168.1.120:554/live",
@@ -80,10 +83,11 @@ def test_04_webcam_connection_failure():
         "max_reconnect_attempts": 0,
     }
 
-    with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap), \
-         patch.object(service, "_load_camera_config", return_value=fast_cfg), \
-         patch.object(service.source_resolver, "probe_usb_webcam", return_value=True):
-
+    with (
+        patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
+        patch.object(service, "_load_camera_config", return_value=fast_cfg),
+        patch.object(service.source_resolver, "probe_usb_webcam", return_value=True),
+    ):
         with pytest.raises(RuntimeError) as exc:
             service.start_camera(camera_id="CAM-WC-FAIL", source="auto")
         assert "Unable to establish stream connection" in str(exc.value)
@@ -105,14 +109,17 @@ def test_05_rtsp_connection_failure():
         "max_reconnect_attempts": 0,
     }
 
-    with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap), \
-         patch.object(service, "_load_camera_config", return_value=fast_cfg), \
-         patch.object(service.source_resolver, "probe_stream", return_value=False), \
-         patch.object(service.source_resolver, "probe_usb_webcam", return_value=False):
-
+    with (
+        patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
+        patch.object(service, "_load_camera_config", return_value=fast_cfg),
+        patch.object(service.source_resolver, "probe_stream", return_value=False),
+        patch.object(service.source_resolver, "probe_usb_webcam", return_value=False),
+    ):
         with pytest.raises(RuntimeError) as exc:
             service.start_camera(camera_id="CAM-RTSP-FAIL", source="rtsp://10.99.99.99:554/dead")
-        assert "Unable to detect camera source" in str(exc.value) or "Unable to establish stream connection" in str(exc.value)
+        assert "Unable to detect camera source" in str(exc.value) or "Unable to establish stream connection" in str(
+            exc.value
+        )
 
         assert "CAM-RTSP-FAIL" not in service.active_cameras
 
@@ -124,9 +131,10 @@ def test_06_stop_stream_hides_source():
     mock_cap.isOpened.return_value = True
     mock_cap.read.return_value = (True, _dummy_frame())
 
-    with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap), \
-         patch.object(service.source_resolver, "probe_usb_webcam", return_value=True):
-
+    with (
+        patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
+        patch.object(service.source_resolver, "probe_usb_webcam", return_value=True),
+    ):
         service.start_camera(camera_id="CAM-STOP-01", source="auto")
         assert service.get_camera_info("CAM-STOP-01")["status"] == "ACTIVE"
 
@@ -166,9 +174,10 @@ def test_08_reconnect_detects_runtime_source_again():
     mock_cap.isOpened.return_value = True
     mock_cap.read.return_value = (True, _dummy_frame())
 
-    with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap), \
-         patch.object(service.source_resolver, "probe_usb_webcam", return_value=True):
-
+    with (
+        patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
+        patch.object(service.source_resolver, "probe_usb_webcam", return_value=True),
+    ):
         info1 = service.start_camera(camera_id="CAM-RESTART", source="auto")
         assert info1["source_type"] == "webcam"
         service.stop_camera("CAM-RESTART")
@@ -186,10 +195,11 @@ def test_09_multiple_cameras_independent_sources():
     mock_cap.isOpened.return_value = True
     mock_cap.read.return_value = (True, _dummy_frame())
 
-    with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap), \
-         patch.object(service.source_resolver, "probe_usb_webcam", return_value=True), \
-         patch.object(service.source_resolver, "probe_stream", return_value=True):
-
+    with (
+        patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
+        patch.object(service.source_resolver, "probe_usb_webcam", return_value=True),
+        patch.object(service.source_resolver, "probe_stream", return_value=True),
+    ):
         cam1 = service.start_camera(camera_id="CAM-MULTI-1", source="auto")
         cam2 = service.start_camera(camera_id="CAM-MULTI-2", source="rtsp://192.168.1.55:554/live")
 
@@ -203,6 +213,7 @@ def test_09_multiple_cameras_independent_sources():
 def test_10_api_start_stream_endpoint_contract():
     """Verify FastAPI /api/v1/cameras/start returns valid CameraInfoResponse with runtime source."""
     from fastapi.testclient import TestClient
+
     from api.server import app
     from api.v1.router import get_gait_service
 
@@ -213,9 +224,10 @@ def test_10_api_start_stream_endpoint_contract():
 
     app.dependency_overrides[get_gait_service] = lambda: service
     try:
-        with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap), \
-             patch.object(service.source_resolver, "probe_usb_webcam", return_value=True):
-
+        with (
+            patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
+            patch.object(service.source_resolver, "probe_usb_webcam", return_value=True),
+        ):
             client = TestClient(app)
             response = client.post(
                 "/api/v1/cameras/start",

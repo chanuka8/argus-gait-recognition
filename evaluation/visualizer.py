@@ -57,9 +57,7 @@ class EvaluationVisualizer:
             [correct, incorrect],
         )
 
-        plt.title(
-            "Recognition Results"
-        )
+        plt.title("Recognition Results")
 
         output = self.output_dir / filename
 
@@ -88,9 +86,7 @@ class EvaluationVisualizer:
 
         plt.ylabel("Frequency")
 
-        plt.title(
-            "Confidence Distribution"
-        )
+        plt.title("Confidence Distribution")
 
         output = self.output_dir / filename
 

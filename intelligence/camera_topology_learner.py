@@ -7,10 +7,11 @@ high-confidence, low-occlusion observation pairs across cameras.
 Exports learned topology suggestions to YAML/JSON without overwriting manual configuration.
 """
 
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
-import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
+
 import numpy as np
 import yaml
 
@@ -22,7 +23,7 @@ class LearnedEdgeStats:
     source_camera: str
     destination_camera: str
     transition_count: int = 0
-    travel_time_samples: List[float] = field(default_factory=list)
+    travel_time_samples: list[float] = field(default_factory=list)
     mean_travel_time: float = 0.0
     median_travel_time: float = 0.0
     robust_lower_bound: float = 0.0
@@ -37,7 +38,7 @@ class CameraTopologyLearner:
     and travel time bounds from observation data.
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None, transition_model: Optional[Any] = None) -> None:
+    def __init__(self, config: dict[str, Any] | None = None, transition_model: Any | None = None) -> None:
         self.logger = get_logger("camera_topology_learner")
         cfg = config or {}
         self.enabled = bool(cfg.get("enabled", False))
@@ -49,8 +50,8 @@ class CameraTopologyLearner:
         self.transition_model = transition_model
         self.last_sync_time = -float("inf")
 
-        self.learned_edges: Dict[Tuple[str, str], LearnedEdgeStats] = {}
-        self.exit_events: Dict[Tuple[str, str], Tuple[float, float, float]] = {}
+        self.learned_edges: dict[tuple[str, str], LearnedEdgeStats] = {}
+        self.exit_events: dict[tuple[str, str], tuple[float, float, float]] = {}
 
     def set_transition_model(self, transition_model: Any) -> None:
         """Register active CameraTransitionModel instance for online topology synchronization."""
@@ -65,7 +66,7 @@ class CameraTopologyLearner:
         identity: str,
         reliability: float,
         occlusion: float,
-        timestamp: Optional[float] = None,
+        timestamp: float | None = None,
     ) -> None:
         """Record candidate exit event from source camera."""
         if not self.enabled or identity == "UNKNOWN":
@@ -84,7 +85,7 @@ class CameraTopologyLearner:
         occlusion: float,
         is_known_identity: bool = True,
         is_temporally_confirmed: bool = True,
-        timestamp: Optional[float] = None,
+        timestamp: float | None = None,
     ) -> bool:
         """
         Evaluate and record a potential camera transition event.
@@ -155,14 +156,14 @@ class CameraTopologyLearner:
 
     def _update_transition_probabilities(self, source_camera: str) -> None:
         """Normalize transition probabilities for all edges originating from source_camera."""
-        src_edges = [edge for key, edge in self.learned_edges.items() if key[0] == source_camera]
+        src_edges = [edge for (src, _), edge in self.learned_edges.items() if src == source_camera]
         total_count = sum(edge.transition_count for edge in src_edges)
 
         if total_count > 0:
             for edge in src_edges:
                 edge.learned_transition_probability = float(edge.transition_count / total_count)
 
-    def get_suggested_topology(self) -> Dict[str, Any]:
+    def get_suggested_topology(self) -> dict[str, Any]:
         """Format suggested topology edges that have reached minimum_samples threshold."""
         suggestions = {}
         for (src, dst), edge in self.learned_edges.items():
@@ -179,7 +180,7 @@ class CameraTopologyLearner:
                 }
         return suggestions
 
-    def export_learned_topology(self, output_path: Optional[str] = None) -> str:
+    def export_learned_topology(self, output_path: str | None = None) -> str:
         """Export learned topology suggestions to YAML file."""
         target_path = Path(output_path or self.export_path)
         target_path.parent.mkdir(parents=True, exist_ok=True)
@@ -211,7 +212,7 @@ class CameraTopologyLearner:
 
         return str(target_path)
 
-    def load_learned_topology(self, input_path: Optional[str] = None) -> bool:
+    def load_learned_topology(self, input_path: str | None = None) -> bool:
         """Load previously exported camera topology suggestions from YAML file."""
         target_path = Path(input_path or self.export_path)
         if not target_path.exists():
@@ -222,7 +223,7 @@ class CameraTopologyLearner:
                 data = yaml.safe_load(f) or {}
 
             transitions = data.get("suggested_transitions", {})
-            for key, tdata in transitions.items():
+            for tdata in transitions.values():
                 src = tdata.get("source_camera")
                 dst = tdata.get("destination_camera")
                 if not src or not dst:
@@ -247,11 +248,11 @@ class CameraTopologyLearner:
                     learned_transition_probability=prob,
                 )
             return True
-        except Exception as e:
+        except (yaml.YAMLError, OSError, ValueError, KeyError) as e:
             self.logger.warning(f"Failed to load learned topology from {target_path}: {e}")
             return False
 
-    def update_transition_model(self, transition_model: Optional[Any] = None) -> int:
+    def update_transition_model(self, transition_model: Any | None = None) -> int:
         """Update a CameraTransitionModel instance with online learned transitions if shadow_mode is disabled."""
         target = transition_model or self.transition_model
         if target is None or self.shadow_mode or not self.enabled:
@@ -259,22 +260,21 @@ class CameraTopologyLearner:
 
         updated_count = 0
         for (src, dst), edge in self.learned_edges.items():
-            if edge.transition_count >= self.minimum_samples:
-                if hasattr(target, "add_or_update_rule"):
-                    target.add_or_update_rule(
-                        source_camera=src,
-                        destination_camera=dst,
-                        min_travel_seconds=edge.robust_lower_bound,
-                        max_travel_seconds=edge.robust_upper_bound,
-                        probability=edge.learned_transition_probability,
-                    )
-                    updated_count += 1
+            if edge.transition_count >= self.minimum_samples and hasattr(target, "add_or_update_rule"):
+                target.add_or_update_rule(
+                    source_camera=src,
+                    destination_camera=dst,
+                    min_travel_seconds=edge.robust_lower_bound,
+                    max_travel_seconds=edge.robust_upper_bound,
+                    probability=edge.learned_transition_probability,
+                )
+                updated_count += 1
         return updated_count
 
     def maybe_sync_transition_model(
         self,
-        transition_model: Optional[Any] = None,
-        timestamp: Optional[float] = None,
+        transition_model: Any | None = None,
+        timestamp: float | None = None,
     ) -> int:
         """Synchronize learned topology edges to active CameraTransitionModel if bounded sync interval has elapsed."""
         if self.shadow_mode or not self.enabled:
@@ -293,7 +293,7 @@ class CameraTopologyLearner:
         return count
 
     @classmethod
-    def from_config(cls, config: Optional[Dict[str, Any]] = None) -> "CameraTopologyLearner":
+    def from_config(cls, config: dict[str, Any] | None = None) -> "CameraTopologyLearner":
         """Factory method to instantiate from config dictionary."""
         return cls(config=config)
 
@@ -303,7 +303,7 @@ class CameraTopologyLearner:
         self.exit_events.clear()
         self.last_sync_time = -float("inf")
 
-    def cleanup_inactive(self, max_idle_seconds: float = 3600.0, current_time: Optional[float] = None) -> None:
+    def cleanup_inactive(self, max_idle_seconds: float = 3600.0, current_time: float | None = None) -> None:
         """Clean expired exit events."""
         now = current_time if current_time is not None else time.monotonic()
         for key, (ts, _, _) in list(self.exit_events.items()):

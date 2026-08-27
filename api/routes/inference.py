@@ -17,8 +17,8 @@ def identify(request: IdentifyRequest):
             "score": float(result["score"]),
         }
 
-    except Exception as error:
+    except (ValueError, FileNotFoundError, RuntimeError, OSError) as error:
         raise HTTPException(
             status_code=500,
             detail=str(error),
-        )
+        ) from error

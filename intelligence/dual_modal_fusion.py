@@ -7,7 +7,8 @@ Reuses existing QualityEstimator, TrackReliabilityScorer, CrowdOcclusionAnalyzer
 CrowdDensityEstimator, and RecognitionDeferralEngine inputs.
 """
 
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
+
 import numpy as np
 
 from intelligence.fusion_weights import DynamicFusionWeights
@@ -27,8 +28,8 @@ class DualModalFusion:
         self,
         default_gait_weight: float = 0.7,
         default_reid_weight: float = 0.3,
-        gait_min_max: Tuple[float, float] = (0.0, 1.0),
-        reid_min_max: Tuple[float, float] = (-1.0, 1.0),
+        gait_min_max: tuple[float, float] = (0.0, 1.0),
+        reid_min_max: tuple[float, float] = (-1.0, 1.0),
         enabled: bool = False,
     ) -> None:
         self.enabled = bool(enabled)
@@ -46,7 +47,7 @@ class DualModalFusion:
         return self.enabled
 
     @classmethod
-    def from_config(cls, config: Dict[str, Any] | None = None) -> "DualModalFusion":
+    def from_config(cls, config: dict[str, Any] | None = None) -> "DualModalFusion":
         cfg = config or {}
         g_min_max = tuple(cfg.get("gait_min_max", (0.0, 1.0)))
         r_min_max = tuple(cfg.get("reid_min_max", (-1.0, 1.0)))
@@ -60,9 +61,9 @@ class DualModalFusion:
 
     @staticmethod
     def compute_cosine_similarity(
-        vec1: Optional[np.ndarray],
-        vec2: Optional[np.ndarray],
-    ) -> Optional[float]:
+        vec1: np.ndarray | None,
+        vec2: np.ndarray | None,
+    ) -> float | None:
         """Compute cosine similarity between two feature embedding vectors."""
         if vec1 is None or vec2 is None:
             return None
@@ -76,20 +77,20 @@ class DualModalFusion:
 
     def fuse(
         self,
-        gait_score: Optional[float] = None,
-        reid_score: Optional[float] = None,
-        crop: Optional[np.ndarray] = None,
+        gait_score: float | None = None,
+        reid_score: float | None = None,
+        crop: np.ndarray | None = None,
         gei_frame_count: int = 0,
-        gei: Optional[np.ndarray] = None,
+        gei: np.ndarray | None = None,
         confidence: float = 1.0,
-        gait_embedding: Optional[np.ndarray] = None,
-        gait_gallery_embedding: Optional[np.ndarray] = None,
-        reid_embedding: Optional[np.ndarray] = None,
-        reid_gallery_embedding: Optional[np.ndarray] = None,
+        gait_embedding: np.ndarray | None = None,
+        gait_gallery_embedding: np.ndarray | None = None,
+        reid_embedding: np.ndarray | None = None,
+        reid_gallery_embedding: np.ndarray | None = None,
         crowd_density: float = 0.0,
         occlusion_score: float = 0.0,
         track_reliability: float = 1.0,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Perform dual-modal fusion of Gait and ReID scores or embeddings.
 

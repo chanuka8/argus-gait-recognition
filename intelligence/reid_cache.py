@@ -2,7 +2,7 @@
 
 import time
 from threading import Lock
-from typing import Any, Dict, Optional
+from typing import Any
 
 from monitoring.logging_config import get_logger
 
@@ -16,9 +16,9 @@ class ReIDCache:
         self._logger = get_logger("reid_cache")
         self._lock = Lock()
 
-        self._cache: Dict[str, Dict[str, Any]] = {}
+        self._cache: dict[str, dict[str, Any]] = {}
 
-    def put(self, key: str, embedding: Any, metadata: Optional[Dict[str, Any]] = None) -> None:
+    def put(self, key: str, embedding: Any, metadata: dict[str, Any] | None = None) -> None:
         """Store an embedding feature in cache."""
         now = time.monotonic()
         with self._lock:
@@ -31,7 +31,7 @@ class ReIDCache:
                 "metadata": metadata or {},
             }
 
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> Any | None:
         """Retrieve an embedding if present and not expired."""
         now = time.monotonic()
         with self._lock:
@@ -50,10 +50,7 @@ class ReIDCache:
         now = time.monotonic()
         removed = 0
         with self._lock:
-            expired_keys = [
-                k for k, v in self._cache.items()
-                if (now - v["timestamp"]) > self.ttl
-            ]
+            expired_keys = [k for k, v in self._cache.items() if (now - v["timestamp"]) > self.ttl]
             for k in expired_keys:
                 del self._cache[k]
                 removed += 1

@@ -14,7 +14,7 @@ CUDA is NEVER reported as READY based on torch.cuda.is_available() alone.
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from automation.dll_manager import setup_cuda_dll_paths
 from automation.hardware_detector import HardwareDetector, NvidiaGpuInfo
@@ -25,19 +25,19 @@ class CudaStageResult:
     stage_name: str
     passed: bool
     details: str
-    error: Optional[str] = None
+    error: str | None = None
 
 
 @dataclass
 class CudaDetectionReport:
     hardware_gpu_detected: bool
-    gpu_name: Optional[str]
-    driver_version: Optional[str]
+    gpu_name: str | None
+    driver_version: str | None
     vram_mb: float
-    cuda_driver_version: Optional[str]
+    cuda_driver_version: str | None
     pytorch_installed: bool
-    pytorch_version: Optional[str]
-    pytorch_cuda_build: Optional[str]
+    pytorch_version: str | None
+    pytorch_cuda_build: str | None
     cuda_is_available: bool
     device_count: int
     tensor_probe_passed: bool
@@ -45,14 +45,14 @@ class CudaDetectionReport:
     yolo_cuda_passed: bool
     yolo_runtime_device: str
     onnx_cuda_passed: bool
-    onnx_runtime_version: Optional[str]
+    onnx_runtime_version: str | None
     onnx_selected_provider: str
-    onnx_providers_available: List[str] = field(default_factory=list)
+    onnx_providers_available: list[str] = field(default_factory=list)
     all_cuda_stages_passed: bool = False
-    stages: List[CudaStageResult] = field(default_factory=list)
-    failure_reasons: List[str] = field(default_factory=list)
+    stages: list[CudaStageResult] = field(default_factory=list)
+    failure_reasons: list[str] = field(default_factory=list)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "gpu_name": self.gpu_name,
             "driver_version": self.driver_version,
@@ -79,10 +79,11 @@ class CudaDetector:
         self.weights_dir = Path(weights_dir)
         setup_cuda_dll_paths()
 
-    def probe_pytorch_cuda_build(self) -> Tuple[bool, Optional[str], Optional[str], bool, int, Optional[str]]:
+    def probe_pytorch_cuda_build(self) -> tuple[bool, str | None, str | None, bool, int, str | None]:
         """Inspect PyTorch build, CUDA capability, and device enumeration."""
         try:
             import torch
+
             version = getattr(torch, "__version__", None)
             cuda_build = getattr(torch.version, "cuda", None)
             is_avail = torch.cuda.is_available()
@@ -90,13 +91,14 @@ class CudaDetector:
             return True, version, cuda_build, is_avail, count, None
         except ImportError as imp_err:
             return False, None, None, False, 0, f"PyTorch import failed: {imp_err}"
-        except Exception as err:
+        except (RuntimeError, ValueError, AttributeError, OSError) as err:
             return False, None, None, False, 0, f"PyTorch probe error: {err}"
 
-    def probe_cuda_tensor_execution(self) -> Tuple[bool, str, Optional[str]]:
+    def probe_cuda_tensor_execution(self) -> tuple[bool, str, str | None]:
         """Execute real CUDA memory allocation and synchronized 1024x1024 MatMul."""
         try:
             import torch
+
             if not torch.cuda.is_available():
                 return False, "CUDA not available", "torch.cuda.is_available() is False"
 
@@ -108,13 +110,14 @@ class CudaDetector:
             if c.shape == (1024, 1024):
                 return True, "1024x1024 Tensor MatMul synchronized successfully on CUDA", None
             return False, "Shape mismatch in tensor matmul", f"Expected (1024, 1024), got {c.shape}"
-        except Exception as err:
+        except (RuntimeError, ValueError, TypeError, AttributeError) as err:
             return False, "CUDA tensor execution failed", str(err)
 
-    def probe_bygait_cuda_execution(self) -> Tuple[bool, str, Optional[str]]:
+    def probe_bygait_cuda_execution(self) -> tuple[bool, str, str | None]:
         """Verify ByGaitLight forward pass on CUDA (output shape [1, 256], unit L2 norm)."""
         try:
             import torch
+
             from models.architectures.bygait_light import ByGaitLight
 
             if not torch.cuda.is_available():
@@ -135,10 +138,10 @@ class CudaDetector:
                 return False, "Invalid L2 normalization", f"Expected norm ~1.0, got {norm:.6f}"
 
             return True, f"ByGaitLight forward pass verified on CUDA: shape {list(emb.shape)}, norm {norm:.4f}", None
-        except Exception as err:
+        except (RuntimeError, ValueError, TypeError, AttributeError, OSError) as err:
             return False, "ByGaitLight CUDA verification failed", str(err)
 
-    def probe_yolo_cuda_execution(self) -> Tuple[bool, str, str, Optional[str]]:
+    def probe_yolo_cuda_execution(self) -> tuple[bool, str, str, str | None]:
         """Verify YOLOv8 runtime execution on CUDA directly."""
         try:
             import numpy as np
@@ -162,10 +165,10 @@ class CudaDetector:
             if is_cuda:
                 return True, runtime_dev, f"YOLO runtime confirmed on {runtime_dev}", None
             return False, runtime_dev, f"YOLO running on {runtime_dev} (expected cuda:0)", None
-        except Exception as err:
+        except (RuntimeError, ValueError, TypeError, AttributeError, OSError, ImportError) as err:
             return False, "cpu", "YOLO runtime probe error", str(err)
 
-    def probe_onnx_cuda_execution(self) -> Tuple[bool, Optional[str], str, List[str], Optional[str]]:
+    def probe_onnx_cuda_execution(self) -> tuple[bool, str | None, str, list[str], str | None]:
         """Verify ONNX Runtime CUDA provider initialization and real silhouette inference."""
         setup_cuda_dll_paths()
         try:
@@ -177,7 +180,13 @@ class CudaDetector:
             cuda_avail = "CUDAExecutionProvider" in providers
 
             if not cuda_avail:
-                return False, version, "CPUExecutionProvider", providers, "CUDAExecutionProvider not in available ONNX providers"
+                return (
+                    False,
+                    version,
+                    "CPUExecutionProvider",
+                    providers,
+                    "CUDAExecutionProvider not in available ONNX providers",
+                )
 
             model_candidates = [
                 self.weights_dir / "silhouette_segmenter.onnx",
@@ -197,7 +206,13 @@ class CudaDetector:
             selected = active_providers[0] if active_providers else "CPUExecutionProvider"
 
             if selected != "CUDAExecutionProvider":
-                return False, version, selected, providers, f"ONNX initialized with {selected} instead of CUDAExecutionProvider"
+                return (
+                    False,
+                    version,
+                    selected,
+                    providers,
+                    f"ONNX initialized with {selected} instead of CUDAExecutionProvider",
+                )
 
             in_name = sess.get_inputs()[0].name
             out_name = sess.get_outputs()[0].name
@@ -208,18 +223,18 @@ class CudaDetector:
                 return False, version, selected, providers, "ONNX silhouette inference returned empty output"
 
             return True, version, selected, providers, None
-        except Exception as err:
+        except (RuntimeError, ValueError, TypeError, AttributeError, OSError, ImportError) as err:
             return False, None, "CPUExecutionProvider", [], f"ONNX CUDA probe failed: {err}"
 
-    def run_full_detection(self, gpu_info: Optional[NvidiaGpuInfo] = None) -> CudaDetectionReport:
+    def run_full_detection(self, gpu_info: NvidiaGpuInfo | None = None) -> CudaDetectionReport:
         """
         Execute comprehensive 6-phase CUDA readiness audit.
         """
         if gpu_info is None:
             gpu_info = HardwareDetector.detect_nvidia_gpu()
 
-        stages: List[CudaStageResult] = []
-        failures: List[str] = []
+        stages: list[CudaStageResult] = []
+        failures: list[str] = []
 
         # Stage 1: Hardware GPU presence
         hw_passed = gpu_info.present and bool(gpu_info.driver_version)
@@ -300,14 +315,7 @@ class CudaDetector:
         if not onnx_passed:
             failures.append(f"ONNX CUDA execution failed: {onnx_err}")
 
-        all_passed = (
-            hw_passed
-            and pt_passed
-            and tensor_passed
-            and bygait_passed
-            and yolo_passed
-            and onnx_passed
-        )
+        all_passed = hw_passed and pt_passed and tensor_passed and bygait_passed and yolo_passed and onnx_passed
 
         return CudaDetectionReport(
             hardware_gpu_detected=gpu_info.present,

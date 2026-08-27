@@ -6,11 +6,10 @@ installations, configures centralized Windows DLL paths, and validates actual
 InferenceSession execution with the silhouette segmentation model.
 """
 
-from dataclasses import dataclass
-from pathlib import Path
 import subprocess
 import sys
-from typing import Any, Dict, List, Optional, Tuple
+from pathlib import Path
+from typing import Any
 
 from automation.dll_manager import setup_cuda_dll_paths
 from automation.environment_validator import ComputeBackend
@@ -24,7 +23,7 @@ class OnnxManager:
         self.python_exe = sys.executable
         setup_cuda_dll_paths()
 
-    def inspect_current_onnx(self) -> Dict[str, Any]:
+    def inspect_current_onnx(self) -> dict[str, Any]:
         """Inspect installed ONNX Runtime version and available providers."""
         setup_cuda_dll_paths()
         info = {
@@ -39,6 +38,7 @@ class OnnxManager:
 
         try:
             import onnxruntime as ort
+
             info["installed"] = True
             info["version"] = getattr(ort, "__version__", None)
             providers = ort.get_available_providers()
@@ -48,9 +48,10 @@ class OnnxManager:
             # Check if package is onnxruntime-gpu
             try:
                 import importlib.metadata
+
                 dist_names = [d.metadata["Name"].lower() for d in importlib.metadata.distributions()]
                 info["is_gpu_package"] = "onnxruntime-gpu" in dist_names
-            except Exception:
+            except (ImportError, KeyError, AttributeError, OSError):
                 info["is_gpu_package"] = info["cuda_available"]
 
             # Test real InferenceSession creation & inference
@@ -62,12 +63,16 @@ class OnnxManager:
             model_path = next((p for p in model_candidates if p.exists()), None)
 
             if model_path:
-                req_provs = ["CUDAExecutionProvider", "CPUExecutionProvider"] if info["cuda_available"] else ["CPUExecutionProvider"]
+                req_provs = (
+                    ["CUDAExecutionProvider", "CPUExecutionProvider"]
+                    if info["cuda_available"]
+                    else ["CPUExecutionProvider"]
+                )
                 sess = ort.InferenceSession(str(model_path), providers=req_provs)
                 active = sess.get_providers()
                 info["active_provider"] = active[0] if active else "CPUExecutionProvider"
                 info["session_probe_passed"] = True
-        except Exception:
+        except (ImportError, RuntimeError, ValueError, OSError):
             pass
 
         return info
@@ -79,7 +84,11 @@ class OnnxManager:
             return False
 
         if target_backend == ComputeBackend.CUDA:
-            return bool(info["cuda_available"] and info["session_probe_passed"] and info["active_provider"] == "CUDAExecutionProvider")
+            return bool(
+                info["cuda_available"]
+                and info["session_probe_passed"]
+                and info["active_provider"] == "CUDAExecutionProvider"
+            )
         else:
             return bool(info["session_probe_passed"])
 
@@ -101,7 +110,7 @@ class OnnxManager:
                     sys.stdout.flush()
             process.wait()
             return process.returncode == 0
-        except Exception as e:
+        except (subprocess.SubprocessError, OSError) as e:
             print(f"[PIP ERROR] Execution failed: {e}")
             return False
 

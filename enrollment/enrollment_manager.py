@@ -76,9 +76,7 @@ class EnrollmentManager:
         )
 
         if not valid:
-            self.logger.error(
-                f"Gait enrollment failed for {person_id}: {message}"
-            )
+            self.logger.error(f"Gait enrollment failed for {person_id}: {message}")
 
             return {
                 "success": False,
@@ -104,10 +102,8 @@ class EnrollmentManager:
                     embedding,
                 )
 
-            except Exception as error:
-                self.logger.warning(
-                    f"Failed to extract gait embedding from {image_path.name}: {error}"
-                )
+            except (RuntimeError, ValueError, TypeError, OSError) as error:
+                self.logger.warning(f"Failed to extract gait embedding from {image_path.name}: {error}")
 
         if not embeddings:
             return {
@@ -123,10 +119,7 @@ class EnrollmentManager:
             embeddings=embeddings,
         )
 
-        self.logger.info(
-            f"Gait enrollment completed for {person_id}. "
-            f"Embeddings added: {len(embeddings)}"
-        )
+        self.logger.info(f"Gait enrollment completed for {person_id}. Embeddings added: {len(embeddings)}")
 
         return {
             "success": True,
@@ -171,10 +164,8 @@ class EnrollmentManager:
                     embedding,
                 )
 
-            except Exception as error:
-                self.logger.warning(
-                    f"Failed to extract appearance embedding from {image_path.name}: {error}"
-                )
+            except (RuntimeError, ValueError, TypeError, OSError) as error:
+                self.logger.warning(f"Failed to extract appearance embedding from {image_path.name}: {error}")
 
         if not embeddings:
             return {
@@ -190,10 +181,7 @@ class EnrollmentManager:
             embeddings=embeddings,
         )
 
-        self.logger.info(
-            f"Appearance enrollment completed for {person_id}. "
-            f"Embeddings added: {len(embeddings)}"
-        )
+        self.logger.info(f"Appearance enrollment completed for {person_id}. Embeddings added: {len(embeddings)}")
 
         return {
             "success": True,

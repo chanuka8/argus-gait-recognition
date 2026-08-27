@@ -19,7 +19,7 @@ class GEIDataset(Dataset):
         self.image_size = image_size
         self.max_classes = max_classes
         self.max_samples = max_samples
-        self.subject_ids = set(str(s) for s in subject_ids) if subject_ids is not None else None
+        self.subject_ids = {str(s) for s in subject_ids} if subject_ids is not None else None
         self.return_condition = return_condition
 
         self.samples = []
@@ -31,9 +31,7 @@ class GEIDataset(Dataset):
         if not self.root_dir.exists():
             raise FileNotFoundError(f"Dataset folder not found: {self.root_dir}")
 
-        person_dirs = sorted(
-            [path for path in self.root_dir.iterdir() if path.is_dir()]
-        )
+        person_dirs = sorted([path for path in self.root_dir.iterdir() if path.is_dir()])
 
         if self.subject_ids is not None:
             person_dirs = [p for p in person_dirs if p.name in self.subject_ids]
@@ -92,4 +90,3 @@ class GEIDataset(Dataset):
             return tensor, label, cond
 
         return tensor, label
-

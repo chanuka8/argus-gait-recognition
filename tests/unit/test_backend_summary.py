@@ -3,6 +3,7 @@ Unit tests for BackendStartupSummary formatter and single-emit enforcement.
 """
 
 from unittest.mock import MagicMock
+
 from deployment.backend_summary import BackendStartupSummary, reset_summary_emitted_flag
 
 

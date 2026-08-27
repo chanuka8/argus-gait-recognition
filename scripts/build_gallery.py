@@ -13,7 +13,6 @@ from tqdm import tqdm
 from models.architectures.bygait_light import ByGaitLight
 from storage.vector_store import VectorStore
 
-
 MODEL_PATH = "runs/exp_001/best_model.pth"
 GEI_ROOT = "data/casia_processed/gei"
 GALLERY_DIR = "models/gallery"
@@ -52,15 +51,17 @@ def image_to_tensor(
     )
 
     if image is None:
-        raise RuntimeError(
-            f"Failed to read image: {path}"
-        )
+        raise RuntimeError(f"Failed to read image: {path}")
 
     image = image.astype(np.float32) / 255.0
 
-    tensor = torch.from_numpy(
-        image,
-    ).unsqueeze(0).unsqueeze(0)
+    tensor = (
+        torch.from_numpy(
+            image,
+        )
+        .unsqueeze(0)
+        .unsqueeze(0)
+    )
 
     return tensor
 
@@ -90,13 +91,7 @@ def main() -> None:
             )
 
             with torch.no_grad():
-                embedding = (
-                    model(tensor)
-                    .cpu()
-                    .numpy()
-                    .flatten()
-                    .astype(np.float32)
-                )
+                embedding = model(tensor).cpu().numpy().flatten().astype(np.float32)
 
             features.append(embedding)
             labels.append(person_id)

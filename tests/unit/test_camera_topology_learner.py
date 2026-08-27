@@ -3,6 +3,7 @@ Unit tests for Stage 4: Automatic Camera Topology Learning.
 """
 
 from pathlib import Path
+
 from intelligence.camera_topology_learner import CameraTopologyLearner
 from intelligence.camera_transition_model import CameraTransitionModel
 

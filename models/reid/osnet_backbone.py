@@ -11,13 +11,13 @@ pretrained weight compatibility.
 
 import threading
 from pathlib import Path
+from typing import Self
 
 import cv2
 import numpy as np
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
-
+from torch import nn
 
 # --- OSNet Architecture Components ---
 
@@ -322,12 +322,7 @@ class _OSBlock(nn.Module):
         x2c = self.conv2c(x2b)
         x2d = self.conv2d(x2c)
 
-        x2 = (
-            self.gate(x2a)
-            + self.gate(x2b)
-            + self.gate(x2c)
-            + self.gate(x2d)
-        )
+        x2 = self.gate(x2a) + self.gate(x2b) + self.gate(x2c) + self.gate(x2d)
 
         x3 = self.conv3(x2)
 
@@ -487,7 +482,7 @@ class OSNetBackbone:
         cls,
         *args,
         **kwargs,
-    ) -> "OSNetBackbone":
+    ) -> Self:
         with cls._lock:
             if cls._instance is None:
                 cls._instance = super().__new__(cls)
@@ -522,9 +517,7 @@ class OSNetBackbone:
     ) -> torch.device:
         if device == "auto":
             return torch.device(
-                "cuda"
-                if torch.cuda.is_available()
-                else "cpu",
+                "cuda" if torch.cuda.is_available() else "cpu",
             )
 
         return torch.device(device)
@@ -540,10 +533,7 @@ class OSNetBackbone:
                 return self._model
 
             if not self.model_path.exists():
-                raise FileNotFoundError(
-                    f"OSNet weights not found: "
-                    f"{self.model_path}"
-                )
+                raise FileNotFoundError(f"OSNet weights not found: {self.model_path}")
 
             model = _build_osnet_x0_25()
 
@@ -570,8 +560,7 @@ class OSNetBackbone:
             for key, value in state_dict.items():
                 clean_key = key
 
-                if clean_key.startswith("module."):
-                    clean_key = clean_key[7:]
+                clean_key = clean_key.removeprefix("module.")
 
                 if "classifier" in clean_key:
                     continue
@@ -591,10 +580,7 @@ class OSNetBackbone:
 
             self._model = model
 
-            print(
-                f"[REID] OSNet-x0.25 loaded "
-                f"on {self.device}"
-            )
+            print(f"[REID] OSNet-x0.25 loaded on {self.device}")
 
             return self._model
 
@@ -614,12 +600,7 @@ class OSNetBackbone:
             (128, 256),
         )
 
-        tensor = (
-            torch.from_numpy(resized)
-            .permute(2, 0, 1)
-            .float()
-            / 255.0
-        )
+        tensor = torch.from_numpy(resized).permute(2, 0, 1).float() / 255.0
 
         tensor = tensor.unsqueeze(0)
         tensor = (tensor - self._mean) / self._std
@@ -645,12 +626,7 @@ class OSNetBackbone:
                 (128, 256),
             )
 
-            tensor = (
-                torch.from_numpy(resized)
-                .permute(2, 0, 1)
-                .float()
-                / 255.0
-            )
+            tensor = torch.from_numpy(resized).permute(2, 0, 1).float() / 255.0
 
             tensors.append(tensor)
 
@@ -673,15 +649,11 @@ class OSNetBackbone:
         tensor = self._preprocess(image)
 
         with torch.no_grad():
-            embedding = (
-                model(tensor).cpu().numpy().flatten()
-            )
+            embedding = model(tensor).cpu().numpy().flatten()
 
         norm = np.linalg.norm(embedding)
 
-        embedding = embedding / (
-            norm + 1e-8
-        )
+        embedding = embedding / (norm + 1e-8)
 
         return embedding.astype(np.float32)
 
@@ -702,18 +674,14 @@ class OSNetBackbone:
         batch = self._preprocess_batch(images)
 
         with torch.no_grad():
-            embeddings = (
-                model(batch).cpu().numpy()
-            )
+            embeddings = model(batch).cpu().numpy()
 
         results = []
 
         for embedding in embeddings:
             norm = np.linalg.norm(embedding)
 
-            normalized = embedding / (
-                norm + 1e-8
-            )
+            normalized = embedding / (norm + 1e-8)
 
             results.append(
                 normalized.astype(np.float32),

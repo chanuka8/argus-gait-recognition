@@ -5,13 +5,10 @@ from evaluation.visualizer import EvaluationVisualizer
 
 
 class TestEvaluation(unittest.TestCase):
-
     def test_visualizer_creation(self):
         visualizer = EvaluationVisualizer()
 
-        self.assertIsNotNone(
-            visualizer
-        )
+        self.assertIsNotNone(visualizer)
 
     def test_accuracy_plot(self):
         visualizer = EvaluationVisualizer()
@@ -21,9 +18,7 @@ class TestEvaluation(unittest.TestCase):
             "unit_accuracy.png",
         )
 
-        self.assertTrue(
-            Path(output).exists()
-        )
+        self.assertTrue(Path(output).exists())
 
 
 if __name__ == "__main__":

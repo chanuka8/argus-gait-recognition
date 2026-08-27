@@ -5,12 +5,11 @@ Extracts application version, Git commit/branch details, Python environment meta
 model reference identifiers, and configuration fingerprints without network requests.
 """
 
-from dataclasses import asdict, dataclass
 import hashlib
-from pathlib import Path
 import subprocess
 import sys
-from typing import Optional
+from dataclasses import asdict, dataclass
+from pathlib import Path
 
 
 @dataclass
@@ -44,14 +43,14 @@ def get_git_commit(repo_dir: str = ".") -> str:
         res = subprocess.run(
             ["git", "rev-parse", "--short", "HEAD"],
             cwd=repo_dir,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
             text=True,
             timeout=3,
+            check=False,
         )
         if res.returncode == 0 and res.stdout.strip():
             return res.stdout.strip()
-    except Exception:
+    except (subprocess.SubprocessError, OSError):
         pass
     return "UNKNOWN"
 
@@ -62,14 +61,14 @@ def get_git_branch(repo_dir: str = ".") -> str:
         res = subprocess.run(
             ["git", "rev-parse", "--abbrev-ref", "HEAD"],
             cwd=repo_dir,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
             text=True,
             timeout=3,
+            check=False,
         )
         if res.returncode == 0 and res.stdout.strip():
             return res.stdout.strip()
-    except Exception:
+    except (subprocess.SubprocessError, OSError):
         pass
     return "UNKNOWN"
 
@@ -82,7 +81,7 @@ def get_application_version(version_path: str = "VERSION") -> str:
             ver = path.read_text(encoding="utf-8").strip()
             if ver:
                 return ver
-        except Exception:
+        except (OSError, UnicodeDecodeError):
             pass
     return "0.0.0-dev"
 
@@ -100,7 +99,7 @@ def compute_configuration_fingerprint(configs_dir: str = "configs") -> str:
         hasher.update(yfile.name.encode("utf-8"))
         try:
             hasher.update(yfile.read_bytes())
-        except Exception:
+        except OSError:
             pass
 
     return hasher.hexdigest()[:12]
@@ -111,7 +110,7 @@ def extract_build_metadata(
     version_file: str = "VERSION",
     configs_dir: str = "configs",
     backend=None,
-    model_reference: Optional[str] = None,
+    model_reference: str | None = None,
 ) -> BuildMetadata:
     """
     Extract authoritative BuildMetadata structure.

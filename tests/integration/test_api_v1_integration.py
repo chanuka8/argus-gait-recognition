@@ -1,5 +1,6 @@
 import unittest
 import unittest.mock
+
 import cv2
 import numpy as np
 from fastapi.testclient import TestClient
@@ -64,7 +65,11 @@ class TestApiV1Integration(unittest.TestCase):
         with unittest.mock.patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
             start_res = self.client.post(
                 "/api/v1/cameras/start",
-                json={"camera_id": "cam_gate_01", "source": "rtsp://user:pass@192.168.1.100:554/live", "location": "Main Gate"},
+                json={
+                    "camera_id": "cam_gate_01",
+                    "source": "rtsp://user:pass@192.168.1.100:554/live",
+                    "location": "Main Gate",
+                },
             )
             self.assertEqual(start_res.status_code, 200)
             cam_data = start_res.json()

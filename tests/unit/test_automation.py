@@ -3,20 +3,18 @@ Comprehensive Unit Tests for ARGUS AI Automation & Environment Management Subsys
 """
 
 import unittest
-from unittest.mock import MagicMock, patch
 
+from api.schemas import ComputeInfo, StatusResponse
 from automation.device_manager import DeviceManager
 from automation.dll_manager import setup_cuda_dll_paths
 from automation.download_manager import DownloadManager
 from automation.environment_validator import (
-    ComputeBackend,
     EnvironmentState,
     EnvironmentValidator,
 )
 from automation.hardware_detector import HardwareDetector, HostSystemInfo, NvidiaGpuInfo
 from automation.onnx_manager import OnnxManager
 from automation.pytorch_manager import PyTorchManager
-from api.schemas import StatusResponse, ComputeInfo
 
 
 class TestAutomationSubsystem(unittest.TestCase):
@@ -135,6 +133,7 @@ class TestAutomationSubsystem(unittest.TestCase):
 
     def test_yolo_forced_cpu_validation(self):
         import numpy as np
+
         from pipeline.detection.person_detector import PersonDetector
 
         # Force CPU mode
@@ -152,12 +151,12 @@ class TestAutomationSubsystem(unittest.TestCase):
 
     def test_automation_module_getattr(self):
         import automation
-        boot_cls = getattr(automation, "EnvironmentBootstrap")
+
+        boot_cls = automation.EnvironmentBootstrap
         self.assertIsNotNone(boot_cls)
         with self.assertRaises(AttributeError):
-            _ = getattr(automation, "NonExistentClassXYZ")
+            _ = automation.NonExistentClassXYZ
 
 
 if __name__ == "__main__":
     unittest.main()
-

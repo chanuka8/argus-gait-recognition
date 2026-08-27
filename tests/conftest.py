@@ -1,8 +1,7 @@
-from pathlib import Path
 import sys
+from pathlib import Path
 
 import pytest
-
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
@@ -17,31 +16,14 @@ def project_root():
 
 @pytest.fixture
 def sample_gei_path():
-    return (
-        PROJECT_ROOT
-        / "data"
-        / "casia_processed"
-        / "gei"
-        / "034"
-        / "034_nm-01_126.png"
-    )
+    return PROJECT_ROOT / "data" / "casia_processed" / "gei" / "034" / "034_nm-01_126.png"
 
 
 @pytest.fixture
 def enrollment_sample_folder():
-    path = (
-        PROJECT_ROOT
-        / "data"
-        / "new_input"
-        / "api_test_person"
-    )
+    path = PROJECT_ROOT / "data" / "new_input" / "api_test_person"
     if not path.exists():
-        disabled_path = (
-            PROJECT_ROOT
-            / "data"
-            / "new_input"
-            / "_disabled_api_test_person"
-        )
+        disabled_path = PROJECT_ROOT / "data" / "new_input" / "_disabled_api_test_person"
         if disabled_path.exists():
             return disabled_path
     return path
@@ -49,21 +31,9 @@ def enrollment_sample_folder():
 
 @pytest.fixture
 def security_log_path():
-    return (
-        PROJECT_ROOT
-        / "outputs"
-        / "logs"
-        / "security"
-        / "security_events.csv"
-    )
+    return PROJECT_ROOT / "outputs" / "logs" / "security" / "security_events.csv"
 
 
 @pytest.fixture
 def benchmark_report_path():
-    return (
-        PROJECT_ROOT
-        / "outputs"
-        / "reports"
-        / "benchmark"
-        / "benchmark_report.json"
-    )
+    return PROJECT_ROOT / "outputs" / "reports" / "benchmark" / "benchmark_report.json"

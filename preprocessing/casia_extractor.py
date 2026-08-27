@@ -20,28 +20,18 @@ class CasiaExtractor:
         streamer = ZipStreamer(self.zip_path)
 
         if not streamer.exists():
-            raise FileNotFoundError(
-                f"Dataset not found: {self.zip_path}"
-            )
+            raise FileNotFoundError(f"Dataset not found: {self.zip_path}")
 
-        self.logger.info(
-            f"ZIP contains {streamer.file_count()} files"
-        )
+        self.logger.info(f"ZIP contains {streamer.file_count()} files")
 
         output_path = Path(self.output_dir)
 
         if any(output_path.iterdir()):
-            self.logger.info(
-                "CASIA cache already populated. Skipping extraction."
-            )
+            self.logger.info("CASIA cache already populated. Skipping extraction.")
             return
 
-        self.logger.info(
-            "Extracting CASIA dataset..."
-        )
+        self.logger.info("Extracting CASIA dataset...")
 
         streamer.extract_all(self.output_dir)
 
-        self.logger.info(
-            "CASIA extraction completed."
-        )
+        self.logger.info("CASIA extraction completed.")

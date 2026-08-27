@@ -2,7 +2,6 @@ from security_layer.security_logger import SecurityLogger
 
 
 class SecurityEngine:
-
     def __init__(
         self,
         confidence_threshold=0.80,
@@ -23,12 +22,10 @@ class SecurityEngine:
         decision = "ALLOW"
 
         if identity == "UNKNOWN":
-
             severity = "HIGH"
             decision = "SECURITY_ALERT"
 
         elif score < self.confidence_threshold:
-
             severity = "MEDIUM"
             decision = "REVIEW_REQUIRED"
 

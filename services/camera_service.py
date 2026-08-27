@@ -16,7 +16,7 @@ class CameraService:
         raw_config = config or self._load_config()
         try:
             self._config = resolve_camera_config(raw_config)
-        except Exception:
+        except (ValueError, KeyError, TypeError, OSError):
             self._config = raw_config
         self._logger = get_logger("camera")
 
@@ -67,7 +67,7 @@ class CameraService:
         try:
             with open(config_path, "r", encoding="utf-8") as file:
                 data = yaml.safe_load(file) or {}
-        except Exception:
+        except (yaml.YAMLError, OSError, ValueError):
             return defaults
 
         section = data.get("camera", {})
@@ -117,7 +117,7 @@ class CameraService:
 
             return True
 
-        except Exception as error:
+        except (RuntimeError, ValueError, TypeError, cv2.error, OSError) as error:
             self._logger.error(f"Camera open error: {error}")
             self._capture = None
 
@@ -128,7 +128,7 @@ class CameraService:
             if self._capture is not None:
                 try:
                     self._capture.release()
-                except Exception:
+                except (cv2.error, OSError):
                     pass
                 self._capture = None
 
@@ -143,14 +143,10 @@ class CameraService:
             self._reconnect_count += 1
 
             if 0 < self._max_reconnect < attempt:
-                self._logger.error(
-                    f"Max reconnect attempts ({self._max_reconnect}) reached. Giving up."
-                )
+                self._logger.error(f"Max reconnect attempts ({self._max_reconnect}) reached. Giving up.")
                 return False
 
-            self._logger.warning(
-                f"Reconnect attempt {attempt} in {self._reconnect_seconds}s..."
-            )
+            self._logger.warning(f"Reconnect attempt {attempt} in {self._reconnect_seconds}s...")
             self._stop_event.wait(self._reconnect_seconds)
 
             if self._stop_event.is_set():

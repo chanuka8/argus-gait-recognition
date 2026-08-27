@@ -1,5 +1,6 @@
 import unittest
 from unittest.mock import MagicMock
+
 import numpy as np
 
 from pipeline.detection.person_detector import PersonDetector
@@ -85,4 +86,3 @@ class TestPersonDetector(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

@@ -21,7 +21,6 @@ import argparse
 import os
 import shutil
 from pathlib import Path
-from typing import List, Tuple
 
 
 def get_destination_mapping(relative_path: Path) -> Path:
@@ -94,12 +93,12 @@ def resolve_conflict_path(dest_path: Path) -> Path:
         counter += 1
 
 
-def migrate_outputs(outputs_dir: Path, dry_run: bool = False) -> List[Tuple[Path, Path]]:
+def migrate_outputs(outputs_dir: Path, dry_run: bool = False) -> list[tuple[Path, Path]]:
     """Migrate legacy runtime files inside outputs_dir to new structure."""
     if not outputs_dir.exists():
         return []
 
-    moved_records: List[Tuple[Path, Path]] = []
+    moved_records: list[tuple[Path, Path]] = []
 
     new_top_level = {
         "reports",
@@ -110,7 +109,7 @@ def migrate_outputs(outputs_dir: Path, dry_run: bool = False) -> List[Tuple[Path
         "temporary",
     }
 
-    legacy_items: List[Path] = []
+    legacy_items: list[Path] = []
     for item in outputs_dir.iterdir():
         if item.name in new_top_level:
             continue
@@ -163,7 +162,7 @@ def migrate_outputs(outputs_dir: Path, dry_run: bool = False) -> List[Tuple[Path
             if not dry_run:
                 try:
                     shutil.rmtree(str(item))
-                except Exception:
+                except OSError:
                     pass
 
     return moved_records

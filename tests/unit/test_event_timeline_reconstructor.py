@@ -4,6 +4,7 @@ Unit tests for Event Timeline Reconstruction Module.
 
 import json
 from pathlib import Path
+
 import pytest
 
 from intelligence.event_timeline_reconstructor import (

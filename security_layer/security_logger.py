@@ -1,11 +1,10 @@
-from pathlib import Path
-from datetime import datetime
 import csv
 import threading
+from datetime import datetime, timezone
+from pathlib import Path
 
 
 class SecurityLogger:
-
     def __init__(
         self,
         log_file="outputs/logs/security/security_events.csv",
@@ -21,14 +20,12 @@ class SecurityLogger:
         self._lock = threading.Lock()
 
         if not self.log_file.exists():
-
             with open(
                 self.log_file,
                 "w",
                 newline="",
                 encoding="utf-8",
             ) as f:
-
                 writer = csv.writer(f)
 
                 writer.writerow(
@@ -53,24 +50,25 @@ class SecurityLogger:
         camera_id="default",
     ):
 
-        with self._lock:
-            with open(
+        with (
+            self._lock,
+            open(
                 self.log_file,
                 "a",
                 newline="",
                 encoding="utf-8",
-            ) as f:
+            ) as f,
+        ):
+            writer = csv.writer(f)
 
-                writer = csv.writer(f)
-
-                writer.writerow(
-                    [
-                        datetime.now().isoformat(),
-                        track_id,
-                        identity,
-                        round(score, 4),
-                        severity,
-                        decision,
-                        camera_id,
-                    ]
-                )
+            writer.writerow(
+                [
+                    datetime.now(timezone.utc).isoformat(),
+                    track_id,
+                    identity,
+                    round(score, 4),
+                    severity,
+                    decision,
+                    camera_id,
+                ]
+            )

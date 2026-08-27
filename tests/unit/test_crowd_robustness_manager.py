@@ -41,7 +41,7 @@ def test_enabled_occlusion_and_gating():
         {"track_id": 12, "bbox": [500, 500, 600, 700]},
     ]
 
-    occluded_ids, overlap_map = manager.identify_occluded_tracks(tracked_objects)
+    occluded_ids, _overlap_map = manager.identify_occluded_tracks(tracked_objects)
     assert 10 in occluded_ids
     assert 11 in occluded_ids
     assert 12 not in occluded_ids

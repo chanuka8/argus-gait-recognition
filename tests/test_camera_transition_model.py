@@ -3,6 +3,7 @@
 import threading
 import unittest
 from unittest.mock import MagicMock, patch
+
 import numpy as np
 
 from intelligence.camera_transition_model import CameraTransitionModel
@@ -201,7 +202,7 @@ class TestCameraTransitionModel(unittest.TestCase):
             timestamp=1020.0,
         )
         self.assertIsNotNone(res)
-        exit_rec, score = res
+        exit_rec, _score = res
         self.assertEqual(exit_rec.global_id, "GTRACK-FIRST")
 
     def test_expired_state_cleanup(self) -> None:
@@ -257,7 +258,6 @@ class TestCameraTransitionModel(unittest.TestCase):
 
 
 class TestMultiCameraPipelineTransitionIntegration(unittest.TestCase):
-
     """Integration test verifying full multi-camera recognition pipeline wiring with CameraTransitionModel."""
 
     @patch("pipeline.multi_camera_recognition.MultiCameraRecognitionPipeline._load_model")
@@ -317,5 +317,3 @@ class TestMultiCameraPipelineTransitionIntegration(unittest.TestCase):
         )
 
         self.assertEqual(gid1, gid2)
-
-

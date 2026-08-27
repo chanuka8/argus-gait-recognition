@@ -3,8 +3,9 @@ import csv
 import json
 import sys
 import time
-from pathlib import Path
 from collections import defaultdict
+from pathlib import Path
+
 import numpy as np
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -22,7 +23,7 @@ class SweepEvaluator(SplitEvaluator):
         gallery = store.load()
         if gallery is None:
             raise RuntimeError("Gallery models/gallery not found. Please build it first.")
-        features, labels, metadata = gallery
+        features, labels, _metadata = gallery
 
         person_to_indices = defaultdict(list)
         for idx, label in enumerate(labels):
@@ -119,10 +120,7 @@ class SweepEvaluator(SplitEvaluator):
             query_scores = scores[idx]
             top10_idx = np.argsort(query_scores)[::-1][:10]
 
-            top10 = [
-                (str(gallery_labels_act[i]), float(query_scores[i]))
-                for i in top10_idx
-            ]
+            top10 = [(str(gallery_labels_act[i]), float(query_scores[i])) for i in top10_idx]
 
             if not top10:
                 predicted_id = "UNKNOWN"
@@ -177,16 +175,8 @@ class SweepEvaluator(SplitEvaluator):
         )
 
         total_inference_time = sum(inference_times) if inference_times else 0.0
-        avg_inference_time_ms = (
-            (total_inference_time / len(inference_times)) * 1000.0
-            if inference_times
-            else 0.0
-        )
-        eval_fps = (
-            len(inference_times) / total_inference_time
-            if total_inference_time > 0
-            else 0.0
-        )
+        avg_inference_time_ms = (total_inference_time / len(inference_times)) * 1000.0 if inference_times else 0.0
+        eval_fps = len(inference_times) / total_inference_time if total_inference_time > 0 else 0.0
 
         summary.update(
             {
@@ -204,8 +194,8 @@ class SweepEvaluator(SplitEvaluator):
                 "roc_auc": roc_summary["roc_auc"],
                 "avg_inference_time_ms": round(avg_inference_time_ms, 4),
                 "fps": round(eval_fps, 2),
-                "gallery_size": int(len(gallery_labels)),
-                "test_size_available": int(len(test_items)),
+                "gallery_size": len(gallery_labels),
+                "test_size_available": len(test_items),
                 "gallery_ratio": self.gallery_ratio,
                 "threshold": self.threshold,
                 "roc_curve": str(self.report_dir / f"roc_curve_{self.threshold:.2f}.png"),
@@ -226,9 +216,7 @@ class SweepEvaluator(SplitEvaluator):
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Evaluate ARGUS thresholds via sweep evaluation"
-    )
+    parser = argparse.ArgumentParser(description="Evaluate ARGUS thresholds via sweep evaluation")
     parser.add_argument(
         "--max-images",
         type=int,

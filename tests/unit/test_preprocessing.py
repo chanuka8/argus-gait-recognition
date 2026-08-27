@@ -1,11 +1,11 @@
 import unittest
+
 import numpy as np
 
 from pipeline.steps.live_gei import LiveGEI
 
 
 class TestPreprocessing(unittest.TestCase):
-
     def test_gei_buffer(self):
 
         gei = LiveGEI(
@@ -20,9 +20,7 @@ class TestPreprocessing(unittest.TestCase):
         for _ in range(5):
             gei.add(frame)
 
-        self.assertTrue(
-            gei.ready()
-        )
+        self.assertTrue(gei.ready())
 
     def test_gei_build(self):
 
@@ -40,9 +38,7 @@ class TestPreprocessing(unittest.TestCase):
 
         result = gei.build()
 
-        self.assertIsNotNone(
-            result
-        )
+        self.assertIsNotNone(result)
 
     def test_legacy_mode_accepts_repeated_frames(self):
         gei = LiveGEI(
@@ -113,7 +109,7 @@ class TestPreprocessing(unittest.TestCase):
         for i in range(8):
             mask = np.zeros((128, 64), dtype=np.uint8)
             w = 10 + (i % 3) * 5
-            mask[20:100, 10:10 + w] = 255
+            mask[20:100, 10 : 10 + w] = 255
             gei.add(mask)
 
         self.assertTrue(gei.ready())
@@ -124,4 +120,3 @@ class TestPreprocessing(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

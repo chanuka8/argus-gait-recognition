@@ -3,6 +3,7 @@ import json
 import sys
 import time
 from pathlib import Path
+
 import numpy as np
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -30,7 +31,9 @@ class SubjectDisjointCrossViewEvaluator(SubjectDisjointEvaluator):
             gei_root=str(self.gei_root),
         )
 
-        print(f"Building feature embeddings for Cross-View Matrix ({len(gallery_items)} gallery, {len(probe_items)} probes)...")
+        print(
+            f"Building feature embeddings for Cross-View Matrix ({len(gallery_items)} gallery, {len(probe_items)} probes)..."
+        )
         for item in gallery_items:
             self.image_to_embedding(Path(item["path"]))
         for item in probe_items:
@@ -38,7 +41,10 @@ class SubjectDisjointCrossViewEvaluator(SubjectDisjointEvaluator):
 
         gal_by_angle = {angle: [i for i in gallery_items if i["angle"] == angle] for angle in ALL_ANGLES}
         prb_by_angle_cond = {
-            cond: {angle: [i for i in probe_items if i["angle"] == angle and i["condition"] == cond] for angle in ALL_ANGLES}
+            cond: {
+                angle: [i for i in probe_items if i["angle"] == angle and i["condition"] == cond]
+                for angle in ALL_ANGLES
+            }
             for cond in ["NM", "BG", "CL"]
         }
         prb_by_angle_all = {angle: [i for i in probe_items if i["angle"] == angle] for angle in ALL_ANGLES}
@@ -47,10 +53,7 @@ class SubjectDisjointCrossViewEvaluator(SubjectDisjointEvaluator):
         matrix_rank5 = {g_ang: {} for g_ang in ALL_ANGLES}
         matrix_rank10 = {g_ang: {} for g_ang in ALL_ANGLES}
 
-        matrix_by_cond = {
-            cond: {g_ang: {} for g_ang in ALL_ANGLES}
-            for cond in ["NM", "BG", "CL"]
-        }
+        matrix_by_cond = {cond: {g_ang: {} for g_ang in ALL_ANGLES} for cond in ["NM", "BG", "CL"]}
 
         cross_view_rank1_values = []
         same_view_rank1_values = []
@@ -127,8 +130,12 @@ class SubjectDisjointCrossViewEvaluator(SubjectDisjointEvaluator):
                     c_ranks = compute_rank_k_accuracies(c_top_k, c_true, ks=(1,))
                     matrix_by_cond[cond][g_ang][p_ang] = round(c_ranks[1], 4)
 
-        avg_cross_view_rank1 = sum(cross_view_rank1_values) / len(cross_view_rank1_values) if cross_view_rank1_values else 0.0
-        avg_same_view_rank1 = sum(same_view_rank1_values) / len(same_view_rank1_values) if same_view_rank1_values else 0.0
+        avg_cross_view_rank1 = (
+            sum(cross_view_rank1_values) / len(cross_view_rank1_values) if cross_view_rank1_values else 0.0
+        )
+        avg_same_view_rank1 = (
+            sum(same_view_rank1_values) / len(same_view_rank1_values) if same_view_rank1_values else 0.0
+        )
         avg_overall_rank1 = sum(all_rank1_values) / len(all_rank1_values) if all_rank1_values else 0.0
 
         report = {
@@ -172,7 +179,11 @@ class SubjectDisjointCrossViewEvaluator(SubjectDisjointEvaluator):
             sep = "| --- | " + " | ".join(["---"] * len(ALL_ANGLES)) + " |\n"
             f.write(header + sep)
             for g_ang in ALL_ANGLES:
-                row_str = f"| **{g_ang}°** | " + " | ".join([f"{matrix_rank1[g_ang].get(p_ang, 0.0)*100:.1f}%" for p_ang in ALL_ANGLES]) + " |\n"
+                row_str = (
+                    f"| **{g_ang}°** | "
+                    + " | ".join([f"{matrix_rank1[g_ang].get(p_ang, 0.0) * 100:.1f}%" for p_ang in ALL_ANGLES])
+                    + " |\n"
+                )
                 f.write(row_str)
 
         return report

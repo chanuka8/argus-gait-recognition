@@ -5,7 +5,6 @@ Provides lightweight 2D-to-3D temporal pose lifting, view-invariant skeleton
 normalization, graph convolution encoders (ST-GCN, CTR-GCN, TCN), and feature extraction.
 """
 
-from typing import Dict, List, Optional, Tuple
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -19,12 +18,25 @@ from torch import nn
 L_HIP, R_HIP = 11, 12
 L_SHOULDER, R_SHOULDER = 5, 6
 
-COCO_EDGES: List[Tuple[int, int]] = [
-    (0, 1), (0, 2), (1, 3), (2, 4),
-    (0, 5), (0, 6), (5, 6),
-    (5, 7), (7, 9), (6, 8), (8, 10),
-    (5, 11), (6, 12), (11, 12),
-    (11, 13), (13, 15), (12, 14), (14, 16)
+COCO_EDGES: list[tuple[int, int]] = [
+    (0, 1),
+    (0, 2),
+    (1, 3),
+    (2, 4),
+    (0, 5),
+    (0, 6),
+    (5, 6),
+    (5, 7),
+    (7, 9),
+    (6, 8),
+    (8, 10),
+    (5, 11),
+    (6, 12),
+    (11, 12),
+    (11, 13),
+    (13, 15),
+    (12, 14),
+    (14, 16),
 ]
 
 
@@ -168,8 +180,6 @@ def compute_enriched_skeleton_features(norm_joints: torch.Tensor) -> torch.Tenso
     Returns:
         Tensor of shape (B, T, 17, 9) containing (pos, vel, acc) per joint.
     """
-    B, T, V, C = norm_joints.shape
-
     # 1. Velocities
     v_diff = norm_joints[:, 1:, :, :] - norm_joints[:, :-1, :, :]
     v_zero = torch.zeros_like(norm_joints[:, :1, :, :])
@@ -223,8 +233,7 @@ class PoseGait3DNet(nn.Module):
 
         norm_joints = self.normalizer(joints_3d)
         feat = compute_enriched_skeleton_features(norm_joints)  # (B, T, 17, 9)
-        B, T, V, C = feat.shape
-        feat_flat = feat.view(B, T, V * C).transpose(1, 2)  # (B, 153, T)
+        feat_flat = feat.view(feat.shape[0], feat.shape[1], -1).transpose(1, 2)  # (B, 153, T)
 
         h = F.relu(self.bn0(self.in_conv(feat_flat)))
         h = self.block1(h)
@@ -315,7 +324,6 @@ class STGCNGait3DNet(nn.Module):
 
         norm_joints = self.normalizer(joints_3d)
         feat = compute_enriched_skeleton_features(norm_joints)  # (B, T, 17, 9)
-        B, T, V, C = feat.shape
 
         # Permute to (B, C, V, T)
         x = feat.permute(0, 3, 2, 1)  # (B, 9, 17, T)
@@ -369,7 +377,6 @@ class CTRGCNGait3DNet(nn.Module):
 
         norm_joints = self.normalizer(joints_3d)
         feat = compute_enriched_skeleton_features(norm_joints)  # (B, T, 17, 9)
-        B, T, V, C = feat.shape
 
         x = feat.permute(0, 3, 2, 1)  # (B, 9, 17, T)
         A_dyn = F.softmax(self.A_static + self.PA, dim=-1)
@@ -397,7 +404,7 @@ class TemporalPoseBuffer:
     def __init__(self, max_length: int = 30, conf_threshold: float = 0.30) -> None:
         self.max_length = max_length
         self.conf_threshold = conf_threshold
-        self.buffers: Dict[str, List[np.ndarray]] = {}
+        self.buffers: dict[str, list[np.ndarray]] = {}
 
     def add_keypoints(self, track_id: str, keypoints: np.ndarray) -> None:
         """
@@ -413,7 +420,7 @@ class TemporalPoseBuffer:
         if len(self.buffers[track_id]) > self.max_length:
             self.buffers[track_id].pop(0)
 
-    def get_sequence(self, track_id: str) -> Optional[np.ndarray]:
+    def get_sequence(self, track_id: str) -> np.ndarray | None:
         """
         Retrieves interpolated 2D keypoint sequence for a track ID.
 
@@ -424,7 +431,7 @@ class TemporalPoseBuffer:
             return None
 
         seq = np.stack(self.buffers[track_id], axis=0)  # (T, 17, 3)
-        T, V, C = seq.shape
+        T, V, _ = seq.shape
 
         # Interpolate low-confidence joints along temporal axis
         for v in range(V):
@@ -434,15 +441,11 @@ class TemporalPoseBuffer:
                 continue
             if len(valid_idx) < T:
                 for c in range(2):  # x and y
-                    seq[:, v, c] = np.interp(
-                        np.arange(T),
-                        valid_idx,
-                        seq[valid_idx, v, c]
-                    )
+                    seq[:, v, c] = np.interp(np.arange(T), valid_idx, seq[valid_idx, v, c])
 
         return seq
 
-    def clear(self, track_id: Optional[str] = None) -> None:
+    def clear(self, track_id: str | None = None) -> None:
         if track_id is None:
             self.buffers.clear()
         else:

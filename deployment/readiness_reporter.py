@@ -6,11 +6,10 @@ summarizing Python, PyTorch, ONNX, Backend, Model, Gallery, Configuration, Stora
 readiness using qualitative status labels.
 """
 
-from datetime import datetime, timezone
 import json
-from pathlib import Path
 import sys
-from typing import Dict, List
+from datetime import datetime, timezone
+from pathlib import Path
 
 from models.inference.backend import BackendValidator, get_inference_backend
 from scripts.doctor import run_doctor
@@ -31,7 +30,7 @@ class DeploymentReadinessReporter:
     def __init__(self, root_dir: Path = Path(".")) -> None:
         self.root_dir = root_dir
 
-    def evaluate_readiness(self) -> Dict:
+    def evaluate_readiness(self) -> dict:
         """Collect diagnostic data and evaluate overall readiness status."""
         doc_exit_code, doc_report = run_doctor(
             json_path="outputs/reports/health_report.json",
@@ -40,7 +39,7 @@ class DeploymentReadinessReporter:
 
         blocking_issues = doc_report.get("blocking_issues", [])
         warnings = doc_report.get("warnings", [])
-        unable_to_verify: List[str] = ["Live RTSP camera connection (deferred until camera execution)"]
+        unable_to_verify: list[str] = ["Live RTSP camera connection (deferred until camera execution)"]
 
         if doc_exit_code == 2:
             overall_status = "UNABLE_TO_VERIFY"
@@ -97,7 +96,7 @@ class DeploymentReadinessReporter:
                 "status": "READY" if smoke else "NOT_READY",
                 "metadata": backend.metadata,
             }
-        except Exception as e:
+        except (RuntimeError, ValueError, OSError, TypeError) as e:
             backend_readiness = {"status": "FAILED", "error": str(e), "metadata": {}}
 
         model_path = Path("runs/exp_001/best_model.pth")
@@ -169,7 +168,7 @@ class DeploymentReadinessReporter:
         self,
         json_path: str = "outputs/reports/deployment_readiness.json",
         md_path: str = "outputs/reports/deployment_readiness.md",
-    ) -> Dict:
+    ) -> dict:
         """Generate and write readiness JSON and Markdown reports."""
         report_data = self.evaluate_readiness()
 
@@ -179,7 +178,6 @@ class DeploymentReadinessReporter:
         with open(tmp_j_file, "w", encoding="utf-8") as f:
             json.dump(report_data, f, indent=4)
         tmp_j_file.replace(j_file)
-
 
         m_file = Path(md_path)
         m_file.parent.mkdir(parents=True, exist_ok=True)

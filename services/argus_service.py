@@ -46,7 +46,7 @@ class ArgusService:
         try:
             with open(path, "r", encoding="utf-8") as file:
                 return yaml.safe_load(file) or {}
-        except Exception:
+        except (yaml.YAMLError, OSError, ValueError):
             return {}
 
     def _build_pipeline(self):
@@ -151,14 +151,13 @@ class ArgusService:
                         tracker.cleanup_inactive()
                         gei_builder.cleanup_inactive()
 
-                except Exception as error:
-                    error_logger.error(
-                        f"Frame processing error (frame #{frame_count}): {error}",
-                        exc_info=True,
+                except (RuntimeError, ValueError, TypeError, cv2.error, OSError):
+                    error_logger.exception(
+                        f"Frame processing error (frame #{frame_count})",
                     )
 
-        except Exception as error:
-            error_logger.error(f"Recognition worker fatal error: {error}", exc_info=True)
+        except (RuntimeError, ValueError, TypeError, OSError):
+            error_logger.exception("Recognition worker fatal error")
         finally:
             self._recognition_alive = False
             self._logger.info("Recognition worker stopped.")
@@ -185,7 +184,7 @@ class ArgusService:
             )
             self._watchdog_thread.start()
             self._logger.info("Watchdog started.")
-        except Exception as error:
+        except (RuntimeError, ValueError, TypeError, OSError) as error:
             self._logger.error(f"Failed to start watchdog: {error}")
 
     def restart_recognition(self) -> None:
@@ -223,7 +222,7 @@ class ArgusService:
         try:
             if pid_path.exists():
                 pid_path.unlink()
-        except Exception:
+        except OSError:
             pass
 
     def _handle_signal(self, signum: int, _frame) -> None:
@@ -263,8 +262,8 @@ class ArgusService:
             while not self._stop_event.is_set():
                 self._stop_event.wait(1.0)
 
-        except Exception as error:
-            self._logger.error(f"Service error: {error}", exc_info=True)
+        except (RuntimeError, ValueError, TypeError, OSError):
+            self._logger.exception("Service error")
         finally:
             self.stop()
 
@@ -282,7 +281,7 @@ class ArgusService:
 
         try:
             cv2.destroyAllWindows()
-        except Exception:
+        except cv2.error:
             pass
 
         self._remove_pid()

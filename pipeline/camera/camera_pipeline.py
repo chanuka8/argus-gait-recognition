@@ -2,7 +2,7 @@
 
 import time
 from threading import Lock
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import numpy as np
 
@@ -15,8 +15,8 @@ class CameraPipeline:
     def __init__(
         self,
         camera_id: str,
-        detection_processor: Optional[Any] = None,
-        inference_pipeline: Optional[Any] = None,
+        detection_processor: Any | None = None,
+        inference_pipeline: Any | None = None,
     ) -> None:
         self.camera_id = camera_id
         self._logger = setup_logger(f"pipeline.{camera_id}")
@@ -26,10 +26,10 @@ class CameraPipeline:
 
         self._lock = Lock()
 
-        self.current_frame: Optional[np.ndarray] = None
-        self.current_detections: List[Dict] = []
-        self.current_tracks: Dict = {}
-        self.current_gei: Optional[np.ndarray] = None
+        self.current_frame: np.ndarray | None = None
+        self.current_detections: list[dict] = []
+        self.current_tracks: dict = {}
+        self.current_gei: np.ndarray | None = None
 
         self.stats = {
             "frames_processed": 0,
@@ -45,7 +45,7 @@ class CameraPipeline:
     def process_frame(
         self,
         frame: np.ndarray,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Process single frame through full pipeline.
 
@@ -99,8 +99,8 @@ class CameraPipeline:
                             }
                         )
 
-                    except Exception as e:
-                        self._logger.error(f"Recognition error: {str(e)}")
+                    except (KeyError, ValueError, TypeError) as e:
+                        self._logger.error(f"Recognition error: {e!s}")
 
                 rec_time = (time.perf_counter() - rec_start) * 1000.0
 
@@ -121,27 +121,27 @@ class CameraPipeline:
                 stats["frames_processed"] += 1
                 stats["last_update"] = time.monotonic()
 
-        except Exception as e:
-            self._logger.error(f"Pipeline error: {str(e)}")
+        except (RuntimeError, ValueError, TypeError, OSError) as e:
+            self._logger.error(f"Pipeline error: {e!s}")
 
         return results
 
-    def get_current_frame(self) -> Optional[np.ndarray]:
+    def get_current_frame(self) -> np.ndarray | None:
         """Get current frame."""
         with self._lock:
             return self.current_frame.copy() if self.current_frame is not None else None
 
-    def get_current_detections(self) -> List[Dict]:
+    def get_current_detections(self) -> list[dict]:
         """Get current detections."""
         with self._lock:
             return self.current_detections.copy()
 
-    def get_current_gei(self) -> Optional[np.ndarray]:
+    def get_current_gei(self) -> np.ndarray | None:
         """Get current GEI."""
         with self._lock:
             return self.current_gei.copy() if self.current_gei is not None else None
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get pipeline statistics."""
         with self._lock:
             return self.stats.copy()

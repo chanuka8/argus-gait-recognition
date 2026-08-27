@@ -7,7 +7,7 @@ starvation prevention via aging, and dynamic polling interval adjustment.
 
 import time
 from threading import Lock
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from monitoring.logging_config import get_logger
 
@@ -30,11 +30,11 @@ class CameraScheduler:
         self._logger = get_logger("camera_scheduler")
         self._lock = Lock()
 
-        self._camera_priorities: Dict[str, int] = {}
-        self._last_scheduled: Dict[str, float] = {}
-        self._scheduled_counts: Dict[str, int] = {}
+        self._camera_priorities: dict[str, int] = {}
+        self._last_scheduled: dict[str, float] = {}
+        self._scheduled_counts: dict[str, int] = {}
 
-    def register_camera(self, camera_id: str, priority: Optional[int] = None) -> None:
+    def register_camera(self, camera_id: str, priority: int | None = None) -> None:
         """Register or update a camera's schedule priority (1 to 10)."""
         with self._lock:
             p = priority if priority is not None else self.default_priority
@@ -59,14 +59,14 @@ class CameraScheduler:
         with self._lock:
             return self._camera_priorities.get(camera_id, self.default_priority)
 
-    def get_next_camera(self, active_camera_ids: List[str]) -> Optional[str]:
+    def get_next_camera(self, active_camera_ids: list[str]) -> str | None:
         """Select next camera to process based on priority and starvation prevention."""
         if not active_camera_ids:
             return None
 
         now = time.monotonic()
         with self._lock:
-            best_camera: Optional[str] = None
+            best_camera: str | None = None
             highest_score = -1.0
 
             for cid in active_camera_ids:
@@ -87,21 +87,17 @@ class CameraScheduler:
 
             if best_camera:
                 self._last_scheduled[best_camera] = now
-                self._scheduled_counts[best_camera] = (
-                    self._scheduled_counts.get(best_camera, 0) + 1
-                )
+                self._scheduled_counts[best_camera] = self._scheduled_counts.get(best_camera, 0) + 1
 
             return best_camera
 
     def calculate_dynamic_poll_interval(self, system_load_factor: float = 0.5) -> float:
         """Calculate dynamic polling interval based on current system load (0.0 to 1.0)."""
         load = max(0.0, min(1.0, system_load_factor))
-        interval = self.min_poll_interval + load * (
-            self.max_poll_interval - self.min_poll_interval
-        )
+        interval = self.min_poll_interval + load * (self.max_poll_interval - self.min_poll_interval)
         return round(interval, 4)
 
-    def get_schedule_stats(self) -> Dict[str, Any]:
+    def get_schedule_stats(self) -> dict[str, Any]:
         """Get scheduler performance statistics."""
         with self._lock:
             return {

@@ -11,7 +11,6 @@ from storage.vector_store import VectorStore
 
 
 class TestVectorStoreSecurity(unittest.TestCase):
-
     def setUp(self):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.gallery_dir = Path(self.temp_dir.name)
@@ -161,11 +160,8 @@ class TestVectorStoreSecurity(unittest.TestCase):
 
     def test_no_active_allow_pickle_true_remains_in_first_party_code(self):
         cmd = ["git", "grep", "-n", "allow_pickle=True"]
-        res = subprocess.run(cmd, capture_output=True, text=True)
-        prod_matches = [
-            line for line in res.stdout.splitlines()
-            if ".py:" in line and not line.startswith("tests/")
-        ]
+        res = subprocess.run(cmd, capture_output=True, text=True, check=False)
+        prod_matches = [line for line in res.stdout.splitlines() if ".py:" in line and not line.startswith("tests/")]
         self.assertEqual(len(prod_matches), 0, f"Found allow_pickle=True in production code: {prod_matches}")
 
 

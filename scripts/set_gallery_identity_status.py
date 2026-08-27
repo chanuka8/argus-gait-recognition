@@ -11,7 +11,6 @@ sys.path.insert(
 
 from storage.vector_store import VectorStore
 
-
 VALID_STATUSES = {
     "ACTIVE",
     "DISABLED",
@@ -29,12 +28,8 @@ def set_status(
 
     if status not in VALID_STATUSES:
         if verbose:
-            print(
-                f"Invalid status: {status}"
-            )
-            print(
-                "Valid statuses: ACTIVE, DISABLED, ARCHIVED"
-            )
+            print(f"Invalid status: {status}")
+            print("Valid statuses: ACTIVE, DISABLED, ARCHIVED")
         return False
 
     store = VectorStore(
@@ -45,9 +40,7 @@ def set_status(
 
     if current is None:
         if verbose:
-            print(
-                f"Gallery not found: {gallery_dir}"
-            )
+            print(f"Gallery not found: {gallery_dir}")
         return False
 
     features, labels, metadata = current
@@ -74,16 +67,12 @@ def set_status(
         metadata,
     )
 
-    print(
-        f"Identity status updated: {person_id} -> {status} ({gallery_dir})"
-    )
+    print(f"Identity status updated: {person_id} -> {status} ({gallery_dir})")
     return True
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Set ARGUS gallery identity status"
-    )
+    parser = argparse.ArgumentParser(description="Set ARGUS gallery identity status")
 
     parser.add_argument(
         "--person-id",
@@ -124,9 +113,7 @@ def main() -> None:
             verbose=False,
         )
         if not updated_live and not updated_app:
-            print(
-                f"Identity not found in live or appearance galleries: {args.person_id}"
-            )
+            print(f"Identity not found in live or appearance galleries: {args.person_id}")
     else:
         set_status(
             person_id=args.person_id,

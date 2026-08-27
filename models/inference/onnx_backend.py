@@ -6,7 +6,6 @@ and transparent fallback to PyTorch backend.
 """
 
 from pathlib import Path
-from typing import Optional, Union
 
 import numpy as np
 import torch
@@ -19,8 +18,8 @@ class ONNXBackend(BaseInferenceBackend):
 
     def __init__(
         self,
-        config: Optional[dict] = None,
-        model_path: Optional[str] = None,
+        config: dict | None = None,
+        model_path: str | None = None,
     ) -> None:
         super().__init__(config=config)
         self.backend_name = "onnxruntime"
@@ -35,6 +34,7 @@ class ONNXBackend(BaseInferenceBackend):
         try:
             from automation.device_manager import DeviceManager
             from automation.dll_manager import setup_cuda_dll_paths
+
             setup_cuda_dll_paths()
 
             import onnxruntime as ort
@@ -59,7 +59,7 @@ class ONNXBackend(BaseInferenceBackend):
             self._fallback_used = False
             self._fallback_reason = None
             self.warmup()
-        except Exception as e:
+        except (ImportError, RuntimeError, OSError, ValueError, KeyError) as e:
             self._initialized = False
             reason = str(e)
             self.fallback_reason = reason
@@ -76,7 +76,7 @@ class ONNXBackend(BaseInferenceBackend):
         """Check if ONNX session initialized successfully."""
         return self._initialized and self.session is not None
 
-    def predict(self, x: Union[np.ndarray, torch.Tensor]) -> np.ndarray:
+    def predict(self, x: np.ndarray | torch.Tensor) -> np.ndarray:
         """
         Execute ONNX inference and return L2-normalized numpy embedding array.
 

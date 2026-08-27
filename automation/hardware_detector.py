@@ -5,13 +5,13 @@ Scans host operating system, CPU architecture, RAM, and NVIDIA GPU hardware
 via direct OS telemetry and nvidia-smi querying without requiring PyTorch.
 """
 
-from dataclasses import dataclass
 import os
 import platform
 import shutil
 import subprocess
 import sys
-from typing import Any, Dict, Optional, Tuple
+from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass
@@ -28,12 +28,12 @@ class HostSystemInfo:
 @dataclass
 class NvidiaGpuInfo:
     present: bool
-    gpu_name: Optional[str] = None
-    driver_version: Optional[str] = None
+    gpu_name: str | None = None
+    driver_version: str | None = None
     vram_mb: float = 0.0
-    cuda_driver_version: Optional[str] = None
+    cuda_driver_version: str | None = None
     query_success: bool = False
-    error: Optional[str] = None
+    error: str | None = None
 
 
 @dataclass
@@ -41,7 +41,7 @@ class HardwareProfile:
     system: HostSystemInfo
     gpu: NvidiaGpuInfo
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "os": f"{self.system.os_name} {self.system.os_version}",
             "python_version": self.system.python_version,
@@ -72,10 +72,11 @@ class HardwareDetector:
 
         try:
             import psutil
+
             vm = psutil.virtual_memory()
-            total_ram = round(vm.total / (1024 ** 3), 1)
-            avail_ram = round(vm.available / (1024 ** 3), 1)
-        except Exception:
+            total_ram = round(vm.total / (1024**3), 1)
+            avail_ram = round(vm.available / (1024**3), 1)
+        except (ImportError, AttributeError, OSError):
             pass
 
         return HostSystemInfo(
@@ -118,10 +119,10 @@ class HardwareDetector:
             ]
             result = subprocess.run(
                 cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                capture_output=True,
                 text=True,
                 timeout=6,
+                check=False,
             )
 
             if result.returncode != 0 or not result.stdout.strip():
@@ -141,18 +142,18 @@ class HardwareDetector:
                 vram_mb = 0.0
 
             # Query CUDA Driver API version
-            cuda_driver_ver: Optional[str] = None
+            cuda_driver_ver: str | None = None
             try:
                 smi_banner = subprocess.run(
                     [smi_path],
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
+                    capture_output=True,
                     text=True,
                     timeout=5,
+                    check=False,
                 )
                 if "CUDA Version:" in smi_banner.stdout:
                     cuda_driver_ver = smi_banner.stdout.split("CUDA Version:")[1].split()[0].strip()
-            except Exception:
+            except (subprocess.SubprocessError, OSError, UnicodeDecodeError, IndexError):
                 pass
 
             return NvidiaGpuInfo(
@@ -163,7 +164,7 @@ class HardwareDetector:
                 cuda_driver_version=cuda_driver_ver or "12.x",
                 query_success=True,
             )
-        except Exception as exc:
+        except (subprocess.SubprocessError, OSError, ValueError, IndexError) as exc:
             return NvidiaGpuInfo(present=False, error=str(exc))
 
     @classmethod

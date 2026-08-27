@@ -3,9 +3,9 @@ Build TensorRT engine from ONNX model file and verify output parity.
 """
 
 import argparse
-from pathlib import Path
 import subprocess
 import sys
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
@@ -51,7 +51,7 @@ def build_engine_python(
     except ImportError:
         print("[WARNING] tensorrt Python package not installed.")
         return False
-    except Exception as e:
+    except (RuntimeError, ValueError, TypeError, OSError) as e:
         print(f"[ERROR] TensorRT build failed: {e}")
         return False
 
@@ -72,7 +72,7 @@ def build_engine_trtexec(
 
     print(f"[INFO] Executing command: {' '.join(cmd)}")
     try:
-        res = subprocess.run(cmd, capture_output=True, text=True)
+        res = subprocess.run(cmd, capture_output=True, text=True, check=False)
         if res.returncode == 0:
             print("[SUCCESS] trtexec engine build complete.")
             return True
@@ -86,7 +86,9 @@ def build_engine_trtexec(
 def main() -> None:
     parser = argparse.ArgumentParser(description="Build TensorRT engine from ONNX model.")
     parser.add_argument("--onnx-path", type=str, default="models/engines/bygait_light.onnx", help="Path to ONNX file")
-    parser.add_argument("--engine-path", type=str, default="models/engines/bygait_light_fp16.engine", help="Output engine path")
+    parser.add_argument(
+        "--engine-path", type=str, default="models/engines/bygait_light_fp16.engine", help="Output engine path"
+    )
     parser.add_argument("--precision", type=str, default="fp16", choices=["fp32", "fp16"], help="Precision mode")
 
     args = parser.parse_args()

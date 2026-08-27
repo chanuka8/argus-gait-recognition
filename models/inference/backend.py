@@ -5,12 +5,11 @@ Defines the abstract BaseInferenceBackend interface and factory get_inference_ba
 to instantiate execution engines (pytorch, onnxruntime, auto) with safe fallback logic.
 """
 
+import json
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-import json
 from pathlib import Path
-from typing import Optional, Union
 
 import numpy as np
 import torch
@@ -44,7 +43,7 @@ class BackendHealth:
     status: BackendStatus
     is_available: bool
     execution_provider: str
-    error_message: Optional[str] = None
+    error_message: str | None = None
 
 
 def load_inference_backend_config() -> dict:
@@ -69,7 +68,7 @@ def load_inference_backend_config() -> dict:
     try:
         with open(config_path, encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
-    except Exception:
+    except (yaml.YAMLError, OSError, ValueError, KeyError):
         return defaults
 
     section = data.get("inference_backend", {})
@@ -77,7 +76,7 @@ def load_inference_backend_config() -> dict:
         return defaults
 
     merged = dict(defaults)
-    for key, val in defaults.items():
+    for key in defaults:
         if key in section:
             merged[key] = section[key]
 
@@ -87,7 +86,7 @@ def load_inference_backend_config() -> dict:
 class BaseInferenceBackend(ABC):
     """Abstract Base Class for ARGUS model inference execution engines."""
 
-    def __init__(self, config: Optional[dict] = None) -> None:
+    def __init__(self, config: dict | None = None) -> None:
         self.config = config or load_inference_backend_config()
         self.logger = get_logger("detection")
         self.backend_name = str(self.config.get("backend", "pytorch")).lower()
@@ -99,8 +98,8 @@ class BaseInferenceBackend(ABC):
         self._fallback_used = False
         self._selection_fallback_used = False
         self._attempted_backends = [self.backend_name]
-        self._fallback_reason: Optional[str] = None
-        self._fallback_backend: Optional["BaseInferenceBackend"] = None
+        self._fallback_reason: str | None = None
+        self._fallback_backend: BaseInferenceBackend | None = None
         self._execution_provider = "PyTorch-CPU"
 
     @property
@@ -147,14 +146,14 @@ class BaseInferenceBackend(ABC):
         self._attempted_backends = list(value)
 
     @property
-    def fallback_reason(self) -> Optional[str]:
+    def fallback_reason(self) -> str | None:
         """Concise sanitized reason explaining why fallback occurred, or None."""
         if self._fallback_used or self._selection_fallback_used:
             return self._fallback_reason
         return None
 
     @fallback_reason.setter
-    def fallback_reason(self, value: Optional[str]) -> None:
+    def fallback_reason(self, value: str | None) -> None:
         self._fallback_reason = value
 
     @property
@@ -182,8 +181,7 @@ class BaseInferenceBackend(ABC):
         }
 
     @abstractmethod
-    def predict(self, x: Union[np.ndarray, torch.Tensor]) -> np.ndarray:
-
+    def predict(self, x: np.ndarray | torch.Tensor) -> np.ndarray:
         """
         Execute forward inference on GEI input tensor/array and return L2-normalized embedding.
 
@@ -193,9 +191,8 @@ class BaseInferenceBackend(ABC):
         Returns:
             L2-normalized float32 numpy array of shape (B, 256).
         """
-        pass
 
-    def warmup(self, sample_input: Optional[Union[np.ndarray, torch.Tensor]] = None) -> None:
+    def warmup(self, sample_input: np.ndarray | torch.Tensor | None = None) -> None:
         """Run warmup iterations on dummy or provided input tensor."""
         if self.warmup_iterations <= 0:
             return
@@ -206,7 +203,7 @@ class BaseInferenceBackend(ABC):
         for _ in range(self.warmup_iterations):
             try:
                 self.predict(sample_input)
-            except Exception:
+            except (RuntimeError, ValueError, TypeError, OSError):
                 break
 
     @staticmethod
@@ -222,7 +219,7 @@ class BaseInferenceBackend(ABC):
 class BackendValidator:
     """Validates PyTorch and ONNX Runtime backends and performs smoke testing."""
 
-    def __init__(self, config: Optional[dict] = None) -> None:
+    def __init__(self, config: dict | None = None) -> None:
         self.config = config or load_inference_backend_config()
 
     def check_pytorch(self) -> BackendHealth:
@@ -283,7 +280,7 @@ class BackendValidator:
         try:
             out = backend.predict(dummy)
             return bool(out is not None and getattr(out, "shape", None) == (1, 256))
-        except Exception:
+        except (RuntimeError, ValueError, TypeError, AttributeError, OSError):
             return False
 
 
@@ -335,8 +332,8 @@ def generate_backend_report(
 
 
 def get_inference_backend(
-    config: Optional[dict] = None,
-    model_path: Optional[str] = None,
+    config: dict | None = None,
+    model_path: str | None = None,
 ) -> BaseInferenceBackend:
     """
     Factory function to instantiate configured inference engine backend with safe fallback.
@@ -374,7 +371,7 @@ def get_inference_backend(
                 backend.selection_fallback_used = False
                 return backend
             reason = backend.fallback_reason or f"ONNX model file not found at {backend.onnx_path}"
-        except Exception as e:
+        except (ImportError, RuntimeError, OSError, ValueError) as e:
             reason = str(e)
             logger.warning(f"ONNX backend unavailable ({reason}). Falling back to PyTorch.")
 
@@ -401,7 +398,7 @@ def get_inference_backend(
                 backend.selection_fallback_used = False
                 return backend
             reason = backend.fallback_reason or f"TensorRT engine not available at {backend.engine_path}"
-        except Exception as e:
+        except (ImportError, RuntimeError, OSError, ValueError) as e:
             reason = str(e)
 
         if not allow_fallback:
@@ -431,7 +428,7 @@ def get_inference_backend(
                 return backend
             if backend.fallback_reason:
                 reasons.append(f"ONNX unavailable ({backend.fallback_reason})")
-        except Exception as e:
+        except (ImportError, RuntimeError, OSError, ValueError) as e:
             reasons.append(f"ONNX unavailable ({e})")
 
         # Fallback to PyTorch reference engine

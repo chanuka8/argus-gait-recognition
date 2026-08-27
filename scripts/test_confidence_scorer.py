@@ -19,9 +19,7 @@ def main():
     ]
 
     for score in scores:
-        print(
-            scorer.evaluate(score)
-        )
+        print(scorer.evaluate(score))
 
 
 if __name__ == "__main__":

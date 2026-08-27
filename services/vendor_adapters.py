@@ -1,6 +1,6 @@
 """Vendor compatibility adapters for enterprise CCTV cameras."""
 
-from typing import Any, Dict
+from typing import Any
 
 from monitoring.logging_config import get_logger
 
@@ -22,7 +22,9 @@ class CameraAdapter:
         auth = f"{self.username}:{self.password}@" if self.username else ""
         return f"rtsp://{auth}{self.host}:{self.port}"
 
-    def get_camera_config(self, camera_id: str, width: int = 640, height: int = 480, target_fps: int = 15) -> Dict[str, Any]:
+    def get_camera_config(
+        self, camera_id: str, width: int = 640, height: int = 480, target_fps: int = 15
+    ) -> dict[str, Any]:
         """Build camera config dict compatible with CameraWorker."""
         return {
             "id": camera_id,
@@ -38,7 +40,7 @@ class CameraAdapter:
             "max_queue_size": 10,
         }
 
-    def get_metadata(self) -> Dict[str, Any]:
+    def get_metadata(self) -> dict[str, Any]:
         """Return vendor metadata."""
         return {"vendor": self.VENDOR, "host": self.host, "port": self.port}
 
@@ -52,7 +54,7 @@ class HikvisionAdapter(CameraAdapter):
         auth = f"{self.username}:{self.password}@" if self.username else ""
         return f"rtsp://{auth}{self.host}:{self.port}/Streaming/Channels/{channel}0{subtype + 1}"
 
-    def get_metadata(self) -> Dict[str, Any]:
+    def get_metadata(self) -> dict[str, Any]:
         base = super().get_metadata()
         base["onvif_port"] = 80
         base["sdk"] = "ISAPI"
@@ -95,7 +97,9 @@ class GenericRTSPAdapter(CameraAdapter):
 
     VENDOR = "generic_rtsp"
 
-    def __init__(self, host: str, port: int = 554, username: str = "", password: str = "", path: str = "/stream", **kwargs: Any) -> None:
+    def __init__(
+        self, host: str, port: int = 554, username: str = "", password: str = "", path: str = "/stream", **kwargs: Any
+    ) -> None:
         super().__init__(host, port, username, password, **kwargs)
         self.path = path
 
@@ -104,7 +108,7 @@ class GenericRTSPAdapter(CameraAdapter):
         return f"rtsp://{auth}{self.host}:{self.port}{self.path}"
 
 
-VENDOR_REGISTRY: Dict[str, type] = {
+VENDOR_REGISTRY: dict[str, type] = {
     "hikvision": HikvisionAdapter,
     "dahua": DahuaAdapter,
     "uniview": UniviewAdapter,

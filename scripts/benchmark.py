@@ -60,7 +60,7 @@ def benchmark_single_inference(
         if score == 0.0:
             active_count = 0
             if pipeline.metadata:
-                for label, entry in pipeline.metadata.items():
+                for entry in pipeline.metadata.values():
                     status = entry.get("status", "DISABLED").upper()
                     enabled = entry.get("enabled", status == "ACTIVE")
                     if status == "ACTIVE" and enabled:

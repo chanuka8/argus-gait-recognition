@@ -13,9 +13,7 @@ from enrollment.auto_enrollment_service import AutoEnrollmentService
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="ARGUS auto enrollment service"
-    )
+    parser = argparse.ArgumentParser(description="ARGUS auto enrollment service")
 
     parser.add_argument(
         "--input",

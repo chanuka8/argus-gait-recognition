@@ -7,12 +7,11 @@ Provides idempotent validation: skips downloads and installations when the envir
 is already healthy.
 """
 
-from dataclasses import dataclass
-import os
-from pathlib import Path
 import subprocess
 import sys
-from typing import Any, Dict, Optional, Tuple
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
 
 from automation.download_manager import DownloadManager
 from automation.environment_validator import ComputeBackend
@@ -26,7 +25,9 @@ class PyTorchInstallSpec:
     cuda_tag: str = "cu121"
     python_tag: str = "cp311-cp311-win_amd64"
     torch_wheel_url: str = "https://download.pytorch.org/whl/cu121/torch-2.5.1%2Bcu121-cp311-cp311-win_amd64.whl"
-    vision_wheel_url: str = "https://download.pytorch.org/whl/cu121/torchvision-0.20.1%2Bcu121-cp311-cp311-win_amd64.whl"
+    vision_wheel_url: str = (
+        "https://download.pytorch.org/whl/cu121/torchvision-0.20.1%2Bcu121-cp311-cp311-win_amd64.whl"
+    )
     torch_wheel_name: str = "torch-2.5.1+cu121-cp311-cp311-win_amd64.whl"
     vision_wheel_name: str = "torchvision-0.20.1+cu121-cp311-cp311-win_amd64.whl"
 
@@ -39,7 +40,7 @@ class PyTorchManager:
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.python_exe = sys.executable
 
-    def inspect_current_pytorch(self) -> Dict[str, Any]:
+    def inspect_current_pytorch(self) -> dict[str, Any]:
         """Inspect the currently installed PyTorch build and device capabilities."""
         info = {
             "installed": False,
@@ -53,6 +54,7 @@ class PyTorchManager:
 
         try:
             import torch
+
             info["installed"] = True
             info["version"] = getattr(torch, "__version__", None)
             cuda_tag = getattr(torch.version, "cuda", None)
@@ -70,7 +72,7 @@ class PyTorchManager:
                 torch.cuda.synchronize()
             if c.shape == (128, 128):
                 info["tensor_probe_passed"] = True
-        except Exception:
+        except (RuntimeError, ValueError, TypeError, AttributeError):
             pass
 
         return info
@@ -109,7 +111,7 @@ class PyTorchManager:
                     sys.stdout.flush()
             process.wait()
             return process.returncode == 0
-        except Exception as e:
+        except (subprocess.SubprocessError, OSError) as e:
             print(f"[PIP ERROR] Execution failed: {e}")
             return False
 
@@ -166,22 +168,26 @@ class PyTorchManager:
                     return self._install_cpu_pytorch()
 
             # Install from local wheels
-            install_ok = self._run_pip_unbuffered([
-                "install",
-                "--no-cache-dir",
-                str(torch_wheel_path),
-                str(vision_wheel_path),
-            ])
+            install_ok = self._run_pip_unbuffered(
+                [
+                    "install",
+                    "--no-cache-dir",
+                    str(torch_wheel_path),
+                    str(vision_wheel_path),
+                ]
+            )
 
             if not install_ok:
                 print("[ARGUS WARN] Local wheel install failed. Attempting direct index install...")
-                install_ok = self._run_pip_unbuffered([
-                    "install",
-                    "torch==2.5.1+cu121",
-                    "torchvision==0.20.1+cu121",
-                    "--index-url",
-                    "https://download.pytorch.org/whl/cu121",
-                ])
+                install_ok = self._run_pip_unbuffered(
+                    [
+                        "install",
+                        "torch==2.5.1+cu121",
+                        "torchvision==0.20.1+cu121",
+                        "--index-url",
+                        "https://download.pytorch.org/whl/cu121",
+                    ]
+                )
 
             return install_ok
 
@@ -191,10 +197,12 @@ class PyTorchManager:
     def _install_cpu_pytorch(self) -> bool:
         """Install official CPU PyTorch build with matching versions."""
         print("[ARGUS] Installing official CPU PyTorch build (2.5.1 / 0.20.1)...")
-        return self._run_pip_unbuffered([
-            "install",
-            "torch==2.5.1",
-            "torchvision==0.20.1",
-            "--index-url",
-            "https://download.pytorch.org/whl/cpu",
-        ])
+        return self._run_pip_unbuffered(
+            [
+                "install",
+                "torch==2.5.1",
+                "torchvision==0.20.1",
+                "--index-url",
+                "https://download.pytorch.org/whl/cpu",
+            ]
+        )

@@ -34,7 +34,6 @@ class EnrollmentValidator:
             )
 
         for image_path in images:
-
             image = cv2.imread(str(image_path))
 
             if image is None:
@@ -45,11 +44,7 @@ class EnrollmentValidator:
 
             h, w = image.shape[:2]
 
-            if (
-                h < self.min_resolution[0]
-                or
-                w < self.min_resolution[1]
-            ):
+            if h < self.min_resolution[0] or w < self.min_resolution[1]:
                 return (
                     False,
                     f"Low resolution: {image_path.name}",

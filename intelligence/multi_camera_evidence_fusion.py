@@ -6,10 +6,10 @@ incorporating gait similarity, appearance/ReID, open-set margin, temporal verifi
 track reliability, camera transition probability, travel-time likelihood, and occlusion/quality weights.
 """
 
+import time
 from dataclasses import dataclass
 from enum import Enum
-import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 
 class FusionState(str, Enum):
@@ -22,7 +22,7 @@ class FusionState(str, Enum):
 class CameraObservationRecord:
     camera_id: str
     local_track_id: Any
-    global_track_id: Optional[str]
+    global_track_id: str | None
     identity_candidate: str
     gait_similarity: float
     appearance_similarity: float
@@ -41,8 +41,8 @@ class MultiCameraFusionResult:
     fused_identity: str
     fused_score: float
     fusion_state: FusionState
-    component_scores: Dict[str, float]
-    contributing_cameras: List[str]
+    component_scores: dict[str, float]
+    contributing_cameras: list[str]
     reason: str
 
 
@@ -51,7 +51,7 @@ class MultiCameraEvidenceFusion:
     Score-level multi-camera evidence fusion engine.
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, config: dict[str, Any] | None = None) -> None:
         cfg = config or {}
         self.enabled = bool(cfg.get("enabled", False))
         self.evidence_ttl_seconds = float(cfg.get("evidence_ttl_seconds", 15.0))
@@ -76,13 +76,13 @@ class MultiCameraEvidenceFusion:
         else:
             self.weights = default_weights
 
-        self.observations: Dict[str, List[CameraObservationRecord]] = {}
+        self.observations: dict[str, list[CameraObservationRecord]] = {}
 
     def is_enabled(self) -> bool:
         return self.enabled
 
     @classmethod
-    def from_config(cls, config: Dict[str, Any] | None = None) -> "MultiCameraEvidenceFusion":
+    def from_config(cls, config: dict[str, Any] | None = None) -> "MultiCameraEvidenceFusion":
         """Factory method to instantiate from config dictionary."""
         return cls(config=config)
 
@@ -90,7 +90,7 @@ class MultiCameraEvidenceFusion:
         self,
         camera_id: str,
         local_track_id: Any,
-        global_track_id: Optional[str],
+        global_track_id: str | None,
         identity_candidate: str,
         gait_similarity: float,
         appearance_similarity: float = 0.0,
@@ -101,7 +101,7 @@ class MultiCameraEvidenceFusion:
         travel_time_likelihood: float = 1.0,
         quality_score: float = 0.80,
         occlusion_score: float = 0.10,
-        timestamp: Optional[float] = None,
+        timestamp: float | None = None,
     ) -> None:
         """Record an observation for multi-camera fusion."""
         now = timestamp if timestamp is not None else time.monotonic()
@@ -145,7 +145,7 @@ class MultiCameraEvidenceFusion:
         entity_key: str,
         fallback_identity: str = "UNKNOWN",
         fallback_score: float = 0.0,
-        current_time: Optional[float] = None,
+        current_time: float | None = None,
     ) -> MultiCameraFusionResult:
         """
         Fuse multi-camera observations for entity_key.
@@ -195,11 +195,11 @@ class MultiCameraEvidenceFusion:
                 reason="All observations are UNKNOWN",
             )
 
-        candidates: Dict[str, List[CameraObservationRecord]] = {}
+        candidates: dict[str, list[CameraObservationRecord]] = {}
         for r in valid_obs:
             candidates.setdefault(r.identity_candidate, []).append(r)
 
-        identity_scores: Dict[str, Tuple[float, Dict[str, float], List[str]]] = {}
+        identity_scores: dict[str, tuple[float, dict[str, float], list[str]]] = {}
 
         for identity, records in candidates.items():
             cameras = list({r.camera_id for r in records})
@@ -219,13 +219,19 @@ class MultiCameraEvidenceFusion:
                 total_obs_weight += w_obs
 
                 comp_sums["gait"] += w_obs * r.gait_similarity
-                comp_sums["appearance"] += w_obs * (r.appearance_similarity if r.appearance_similarity > 0 else r.gait_similarity)
-                comp_sums["open_set"] += w_obs * min(1.0, max(0.70, r.open_set_margin / 0.05 if r.open_set_margin > 0 else 0.85))
+                comp_sums["appearance"] += w_obs * (
+                    r.appearance_similarity if r.appearance_similarity > 0 else r.gait_similarity
+                )
+                comp_sums["open_set"] += w_obs * min(
+                    1.0, max(0.70, r.open_set_margin / 0.05 if r.open_set_margin > 0 else 0.85)
+                )
                 comp_sums["temporal"] += w_obs * r.temporal_consistency
                 comp_sums["reliability"] += w_obs * r.track_reliability
                 comp_sums["transition"] += w_obs * (0.5 * r.transition_score + 0.5 * r.travel_time_likelihood)
 
-            comp_scores = {k: float(v / total_obs_weight) for k, v in comp_sums.items()} if total_obs_weight > 0 else comp_sums
+            comp_scores = (
+                {k: float(v / total_obs_weight) for k, v in comp_sums.items()} if total_obs_weight > 0 else comp_sums
+            )
 
             fused_score = float(sum(self.weights[k] * comp_scores[k] for k in self.weights))
 
@@ -269,7 +275,7 @@ class MultiCameraEvidenceFusion:
             reason="Multi-camera evidence fusion confirmed identity",
         )
 
-    def cleanup_inactive(self, max_idle_seconds: float = 20.0, current_time: Optional[float] = None) -> None:
+    def cleanup_inactive(self, max_idle_seconds: float = 20.0, current_time: float | None = None) -> None:
         """Clean expired observations."""
         now = current_time if current_time is not None else time.monotonic()
         for key, obs in list(self.observations.items()):

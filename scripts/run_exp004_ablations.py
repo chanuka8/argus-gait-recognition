@@ -2,6 +2,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
+
 import numpy as np
 import torch
 
@@ -9,13 +10,14 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from models.architectures.bygait_light import ByGaitLight
+import cv2
+
 from evaluation.dataset_split import load_or_create_subject_split
 from evaluation.gallery_probe_builder import build_gallery_and_probe_sets
 from evaluation.metrics import compute_biometric_rates, compute_roc_auc_eer
-from training.trainer import Trainer
+from models.architectures.bygait_light import ByGaitLight
 from scripts.evaluate_subject_disjoint import main as run_evaluation
-import cv2
+from training.trainer import Trainer
 
 
 def load_model(ckpt_path: str, part_bins: int = 4) -> ByGaitLight:
@@ -24,7 +26,7 @@ def load_model(ckpt_path: str, part_bins: int = 4) -> ByGaitLight:
     for key, value in ckpt.items():
         if key.startswith("backbone."):
             filtered[key.replace("backbone.", "")] = value
-        elif key.startswith("features.") or key.startswith("embedding."):
+        elif key.startswith(("features.", "embedding.")):
             filtered[key] = value
 
     model = ByGaitLight(part_bins=part_bins)
@@ -57,7 +59,7 @@ def run_decision_ablations_on_exp003e():
     ckpt_path = "runs/exp_003e_hpp_arcface_triplet025/best_model.pth"
     model = load_model(ckpt_path, part_bins=4)
 
-    val_known = val_subs[:len(val_subs)//2]
+    val_known = val_subs[: len(val_subs) // 2]
     val_gal_items, _ = build_gallery_and_probe_sets(val_known, "data/casia_processed/gei")
     _, val_prb_items = build_gallery_and_probe_sets(val_subs, "data/casia_processed/gei")
 
@@ -92,8 +94,7 @@ def run_decision_ablations_on_exp003e():
         precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
         recall = tp / np.sum(val_gen) if np.sum(val_gen) > 0 else 0.0
         f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
-        if f1 > best_val_f1:
-            best_val_f1 = f1
+        best_val_f1 = max(best_val_f1, f1)
 
     test_known = test_subs[:25]
     test_gal_items, _ = build_gallery_and_probe_sets(test_known, "data/casia_processed/gei")
@@ -103,10 +104,10 @@ def run_decision_ablations_on_exp003e():
     test_gal_labels = np.asarray([i["subject_id"] for i in test_gal_items])
     test_known_set = set(test_known)
 
-    unique_test_labels = sorted(list(set(test_gal_labels)))
+    unique_test_labels = sorted(set(test_gal_labels))
     centroid_feats = []
     for lbl in unique_test_labels:
-        mask = (test_gal_labels == lbl)
+        mask = test_gal_labels == lbl
         c_feat = np.mean(test_gal_feats[mask], axis=0)
         c_feat = c_feat / np.linalg.norm(c_feat)
         centroid_feats.append(c_feat)
@@ -115,7 +116,7 @@ def run_decision_ablations_on_exp003e():
 
     id_thresholds = {}
     for lbl in unique_test_labels:
-        mask = (test_gal_feats == lbl)
+        mask = test_gal_labels == lbl
         same_feats = test_gal_feats[mask]
         if len(same_feats) > 1:
             sim_matrix = np.dot(same_feats, same_feats.T)
@@ -149,20 +150,22 @@ def run_decision_ablations_on_exp003e():
         is_gen = (actual_id in test_known_set) and (actual_id == t1_id)
         is_gen_c = (actual_id in test_known_set) and (actual_id == c_t1_id)
 
-        probes_data.append({
-            "actual_id": actual_id,
-            "condition": cond,
-            "t1_score": t1_score,
-            "t2_score": t2_score,
-            "t1_id": t1_id,
-            "margin": t1_score - t2_score,
-            "is_gen": is_gen,
-            "c_t1_score": c_t1_score,
-            "c_t2_score": c_t2_score,
-            "c_t1_id": c_t1_id,
-            "c_margin": c_t1_score - c_t2_score,
-            "is_gen_c": is_gen_c,
-        })
+        probes_data.append(
+            {
+                "actual_id": actual_id,
+                "condition": cond,
+                "t1_score": t1_score,
+                "t2_score": t2_score,
+                "t1_id": t1_id,
+                "margin": t1_score - t2_score,
+                "is_gen": is_gen,
+                "c_t1_score": c_t1_score,
+                "c_t2_score": c_t2_score,
+                "c_t1_id": c_t1_id,
+                "c_margin": c_t1_score - c_t2_score,
+                "is_gen_c": is_gen_c,
+            }
+        )
 
     results = {}
 
@@ -276,10 +279,14 @@ def run_decision_ablations_on_exp003e():
         "decision": "KEEP AS POLICY CANDIDATE",
     }
 
-    print(f"{'Exp ID':<10} | {'Method':<30} | {'Thresh':<7} | {'Margin':<7} | {'FAR':<7} | {'FRR':<7} | {'TAR':<7} | {'ROC-AUC':<7} | {'EER':<7} | {'Decision':<20}")
+    print(
+        f"{'Exp ID':<10} | {'Method':<30} | {'Thresh':<7} | {'Margin':<7} | {'FAR':<7} | {'FRR':<7} | {'TAR':<7} | {'ROC-AUC':<7} | {'EER':<7} | {'Decision':<20}"
+    )
     print("-" * 125)
-    for k, v in results.items():
-        print(f"{v['id']:<10} | {v['name']:<30} | {v['threshold']:<7.4f} | {v['margin']:<7.4f} | {v['far']*100:<6.2f}% | {v['frr']*100:<6.2f}% | {v['tar']*100:<6.2f}% | {v['roc_auc']:<7.4f} | {v['eer']*100:<6.2f}% | {v['decision']:<20}")
+    for v in results.values():
+        print(
+            f"{v['id']:<10} | {v['name']:<30} | {v['threshold']:<7.4f} | {v['margin']:<7.4f} | {v['far'] * 100:<6.2f}% | {v['frr'] * 100:<6.2f}% | {v['tar'] * 100:<6.2f}% | {v['roc_auc']:<7.4f} | {v['eer'] * 100:<6.2f}% | {v['decision']:<20}"
+        )
 
     with open("runs/exp004_decision_ablations.json", "w", encoding="utf-8") as f:
         json.dump(results, f, indent=4)
@@ -316,20 +323,26 @@ def run_retrain_ablation(exp_id: str, exp_name: str, condition_balanced: bool, c
 
     print(f"[{exp_id}] Starting training (15 epochs)...")
     history = trainer.train()
-    print(f"[{exp_id}] Training complete. Best val accuracy: {history['best_val_accuracy']*100:.2f}%")
+    print(f"[{exp_id}] Training complete. Best val accuracy: {history['best_val_accuracy'] * 100:.2f}%")
 
     ckpt_path = f"{run_dir}/best_model.pth"
     eval_dir = f"{run_dir}/evaluation_subject_disjoint"
     print(f"[{exp_id}] Running subject-disjoint evaluation...")
 
     run_evaluation_args = [
-        "--model-path", ckpt_path,
-        "--gei-root", "data/casia_processed/gei",
-        "--split-config", "configs/subject_split.json",
-        "--output-dir", eval_dir,
-        "--calibration-criterion", "min_eer",
+        "--model-path",
+        ckpt_path,
+        "--gei-root",
+        "data/casia_processed/gei",
+        "--split-config",
+        "configs/subject_split.json",
+        "--output-dir",
+        eval_dir,
+        "--calibration-criterion",
+        "min_eer",
     ]
     import sys as _sys
+
     original_argv = _sys.argv
     _sys.argv = ["evaluate_subject_disjoint"] + run_evaluation_args
     try:
@@ -416,7 +429,7 @@ def print_comparison_table(all_results: list[dict]):
         print(
             f"{r['exp_id']:<12} | "
             f"{r['name']:<45} | "
-            f"{val_acc*100:<7.2f}% | "
+            f"{val_acc * 100:<7.2f}% | "
             f"{'Yes' if cfg.get('condition_balanced') else 'No':<8} | "
             f"{'Yes' if cfg.get('cross_condition_triplet') else 'No':<6}"
         )
@@ -426,7 +439,9 @@ def print_comparison_table(all_results: list[dict]):
 
 def main():
     parser = argparse.ArgumentParser(description="Run EXP-004 Open-Set & CL Robustness Ablations")
-    parser.add_argument("--mode", choices=["decision", "retrain_f", "retrain_g", "retrain_h", "retrain_all", "all"], default="decision")
+    parser.add_argument(
+        "--mode", choices=["decision", "retrain_f", "retrain_g", "retrain_h", "retrain_all", "all"], default="decision"
+    )
     args = parser.parse_args()
 
     if args.mode in ["decision", "all"]:

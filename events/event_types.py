@@ -2,7 +2,6 @@ from enum import Enum
 
 
 class EventType(str, Enum):
-
     SYSTEM_STARTED = "system_started"
     SYSTEM_STOPPED = "system_stopped"
 

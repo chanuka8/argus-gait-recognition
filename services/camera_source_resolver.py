@@ -8,7 +8,7 @@ reservation and credential-safe logging.
 
 import sys
 import threading
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import cv2
 import yaml
@@ -29,16 +29,16 @@ class CameraSourceResolver:
     def __init__(
         self,
         config_path: str = "configs/cameras.yaml",
-        credential_manager: Optional[CredentialManager] = None,
+        credential_manager: CredentialManager | None = None,
     ) -> None:
         self._logger = get_logger("camera_source_resolver")
         self._lock = threading.Lock()
         self._config_path = config_path
         self._credential_manager = credential_manager or CredentialManager()
 
-        self._reserved_sources: Dict[str, str] = {}
+        self._reserved_sources: dict[str, str] = {}
 
-        self._registered_cameras: List[Dict[str, Any]] = []
+        self._registered_cameras: list[dict[str, Any]] = []
         self._load_registered_cameras()
 
     def _load_registered_cameras(self) -> None:
@@ -52,11 +52,8 @@ class CameraSourceResolver:
             else:
                 self._registered_cameras = []
 
-        except Exception as exc:
-            self._logger.warning(
-                f"Could not load camera config from "
-                f"{self._config_path}: {exc}"
-            )
+        except (yaml.YAMLError, OSError, ValueError) as exc:
+            self._logger.warning(f"Could not load camera config from {self._config_path}: {exc}")
             self._registered_cameras = []
 
     def is_source_reserved(self, source_key: str) -> bool:
@@ -74,10 +71,7 @@ class CameraSourceResolver:
         with self._lock:
             existing_camera_id = self._reserved_sources.get(source_key)
 
-            if (
-                existing_camera_id is not None
-                and existing_camera_id != camera_id
-            ):
+            if existing_camera_id is not None and existing_camera_id != camera_id:
                 return False
 
             self._reserved_sources[source_key] = camera_id
@@ -86,7 +80,7 @@ class CameraSourceResolver:
     def release_source_by_camera_id(
         self,
         camera_id: str,
-    ) -> Optional[str]:
+    ) -> str | None:
         """
         Release the source reservation belonging to a camera.
 
@@ -94,16 +88,11 @@ class CameraSourceResolver:
             The released source key, or None if no reservation exists.
         """
         with self._lock:
-            for source_key, reserved_camera_id in list(
-                self._reserved_sources.items()
-            ):
+            for source_key, reserved_camera_id in list(self._reserved_sources.items()):
                 if reserved_camera_id == camera_id:
                     del self._reserved_sources[source_key]
 
-                    self._logger.info(
-                        f"Released source reservation {source_key} "
-                        f"for camera {camera_id}"
-                    )
+                    self._logger.info(f"Released source reservation {source_key} for camera {camera_id}")
 
                     return source_key
 
@@ -115,9 +104,7 @@ class CameraSourceResolver:
             if source_key in self._reserved_sources:
                 del self._reserved_sources[source_key]
 
-                self._logger.info(
-                    f"Released source reservation {source_key}"
-                )
+                self._logger.info(f"Released source reservation {source_key}")
 
     def probe_usb_webcam(self, device_index: int) -> bool:
         """
@@ -140,7 +127,7 @@ class CameraSourceResolver:
                     if capture is not None:
                         try:
                             capture.release()
-                        except Exception:
+                        except (cv2.error, OSError):
                             pass
                     capture = cv2.VideoCapture(device_index)
             else:
@@ -151,27 +138,18 @@ class CameraSourceResolver:
 
             ret, frame = capture.read()
 
-            return bool(
-                ret
-                and frame is not None
-                and frame.size > 0
-            )
+            return bool(ret and frame is not None and frame.size > 0)
 
-        except Exception as exc:
-            self._logger.debug(
-                f"Local camera probe failed for index {device_index}: {exc}"
-            )
+        except (cv2.error, OSError, ValueError) as exc:
+            self._logger.debug(f"Local camera probe failed for index {device_index}: {exc}")
             return False
 
         finally:
             if capture is not None:
                 try:
                     capture.release()
-                except Exception as exc:
-                    self._logger.debug(
-                        f"Local camera probe release failed for index "
-                        f"{device_index}: {exc}"
-                    )
+                except (cv2.error, OSError) as exc:
+                    self._logger.debug(f"Local camera probe release failed for index {device_index}: {exc}")
                 capture = None
 
     def probe_stream(self, url: str) -> bool:
@@ -197,37 +175,28 @@ class CameraSourceResolver:
 
             ret, frame = capture.read()
 
-            return bool(
-                ret
-                and frame is not None
-                and frame.size > 0
-            )
+            return bool(ret and frame is not None and frame.size > 0)
 
-        except Exception as exc:
-            self._logger.debug(
-                f"Stream probe failed for {safe_url}: {exc}"
-            )
+        except (cv2.error, OSError, ValueError) as exc:
+            self._logger.debug(f"Stream probe failed for {safe_url}: {exc}")
             return False
 
         finally:
             if capture is not None:
                 try:
                     capture.release()
-                except Exception as exc:
-                    self._logger.debug(
-                        f"Stream probe release failed for "
-                        f"{safe_url}: {exc}"
-                    )
+                except (cv2.error, OSError) as exc:
+                    self._logger.debug(f"Stream probe release failed for {safe_url}: {exc}")
 
     def resolve_source(
         self,
         camera_id: str,
         requested_source: str = "auto",
-        zone_id: Optional[str] = None,
+        zone_id: str | None = None,
         max_usb_scan: int = 10,
         user_id: str = "default_user",
-        credential_id: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        credential_id: str | None = None,
+    ) -> dict[str, Any]:
         """
         Resolve an available camera source automatically with deterministic hardware and stream probing.
 
@@ -266,10 +235,7 @@ class CameraSourceResolver:
 
                 with self._lock:
                     existing_camera_id = self._reserved_sources.get(source_key)
-                    if (
-                        existing_camera_id is not None
-                        and existing_camera_id != camera_id
-                    ):
+                    if existing_camera_id is not None and existing_camera_id != camera_id:
                         raise RuntimeError(
                             f"Requested USB device {normalized} is already in use by active worker {existing_camera_id}"
                         )
@@ -317,9 +283,7 @@ class CameraSourceResolver:
 
                     cred_data = self._credential_manager.get_credential(resolved_credential_id, user_id=user_id)
                     if not cred_data:
-                        raise RuntimeError(
-                            f"Credential '{resolved_credential_id}' was not found in secure store"
-                        )
+                        raise RuntimeError(f"Credential '{resolved_credential_id}' was not found in secure store")
 
                     internal_source = build_rtsp_url(
                         clean_url,
@@ -399,7 +363,7 @@ class CameraSourceResolver:
                 )
 
             raw_url = str(url)
-            clean_user, clean_pass, clean_url = extract_rtsp_credentials(raw_url)
+            _clean_user, clean_pass, clean_url = extract_rtsp_credentials(raw_url)
             cam_cred_id = cam_cfg.get("credential_id") or resolved_credential_id
 
             if cam_cred_id and self._credential_manager.can_access(cam_cred_id, user_id=user_id):

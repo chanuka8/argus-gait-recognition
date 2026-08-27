@@ -55,10 +55,7 @@ class FolderWatcher:
 
             last_count = current_count
 
-            self.logger.info(
-                f"Waiting for folder copy to finish: "
-                f"{folder.name} | images={current_count}"
-            )
+            self.logger.info(f"Waiting for folder copy to finish: {folder.name} | images={current_count}")
 
             time.sleep(self.stable_wait_seconds)
 
@@ -92,6 +89,6 @@ class FolderWatcher:
                 self.logger.info("Folder watcher stopped")
                 break
 
-            except Exception as error:
+            except (OSError, RuntimeError, ValueError, KeyError) as error:
                 self.logger.error(f"Watcher error: {error}")
                 time.sleep(self.poll_interval)

@@ -6,15 +6,18 @@ ByGaitLight CNN feature extraction, and VectorStore gallery matching on an
 asynchronous thread decoupled from camera capture.
 """
 
+import threading
+import time
+from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from queue import Empty, Full, Queue
-import threading
-import time
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any
 
+import cv2
 import numpy as np
 
+from intelligence.open_set_recognizer import OpenSetRecognizer
 from monitoring.logging_config import get_logger
 from pipeline.detection.person_detector import PersonDetector
 from pipeline.gei.stream_gei_builder import StreamGEIBuilder
@@ -22,7 +25,6 @@ from pipeline.silhouette.extractor import SilhouetteExtractor
 from pipeline.steps.feature_extraction import FeatureExtractionStep
 from pipeline.steps.matching_step import MatchingStep
 from pipeline.tracking.tracker import PersonTracker
-from intelligence.open_set_recognizer import OpenSetRecognizer
 from security_layer.credentials import sanitize_rtsp_url
 
 
@@ -37,13 +39,13 @@ class RecognitionResult:
     confidence: float
     decision: str
     status: str
-    bbox: List[int]
+    bbox: list[int]
     timestamp: float
     iso_timestamp: str
     gei_frames: int = 0
-    details: Dict[str, Any] = field(default_factory=dict)
+    details: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
 
@@ -55,10 +57,10 @@ class RecognitionResultCache:
 
     def __init__(self, ttl_seconds: float = 2.5) -> None:
         self.ttl_seconds = max(0.1, float(ttl_seconds))
-        self._cache: Dict[Tuple[str, int], RecognitionResult] = {}
+        self._cache: dict[tuple[str, int], RecognitionResult] = {}
         self._lock = threading.RLock()
 
-    def get(self, camera_id: str, track_id: int) -> Optional[RecognitionResult]:
+    def get(self, camera_id: str, track_id: int) -> RecognitionResult | None:
         key = (camera_id, track_id)
         with self._lock:
             res = self._cache.get(key)
@@ -73,7 +75,7 @@ class RecognitionResultCache:
         with self._lock:
             self._cache[key] = result
 
-    def get_active_tracks(self, camera_id: str) -> List[RecognitionResult]:
+    def get_active_tracks(self, camera_id: str) -> list[RecognitionResult]:
         now = time.monotonic()
         with self._lock:
             return [
@@ -82,7 +84,7 @@ class RecognitionResultCache:
                 if cid == camera_id and (now - res.timestamp <= self.ttl_seconds)
             ]
 
-    def cleanup_inactive(self, camera_id: str, max_idle_seconds: float = 5.0) -> List[int]:
+    def cleanup_inactive(self, camera_id: str, max_idle_seconds: float = 5.0) -> list[int]:
         now = time.monotonic()
         evicted = []
         with self._lock:
@@ -94,7 +96,7 @@ class RecognitionResultCache:
 
     def clear_camera(self, camera_id: str) -> None:
         with self._lock:
-            for (cid, tid) in list(self._cache.keys()):
+            for cid, tid in list(self._cache.keys()):
                 if cid == camera_id:
                     self._cache.pop((cid, tid), None)
 
@@ -109,19 +111,19 @@ class RecognitionWorker:
     def __init__(
         self,
         camera_id: str,
-        config: Optional[dict] = None,
-        cache: Optional[RecognitionResultCache] = None,
-        detector: Optional[PersonDetector] = None,
-        tracker: Optional[PersonTracker] = None,
-        silhouette_extractor: Optional[SilhouetteExtractor] = None,
-        gei_builder: Optional[StreamGEIBuilder] = None,
-        extractor: Optional[FeatureExtractionStep] = None,
-        matcher: Optional[MatchingStep] = None,
-        open_set_recognizer: Optional[OpenSetRecognizer] = None,
-        gallery_features: Optional[np.ndarray] = None,
-        gallery_labels: Optional[list] = None,
-        metadata: Optional[list] = None,
-        event_callback: Optional[Callable[[dict], None]] = None,
+        config: dict | None = None,
+        cache: RecognitionResultCache | None = None,
+        detector: PersonDetector | None = None,
+        tracker: PersonTracker | None = None,
+        silhouette_extractor: SilhouetteExtractor | None = None,
+        gei_builder: StreamGEIBuilder | None = None,
+        extractor: FeatureExtractionStep | None = None,
+        matcher: MatchingStep | None = None,
+        open_set_recognizer: OpenSetRecognizer | None = None,
+        gallery_features: np.ndarray | None = None,
+        gallery_labels: list | None = None,
+        metadata: list | None = None,
+        event_callback: Callable[[dict], None] | None = None,
     ) -> None:
         self.camera_id = camera_id
         self.config = config or {}
@@ -132,9 +134,7 @@ class RecognitionWorker:
         self.cooldown_seconds = max(0.1, float(self.config.get("cooldown_seconds", 1.5)))
         self.threshold = float(self.config.get("threshold", 0.85))
 
-        self.cache = cache or RecognitionResultCache(
-            ttl_seconds=float(self.config.get("result_ttl", 2.5))
-        )
+        self.cache = cache or RecognitionResultCache(ttl_seconds=float(self.config.get("result_ttl", 2.5)))
 
         self.detector = detector or PersonDetector()
         self.tracker = tracker or PersonTracker()
@@ -151,10 +151,10 @@ class RecognitionWorker:
 
         self._input_queue: Queue[np.ndarray] = Queue(maxsize=2)
         self._stop_event = threading.Event()
-        self._thread: Optional[threading.Thread] = None
+        self._thread: threading.Thread | None = None
         self._lock = threading.RLock()
 
-        self._last_recognition_at: Optional[str] = None
+        self._last_recognition_at: str | None = None
         self.gallery_features = gallery_features
         self.gallery_labels = list(gallery_labels) if gallery_labels is not None else []
         if isinstance(metadata, dict):
@@ -166,16 +166,16 @@ class RecognitionWorker:
 
         self.event_callback = event_callback
 
-        self._last_recognition_times: Dict[int, float] = {}
+        self._last_recognition_times: dict[int, float] = {}
         self._frame_count = 0
         self._recognition_count = 0
         self._active_track_count = 0
 
     def update_gallery(
         self,
-        gallery_features: Optional[np.ndarray],
-        gallery_labels: Optional[List[str]],
-        metadata: Optional[Any] = None,
+        gallery_features: np.ndarray | None,
+        gallery_labels: list[str] | None,
+        metadata: Any | None = None,
     ) -> None:
         """Update reference gallery features, labels, and metadata at runtime."""
         with self._lock:
@@ -188,8 +188,7 @@ class RecognitionWorker:
             else:
                 self.metadata = {str(lbl): {"status": "ACTIVE", "enabled": True} for lbl in self.gallery_labels}
             self._logger.info(
-                f"Updated live recognition gallery for camera {self.camera_id}: "
-                f"{len(self.gallery_labels)} identities"
+                f"Updated live recognition gallery for camera {self.camera_id}: {len(self.gallery_labels)} identities"
             )
 
     def put_frame(self, frame: np.ndarray) -> bool:
@@ -331,16 +330,18 @@ class RecognitionWorker:
 
                             if status == "CONFIRMED" and self.event_callback is not None:
                                 try:
-                                    self.event_callback({
-                                        "event_id": f"evt_{self.camera_id}_{track_id}_{int(now)}",
-                                        "camera_id": self.camera_id,
-                                        "track_id": track_id,
-                                        "person_id": identity,
-                                        "similarity": similarity,
-                                        "timestamp": iso_now,
-                                        "bbox": bbox,
-                                    })
-                                except Exception as cb_err:
+                                    self.event_callback(
+                                        {
+                                            "event_id": f"evt_{self.camera_id}_{track_id}_{int(now)}",
+                                            "camera_id": self.camera_id,
+                                            "track_id": track_id,
+                                            "person_id": identity,
+                                            "similarity": similarity,
+                                            "timestamp": iso_now,
+                                            "bbox": bbox,
+                                        }
+                                    )
+                                except (RuntimeError, ValueError, TypeError, OSError) as cb_err:
                                     self._logger.debug(f"Event callback error: {cb_err}")
 
                             continue
@@ -369,7 +370,7 @@ class RecognitionWorker:
                     self.gei_builder.cleanup_inactive(max_idle_seconds=6.0)
                     self.cache.cleanup_inactive(self.camera_id, max_idle_seconds=5.0)
 
-            except Exception as err:
+            except (RuntimeError, ValueError, TypeError, cv2.error, OSError) as err:
                 self._logger.error(f"Recognition error in frame {self._frame_count}: {sanitize_rtsp_url(str(err))}")
 
             elapsed = time.monotonic() - loop_start
@@ -377,7 +378,7 @@ class RecognitionWorker:
             if sleep_time > 0:
                 self._stop_event.wait(sleep_time)
 
-    def _recognize_gei(self, gei: np.ndarray) -> Tuple[str, float, str, str]:
+    def _recognize_gei(self, gei: np.ndarray) -> tuple[str, float, str, str]:
         """Run ByGaitLight CNN embedding extraction and gallery matching."""
         try:
             with self._lock:
@@ -418,6 +419,6 @@ class RecognitionWorker:
             else:
                 return "UNKNOWN", float(score), "UNKNOWN_PERSON", "UNKNOWN"
 
-        except Exception as exc:
+        except (RuntimeError, ValueError, TypeError, OSError) as exc:
             self._logger.warning(f"Gait matching failed: {sanitize_rtsp_url(str(exc))}")
             return "UNKNOWN", 0.0, "UNKNOWN_PERSON", "UNKNOWN"

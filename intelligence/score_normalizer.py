@@ -4,8 +4,6 @@ Stateless Score Normalizer for Gait and ReID Biometric Scores.
 Normalizes raw cosine similarity / distance scores into the [0.0, 1.0] range.
 """
 
-from typing import Tuple
-
 
 class ScoreNormalizer:
     """
@@ -17,8 +15,8 @@ class ScoreNormalizer:
 
     def __init__(
         self,
-        gait_min_max: Tuple[float, float] = (0.0, 1.0),
-        reid_min_max: Tuple[float, float] = (-1.0, 1.0),
+        gait_min_max: tuple[float, float] = (0.0, 1.0),
+        reid_min_max: tuple[float, float] = (-1.0, 1.0),
     ) -> None:
         self.gait_min, self.gait_max = gait_min_max
         self.reid_min, self.reid_max = reid_min_max

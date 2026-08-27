@@ -26,12 +26,13 @@ def setup_torch_dll_path() -> None:
     """Ensure torch/lib is in PATH and DLL search directory for ONNX CUDA provider."""
     try:
         import torch
+
         torch_lib = Path(torch.__file__).parent / "lib"
         if torch_lib.exists():
             os.environ["PATH"] = str(torch_lib) + os.pathsep + os.environ.get("PATH", "")
             if hasattr(os, "add_dll_directory"):
                 os.add_dll_directory(str(torch_lib))
-    except Exception:
+    except (ImportError, AttributeError, OSError):
         pass
 
 
@@ -75,7 +76,7 @@ def save_environment_manifest(
 
     try:
         manifest_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
-    except Exception:
+    except OSError:
         pass
 
 
@@ -124,6 +125,7 @@ def run_verification() -> bool:
     try:
         import torch
         import torchvision
+
         torch_ver = getattr(torch, "__version__", "N/A")
         vision_ver = getattr(torchvision, "__version__", "N/A")
         is_cuda_avail = torch.cuda.is_available()
@@ -138,7 +140,7 @@ def run_verification() -> bool:
             print("  [ARGUS CUDA] Status                          : VERIFIED")
         else:
             print("  [ARGUS CUDA] Availability                    : FALSE (CPU Fallback)")
-    except Exception as err:
+    except (RuntimeError, ValueError, TypeError, OSError) as err:
         print(f"  [ARGUS CUDA] Probe Error                     : FAIL ({err})")
         overall_pass = False
 
@@ -146,6 +148,7 @@ def run_verification() -> bool:
     print("\n[PHASE 3] Executing Tensor MatMul Probe (1024x1024)...")
     try:
         import torch
+
         device = "cuda" if is_cuda_avail else "cpu"
         a = torch.zeros((1024, 1024), device=device)
         b = torch.ones((1024, 1024), device=device)
@@ -158,7 +161,7 @@ def run_verification() -> bool:
         else:
             print(f"  [ARGUS CUDA] Tensor Probe ({device.upper()})            : FAIL (Shape mismatch)")
             overall_pass = False
-    except Exception as err:
+    except (RuntimeError, ValueError, TypeError, OSError) as err:
         print(f"  [ARGUS CUDA] Tensor probe error              : FAIL ({err})")
         overall_pass = False
 
@@ -180,13 +183,17 @@ def run_verification() -> bool:
         if emb.shape == (1, 256):
             l2_norm = torch.norm(emb, p=2, dim=-1).item()
             print("  [ARGUS MODEL] ByGaitLight Forward Pass       : PASS")
-            print(f"  [ARGUS MODEL] Device                         : {device}:0" if device == "cuda" else f"  [ARGUS MODEL] Device                         : {device}")
+            print(
+                f"  [ARGUS MODEL] Device                         : {device}:0"
+                if device == "cuda"
+                else f"  [ARGUS MODEL] Device                         : {device}"
+            )
             print(f"  [ARGUS MODEL] Output Shape                   : {list(emb.shape)}")
             print(f"  [ARGUS MODEL] L2 Norm                        : {l2_norm:.4f} (PASS)")
         else:
             print(f"  [ARGUS MODEL] ByGaitLight Forward Pass       : FAIL (Shape: {emb.shape})")
             overall_pass = False
-    except Exception as err:
+    except (RuntimeError, ValueError, TypeError, OSError) as err:
         print(f"  [ARGUS MODEL] Model execution error          : FAIL ({err})")
         overall_pass = False
 
@@ -209,7 +216,7 @@ def run_verification() -> bool:
         print(f"  [ARGUS YOLO] Configured Device               : {cfg_device}")
         print(f"  [ARGUS YOLO] Runtime Device                  : {yolo_runtime_dev}")
         print(f"  [ARGUS YOLO] CUDA Execution                  : {'PASS' if yolo_cuda_ready else 'CPU Fallback'}")
-    except Exception as err:
+    except (RuntimeError, ValueError, TypeError, OSError) as err:
         print(f"  [ARGUS YOLO] Initialization error            : FAIL ({err})")
         overall_pass = False
 
@@ -232,7 +239,9 @@ def run_verification() -> bool:
 
         model_path = ROOT / "models/weights/silhouette_segmenter.onnx"
         if model_path.exists():
-            req_providers = ["CUDAExecutionProvider", "CPUExecutionProvider"] if cuda_avail else ["CPUExecutionProvider"]
+            req_providers = (
+                ["CUDAExecutionProvider", "CPUExecutionProvider"] if cuda_avail else ["CPUExecutionProvider"]
+            )
             sess = ort.InferenceSession(str(model_path), providers=req_providers)
             active_providers = sess.get_providers()
             onnx_selected_provider = active_providers[0]
@@ -247,11 +256,13 @@ def run_verification() -> bool:
 
             if onnx_selected_provider == "CUDAExecutionProvider":
                 onnx_cuda_ready = True
-                print(f"  [ARGUS ONNX CUDA] CUDA Inference             : PASS (Shape: {list(res[0].shape)}, Latency: {lat_ms:.2f} ms)")
+                print(
+                    f"  [ARGUS ONNX CUDA] CUDA Inference             : PASS (Shape: {list(res[0].shape)}, Latency: {lat_ms:.2f} ms)"
+                )
             else:
                 print(f"  [ARGUS ONNX CUDA] Inference (CPU Fallback)   : PASS (Shape: {list(res[0].shape)})")
             print(f"  [ARGUS ONNX CUDA] Selected Provider          : {onnx_selected_provider}")
-    except Exception as err:
+    except (RuntimeError, ValueError, TypeError, OSError) as err:
         print(f"  [ARGUS ONNX CUDA] Provider verification error : FAIL ({err})")
         overall_pass = False
 
@@ -288,7 +299,9 @@ def run_verification() -> bool:
     print(f"PyTorch CUDA       : {'READY' if pytorch_cuda_ready else 'NOT READY'}")
     print(f"YOLO CUDA          : {'READY' if yolo_cuda_ready else 'NOT READY'}")
     print(f"ONNX CUDA          : {'READY' if onnx_cuda_ready else 'NOT READY'}")
-    print(f"ARGUS GPU Pipeline : {'FULL_CUDA_ACCELERATION_READY' if overall_status == 'FULL_CUDA_ACCELERATION_READY' else overall_status}")
+    print(
+        f"ARGUS GPU Pipeline : {'FULL_CUDA_ACCELERATION_READY' if overall_status == 'FULL_CUDA_ACCELERATION_READY' else overall_status}"
+    )
     print("-" * 60)
     if overall_pass:
         print("[ARGUS] ALL ENVIRONMENT VERIFICATION CHECKS PASSED.")

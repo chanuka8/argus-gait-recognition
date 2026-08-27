@@ -7,7 +7,8 @@ and resource cleanup order without risking data corruption or process deadlocks.
 
 import signal
 import threading
-from typing import Callable, List, Optional
+from collections.abc import Callable
+from typing import Optional
 
 from monitoring.logging_config import get_logger
 
@@ -23,9 +24,9 @@ class ShutdownManager:
         self.logger = get_logger("system")
         self._is_shutting_down = False
         self._shutdown_lock = threading.Lock()
-        self._cleanup_callbacks: List[Callable[[], None]] = []
-        self._registered_threads: List[threading.Thread] = []
-        self._stop_events: List[threading.Event] = []
+        self._cleanup_callbacks: list[Callable[[], None]] = []
+        self._registered_threads: list[threading.Thread] = []
+        self._stop_events: list[threading.Event] = []
         self._shutdown_complete = False
 
     @property
@@ -68,13 +69,13 @@ class ShutdownManager:
 
         try:
             signal.signal(signal.SIGINT, _signal_handler)
-        except Exception:
+        except (ValueError, OSError, AttributeError):
             pass
 
         if hasattr(signal, "SIGTERM"):
             try:
                 signal.signal(signal.SIGTERM, _signal_handler)
-            except Exception:
+            except (ValueError, OSError, AttributeError):
                 pass
 
         _SIGNAL_HANDLERS_REGISTERED = True
@@ -97,13 +98,13 @@ class ShutdownManager:
         for evt in self._stop_events:
             try:
                 evt.set()
-            except Exception as e:
+            except (RuntimeError, ValueError, TypeError) as e:
                 self.logger.warning(f"Error setting stop event: {e}")
 
         for cb in reversed(self._cleanup_callbacks):
             try:
                 cb()
-            except Exception as e:
+            except (RuntimeError, ValueError, TypeError, OSError) as e:
                 self.logger.warning(f"Error executing shutdown callback: {e}")
 
         for t in self._registered_threads:

@@ -6,10 +6,8 @@ Generates outputs/reports/onnx_validation.json and outputs/reports/onnx_validati
 
 import argparse
 import json
-from pathlib import Path
 import sys
-from typing import Union
-
+from pathlib import Path
 
 import numpy as np
 import torch
@@ -21,7 +19,7 @@ if str(ROOT) not in sys.path:
 from models.architectures.bygait_light import ByGaitLight
 
 
-def _to_rel_path(path: Union[str, Path]) -> str:
+def _to_rel_path(path: str | Path) -> str:
     """Format path relative to repository ROOT using forward slashes."""
     p = Path(path).resolve()
     try:
@@ -46,12 +44,12 @@ def export_onnx(
     if hasattr(sys.stdout, "reconfigure"):
         try:
             sys.stdout.reconfigure(encoding="utf-8")
-        except Exception:
+        except (AttributeError, OSError, ValueError):
             pass
     if hasattr(sys.stderr, "reconfigure"):
         try:
             sys.stderr.reconfigure(encoding="utf-8")
-        except Exception:
+        except (AttributeError, OSError, ValueError):
             pass
 
     model_file = Path(model_path)
@@ -96,7 +94,7 @@ def export_onnx(
                 filtered[key] = value
         model.load_state_dict(filtered, strict=False)
         print(f"[INFO] Loaded checkpoint weights from {_to_rel_path(model_file)}")
-    except Exception as e:
+    except (RuntimeError, ValueError, TypeError, OSError) as e:
         err = f"Could not load model checkpoint: {e}"
         print(f"[ERROR] {err}")
         report_status["error_message"] = err
@@ -104,7 +102,6 @@ def export_onnx(
         return False
 
     model.eval()
-
 
     dummy_input = torch.randn(1, 1, 128, 64, dtype=torch.float32)
 
@@ -126,7 +123,7 @@ def export_onnx(
         report_status["export_succeeded"] = True
         print("[INFO] ONNX export completed successfully.")
 
-    except Exception as e:
+    except (RuntimeError, ValueError, TypeError, OSError) as e:
         report_status["export_succeeded"] = False
         report_status["error_message"] = f"Export failed: {e}"
         print(f"[WARNING] ONNX export failed: {e}")
@@ -142,7 +139,7 @@ def export_onnx(
         onnx.checker.check_model(onnx_model)
         report_status["onnx_model_valid"] = True
         print("[INFO] ONNX model structural check PASSED.")
-    except Exception as e:
+    except (RuntimeError, ValueError, TypeError, OSError) as e:
         report_status["onnx_model_valid"] = False
         report_status["error_message"] = f"Structural validation failed: {e}"
         print(f"[WARNING] ONNX structural check failed: {e}")
@@ -185,7 +182,7 @@ def export_onnx(
         report_status["error_message"] = "onnxruntime not installed"
         print("[INFO] onnxruntime not installed. Skipping numerical parity validation.")
         parity_passed = True
-    except Exception as e:
+    except (RuntimeError, ValueError, TypeError, OSError) as e:
         report_status["numerical_parity_passed"] = False
         report_status["numerical_parity_failed"] = True
         report_status["error_message"] = f"Inference/parity check failed: {e}"
@@ -244,8 +241,12 @@ def _write_reports(status: dict, json_path: str, md_path: str) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Export ARGUS ByGaitLight PyTorch model to ONNX.")
-    parser.add_argument("--model-path", type=str, default="runs/exp_001/best_model.pth", help="Path to PyTorch checkpoint")
-    parser.add_argument("--output-path", type=str, default="models/engines/bygait_light.onnx", help="Output ONNX file path")
+    parser.add_argument(
+        "--model-path", type=str, default="runs/exp_001/best_model.pth", help="Path to PyTorch checkpoint"
+    )
+    parser.add_argument(
+        "--output-path", type=str, default="models/engines/bygait_light.onnx", help="Output ONNX file path"
+    )
     parser.add_argument("--precision", type=str, default="fp32", choices=["fp32", "fp16"], help="Model precision")
 
     args = parser.parse_args()

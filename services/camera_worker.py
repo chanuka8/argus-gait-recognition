@@ -3,7 +3,6 @@ import threading
 import time
 from datetime import datetime, timezone
 from queue import Full, Queue
-from typing import Optional
 
 import cv2
 import numpy as np
@@ -24,7 +23,7 @@ def normalize_camera_source(source) -> int | str:
         return int(normalized)
 
     lower = normalized.lower()
-    if lower.startswith("webcam:") or lower.startswith("usb:"):
+    if lower.startswith(("webcam:", "usb:")):
         parts = lower.split(":", 1)
         if len(parts) > 1 and parts[1].strip().isdigit():
             return int(parts[1].strip())
@@ -43,7 +42,7 @@ class CameraWorker:
         camera_config: dict,
         inference_pipeline=None,
         detection_processor=None,
-        recognition_worker: Optional[RecognitionWorker] = None,
+        recognition_worker: RecognitionWorker | None = None,
     ) -> None:
         self.camera_id = camera_id
         self.config = camera_config
@@ -87,8 +86,8 @@ class CameraWorker:
         self._stop_event = threading.Event()
         self._lock = threading.RLock()
 
-        self._latest_jpeg: Optional[bytes] = None
-        self._last_frame_at: Optional[str] = None
+        self._latest_jpeg: bytes | None = None
+        self._last_frame_at: str | None = None
         self._last_jpeg_encode_time: float = 0.0
         self._active_tracks: int = 0
         self._active_clients: int = 0
@@ -166,7 +165,7 @@ class CameraWorker:
                     frame_resized = cv2.resize(frame, (self._width, self._height))
                     encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), self._jpeg_quality]
                     success, enc_buf = cv2.imencode(".jpg", frame_resized, encode_param)
-                except Exception as enc_err:
+                except (cv2.error, OSError, ValueError) as enc_err:
                     self._logger.warning(f"Initial JPEG encode error: {enc_err}")
 
                 now = time.monotonic()
@@ -194,8 +193,7 @@ class CameraWorker:
             self._stop_event.wait(sleep_time)
 
         self._logger.error(
-            f"Startup timeout: no valid frame from {safe_source} after "
-            f"{self._startup_timeout}s ({attempt} attempts)"
+            f"Startup timeout: no valid frame from {safe_source} after {self._startup_timeout}s ({attempt} attempts)"
         )
         return False
 
@@ -210,11 +208,13 @@ class CameraWorker:
                 if sys.platform == "win32":
                     self._capture = cv2.VideoCapture(dev_idx, cv2.CAP_DSHOW)
                     if not self._capture.isOpened():
-                        self._logger.debug(f"DirectShow open failed for index {dev_idx}, falling back to default backend")
+                        self._logger.debug(
+                            f"DirectShow open failed for index {dev_idx}, falling back to default backend"
+                        )
                         if self._capture is not None:
                             try:
                                 self._capture.release()
-                            except Exception:
+                            except (cv2.error, OSError):
                                 pass
                         self._capture = cv2.VideoCapture(dev_idx)
                 else:
@@ -227,7 +227,7 @@ class CameraWorker:
                 if self._capture is not None:
                     try:
                         self._capture.release()
-                    except Exception:
+                    except (cv2.error, OSError):
                         pass
                 self._capture = None
                 return False
@@ -242,7 +242,7 @@ class CameraWorker:
                 if self._capture is not None:
                     try:
                         self._capture.release()
-                    except Exception:
+                    except (cv2.error, OSError):
                         pass
                 self._capture = None
                 return False
@@ -250,12 +250,12 @@ class CameraWorker:
             self._logger.info(f"Camera {self.camera_id} connected and ready")
             return True
 
-        except Exception as e:
+        except (RuntimeError, ValueError, TypeError, cv2.error, OSError) as e:
             self._logger.error(f"Error opening capture: {sanitize_rtsp_url(str(e))}")
             if self._capture is not None:
                 try:
                     self._capture.release()
-                except Exception:
+                except (cv2.error, OSError):
                     pass
             self._capture = None
             return False
@@ -265,7 +265,7 @@ class CameraWorker:
             if self._capture is not None:
                 try:
                     self._capture.release()
-                except Exception:
+                except (cv2.error, OSError):
                     pass
                 self._capture = None
 
@@ -275,15 +275,28 @@ class CameraWorker:
         """Render a clean status placeholder frame when camera is disconnected or reconnecting."""
         try:
             frame = np.zeros((self._height, self._width, 3), dtype=np.uint8)
-            cv2.putText(frame, "ARGUS AI SURVEILLANCE", (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2, cv2.LINE_AA)
-            cv2.putText(frame, f"CAMERA: {self.camera_id}", (20, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (200, 200, 200), 1, cv2.LINE_AA)
-            cv2.putText(frame, f"STATUS: {message}", (20, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2, cv2.LINE_AA)
+            cv2.putText(
+                frame, "ARGUS AI SURVEILLANCE", (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2, cv2.LINE_AA
+            )
+            cv2.putText(
+                frame,
+                f"CAMERA: {self.camera_id}",
+                (20, 80),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.6,
+                (200, 200, 200),
+                1,
+                cv2.LINE_AA,
+            )
+            cv2.putText(
+                frame, f"STATUS: {message}", (20, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2, cv2.LINE_AA
+            )
             now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
             cv2.putText(frame, now_str, (20, 160), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (150, 150, 150), 1, cv2.LINE_AA)
             encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), self._jpeg_quality]
             success, enc_buf = cv2.imencode(".jpg", frame, encode_param)
             return enc_buf.tobytes() if success and enc_buf is not None else b""
-        except Exception:
+        except (cv2.error, OSError, ValueError):
             return b""
 
     def _render_preview_overlays(self, frame: np.ndarray) -> np.ndarray:
@@ -322,9 +335,18 @@ class CameraWorker:
             cv2.putText(annotated, status_text, (10, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 255, 0), 2, cv2.LINE_AA)
 
             now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
-            cv2.putText(annotated, now_iso, (10, annotated.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (220, 220, 220), 1, cv2.LINE_AA)
+            cv2.putText(
+                annotated,
+                now_iso,
+                (10, annotated.shape[0] - 10),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.45,
+                (220, 220, 220),
+                1,
+                cv2.LINE_AA,
+            )
             return annotated
-        except Exception as overlay_err:
+        except (RuntimeError, ValueError, TypeError, cv2.error, OSError) as overlay_err:
             self._logger.debug(f"Overlay rendering error: {overlay_err}")
             return frame
 
@@ -404,7 +426,7 @@ class CameraWorker:
                                 self._latest_jpeg = jpeg_bytes
                                 self._last_frame_at = iso_now
                             self._last_jpeg_encode_time = now
-                    except Exception as enc_err:
+                    except (cv2.error, OSError, ValueError) as enc_err:
                         self._logger.debug(f"Preview JPEG encode error: {enc_err}")
 
                 try:
@@ -434,7 +456,7 @@ class CameraWorker:
                     if sleep_time > 0:
                         self._stop_event.wait(sleep_time)
 
-            except Exception as e:
+            except (RuntimeError, ValueError, TypeError, cv2.error, OSError) as e:
                 self._logger.error(f"Error in capture loop: {sanitize_rtsp_url(str(e))}")
                 self._close_capture()
                 with self._lock:
@@ -443,7 +465,7 @@ class CameraWorker:
         self._close_capture()
         self._logger.info("Camera capture loop stopped")
 
-    def get_latest_jpeg(self) -> Optional[bytes]:
+    def get_latest_jpeg(self) -> bytes | None:
         """Return the latest encoded JPEG frame bytes safely."""
         with self._lock:
             return self._latest_jpeg
@@ -504,7 +526,7 @@ class CameraWorker:
                 self.recognition_worker.start()
 
             return True
-        except Exception:
+        except (RuntimeError, ValueError, TypeError, OSError):
             with self._lock:
                 self._is_starting = False
             self._close_capture()

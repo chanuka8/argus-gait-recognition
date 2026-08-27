@@ -103,7 +103,9 @@ def build_gallery_and_probe_sets(
 
     path_overlap = gallery_paths & probe_paths
     if path_overlap:
-        raise ValueError(f"CRITICAL: Data leakage detected! Path overlap between gallery and probe: {len(path_overlap)} files")
+        raise ValueError(
+            f"CRITICAL: Data leakage detected! Path overlap between gallery and probe: {len(path_overlap)} files"
+        )
 
     return gallery_items, probe_items
 
@@ -118,9 +120,9 @@ def save_gallery_probe_manifest(
         "protocol": protocol_name,
         "gallery_sample_count": len(gallery_items),
         "probe_sample_count": len(probe_items),
-        "gallery_subjects": sorted(list(set(item["subject_id"] for item in gallery_items))),
-        "probe_subjects": sorted(list(set(item["subject_id"] for item in probe_items))),
-        "probe_conditions": sorted(list(set(item["condition"] for item in probe_items))),
+        "gallery_subjects": sorted({item["subject_id"] for item in gallery_items}),
+        "probe_subjects": sorted({item["subject_id"] for item in probe_items}),
+        "probe_conditions": sorted({item["condition"] for item in probe_items}),
         "gallery_sample_paths": [item["path"] for item in gallery_items],
         "probe_sample_paths": [item["path"] for item in probe_items],
     }
@@ -133,6 +135,7 @@ def save_gallery_probe_manifest(
 
 if __name__ == "__main__":
     from evaluation.dataset_split import load_or_create_subject_split
+
     split = load_or_create_subject_split()
     test_subs = split["test_subjects"]
     gal, prb = build_gallery_and_probe_sets(test_subs)

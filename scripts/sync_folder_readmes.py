@@ -15,8 +15,6 @@ import re
 import sys
 import tempfile
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
-
 
 TARGET_FOLDERS = [
     "api",
@@ -72,16 +70,12 @@ REQUIRED_SECTIONS_BY_FOLDER = {
 }
 
 
-def get_active_files_for_folder(folder_path: Path) -> List[str]:
+def get_active_files_for_folder(folder_path: Path) -> list[str]:
     """Get active files/modules that should be documented in Key Modules."""
     folder_name = folder_path.name
 
     if folder_name == "configs":
-        files = [
-            f.name
-            for f in folder_path.iterdir()
-            if f.is_file() and f.suffix in (".yaml", ".yml", ".json")
-        ]
+        files = [f.name for f in folder_path.iterdir() if f.is_file() and f.suffix in (".yaml", ".yml", ".json")]
     elif folder_name == "scripts":
         files = [
             f.name
@@ -150,19 +144,17 @@ def extract_script_description(path: Path) -> str:
                 lines = [line.strip() for line in doc.strip().splitlines() if line.strip()]
                 if lines and not lines[0].startswith("Usage:"):
                     return lines[0]
-        except Exception:
+        except (SyntaxError, ValueError):
             pass
 
     if path.suffix == ".py":
-        m = re.search(
-            r'ArgumentParser\s*\(\s*description=["\'](.*?)["\']', content, re.DOTALL
-        )
+        m = re.search(r'ArgumentParser\s*\(\s*description=["\'](.*?)["\']', content, re.DOTALL)
         if m:
             return m.group(1).strip()
 
     for line in content.splitlines()[:20]:
         l_s = line.strip()
-        if l_s.startswith("#") or l_s.startswith("REM") or l_s.startswith("::"):
+        if l_s.startswith(("#", "REM", "::")):
             clean = re.sub(r"^(#|REM|::|<#|#>\s*)+", "", l_s).strip()
             if (
                 clean
@@ -232,7 +224,7 @@ def _ast_node_to_value(node: ast.AST):
     return None
 
 
-def extract_cli_arguments(path: Path) -> Optional[dict]:
+def extract_cli_arguments(path: Path) -> dict | None:
     """Extract CLI arguments from argparse definitions using AST static analysis.
 
     Returns a dict with 'description' and 'arguments' keys, or None if the
@@ -251,7 +243,7 @@ def extract_cli_arguments(path: Path) -> Optional[dict]:
         return None
 
     description = ""
-    arguments: List[dict] = []
+    arguments: list[dict] = []
 
     for node in ast.walk(tree):
         if not isinstance(node, ast.Call):
@@ -259,9 +251,8 @@ def extract_cli_arguments(path: Path) -> Optional[dict]:
 
         func = node.func
 
-        is_ap = (
-            (isinstance(func, ast.Attribute) and func.attr == "ArgumentParser")
-            or (isinstance(func, ast.Name) and func.id == "ArgumentParser")
+        is_ap = (isinstance(func, ast.Attribute) and func.attr == "ArgumentParser") or (
+            isinstance(func, ast.Name) and func.id == "ArgumentParser"
         )
         if is_ap:
             for kw in node.keywords:
@@ -272,7 +263,7 @@ def extract_cli_arguments(path: Path) -> Optional[dict]:
             continue
 
         if isinstance(func, ast.Attribute) and func.attr == "add_argument":
-            arg_info: Dict = {
+            arg_info: dict = {
                 "flags": [],
                 "type": None,
                 "default": None,
@@ -326,7 +317,13 @@ def _get_script_category(name: str) -> str:
         return "Documentation"
     if name == "install_git_hooks.py":
         return "Git"
-    if name in ("activate_venv.ps1", "manage_venv.ps1", "bootstrap_env.ps1", "download_package.py", "process_runner.py"):
+    if name in (
+        "activate_venv.ps1",
+        "manage_venv.ps1",
+        "bootstrap_env.ps1",
+        "download_package.py",
+        "process_runner.py",
+    ):
         return "Environment"
     if name.startswith("test_") or name in ("system_check.py", "detect_environment.py", "verify_environment.py"):
         return "Validation"
@@ -361,7 +358,13 @@ def _get_safety_classification(name: str, path: Path) -> str:
         return "Documentation"
     if name == "install_git_hooks.py":
         return "Git"
-    if name in ("activate_venv.ps1", "manage_venv.ps1", "bootstrap_env.ps1", "download_package.py", "process_runner.py"):
+    if name in (
+        "activate_venv.ps1",
+        "manage_venv.ps1",
+        "bootstrap_env.ps1",
+        "download_package.py",
+        "process_runner.py",
+    ):
         return "Environment"
     if name in ("start_system.bat", "start_system.sh"):
         return "Deployment"
@@ -430,7 +433,7 @@ def _is_used_by_hook(name: str, root_dir: Path) -> bool:
         return False
 
 
-def _detect_generated_outputs(name: str, path: Path) -> List[str]:
+def _detect_generated_outputs(name: str, path: Path) -> list[str]:
     """Detect files/directories a script may modify using static analysis.
 
     Uses AST-free regex pattern matching on source code to identify
@@ -460,13 +463,14 @@ def _detect_generated_outputs(name: str, path: Path) -> List[str]:
         for arg in cli_info.get("arguments", []):
             flags_str = " ".join(arg.get("flags", [])).lower()
             default = arg.get("default")
-            if isinstance(default, str) and "/" in default:
-                if any(kw in flags_str for kw in ("output", "engine", "export")):
-                    outputs.add(default)
+            if (
+                isinstance(default, str)
+                and "/" in default
+                and any(kw in flags_str for kw in ("output", "engine", "export"))
+            ):
+                outputs.add(default)
 
-    for match in re.finditer(
-        r"(\w+)\s*=\s*Path\(\s*\"([^\"]+)\"\s*\)", content
-    ):
+    for match in re.finditer(r"(\w+)\s*=\s*Path\(\s*\"([^\"]+)\"\s*\)", content):
         var_name = match.group(1)
         path_val = match.group(2).replace("\\", "/")
         if f"{var_name}.mkdir" in content:
@@ -475,22 +479,23 @@ def _detect_generated_outputs(name: str, path: Path) -> List[str]:
     if "store.save(" in content:
         for match in re.finditer(r"gallery_dir\s*=\s*\"([^\"]+)\"", content):
             outputs.add(match.group(1))
-        for match in re.finditer(
-            r"VectorStore\(\s*gallery_dir\s*=\s*\"([^\"]+)\"", content
-        ):
+        for match in re.finditer(r"VectorStore\(\s*gallery_dir\s*=\s*\"([^\"]+)\"", content):
             outputs.add(match.group(1))
 
-    for match in re.finditer(
-        r"(?:OUTPUT|GALLERY)_\w*\s*=\s*\"([^\"]+)\"", content
-    ):
+    for match in re.finditer(r"(?:OUTPUT|GALLERY)_\w*\s*=\s*\"([^\"]+)\"", content):
         val = match.group(1).replace("\\", "/")
         if "/" in val:
             outputs.add(val)
 
     if not outputs:
         write_indicators = [
-            "write_text(", "os.replace(", "store.save(", ".save(",
-            "shutil.copy", "shutil.move", "json.dump(",
+            "write_text(",
+            "os.replace(",
+            "store.save(",
+            ".save(",
+            "shutil.copy",
+            "shutil.move",
+            "json.dump(",
         ]
         has_writes = any(ind in content for ind in write_indicators)
         has_mkdir = "mkdir(" in content
@@ -501,9 +506,7 @@ def _detect_generated_outputs(name: str, path: Path) -> List[str]:
     return sorted(outputs)
 
 
-def _build_script_dependencies(
-    folder_path: Path, root_dir: Path
-) -> List[Tuple[str, str, str]]:
+def _build_script_dependencies(folder_path: Path, root_dir: Path) -> list[tuple[str, str, str]]:
     """Build verified dependency edges between scripts.
 
     Returns list of (source, target, evidence_type) tuples.
@@ -511,7 +514,7 @@ def _build_script_dependencies(
     Only includes relationships verified from actual file content.
     """
     active_files = get_active_files_for_folder(folder_path)
-    edges: List[Tuple[str, str, str]] = []
+    edges: list[tuple[str, str, str]] = []
 
     for script_name in active_files:
         if script_name == "sync_folder_readmes.py":
@@ -527,9 +530,7 @@ def _build_script_dependencies(
             if other_name == script_name:
                 continue
             if re.search(
-                r"(?:^|[\s\"'/,;:()\[\]])"
-                + re.escape(other_name)
-                + r"(?:$|[\s\"'/,;:()\[\]])",
+                r"(?:^|[\s\"'/,;:()\[\]])" + re.escape(other_name) + r"(?:$|[\s\"'/,;:()\[\]])",
                 content,
             ):
                 edges.append((script_name, other_name, "reference"))
@@ -544,19 +545,13 @@ def _build_script_dependencies(
                     continue
                 for script_name in active_files:
                     if script_name in wf_content:
-                        edges.append(
-                            (f"CI: {wf_path.name}", script_name, "ci")
-                        )
+                        edges.append((f"CI: {wf_path.name}", script_name, "ci"))
 
     if "sync_folder_readmes.py" in active_files:
         edges.append(("sync_folder_readmes.py", "Package READMEs", "output"))
-        edges.append(
-            ("sync_folder_readmes.py", "docs/README_INDEX.md", "output")
-        )
+        edges.append(("sync_folder_readmes.py", "docs/README_INDEX.md", "output"))
     if "install_git_hooks.py" in active_files:
-        edges.append(
-            ("install_git_hooks.py", ".git/hooks/pre-commit", "output")
-        )
+        edges.append(("install_git_hooks.py", ".git/hooks/pre-commit", "output"))
 
     return sorted(edges)
 
@@ -578,17 +573,14 @@ def _generate_metadata_table(folder_path: Path, root_dir: Path) -> str:
         desc = extract_script_description(script_path)
         if len(desc) > 60:
             desc = desc[:57] + "..."
-        lines.append(
-            f"| [{name}]({name}) | {category} | {has_cli} | {auto}"
-            f" | {ci} | {hook} | {desc} |"
-        )
+        lines.append(f"| [{name}]({name}) | {category} | {has_cli} | {auto} | {ci} | {hook} | {desc} |")
     return "\n".join(lines)
 
 
 def _generate_cli_reference(folder_path: Path) -> str:
     """Generate CLI reference with collapsible details per argparse script."""
     active_files = get_active_files_for_folder(folder_path)
-    sections: List[str] = []
+    sections: list[str] = []
 
     for name in active_files:
         script_path = folder_path / name
@@ -596,13 +588,11 @@ def _generate_cli_reference(folder_path: Path) -> str:
         if cli_info is None:
             continue
 
-        desc = cli_info.get("description", "") or extract_script_description(
-            script_path
-        )
+        desc = cli_info.get("description", "") or extract_script_description(script_path)
         args = cli_info.get("arguments", [])
         usage = get_script_primary_usage(script_path)
 
-        block: List[str] = [
+        block: list[str] = [
             "<details>",
             f"<summary><strong>{name}</strong> — {desc}</summary>",
             "",
@@ -636,10 +626,7 @@ def _generate_cli_reference(folder_path: Path) -> str:
                 if arg.get("choices"):
                     choices_str = ", ".join(str(c) for c in arg["choices"])
                     help_text += f" (choices: {choices_str})"
-                block.append(
-                    f"| {flags} | {arg_type} | {required}"
-                    f" | {default_str} | {help_text} |"
-                )
+                block.append(f"| {flags} | {arg_type} | {required} | {default_str} | {help_text} |")
 
         block.append("")
         block.append("**Examples**:")
@@ -728,7 +715,7 @@ def _generate_execution_order(folder_path: Path) -> str:
         "Deployment",
     ]
 
-    by_category: Dict[str, List[str]] = {}
+    by_category: dict[str, list[str]] = {}
     for name in active_files:
         cat = _get_script_category(name)
         by_category.setdefault(cat, []).append(name)
@@ -769,7 +756,7 @@ def _generate_safety_classification_section(folder_path: Path) -> str:
     """Generate safety classification table grouped by classification."""
     active_files = get_active_files_for_folder(folder_path)
 
-    classifications: Dict[str, List[str]] = {}
+    classifications: dict[str, list[str]] = {}
     for name in active_files:
         script_path = folder_path / name
         safety = _get_safety_classification(name, script_path)
@@ -786,7 +773,7 @@ def _generate_safety_classification_section(folder_path: Path) -> str:
 
 def _generate_cross_references(root_dir: Path) -> str:
     """Generate cross-reference links to related documentation and workflows."""
-    links: List[str] = []
+    links: list[str] = []
 
     root_readme = root_dir / "README.md"
     if root_readme.exists():
@@ -800,9 +787,7 @@ def _generate_cross_references(root_dir: Path) -> str:
     if workflows_dir.exists():
         for wf_path in sorted(workflows_dir.iterdir()):
             if wf_path.is_file() and wf_path.suffix in (".yml", ".yaml"):
-                links.append(
-                    f"- [CI: {wf_path.name}](../.github/workflows/{wf_path.name})"
-                )
+                links.append(f"- [CI: {wf_path.name}](../.github/workflows/{wf_path.name})")
 
     for folder in TARGET_FOLDERS:
         if folder == "scripts":
@@ -824,9 +809,7 @@ def _sync_script_categories(folder_path: Path, content: str) -> str:
     active_files = get_active_files_for_folder(folder_path)
 
     categories = {
-        "VALIDATION_SCRIPTS": [
-            f for f in active_files if f.startswith("test_") or f == "system_check.py"
-        ],
+        "VALIDATION_SCRIPTS": [f for f in active_files if f.startswith("test_") or f == "system_check.py"],
         "DATASET_SCRIPTS": [
             f
             for f in active_files
@@ -854,8 +837,7 @@ def _sync_script_categories(folder_path: Path, content: str) -> str:
         "DEVELOPMENT_SCRIPTS": [
             f
             for f in active_files
-            if f
-            not in ("sync_folder_readmes.py", "install_git_hooks.py", "activate_venv.ps1")
+            if f not in ("sync_folder_readmes.py", "install_git_hooks.py", "activate_venv.ps1")
             and not f.startswith("test_")
             and f != "system_check.py"
             and f
@@ -886,16 +868,12 @@ def _sync_script_categories(folder_path: Path, content: str) -> str:
                 lines.append(f"- **[{f}]({f})**: {desc} (`{usage}`)")
             cat_str = "\n".join(lines)
             pattern = re.escape(m_start) + r".*?" + re.escape(m_end)
-            content = re.sub(
-                pattern, f"{m_start}\n{cat_str}\n{m_end}", content, flags=re.DOTALL
-            )
+            content = re.sub(pattern, f"{m_start}\n{cat_str}\n{m_end}", content, flags=re.DOTALL)
 
     return content
 
 
-def _sync_scripts_extended_sections(
-    folder_path: Path, content: str, root_dir: Path
-) -> str:
+def _sync_scripts_extended_sections(folder_path: Path, content: str, root_dir: Path) -> str:
     """Synchronize all extended documentation sections for scripts/README.md.
 
     Orchestrates generation of metadata table, CLI reference, command index,
@@ -903,19 +881,13 @@ def _sync_scripts_extended_sections(
     and cross references. Each section is bounded by its own sync markers.
     """
     sync_generators = {
-        "SCRIPT_METADATA_TABLE": lambda: _generate_metadata_table(
-            folder_path, root_dir
-        ),
+        "SCRIPT_METADATA_TABLE": lambda: _generate_metadata_table(folder_path, root_dir),
         "CLI_REFERENCE": lambda: _generate_cli_reference(folder_path),
         "COMMAND_INDEX": lambda: _generate_command_index(folder_path),
-        "SCRIPT_DEPENDENCY_GRAPH": lambda: _generate_dependency_graph(
-            folder_path, root_dir
-        ),
+        "SCRIPT_DEPENDENCY_GRAPH": lambda: _generate_dependency_graph(folder_path, root_dir),
         "SCRIPT_EXECUTION_ORDER": lambda: _generate_execution_order(folder_path),
         "CHANGE_IMPACT": lambda: _generate_change_impact(folder_path),
-        "SAFETY_CLASSIFICATION": lambda: _generate_safety_classification_section(
-            folder_path
-        ),
+        "SAFETY_CLASSIFICATION": lambda: _generate_safety_classification_section(folder_path),
         "CROSS_REFERENCES": lambda: _generate_cross_references(root_dir),
     }
 
@@ -935,7 +907,7 @@ def _sync_scripts_extended_sections(
     return content
 
 
-def check_folder_readme(folder_path: Path) -> Tuple[bool, List[str]]:
+def check_folder_readme(folder_path: Path) -> tuple[bool, list[str]]:
     """Check if README.md exists, contains required sections, and lists active modules."""
     readme_path = folder_path / "README.md"
     issues = []
@@ -945,9 +917,7 @@ def check_folder_readme(folder_path: Path) -> Tuple[bool, List[str]]:
 
     content = readme_path.read_text(encoding="utf-8")
 
-    required_sections = REQUIRED_SECTIONS_BY_FOLDER.get(
-        folder_path.name, REQUIRED_SECTIONS
-    )
+    required_sections = REQUIRED_SECTIONS_BY_FOLDER.get(folder_path.name, REQUIRED_SECTIONS)
     for sec in required_sections:
         if f"## {sec}" not in content:
             issues.append(f"Missing section '## {sec}' in {readme_path.name}")
@@ -961,7 +931,7 @@ def check_folder_readme(folder_path: Path) -> Tuple[bool, List[str]]:
     return len(issues) == 0, issues
 
 
-def check_readme_index(root_dir: Path) -> Tuple[bool, List[str]]:
+def check_readme_index(root_dir: Path) -> tuple[bool, list[str]]:
     """Check if docs/README_INDEX.md exists and contains links to all package READMEs."""
     index_path = root_dir / "docs" / "README_INDEX.md"
     issues = []
@@ -977,9 +947,7 @@ def check_readme_index(root_dir: Path) -> Tuple[bool, List[str]]:
     return len(issues) == 0, issues
 
 
-def update_folder_readme(
-    folder_path: Path, root_dir: Optional[Path] = None
-) -> bool:
+def update_folder_readme(folder_path: Path, root_dir: Path | None = None) -> bool:
     """Synchronize Key Modules section in folder README if comment markers are present."""
     readme_path = folder_path / "README.md"
     if not readme_path.exists():
@@ -994,8 +962,8 @@ def update_folder_readme(
 
     active_files = get_active_files_for_folder(folder_path)
 
-    desc_map: Dict[str, str] = {}
-    usage_map: Dict[str, str] = {}
+    desc_map: dict[str, str] = {}
+    usage_map: dict[str, str] = {}
     table_lines = content.split(marker_start)[1].split(marker_end)[0].strip().split("\n")
     for line in table_lines:
         if (
@@ -1038,21 +1006,15 @@ def update_folder_readme(
 
     new_table_str = "\n".join(new_lines)
     pattern = re.escape(marker_start) + r".*?" + re.escape(marker_end)
-    new_content = re.sub(
-        pattern, f"{marker_start}\n{new_table_str}\n{marker_end}", content, flags=re.DOTALL
-    )
+    new_content = re.sub(pattern, f"{marker_start}\n{new_table_str}\n{marker_end}", content, flags=re.DOTALL)
 
     if folder_path.name == "scripts":
         new_content = _sync_script_categories(folder_path, new_content)
         effective_root = root_dir or folder_path.parent
-        new_content = _sync_scripts_extended_sections(
-            folder_path, new_content, effective_root
-        )
+        new_content = _sync_scripts_extended_sections(folder_path, new_content, effective_root)
 
     if new_content != content:
-        fd, tmp_path = tempfile.mkstemp(
-            dir=str(readme_path.parent), suffix=".tmp", prefix=".readme_sync_"
-        )
+        fd, tmp_path = tempfile.mkstemp(dir=str(readme_path.parent), suffix=".tmp", prefix=".readme_sync_")
         try:
             with os.fdopen(fd, "w", encoding="utf-8") as tmp_f:
                 tmp_f.write(new_content)
@@ -1088,10 +1050,9 @@ def main() -> int:
         if not folder_path.exists():
             continue
 
-        if should_update:
-            if update_folder_readme(folder_path, root_dir=root_dir):
-                print(f"[UPDATED] Synchronized {folder_name}/README.md")
-                updated_count += 1
+        if should_update and update_folder_readme(folder_path, root_dir=root_dir):
+            print(f"[UPDATED] Synchronized {folder_name}/README.md")
+            updated_count += 1
 
         is_valid, issues = check_folder_readme(folder_path)
         if not is_valid:

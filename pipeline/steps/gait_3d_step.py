@@ -6,7 +6,7 @@ Disabled by default (`enabled=False`). Falls back gracefully to 2D GEI gait matc
 """
 
 from pathlib import Path
-from typing import List, Optional
+
 import cv2
 import numpy as np
 import torch
@@ -27,15 +27,16 @@ class Gait3DStep:
         self,
         enabled: bool = False,
         pose_model_path: str = "models/weights/yolov8n-pose.pt",
-        weights_path: Optional[str] = "runs/exp_006_3d/best_model.pth",
+        weights_path: str | None = "runs/exp_006_3d/best_model.pth",
         sequence_length: int = 30,
         conf_threshold: float = 0.30,
-        device: Optional[str] = None,
+        device: str | None = None,
     ) -> None:
         self.enabled = enabled
         self.sequence_length = sequence_length
         self.conf_threshold = conf_threshold
         from automation.device_manager import DeviceManager
+
         self.device = DeviceManager.get_instance().resolve_component_device(device)
 
         self.pose_estimator = None
@@ -46,12 +47,13 @@ class Gait3DStep:
         if self.enabled:
             self._initialize_models(pose_model_path, weights_path)
 
-    def _initialize_models(self, pose_model_path: str, weights_path: Optional[str]) -> None:
+    def _initialize_models(self, pose_model_path: str, weights_path: str | None) -> None:
         """Loads YOLOv8-pose, PoseLifter3D, and PoseGait3DNet onto configured device."""
         try:
             from ultralytics import YOLO
+
             self.pose_estimator = YOLO(pose_model_path)
-        except Exception as e:
+        except (ImportError, RuntimeError, OSError, ValueError) as e:
             print(f"[WARN] 3D Gait: Failed to load pose estimator ({e}). Disabling 3D Gait.")
             self.enabled = False
             return
@@ -77,11 +79,11 @@ class Gait3DStep:
                         self.pose_lifter.load_state_dict(ckpt["lifter"])
                     if "gait_net" in ckpt:
                         self.gait_net.load_state_dict(ckpt["gait_net"])
-            except Exception as e:
+            except (RuntimeError, ValueError, OSError, EOFError) as e:
                 print(f"[WARN] 3D Gait: Failed to load checkpoint weights ({e}). Disabling 3D Gait.")
                 self.enabled = False
 
-    def process_frame_crop(self, track_id: str, crop: np.ndarray) -> Optional[np.ndarray]:
+    def process_frame_crop(self, track_id: str, crop: np.ndarray) -> np.ndarray | None:
         """
         Extracts 2D pose from frame crop, updates track buffer, and returns 3D gait embedding if buffer full.
 
@@ -95,9 +97,7 @@ class Gait3DStep:
         if not self.enabled or self.pose_estimator is None or crop is None or crop.size == 0:
             return None
 
-        if crop.ndim == 2:
-            crop_bgr = cv2.cvtColor(crop, cv2.COLOR_GRAY2BGR)
-        elif crop.shape[2] == 1:
+        if crop.ndim == 2 or crop.shape[2] == 1:
             crop_bgr = cv2.cvtColor(crop, cv2.COLOR_GRAY2BGR)
         else:
             crop_bgr = crop
@@ -126,14 +126,14 @@ class Gait3DStep:
 
         return emb.astype(np.float32)
 
-    def prune_stale_tracks(self, active_track_ids: List[str]) -> None:
+    def prune_stale_tracks(self, active_track_ids: list[str]) -> None:
         """Removes track buffers for track IDs no longer active in tracker."""
         if self.pose_buffer is not None:
             active_set = set(active_track_ids)
-            stale_keys = [k for k in self.pose_buffer.buffers.keys() if k not in active_set]
+            stale_keys = [k for k in self.pose_buffer.buffers if k not in active_set]
             for k in stale_keys:
                 self.pose_buffer.clear(k)
 
-    def reset_track(self, track_id: Optional[str] = None) -> None:
+    def reset_track(self, track_id: str | None = None) -> None:
         if self.pose_buffer is not None:
             self.pose_buffer.clear(track_id)

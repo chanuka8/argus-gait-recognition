@@ -13,7 +13,6 @@ from models.architectures.bygait_light import ByGaitLight
 from pipeline.steps.matching_step import MatchingStep
 from storage.vector_store import VectorStore
 
-
 MODEL_PATH = "runs/exp_001/best_model.pth"
 GEI_ROOT = "data/casia_processed/gei"
 
@@ -30,9 +29,7 @@ def load_backbone():
     filtered = {}
 
     for key, value in checkpoint.items():
-
         if key.startswith("backbone."):
-
             filtered[
                 key.replace(
                     "backbone.",
@@ -60,24 +57,12 @@ def image_to_embedding(
         cv2.IMREAD_GRAYSCALE,
     )
 
-    image = image.astype(
-        np.float32
-    ) / 255.0
+    image = image.astype(np.float32) / 255.0
 
-    tensor = (
-        torch.from_numpy(image)
-        .unsqueeze(0)
-        .unsqueeze(0)
-    )
+    tensor = torch.from_numpy(image).unsqueeze(0).unsqueeze(0)
 
     with torch.no_grad():
-
-        embedding = (
-            model(tensor)
-            .cpu()
-            .numpy()
-            .flatten()
-        )
+        embedding = model(tensor).cpu().numpy().flatten()
 
     return embedding
 
@@ -86,22 +71,13 @@ def pick_random_image():
 
     all_images = []
 
-    for person_dir in Path(
-        GEI_ROOT
-    ).iterdir():
-
+    for person_dir in Path(GEI_ROOT).iterdir():
         if not person_dir.is_dir():
             continue
 
-        all_images.extend(
-            list(
-                person_dir.glob("*.png")
-            )
-        )
+        all_images.extend(list(person_dir.glob("*.png")))
 
-    return random.choice(
-        all_images
-    )
+    return random.choice(all_images)
 
 
 def main():
@@ -113,14 +89,11 @@ def main():
     gallery = store.load()
 
     if gallery is None:
-
-        print(
-            "Gallery not found."
-        )
+        print("Gallery not found.")
 
         return
 
-    gallery_features, gallery_labels, metadata = gallery
+    gallery_features, gallery_labels, _metadata = gallery
 
     image_path = pick_random_image()
 
@@ -129,9 +102,7 @@ def main():
         model,
     )
 
-    matcher = MatchingStep(
-        threshold=0.75
-    )
+    matcher = MatchingStep(threshold=0.75)
 
     identity, score = matcher.match(
         query_embedding,
@@ -139,23 +110,13 @@ def main():
         gallery_labels,
     )
 
-    actual_person = (
-        image_path.parent.name
-    )
+    actual_person = image_path.parent.name
 
     print("\n=== MATCH RESULT ===")
-    print(
-        f"Query Image : {image_path.name}"
-    )
-    print(
-        f"Actual ID   : {actual_person}"
-    )
-    print(
-        f"Matched ID  : {identity}"
-    )
-    print(
-        f"Score       : {score:.4f}"
-    )
+    print(f"Query Image : {image_path.name}")
+    print(f"Actual ID   : {actual_person}")
+    print(f"Matched ID  : {identity}")
+    print(f"Score       : {score:.4f}")
 
 
 if __name__ == "__main__":

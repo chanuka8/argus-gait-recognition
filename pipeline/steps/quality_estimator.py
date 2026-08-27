@@ -5,7 +5,7 @@ Evaluates generated Gait Energy Images (GEI) prior to embedding extraction.
 Computes metrics for Blur, Noise, Shadow, GEI Completeness, and Bounding Box Stability.
 """
 
-from typing import Any, Dict
+from typing import Any
 
 import cv2
 import numpy as np
@@ -23,7 +23,7 @@ class QualityEstimator:
     def __init__(
         self,
         quality_threshold: float = 0.6,
-        weights: Dict[str, float] | None = None,
+        weights: dict[str, float] | None = None,
     ) -> None:
         self.quality_threshold = quality_threshold
         self.logger = get_logger("quality_estimator")
@@ -114,9 +114,8 @@ class QualityEstimator:
         else:
             gray = gei
 
-        h, w = gray.shape
+        h, _w = gray.shape
         bottom_region = gray[int(h * 0.85) :, :]
-
 
         shadow_pixels = np.logical_and(bottom_region > 10, bottom_region < 100)
         shadow_ratio = float(np.sum(shadow_pixels)) / float(max(1, bottom_region.size))
@@ -140,7 +139,7 @@ class QualityEstimator:
         else:
             gray = gei
 
-        h, w = gray.shape
+        h, _w = gray.shape
         non_zero_ratio = float(np.count_nonzero(gray > 15)) / float(gray.size)
 
         if 0.10 <= non_zero_ratio <= 0.45:
@@ -187,7 +186,7 @@ class QualityEstimator:
         self,
         gei: np.ndarray,
         box_aspect_ratio: float | None = None,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Evaluate GEI quality across all metrics.
 

@@ -34,8 +34,10 @@ def test_camera_start_and_stop_lifecycle():
     mock_cap.isOpened.return_value = True
     mock_cap.read.return_value = (True, _dummy_frame())
 
-    with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap), \
-         patch.object(service.source_resolver, "probe_usb_webcam", return_value=True):
+    with (
+        patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
+        patch.object(service.source_resolver, "probe_usb_webcam", return_value=True),
+    ):
         cam_info = service.start_camera(
             camera_id="CCTV-TEST-101",
             source="0",
@@ -58,9 +60,11 @@ def test_camera_api_endpoints():
     mock_cap.isOpened.return_value = True
     mock_cap.read.return_value = (True, _dummy_frame())
 
-    with TestClient(app) as client, \
-         patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap), \
-         patch("services.camera_source_resolver.CameraSourceResolver.probe_usb_webcam", return_value=True):
+    with (
+        TestClient(app) as client,
+        patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
+        patch("services.camera_source_resolver.CameraSourceResolver.probe_usb_webcam", return_value=True),
+    ):
         start_resp = client.post(
             "/api/v1/cameras/start",
             json={
@@ -221,8 +225,10 @@ def test_duplicate_start_rejected():
     mock_cap.isOpened.return_value = True
     mock_cap.read.return_value = (True, _dummy_frame())
 
-    with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap), \
-         patch.object(service.source_resolver, "probe_usb_webcam", return_value=True):
+    with (
+        patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
+        patch.object(service.source_resolver, "probe_usb_webcam", return_value=True),
+    ):
         info1 = service.start_camera(camera_id="CAM-DUP", source="0", location="Test")
         assert info1["status"] == "ACTIVE"
 
@@ -242,8 +248,10 @@ def test_repeated_stop_is_safe():
     mock_cap.isOpened.return_value = True
     mock_cap.read.return_value = (True, _dummy_frame())
 
-    with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap), \
-         patch.object(service.source_resolver, "probe_usb_webcam", return_value=True):
+    with (
+        patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
+        patch.object(service.source_resolver, "probe_usb_webcam", return_value=True),
+    ):
         service.start_camera(camera_id="CAM-RSTOP", source="0", location="Test")
         assert service.stop_camera("CAM-RSTOP") is True
         assert service.stop_camera("CAM-RSTOP") is False
@@ -291,9 +299,7 @@ def test_startup_failure_releases_zone_reservation():
         except RuntimeError:
             pass
 
-    assert not service.source_resolver.is_source_reserved(
-        "stream:rtsp://user:pass@10.0.0.1:554/live"
-    )
+    assert not service.source_resolver.is_source_reserved("stream:rtsp://user:pass@10.0.0.1:554/live")
 
 
 def test_credential_sanitization_in_error():
@@ -477,6 +483,7 @@ def test_source_resolution_file_and_http():
 def test_resolver_sanitizes_credentials_in_label():
     """CameraSourceResolver must sanitize RTSP credentials in resolved_source_label."""
     from services.camera_source_resolver import CameraSourceResolver
+
     resolver = CameraSourceResolver()
     res = resolver.resolve_source(
         camera_id="CAM-RESOLVE-CRED",
@@ -537,12 +544,13 @@ def test_system_config_propagates_to_worker():
         }
     }
 
-    import yaml
     from unittest.mock import mock_open
+
+    import yaml
+
     yaml_content = yaml.dump(custom_yaml)
 
-    with patch("builtins.open", mock_open(read_data=yaml_content)), \
-         patch("pathlib.Path.exists", return_value=True):
+    with patch("builtins.open", mock_open(read_data=yaml_content)), patch("pathlib.Path.exists", return_value=True):
         cam_defaults = service._load_camera_config()
         assert cam_defaults["startup_timeout"] == 14.5
         assert cam_defaults["startup_retry_interval"] == 0.45
@@ -555,8 +563,10 @@ def test_system_config_propagates_to_worker():
         mock_cap.isOpened.return_value = True
         mock_cap.read.return_value = (True, frame)
 
-        with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap), \
-             patch.object(service.source_resolver, "probe_usb_webcam", return_value=True):
+        with (
+            patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
+            patch.object(service.source_resolver, "probe_usb_webcam", return_value=True),
+        ):
             cam_info = service.start_camera("CAM-CONFIG-TEST", source="auto")
             assert cam_info["status"] == "ACTIVE"
 

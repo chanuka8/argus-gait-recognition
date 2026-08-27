@@ -108,9 +108,15 @@ def test_uncertain_remains_deferred():
 def test_ttl_expiry_and_cleanup():
     engine = RecognitionDeferralEngine({"enabled": True, "evidence_ttl_seconds": 5.0, "minimum_confirmations": 3})
 
-    engine.evaluate_and_accumulate("cam_01", 1, "Person_A", 0.90, 0.80, "KNOWN", "MAJORITY_VOTE", 0.85, 0.10, timestamp=1.0)
-    engine.evaluate_and_accumulate("cam_01", 1, "Person_A", 0.90, 0.80, "KNOWN", "MAJORITY_VOTE", 0.85, 0.10, timestamp=2.0)
+    engine.evaluate_and_accumulate(
+        "cam_01", 1, "Person_A", 0.90, 0.80, "KNOWN", "MAJORITY_VOTE", 0.85, 0.10, timestamp=1.0
+    )
+    engine.evaluate_and_accumulate(
+        "cam_01", 1, "Person_A", 0.90, 0.80, "KNOWN", "MAJORITY_VOTE", 0.85, 0.10, timestamp=2.0
+    )
 
-    res = engine.evaluate_and_accumulate("cam_01", 1, "Person_A", 0.90, 0.80, "KNOWN", "MAJORITY_VOTE", 0.85, 0.10, timestamp=10.0)
+    res = engine.evaluate_and_accumulate(
+        "cam_01", 1, "Person_A", 0.90, 0.80, "KNOWN", "MAJORITY_VOTE", 0.85, 0.10, timestamp=10.0
+    )
     assert res.recognition_state == RecognitionState.DEFERRED_INSUFFICIENT_EVIDENCE
     assert res.accumulated_evidence_count == 1

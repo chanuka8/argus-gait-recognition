@@ -16,9 +16,7 @@ def is_numeric_identity(label: str) -> bool:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Remove numeric CASIA-B identities from ARGUS gallery"
-    )
+    parser = argparse.ArgumentParser(description="Remove numeric CASIA-B identities from ARGUS gallery")
 
     parser.add_argument(
         "--dry-run",
@@ -41,25 +39,15 @@ def main() -> None:
     labels = np.asarray(labels)
 
     remove_mask = np.array(
-        [
-            is_numeric_identity(label)
-            for label in labels
-        ],
+        [is_numeric_identity(label) for label in labels],
         dtype=bool,
     )
 
     keep_mask = ~remove_mask
 
-    removed_labels = sorted(
-        set(
-            str(label)
-            for label in labels[remove_mask]
-        )
-    )
+    removed_labels = sorted({str(label) for label in labels[remove_mask]})
 
-    removed_count = int(
-        np.sum(remove_mask)
-    )
+    removed_count = int(np.sum(remove_mask))
 
     print(f"Numeric identities found: {len(removed_labels)}")
     print(f"Embeddings to remove: {removed_count}")

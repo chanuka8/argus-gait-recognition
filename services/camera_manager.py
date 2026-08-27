@@ -1,6 +1,5 @@
 import threading
 from pathlib import Path
-from typing import Dict, Optional
 
 import yaml
 
@@ -24,9 +23,9 @@ class CameraManager:
         self._inference_pipeline = inference_pipeline
         self._detection_processor = detection_processor
 
-        self._workers: Dict[str, CameraWorker] = {}
+        self._workers: dict[str, CameraWorker] = {}
         self._lock = threading.Lock()
-        self._health_check_thread: Optional[threading.Thread] = None
+        self._health_check_thread: threading.Thread | None = None
         self._stop_event = threading.Event()
 
         self._load_config()
@@ -60,7 +59,7 @@ class CameraManager:
                     c_dict.setdefault("id", cid)
                     try:
                         resolved_cameras[cid] = resolve_camera_config(c_dict)
-                    except Exception:
+                    except (ValueError, KeyError, TypeError, OSError):
                         resolved_cameras[cid] = c_dict
             elif isinstance(raw_cameras, list):
                 for ccfg in raw_cameras:
@@ -68,7 +67,7 @@ class CameraManager:
                         cid = str(ccfg.get("id", "cam"))
                         try:
                             resolved_cameras[cid] = resolve_camera_config(ccfg)
-                        except Exception:
+                        except (ValueError, KeyError, TypeError, OSError):
                             resolved_cameras[cid] = ccfg
 
             self.cameras_config = resolved_cameras
@@ -77,12 +76,12 @@ class CameraManager:
 
             self._logger.info(f"Loaded {len(self.cameras_config)} camera configurations")
 
-        except Exception as e:
+        except (yaml.YAMLError, OSError, ValueError) as e:
             self._logger.error(f"Failed to load config: {sanitize_rtsp_url(str(e))}")
             self.cameras_config = {}
             self.multi_camera_config = {}
 
-    def _create_worker(self, camera_id: str, camera_config: dict) -> Optional[CameraWorker]:
+    def _create_worker(self, camera_id: str, camera_config: dict) -> CameraWorker | None:
         """Create a camera worker."""
         try:
             config = {**self.defaults, **camera_config}
@@ -98,7 +97,7 @@ class CameraManager:
 
             return worker
 
-        except Exception as e:
+        except (RuntimeError, ValueError, TypeError, KeyError, OSError) as e:
             self._logger.error(f"Failed to create worker for {camera_id}: {sanitize_rtsp_url(str(e))}")
             return None
 
@@ -147,9 +146,8 @@ class CameraManager:
                 if camera_id in self._workers:
                     worker = self._workers[camera_id]
 
-                    if not worker.is_running():
-                        if worker.start():
-                            started += 1
+                    if not worker.is_running() and worker.start():
+                        started += 1
                     continue
 
                 worker = self._create_worker(camera_id, camera_config)
@@ -188,7 +186,7 @@ class CameraManager:
             worker = self._workers[camera_id]
             return worker.restart()
 
-    def get_camera_stats(self, camera_id: str) -> Optional[dict]:
+    def get_camera_stats(self, camera_id: str) -> dict | None:
         """Get statistics for a specific camera."""
         with self._lock:
             if camera_id not in self._workers:
@@ -206,7 +204,7 @@ class CameraManager:
 
         return stats
 
-    def get_camera_status(self, camera_id: str) -> Optional[dict]:
+    def get_camera_status(self, camera_id: str) -> dict | None:
         """Get status for a specific camera."""
         with self._lock:
             if camera_id not in self._workers:
@@ -258,8 +256,8 @@ class CameraManager:
                         elif not worker.is_connected():
                             self._logger.warning(f"Camera {camera_id} disconnected")
 
-            except Exception as e:
-                self._logger.error(f"Error in health check: {str(e)}")
+            except (RuntimeError, ValueError, TypeError, OSError) as e:
+                self._logger.error(f"Error in health check: {e!s}")
 
     def _start_health_check(self) -> None:
         """Start background health check thread."""
@@ -284,7 +282,7 @@ class CameraManager:
         if self._health_check_thread.is_alive():
             self._health_check_thread.join(timeout=5.0)
 
-    def get_worker(self, camera_id: str) -> Optional[CameraWorker]:
+    def get_worker(self, camera_id: str) -> CameraWorker | None:
         """Get a specific camera worker."""
         with self._lock:
             return self._workers.get(camera_id)

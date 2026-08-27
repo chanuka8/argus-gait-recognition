@@ -25,7 +25,7 @@ def test_enrollment_validator(
 
     validator = EnrollmentValidator()
 
-    valid, message = validator.validate_person_folder(str(enrollment_sample_folder))
+    valid, _message = validator.validate_person_folder(str(enrollment_sample_folder))
 
     assert valid is True
 

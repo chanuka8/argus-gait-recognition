@@ -5,13 +5,14 @@ Validates deployment settings across YAML configurations and provides human-read
 error messages while ensuring sensitive RTSP credentials are masked in logs and reports.
 """
 
-from pathlib import Path
 import re
-from typing import Dict, List, Optional, Tuple, Union
+from pathlib import Path
+from typing import ClassVar
+
 import yaml
 
 
-def sanitize_rtsp_url(text: Optional[str]) -> str:
+def sanitize_rtsp_url(text: str | None) -> str:
     """
     Sanitize all RTSP credentials from string or connection URL.
 
@@ -31,7 +32,7 @@ def sanitize_rtsp_url(text: Optional[str]) -> str:
 class ConfigValidationError(ValueError):
     """Human-readable configuration validation error suppressing traceback spam."""
 
-    def __init__(self, errors: List[str]) -> None:
+    def __init__(self, errors: list[str]) -> None:
         self.errors = errors
         message = "Configuration validation failed:\n  - " + "\n  - ".join(errors)
         super().__init__(message)
@@ -40,14 +41,14 @@ class ConfigValidationError(ValueError):
 class ConfigValidator:
     """Validator for ARGUS deployment YAML configurations."""
 
-    VALID_BACKENDS = {"pytorch", "onnxruntime", "auto"}
-    VALID_DEVICES = {"cpu", "cuda", "gpu", "auto"}
-    VALID_PRECISIONS = {"fp32", "fp16"}
+    VALID_BACKENDS: ClassVar[set[str]] = {"pytorch", "onnxruntime", "auto"}
+    VALID_DEVICES: ClassVar[set[str]] = {"cpu", "cuda", "gpu", "auto"}
+    VALID_PRECISIONS: ClassVar[set[str]] = {"fp32", "fp16"}
 
-    def __init__(self, configs_dir: Union[str, Path] = "configs") -> None:
+    def __init__(self, configs_dir: str | Path = "configs") -> None:
         self.configs_dir = Path(configs_dir)
 
-    def load_yaml(self, file_path: Union[str, Path]) -> Tuple[Optional[dict], Optional[str]]:
+    def load_yaml(self, file_path: str | Path) -> tuple[dict | None, str | None]:
         """Safely load YAML file without raising unhandled exceptions."""
         path = Path(file_path)
         if not path.exists():
@@ -61,10 +62,10 @@ class ConfigValidator:
             return data, None
         except yaml.YAMLError as e:
             return None, f"YAML syntax error in {path.as_posix()}: {e}"
-        except Exception as e:
+        except (OSError, UnicodeDecodeError) as e:
             return None, f"Error reading configuration file {path.as_posix()}: {e}"
 
-    def validate_inference_config(self, config: dict) -> List[str]:
+    def validate_inference_config(self, config: dict) -> list[str]:
         """Validate inference.yaml parameters."""
         errors = []
         backend_cfg = config.get("inference_backend", {})
@@ -74,15 +75,15 @@ class ConfigValidator:
 
         backend = str(backend_cfg.get("backend", "pytorch")).lower()
         if backend not in self.VALID_BACKENDS and backend != "tensorrt":
-            errors.append(f"Invalid backend '{backend}'. Supported backends: {sorted(list(self.VALID_BACKENDS))}")
+            errors.append(f"Invalid backend '{backend}'. Supported backends: {sorted(self.VALID_BACKENDS)}")
 
         device = str(backend_cfg.get("device", "auto")).lower()
         if device not in self.VALID_DEVICES:
-            errors.append(f"Invalid device '{device}'. Allowed: {sorted(list(self.VALID_DEVICES))}")
+            errors.append(f"Invalid device '{device}'. Allowed: {sorted(self.VALID_DEVICES)}")
 
         precision = str(backend_cfg.get("precision", "fp32")).lower()
         if precision not in self.VALID_PRECISIONS:
-            errors.append(f"Invalid precision '{precision}'. Allowed: {sorted(list(self.VALID_PRECISIONS))}")
+            errors.append(f"Invalid precision '{precision}'. Allowed: {sorted(self.VALID_PRECISIONS)}")
 
         max_batch = backend_cfg.get("max_batch_size", 1)
         if not isinstance(max_batch, int) or max_batch < 1:
@@ -95,7 +96,7 @@ class ConfigValidator:
 
         return errors
 
-    def validate_cameras_config(self, config: dict) -> List[str]:
+    def validate_cameras_config(self, config: dict) -> list[str]:
         """Validate cameras.yaml parameters."""
         errors = []
         cameras = config.get("cameras", {})
@@ -121,12 +122,12 @@ class ConfigValidator:
             url = cam.get("url")
             if url:
                 sanitized = sanitize_rtsp_url(url)
-                if cam_type == "rtsp" and not (url.startswith("rtsp://") or url.startswith("http://") or url.startswith("https://")):
+                if cam_type == "rtsp" and not url.startswith(("rtsp://", "http://", "https://")):
                     errors.append(f"Camera '{cam_id}' has invalid stream URL format: '{sanitized}'")
 
         return errors
 
-    def validate_system_config(self, config: dict) -> List[str]:
+    def validate_system_config(self, config: dict) -> list[str]:
         """Validate system.yaml parameters."""
         errors = []
 
@@ -144,7 +145,7 @@ class ConfigValidator:
 
         return errors
 
-    def validate_all(self) -> Dict[str, List[str]]:
+    def validate_all(self) -> dict[str, list[str]]:
         """Validate all standard configuration files in self.configs_dir."""
         results = {}
 

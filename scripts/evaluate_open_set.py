@@ -9,9 +9,7 @@ from evaluation.open_set_evaluator import OpenSetEvaluator
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Evaluate ARGUS Open-Set Gait Recognition Metrics"
-    )
+    parser = argparse.ArgumentParser(description="Evaluate ARGUS Open-Set Gait Recognition Metrics")
 
     parser.add_argument(
         "--max-images",

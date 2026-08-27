@@ -8,9 +8,10 @@ and promotes candidate to models/candidates/gait_3d_exp007_best.pth.
 """
 
 import json
-from pathlib import Path
 import sys
 import time
+from pathlib import Path
+
 import numpy as np
 import torch
 
@@ -94,7 +95,9 @@ def main():
 
     for cfg in configs:
         run_dir = base_dir / cfg["name"]
-        print(f"\n---> Training Candidate Ablation: {cfg['name']} (Encoder: {cfg['encoder'].upper()}, SeqLen: {cfg['seq_len']})")
+        print(
+            f"\n---> Training Candidate Ablation: {cfg['name']} (Encoder: {cfg['encoder'].upper()}, SeqLen: {cfg['seq_len']})"
+        )
 
         trainer = Gait3DTrainer(
             data_dir="data/casia_processed/skeletons",
@@ -114,7 +117,9 @@ def main():
         ckpt_path = str(run_dir / "best_model.pth")
 
         val_rank1 = evaluate_on_val(ckpt_path, sequence_length=cfg["seq_len"])
-        print(f"[{cfg['name']}] VAL Rank-1 Accuracy: {val_rank1*100:.2f}% (Val Training Acc: {train_res['best_val_acc']*100:.2f}%)")
+        print(
+            f"[{cfg['name']}] VAL Rank-1 Accuracy: {val_rank1 * 100:.2f}% (Val Training Acc: {train_res['best_val_acc'] * 100:.2f}%)"
+        )
 
         res_record = {
             "config": cfg,
@@ -131,7 +136,7 @@ def main():
 
     print("\n=======================================================")
     print(f"  WINNING CANDIDATE ON VAL: {best_config['name']}")
-    print(f"  VAL Rank-1 Accuracy: {best_val_score*100:.2f}%")
+    print(f"  VAL Rank-1 Accuracy: {best_val_score * 100:.2f}%")
     print("=======================================================\n")
 
     cand_dir = Path("models/candidates")
@@ -176,15 +181,19 @@ def main():
     print("=========================================================================")
     print("Metric                 | 2D Baseline (EXP-003E) | EXP-006 (Baseline 3D) | EXP-007 (Best 3D)")
     print("---------------------------------------------------------------------------------")
-    print(f"Rank-1 Accuracy        | 72.63%                 | 19.45%                | {m3d['rank1']*100:.2f}%")
-    print(f"Rank-5 Accuracy        | 82.76%                 | 49.35%                | {m3d['rank5']*100:.2f}%")
-    print(f"NM Accuracy            | 97.00%                 | 26.82%                | {m3d['NM']*100:.2f}%")
-    print(f"BG Accuracy            | 78.26%                 | 16.29%                | {m3d['BG']*100:.2f}%")
-    print(f"CL Accuracy            | 42.64%                 | 8.24%                 | {m3d['CL']*100:.2f}%")
+    print(f"Rank-1 Accuracy        | 72.63%                 | 19.45%                | {m3d['rank1'] * 100:.2f}%")
+    print(f"Rank-5 Accuracy        | 82.76%                 | 49.35%                | {m3d['rank5'] * 100:.2f}%")
+    print(f"NM Accuracy            | 97.00%                 | 26.82%                | {m3d['NM'] * 100:.2f}%")
+    print(f"BG Accuracy            | 78.26%                 | 16.29%                | {m3d['BG'] * 100:.2f}%")
+    print(f"CL Accuracy            | 42.64%                 | 8.24%                 | {m3d['CL'] * 100:.2f}%")
     print(f"ROC-AUC                | 0.8776                 | 0.6552                | {m3d['ROC_AUC']:.4f}")
-    print(f"EER                    | 20.46%                 | 39.90%                | {m3d['EER']*100:.2f}%")
-    print(f"Open-Set FAR (M=0.05)  | 18.05%                 | 0.00%                 | {m3d['margin_aware_FAR']*100:.2f}%")
-    print(f"Open-Set TAR (M=0.05)  | 33.18%                 | 0.00%                 | {m3d['margin_aware_TAR']*100:.2f}%")
+    print(f"EER                    | 20.46%                 | 39.90%                | {m3d['EER'] * 100:.2f}%")
+    print(
+        f"Open-Set FAR (M=0.05)  | 18.05%                 | 0.00%                 | {m3d['margin_aware_FAR'] * 100:.2f}%"
+    )
+    print(
+        f"Open-Set TAR (M=0.05)  | 33.18%                 | 0.00%                 | {m3d['margin_aware_TAR'] * 100:.2f}%"
+    )
     print(f"Throughput (FPS)       | ~45.0                  | 84.9                  | {p3d['fps']:.1f}")
     print(f"Latency (ms)           | ~22.0ms                | 11.79ms               | {p3d['latency_ms']:.2f}ms")
     print(f"Peak VRAM              | ~850MB                 | 18.1MB                | {p3d['vram_mb']:.1f}MB")

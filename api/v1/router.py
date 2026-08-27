@@ -1,5 +1,7 @@
-from fastapi.responses import StreamingResponse, Response
 import asyncio
+
+from fastapi.responses import Response, StreamingResponse
+
 """Version 1 API routes for the ARGUS gait recognition backend."""
 
 import tempfile
@@ -50,14 +52,10 @@ def get_current_user_id(request: Request) -> str:
     return "default_user"
 
 
-def get_gait_service(request: Request = None) -> GaitService:
+def get_gait_service(request: Request) -> GaitService:
     """Return the initialized application-level gait service."""
 
-    if (
-        request
-        and hasattr(request.app.state, "gait_service")
-        and request.app.state.gait_service
-    ):
+    if request and hasattr(request.app.state, "gait_service") and request.app.state.gait_service:
         return request.app.state.gait_service
 
     return GaitService()
@@ -74,7 +72,7 @@ v1_router = APIRouter(
     response_model=HealthResponse,
 )
 def get_health(
-    service: GaitService = Depends(get_gait_service),
+    service: Annotated[GaitService, Depends(get_gait_service)],
 ):
     """Return the health status of the ARGUS gait service."""
 
@@ -89,11 +87,7 @@ def get_health(
             "pytorch",
         ),
         "models": {
-            "person_detector": (
-                "active"
-                if service.detector
-                else "optional"
-            ),
+            "person_detector": ("active" if service.detector else "optional"),
             "silhouette_extractor": "active",
             "gait_encoder": "active",
         },
@@ -105,7 +99,7 @@ def get_health(
     response_model=StatusResponse,
 )
 def get_status(
-    service: GaitService = Depends(get_gait_service),
+    service: Annotated[GaitService, Depends(get_gait_service)],
 ):
     """Return the operational status of the ARGUS backend."""
     from automation.device_manager import DeviceManager
@@ -144,7 +138,7 @@ def get_status(
     response_model=MetricsResponse,
 )
 def get_metrics(
-    service: GaitService = Depends(get_gait_service),
+    service: Annotated[GaitService, Depends(get_gait_service)],
 ):
     """Return runtime metrics."""
 
@@ -160,24 +154,18 @@ async def identify_image(
         UploadFile,
         File(description="Image file used for gait identification"),
     ],
+    service: Annotated[GaitService, Depends(get_gait_service)],
     camera_id: Annotated[
         str,
         Form(description="Camera or upload source identifier"),
     ] = "upload-image",
-    service: GaitService = Depends(get_gait_service),
 ):
     """Identify a person from an uploaded image."""
 
-    if (
-        file.content_type
-        and not file.content_type.startswith("image/")
-    ):
+    if file.content_type and not file.content_type.startswith("image/"):
         raise HTTPException(
             status_code=415,
-            detail=(
-                "Unsupported file type. "
-                "Upload a valid image file."
-            ),
+            detail=("Unsupported file type. Upload a valid image file."),
         )
 
     try:
@@ -222,7 +210,7 @@ async def analyze_video(
         UploadFile,
         File(description="Video file used for gait analysis"),
     ],
-    service: GaitService = Depends(get_gait_service),
+    service: Annotated[GaitService, Depends(get_gait_service)],
 ):
     """Analyze sampled frames from an uploaded video."""
 
@@ -483,7 +471,7 @@ def set_camera_credentials(
 def start_camera(
     body: CameraStartRequest,
     request: Request,
-    service: GaitService = Depends(get_gait_service),
+    service: Annotated[GaitService, Depends(get_gait_service)],
 ):
     """Start a camera recognition worker with automatic or explicit source resolution."""
 
@@ -519,7 +507,7 @@ def start_camera(
 @v1_router.post("/cameras/stop")
 def stop_camera(
     body: CameraStopRequest,
-    service: GaitService = Depends(get_gait_service),
+    service: Annotated[GaitService, Depends(get_gait_service)],
 ):
     """Stop an active camera recognition worker."""
 
@@ -528,10 +516,7 @@ def stop_camera(
     if not stopped:
         raise HTTPException(
             status_code=404,
-            detail=(
-                f"Camera {body.camera_id} "
-                "was not found or is not active"
-            ),
+            detail=(f"Camera {body.camera_id} was not found or is not active"),
         )
 
     return {
@@ -545,7 +530,7 @@ def stop_camera(
     response_model=list[CameraInfoResponse],
 )
 def list_cameras(
-    service: GaitService = Depends(get_gait_service),
+    service: Annotated[GaitService, Depends(get_gait_service)],
 ):
     """Return all active camera workers with live telemetry metrics."""
 
@@ -558,7 +543,7 @@ def list_cameras(
 )
 def get_camera(
     camera_id: str,
-    service: GaitService = Depends(get_gait_service),
+    service: Annotated[GaitService, Depends(get_gait_service)],
 ):
     """Return live camera worker telemetry and recognition stats for a specific camera."""
     info = service.get_camera_info(camera_id)
@@ -575,7 +560,7 @@ def get_camera(
 )
 async def stream_camera(
     camera_id: str,
-    service: GaitService = Depends(get_gait_service),
+    service: Annotated[GaitService, Depends(get_gait_service)],
 ):
     """
     Stream live camera frames with real-time recognition overlays in multipart/x-mixed-replace MJPEG format.
@@ -606,8 +591,11 @@ async def stream_camera(
                             yield (
                                 b"--frame\r\n"
                                 b"Content-Type: image/jpeg\r\n"
-                                b"Content-Length: " + str(len(offline_jpeg)).encode() + b"\r\n\r\n"
-                                + offline_jpeg + b"\r\n"
+                                b"Content-Length: "
+                                + str(len(offline_jpeg)).encode()
+                                + b"\r\n\r\n"
+                                + offline_jpeg
+                                + b"\r\n"
                             )
                     break
 
@@ -616,8 +604,7 @@ async def stream_camera(
                     yield (
                         b"--frame\r\n"
                         b"Content-Type: image/jpeg\r\n"
-                        b"Content-Length: " + str(len(jpeg_bytes)).encode() + b"\r\n\r\n"
-                        + jpeg_bytes + b"\r\n"
+                        b"Content-Length: " + str(len(jpeg_bytes)).encode() + b"\r\n\r\n" + jpeg_bytes + b"\r\n"
                     )
                     await asyncio.sleep(0.066)
                 else:
@@ -646,7 +633,7 @@ async def stream_camera(
 )
 def get_camera_snapshot(
     camera_id: str,
-    service: GaitService = Depends(get_gait_service),
+    service: Annotated[GaitService, Depends(get_gait_service)],
 ):
     """Return the latest single JPEG snapshot frame from the camera worker."""
     worker = service.get_camera_worker(camera_id)
@@ -683,7 +670,7 @@ async def enroll_subject(
         list[UploadFile],
         File(description="One or more gait enrollment image files"),
     ],
-    service: GaitService = Depends(get_gait_service),
+    service: Annotated[GaitService, Depends(get_gait_service)],
 ):
     """Enroll a person using one or more gait images."""
 
@@ -705,17 +692,10 @@ async def enroll_subject(
 
     try:
         for upload in files:
-            if (
-                upload.content_type
-                and not upload.content_type.startswith("image/")
-            ):
+            if upload.content_type and not upload.content_type.startswith("image/"):
                 raise HTTPException(
                     status_code=415,
-                    detail=(
-                        f"Unsupported file type for "
-                        f"{upload.filename or 'uploaded file'}: "
-                        f"{upload.content_type}"
-                    ),
+                    detail=(f"Unsupported file type for {upload.filename or 'uploaded file'}: {upload.content_type}"),
                 )
 
             content = await upload.read()
@@ -761,7 +741,7 @@ async def enroll_subject(
     response_model=list[RecognitionEvent],
 )
 def get_events(
-    service: GaitService = Depends(get_gait_service),
+    service: Annotated[GaitService, Depends(get_gait_service)],
 ):
     """Return recent gait recognition events."""
 
@@ -775,10 +755,7 @@ async def websocket_recognition(
 ):
     """Provide real-time recognition events through WebSocket."""
 
-    if (
-        hasattr(websocket.app.state, "gait_service")
-        and websocket.app.state.gait_service
-    ):
+    if hasattr(websocket.app.state, "gait_service") and websocket.app.state.gait_service:
         service = websocket.app.state.gait_service
     else:
         service = GaitService()
@@ -789,8 +766,5 @@ async def websocket_recognition(
         while True:
             await websocket.receive_text()
 
-    except WebSocketDisconnect:
-        service.ws_manager.disconnect(websocket)
-
-    except Exception:
+    except (WebSocketDisconnect, ConnectionResetError, RuntimeError):
         service.ws_manager.disconnect(websocket)

@@ -8,18 +8,18 @@ and atomic export to JSON, CSV, and Markdown formats.
 Excludes secrets, RTSP credentials, and raw biometric embeddings.
 """
 
-from dataclasses import asdict, dataclass, field
-from datetime import datetime
 import csv
 import json
 import os
-from pathlib import Path
 import re
 import tempfile
 import threading
 import time
-from typing import Any, Dict, List, Optional
 import uuid
+from dataclasses import asdict, dataclass, field
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
 
 import yaml
 
@@ -45,7 +45,7 @@ def load_event_timeline_config() -> dict:
     try:
         with open(config_path, encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
-    except Exception:
+    except (yaml.YAMLError, OSError, ValueError, KeyError):
         return defaults
 
     section = data.get("event_timeline", {})
@@ -53,7 +53,7 @@ def load_event_timeline_config() -> dict:
         return defaults
 
     merged = dict(defaults)
-    for key, val in defaults.items():
+    for key in defaults:
         if key in section:
             merged[key] = section[key]
 
@@ -65,19 +65,19 @@ class TimelineEvent:
     """Individual event payload in a track timeline."""
 
     event_id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
+    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     event_type: str = "UNKNOWN"
     camera_id: str = "default"
-    local_track_id: Optional[int] = None
-    global_track_id: Optional[str] = None
+    local_track_id: int | None = None
+    global_track_id: str | None = None
     identity_id: str = "UNKNOWN"
-    confidence: Optional[float] = None
-    reliability: Optional[float] = None
-    transition_score: Optional[float] = None
+    confidence: float | None = None
+    reliability: float | None = None
+    transition_score: float | None = None
     reason: str = ""
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert payload to dictionary with sanitized strings."""
         raw = asdict(self)
         sanitized = {}
@@ -100,7 +100,7 @@ class TimelineEvent:
 class EventTimelineReconstructor:
     """Thread-safe event timeline accumulator and exporter."""
 
-    def __init__(self, config: Optional[dict] = None) -> None:
+    def __init__(self, config: dict | None = None) -> None:
         self.config = config or load_event_timeline_config()
         self.enabled = bool(self.config.get("enabled", False))
         self.output_dir = Path(self.config.get("output_dir", "outputs/reports/timelines"))
@@ -111,10 +111,10 @@ class EventTimelineReconstructor:
         self.max_events = int(self.config.get("maximum_events_per_track", 500))
 
         self._lock = threading.Lock()
-        self._timelines: Dict[str, List[TimelineEvent]] = {}
-        self._last_updated: Dict[str, float] = {}
+        self._timelines: dict[str, list[TimelineEvent]] = {}
+        self._last_updated: dict[str, float] = {}
 
-    def _get_key(self, global_track_id: Optional[str], camera_id: str, local_track_id: Optional[int]) -> str:
+    def _get_key(self, global_track_id: str | None, camera_id: str, local_track_id: int | None) -> str:
         """Resolve a unique trajectory key."""
         if global_track_id:
             return f"global_{global_track_id}"
@@ -127,15 +127,15 @@ class EventTimelineReconstructor:
         self,
         event_type: str,
         camera_id: str = "default",
-        local_track_id: Optional[int] = None,
-        global_track_id: Optional[str] = None,
+        local_track_id: int | None = None,
+        global_track_id: str | None = None,
         identity_id: str = "UNKNOWN",
-        confidence: Optional[float] = None,
-        reliability: Optional[float] = None,
-        transition_score: Optional[float] = None,
+        confidence: float | None = None,
+        reliability: float | None = None,
+        transition_score: float | None = None,
         reason: str = "",
-        metadata: Optional[dict] = None,
-    ) -> Optional[TimelineEvent]:
+        metadata: dict | None = None,
+    ) -> TimelineEvent | None:
         """Record an event into the trajectory timeline, enforcing bounds and deduplication."""
         if not self.enabled:
             return None
@@ -178,9 +178,12 @@ class EventTimelineReconstructor:
 
             self._last_updated[key] = now
 
-            if event_type == "TRACK_CLOSED" and self.export_on_track_close:
-                should_export = True
-            elif event_type == "WATCHLIST_MATCH" and self.export_on_watchlist:
+            if (
+                event_type == "TRACK_CLOSED"
+                and self.export_on_track_close
+                or event_type == "WATCHLIST_MATCH"
+                and self.export_on_watchlist
+            ):
                 should_export = True
 
         if should_export:
@@ -202,12 +205,12 @@ class EventTimelineReconstructor:
 
         return len(expired_keys)
 
-    def get_timeline(self, key_or_track_id: str) -> List[TimelineEvent]:
+    def get_timeline(self, key_or_track_id: str) -> list[TimelineEvent]:
         """Retrieve copy of event sequence for a given trajectory key."""
         with self._lock:
             return list(self._timelines.get(str(key_or_track_id), []))
 
-    def export_timeline(self, key_or_track_id: str) -> Optional[Dict[str, Path]]:
+    def export_timeline(self, key_or_track_id: str) -> dict[str, Path] | None:
         """Export timeline trajectory to configured file formats atomically."""
         key = str(key_or_track_id)
         events_copy = self.get_timeline(key)
@@ -216,11 +219,11 @@ class EventTimelineReconstructor:
 
         self.output_dir.mkdir(parents=True, exist_ok=True)
         safe_key = re.sub(r"\W+", "_", key)
-        safe_ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        safe_ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
         base_name = f"timeline_{safe_key}_{safe_ts}"
 
         event_dicts = [e.to_dict() for e in events_copy]
-        generated_files: Dict[str, Path] = {}
+        generated_files: dict[str, Path] = {}
 
         if "json" in self.formats:
             json_path = self.output_dir / f"{base_name}.json"
@@ -239,12 +242,12 @@ class EventTimelineReconstructor:
 
         return generated_files
 
-    def _write_atomic_json(self, target_path: Path, track_key: str, events: List[dict]) -> None:
+    def _write_atomic_json(self, target_path: Path, track_key: str, events: list[dict]) -> None:
         """Write JSON trajectory file atomically."""
         payload = {
             "track_key": track_key,
             "event_count": len(events),
-            "created_at": datetime.now().isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
             "events": events,
         }
         temp_fd, temp_path = tempfile.mkstemp(dir=str(target_path.parent), suffix=".tmp")
@@ -252,7 +255,7 @@ class EventTimelineReconstructor:
             json.dump(payload, f, indent=2, default=str)
         os.replace(temp_path, target_path)
 
-    def _write_atomic_csv(self, target_path: Path, events: List[dict]) -> None:
+    def _write_atomic_csv(self, target_path: Path, events: list[dict]) -> None:
         """Write CSV trajectory file atomically."""
         temp_fd, temp_path = tempfile.mkstemp(dir=str(target_path.parent), suffix=".tmp")
         fields = [
@@ -275,14 +278,14 @@ class EventTimelineReconstructor:
                 writer.writerow([ev.get(col, "") for col in fields])
         os.replace(temp_path, target_path)
 
-    def _write_atomic_markdown(self, target_path: Path, track_key: str, events: List[dict]) -> None:
+    def _write_atomic_markdown(self, target_path: Path, track_key: str, events: list[dict]) -> None:
         """Write Markdown timeline file atomically."""
         temp_fd, temp_path = tempfile.mkstemp(dir=str(target_path.parent), suffix=".tmp")
         lines = [
             f"# Event Timeline Reconstruction — Trajectory `{track_key}`",
             "",
             f"**Event Count**: {len(events)}  ",
-            f"**Generated At**: {datetime.now().isoformat()}  ",
+            f"**Generated At**: {datetime.now(timezone.utc).isoformat()}  ",
             "",
             "| Event # | Timestamp | Event Type | Camera | Track ID | Identity | Confidence | Reliability | Reason |",
             "| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |",
@@ -295,11 +298,13 @@ class EventTimelineReconstructor:
                 f"`{ev.get('local_track_id')}` | `{ev.get('identity_id')}` | {conf_str} | {rel_str} | {ev.get('reason')} |"
             )
 
-        lines.extend([
-            "",
-            "---",
-            "*Timeline reconstruction generated automatically by ARGUS AI.*",
-        ])
+        lines.extend(
+            [
+                "",
+                "---",
+                "*Timeline reconstruction generated automatically by ARGUS AI.*",
+            ]
+        )
 
         with os.fdopen(temp_fd, "w", encoding="utf-8") as f:
             f.write("\n".join(lines))

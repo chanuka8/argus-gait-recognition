@@ -3,7 +3,6 @@
 import numpy as np
 
 from pipeline.steps.quality_estimator import QualityEstimator
-
 from pipeline.steps.temporal_gait_verifier import TemporalGaitVerifier
 
 
@@ -79,7 +78,7 @@ class TestTemporalGaitVerifier:
         verifier.add_embedding(1, np.ones(256) * 0.2)
         verifier.add_embedding(1, np.ones(256) * 0.5)
 
-        identity, score, decision = verifier.verify_identity(
+        identity, _score, decision = verifier.verify_identity(
             track_id=1,
             matcher_func=mock_matcher,
             gallery_features=None,
@@ -105,7 +104,7 @@ class TestTemporalGaitVerifier:
         verifier.add_embedding(1, np.ones(256) * 0.3)
         verifier.add_embedding(1, np.ones(256) * 0.5)
 
-        identity, score, decision = verifier.verify_identity(
+        identity, _score, decision = verifier.verify_identity(
             track_id=1,
             matcher_func=mock_matcher_split,
             gallery_features=None,

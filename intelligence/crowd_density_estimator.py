@@ -10,7 +10,7 @@ Returns density levels: LOW, MODERATE, HIGH, SEVERE.
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 
 class CrowdDensityLevel(str, Enum):
@@ -27,10 +27,10 @@ class CrowdDensityResult:
     total_area_ratio: float
     avg_pairwise_overlap: float
     strongly_overlapping_count: int
-    metrics: Dict[str, Any] = field(default_factory=dict)
+    metrics: dict[str, Any] = field(default_factory=dict)
 
 
-def compute_iou(box1: List[float], box2: List[float]) -> float:
+def compute_iou(box1: list[float], box2: list[float]) -> float:
     """Compute Intersection over Union (IoU) between two bounding boxes [x1, y1, x2, y2]."""
     x1_1, y1_1, x2_1, y2_1 = box1
     x1_2, y1_2, x2_2, y2_2 = box2
@@ -87,8 +87,8 @@ class CrowdDensityEstimator:
 
     def estimate_density(
         self,
-        detections: List[Dict[str, Any]],
-        frame_shape: Tuple[int, int] = (1080, 1920),
+        detections: list[dict[str, Any]],
+        frame_shape: tuple[int, int] = (1080, 1920),
     ) -> CrowdDensityResult:
         """
         Estimate crowd density from detection list and frame dimensions.
@@ -115,9 +115,7 @@ class CrowdDensityEstimator:
         frame_area = float(max(1, frame_h * frame_w))
 
         bboxes = [d["bbox"] for d in detections if "bbox" in d]
-        total_bbox_area = sum(
-            float(max(0, b[2] - b[0]) * max(0, b[3] - b[1])) for b in bboxes
-        )
+        total_bbox_area = sum(float(max(0, b[2] - b[0]) * max(0, b[3] - b[1])) for b in bboxes)
         total_area_ratio = float(total_bbox_area / frame_area)
 
         total_iou = 0.0
@@ -160,9 +158,12 @@ class CrowdDensityEstimator:
             level = CrowdDensityLevel.LOW
 
         density_score = float(
-            min(1.0, 0.4 * (person_count / max(1, self.severe_count))
-            + 0.3 * (total_area_ratio / max(0.01, self.severe_area_ratio))
-            + 0.3 * avg_pairwise_overlap)
+            min(
+                1.0,
+                0.4 * (person_count / max(1, self.severe_count))
+                + 0.3 * (total_area_ratio / max(0.01, self.severe_area_ratio))
+                + 0.3 * avg_pairwise_overlap,
+            )
         )
 
         return CrowdDensityResult(

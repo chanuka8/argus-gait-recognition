@@ -4,7 +4,7 @@ import json
 import time
 from pathlib import Path
 from threading import Lock
-from typing import Any, Dict, Optional
+from typing import Any
 
 import cv2
 import numpy as np
@@ -27,10 +27,10 @@ class EvidenceManager:
         target_id: str,
         camera_id: str,
         confidence: float,
-        frame: Optional[np.ndarray] = None,
-        gei: Optional[np.ndarray] = None,
-        extra_metadata: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, str]:
+        frame: np.ndarray | None = None,
+        gei: np.ndarray | None = None,
+        extra_metadata: dict[str, Any] | None = None,
+    ) -> dict[str, str]:
         """Save evidence snapshot, GEI, and metadata into organized target directory."""
         now_str = time.strftime("%Y%m%d_%H%M%S")
         timestamp = time.monotonic()
@@ -42,7 +42,7 @@ class EvidenceManager:
             target_dir = self.base_dir / target_id / f"{folder_name}_{count}"
             count += 1
 
-        saved_files: Dict[str, str] = {}
+        saved_files: dict[str, str] = {}
 
         with self._lock:
             target_dir.mkdir(parents=True, exist_ok=True)
@@ -101,7 +101,7 @@ class EvidenceManager:
                                 child.unlink(missing_ok=True)
                             folder.rmdir()
                             deleted += 1
-                except Exception as e:
+                except (OSError, json.JSONDecodeError, KeyError, ValueError) as e:
                     self._logger.error(f"Error purging evidence {meta_file}: {e}")
 
         return deleted

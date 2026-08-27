@@ -73,34 +73,19 @@ def main() -> None:
         default=0.3,
     )
 
-    parser.add_argument(
-        "--triplet-weight",
-        type=float,
-        default=0.5,
-        help="Weight for Batch-Hard Triplet loss."
-    )
+    parser.add_argument("--triplet-weight", type=float, default=0.5, help="Weight for Batch-Hard Triplet loss.")
 
     parser.add_argument(
         "--loss-mode",
         type=str,
         choices=["ce", "ce_arcface"],
         default="ce_arcface",
-        help="Loss mode to use. Default is ArcFace ('ce_arcface')."
+        help="Loss mode to use. Default is ArcFace ('ce_arcface').",
     )
 
-    parser.add_argument(
-        "--arcface-scale",
-        type=float,
-        default=30.0,
-        help="Scale parameter for ArcFace loss."
-    )
+    parser.add_argument("--arcface-scale", type=float, default=30.0, help="Scale parameter for ArcFace loss.")
 
-    parser.add_argument(
-        "--arcface-margin",
-        type=float,
-        default=0.50,
-        help="Margin parameter for ArcFace loss."
-    )
+    parser.add_argument("--arcface-margin", type=float, default=0.50, help="Margin parameter for ArcFace loss.")
 
     args = parser.parse_args()
 
@@ -121,7 +106,6 @@ def main() -> None:
     )
 
     trainer.train()
-
 
 
 if __name__ == "__main__":

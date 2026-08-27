@@ -8,18 +8,15 @@ idempotent package management, and manifest persistence.
 import argparse
 import datetime
 import json
-import os
 import sys
-import time
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from automation.cuda_detector import CudaDetector
 from automation.device_manager import DeviceManager
 from automation.dll_manager import setup_cuda_dll_paths
 from automation.environment_validator import (
     ComputeBackend,
-    EnvironmentState,
     EnvironmentValidator,
 )
 from automation.hardware_detector import HardwareDetector
@@ -31,7 +28,7 @@ ROOT = Path(__file__).resolve().parent.parent
 if hasattr(sys.stdout, "reconfigure"):
     try:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-    except Exception:
+    except (OSError, ValueError, AttributeError):
         pass
 
 
@@ -132,7 +129,7 @@ class EnvironmentBootstrap:
 
         if target_backend == ComputeBackend.CUDA:
             cuda_det = CudaDetector()
-            t_ok, t_details, t_err = cuda_det.probe_cuda_tensor_execution()
+            t_ok, _t_details, t_err = cuda_det.probe_cuda_tensor_execution()
             if t_ok:
                 print("[PASS] torch.cuda.is_available(): TRUE")
                 print(f"[PASS] Device: {gpu_info.gpu_name}")
@@ -143,7 +140,7 @@ class EnvironmentBootstrap:
                 target_backend = ComputeBackend.CPU
 
         if target_backend == ComputeBackend.CPU:
-            cpu_ok, cpu_details, cpu_errors = validator.validate_cpu_pipeline()
+            cpu_ok, _cpu_details, cpu_errors = validator.validate_cpu_pipeline()
             if cpu_ok:
                 print("[PASS] CPU tensor execution: PASS")
             else:
@@ -156,14 +153,16 @@ class EnvironmentBootstrap:
         # Stage 9: Validate YOLO Runtime Device
         print("\n[09/12] Validating YOLO PersonDetector...")
         try:
-            from pipeline.detection.person_detector import PersonDetector
             import numpy as np
+
+            from pipeline.detection.person_detector import PersonDetector
+
             detector = PersonDetector()
             dummy = np.zeros((480, 640, 3), dtype=np.uint8)
             _ = detector.detect(dummy)
             yolo_dev = str(next(detector.model.model.parameters()).device)
             print(f"[PASS] Runtime Device: {yolo_dev}")
-        except Exception as e:
+        except (RuntimeError, ValueError, TypeError, AttributeError, OSError, ImportError) as e:
             print(f"[FAIL] YOLO validation error: {e}")
 
         # Stage 10: Validate ONNX Runtime
@@ -171,13 +170,18 @@ class EnvironmentBootstrap:
         try:
             import numpy as np
             import onnxruntime as ort
+
             model_candidates = [
                 ROOT / "models/weights/silhouette_segmenter.onnx",
                 ROOT / "models/engines/silhouette_segmenter.onnx",
             ]
             model_path = next((p for p in model_candidates if p.exists()), None)
             providers = ort.get_available_providers()
-            active_p = "CUDAExecutionProvider" if ("CUDAExecutionProvider" in providers and target_backend == ComputeBackend.CUDA) else "CPUExecutionProvider"
+            active_p = (
+                "CUDAExecutionProvider"
+                if ("CUDAExecutionProvider" in providers and target_backend == ComputeBackend.CUDA)
+                else "CPUExecutionProvider"
+            )
             if model_path:
                 req_provs = [active_p]
                 if active_p != "CPUExecutionProvider":
@@ -190,13 +194,14 @@ class EnvironmentBootstrap:
                 _ = sess.run([out_name], {in_name: dummy})
             print(f"[PASS] Active Provider: {active_p}")
             print("[PASS] Silhouette inference")
-        except Exception as e:
+        except (RuntimeError, ValueError, TypeError, AttributeError, OSError, ImportError) as e:
             print(f"[FAIL] ONNX validation error: {e}")
 
         # Stage 11: Validate ByGaitLight CNN
         print("\n[11/12] Validating ByGaitLight CNN...")
         try:
             import torch
+
             from models.architectures.bygait_light import ByGaitLight
 
             dev_str = dm.device
@@ -210,7 +215,7 @@ class EnvironmentBootstrap:
             print(f"[PASS] Model Device: {dev_str}")
             print(f"[PASS] Output Shape: {list(emb.shape)}")
             print(f"[PASS] L2 Norm: {norm:.4f}")
-        except Exception as e:
+        except (RuntimeError, ValueError, TypeError, AttributeError, OSError, ImportError) as e:
             print(f"[FAIL] ByGaitLight validation error: {e}")
 
         # Stage 12: Final Environment Validation & Manifest Persistence
@@ -242,7 +247,7 @@ class EnvironmentBootstrap:
 
         return True
 
-    def _save_manifest(self, summary: Dict[str, Any]) -> None:
+    def _save_manifest(self, summary: dict[str, Any]) -> None:
         """Persist environment snapshot to .venv/argus_env_manifest.json."""
         self.manifest_path.parent.mkdir(parents=True, exist_ok=True)
         data = {
@@ -251,7 +256,7 @@ class EnvironmentBootstrap:
         }
         try:
             self.manifest_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
-        except Exception:
+        except (OSError, ValueError, TypeError):
             pass
 
 

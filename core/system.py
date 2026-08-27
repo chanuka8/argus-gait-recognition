@@ -33,9 +33,7 @@ class ArgusSystem:
 
         config = self.boot_manager.boot()
 
-        self.logger.info(
-            f"Loaded project: {config.get('project_name', 'ARGUS')}"
-        )
+        self.logger.info(f"Loaded project: {config.get('project_name', 'ARGUS')}")
 
         self.orchestrator.start()
 

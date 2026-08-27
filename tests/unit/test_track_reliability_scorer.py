@@ -90,5 +90,6 @@ def test_track_reliability_evaluation_dict():
 
 def test_backward_compatibility_disabled_pipeline_output():
     from pipeline.video_recognition import _load_track_reliability_config
+
     cfg = _load_track_reliability_config()
     assert not cfg.get("enabled", False)

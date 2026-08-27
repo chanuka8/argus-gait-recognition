@@ -1,13 +1,14 @@
-from contextlib import asynccontextmanager
 import os
+from contextlib import asynccontextmanager
 from pathlib import Path
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from api.v1.router import v1_router, get_gait_service
+from api.v1.router import get_gait_service, v1_router
 from services.gait_service import GaitService
 
 FRONTEND_DIST_DIR = Path(__file__).resolve().parent.parent / "frontend" / "dist"
@@ -94,7 +95,7 @@ def custom_openapi():
                     "format": "binary",
                 },
             }
-    except Exception:
+    except (KeyError, TypeError, AttributeError, IndexError):
         pass
 
     app.openapi_schema = openapi_schema

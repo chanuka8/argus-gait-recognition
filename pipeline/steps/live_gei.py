@@ -55,11 +55,15 @@ class LiveGEI:
 
         self.min_cycle_frames = int(self.config.get("min_cycle_frames", min_cycle_frames))
         self.max_cycle_frames = int(self.config.get("max_cycle_frames", max_cycle_frames))
-        self.cycle_confidence_threshold = float(self.config.get("cycle_confidence_threshold", cycle_confidence_threshold))
+        self.cycle_confidence_threshold = float(
+            self.config.get("cycle_confidence_threshold", cycle_confidence_threshold)
+        )
         self.duplicate_threshold = float(self.config.get("duplicate_threshold", duplicate_threshold))
 
         self.cycle_history_window = int(self.config.get("cycle_history_window", 30))
-        self.history_capacity = max(self.max_frames, self.cycle_history_window) if self.cycle_detection_enabled else self.max_frames
+        self.history_capacity = (
+            max(self.max_frames, self.cycle_history_window) if self.cycle_detection_enabled else self.max_frames
+        )
 
         self.frames: list[np.ndarray] = []
         self.width_signals: list[float] = []
@@ -67,7 +71,6 @@ class LiveGEI:
         self.rejected_frames = 0
         self.duplicate_frames = 0
         self.last_cycle_detected: int | None = None
-
 
     @staticmethod
     def _load_config(config_path: Path) -> dict[str, Any]:
@@ -129,7 +132,7 @@ class LiveGEI:
         signal_mean = np.mean(signal)
         signal_norm = signal - signal_mean
 
-        variance = float(np.sum(signal_norm ** 2))
+        variance = float(np.sum(signal_norm**2))
         if variance < 1e-5:
             return None
 
@@ -160,7 +163,7 @@ class LiveGEI:
         if cycle_len is not None and len(self.frames) >= cycle_len:
             frame_slice = self.frames[-cycle_len:]
         else:
-            frame_slice = self.frames[-self.max_frames:]
+            frame_slice = self.frames[-self.max_frames :]
 
         gei = np.mean(frame_slice, axis=0)
         return (gei * 255.0).astype(np.uint8)
@@ -178,4 +181,3 @@ class LiveGEI:
 
     def reset(self) -> None:
         self.clear()
-

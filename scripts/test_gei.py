@@ -13,13 +13,15 @@ def main():
     gei_builder = GEIBuilder()
 
     for _ in range(20):
-
-        frame = np.random.randint(
-            0,
-            2,
-            (128, 64),
-            dtype=np.uint8,
-        ) * 255
+        frame = (
+            np.random.randint(
+                0,
+                2,
+                (128, 64),
+                dtype=np.uint8,
+            )
+            * 255
+        )
 
         gei_builder.add_frame(frame)
 

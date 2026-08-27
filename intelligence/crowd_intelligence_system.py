@@ -10,10 +10,11 @@ Integrates:
 Disabled by default (`enabled: false`) for 100% backward compatibility.
 """
 
+import time
 from dataclasses import dataclass
 from pathlib import Path
-import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
+
 import yaml
 
 from intelligence.camera_topology_learner import CameraTopologyLearner
@@ -36,7 +37,7 @@ class CrowdIntelligenceEvaluation:
     fused_identity: str
     fused_score: float
     fusion_state: str
-    contributing_cameras: List[str]
+    contributing_cameras: list[str]
     topology_observation_accepted: bool
     should_alert: bool
 
@@ -46,7 +47,7 @@ class CrowdIntelligenceSystem:
     Unified Orchestrator for Crowd-Intelligence Features across single-camera and multi-camera pipelines.
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None, transition_model: Optional[Any] = None) -> None:
+    def __init__(self, config: dict[str, Any] | None = None, transition_model: Any | None = None) -> None:
         self.logger = get_logger("crowd_intelligence")
         cfg = config or self._load_default_config()
 
@@ -72,7 +73,7 @@ class CrowdIntelligenceSystem:
         return self.enabled
 
     @staticmethod
-    def _load_default_config() -> Dict[str, Any]:
+    def _load_default_config() -> dict[str, Any]:
         config_path = Path("configs/inference.yaml")
         defaults = {
             "enabled": False,
@@ -129,17 +130,17 @@ class CrowdIntelligenceSystem:
                         if key not in ci_section:
                             ci_section[key] = val
                     return ci_section
-        except Exception:
+        except (yaml.YAMLError, OSError, ValueError, KeyError):
             pass
 
         return defaults
 
     def process_frame(
         self,
-        detections: List[Dict[str, Any]],
-        frame_shape: Tuple[int, int] = (1080, 1920),
+        detections: list[dict[str, Any]],
+        frame_shape: tuple[int, int] = (1080, 1920),
         camera_id: str = "cam_00",
-        timestamp: Optional[float] = None,
+        timestamp: float | None = None,
     ) -> FrameCrowdAnalysis:
         """Stage 1: Process frame crowd density and per-track occlusion analysis."""
         return self.occlusion_analyzer.analyze_frame(
@@ -162,9 +163,9 @@ class CrowdIntelligenceSystem:
         occlusion_score: float = 0.0,
         clean_frame_count: int = 20,
         clean_frame_ratio: float = 1.0,
-        global_track_id: Optional[str] = None,
-        source_camera: Optional[str] = None,
-        timestamp: Optional[float] = None,
+        global_track_id: str | None = None,
+        source_camera: str | None = None,
+        timestamp: float | None = None,
     ) -> CrowdIntelligenceEvaluation:
         """
         Evaluate Stage 2 (Deferral), Stage 3 (Fusion), and Stage 4 (Topology Learning) for a track.
@@ -173,7 +174,7 @@ class CrowdIntelligenceSystem:
         entity_key = global_track_id or f"{camera_id}_{track_id}"
 
         if not self.enabled:
-            is_confirmed = (open_set_state == "KNOWN" and similarity >= 0.85 and identity_candidate != "UNKNOWN")
+            is_confirmed = open_set_state == "KNOWN" and similarity >= 0.85 and identity_candidate != "UNKNOWN"
             return CrowdIntelligenceEvaluation(
                 crowd_density_level="LOW",
                 crowd_density_score=0.0,
@@ -226,12 +227,16 @@ class CrowdIntelligenceSystem:
             )
         else:
             is_confirmed = def_res.recognition_state == "CONFIRMED"
-            fusion_res = type("FusionRes", (), {
-                "fused_identity": def_res.identity,
-                "fused_score": def_res.confidence,
-                "fusion_state": "CONFIRMED" if is_confirmed else "UNKNOWN",
-                "contributing_cameras": [camera_id],
-            })()
+            fusion_res = type(
+                "FusionRes",
+                (),
+                {
+                    "fused_identity": def_res.identity,
+                    "fused_score": def_res.confidence,
+                    "fusion_state": "CONFIRMED" if is_confirmed else "UNKNOWN",
+                    "contributing_cameras": [camera_id],
+                },
+            )()
 
         topology_accepted = False
         if self.topology_learner.is_enabled():
@@ -261,19 +266,23 @@ class CrowdIntelligenceSystem:
             crowd_density_score=round(occlusion_score, 4),
             track_occlusion_score=round(occlusion_score, 4),
             clean_frame_ratio=round(clean_frame_ratio, 4),
-            recognition_state=def_res.recognition_state.value if hasattr(def_res.recognition_state, "value") else str(def_res.recognition_state),
+            recognition_state=def_res.recognition_state.value
+            if hasattr(def_res.recognition_state, "value")
+            else str(def_res.recognition_state),
             recognition_deferred=def_res.recognition_deferred,
             defer_reason=def_res.defer_reason,
             accumulated_evidence_count=def_res.accumulated_evidence_count,
             fused_identity=fusion_res.fused_identity,
             fused_score=fusion_res.fused_score,
-            fusion_state=fusion_res.fusion_state.value if hasattr(fusion_res.fusion_state, "value") else str(fusion_res.fusion_state),
+            fusion_state=fusion_res.fusion_state.value
+            if hasattr(fusion_res.fusion_state, "value")
+            else str(fusion_res.fusion_state),
             contributing_cameras=fusion_res.contributing_cameras,
             topology_observation_accepted=topology_accepted,
             should_alert=def_res.should_alert,
         )
 
-    def cleanup_inactive(self, max_idle_seconds: float = 15.0, current_time: Optional[float] = None) -> None:
+    def cleanup_inactive(self, max_idle_seconds: float = 15.0, current_time: float | None = None) -> None:
         """Periodic cleanup across all sub-engines."""
         now = current_time if current_time is not None else time.monotonic()
         self.occlusion_analyzer.cleanup_inactive(max_idle_seconds, now)

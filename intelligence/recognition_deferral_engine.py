@@ -5,10 +5,10 @@ Manages deterministic recognition deferral, evidence accumulation buffers,
 TTL expiration, and watchlist suppression for deferred/uncertain tracks.
 """
 
+import time
 from dataclasses import dataclass, field
 from enum import Enum
-import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 
 class RecognitionState(str, Enum):
@@ -39,7 +39,7 @@ class DeferralResult:
     defer_reason: str
     accumulated_evidence_count: int
     should_alert: bool = False
-    evidence_history: List[EvidenceRecord] = field(default_factory=list)
+    evidence_history: list[EvidenceRecord] = field(default_factory=list)
 
 
 class RecognitionDeferralEngine:
@@ -48,7 +48,7 @@ class RecognitionDeferralEngine:
     accumulated evidence meets confidence, quality, reliability, and clean-frame criteria.
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, config: dict[str, Any] | None = None) -> None:
         cfg = config or {}
         self.enabled = bool(cfg.get("enabled", False))
         self.evidence_window = int(cfg.get("evidence_window", 5))
@@ -57,8 +57,8 @@ class RecognitionDeferralEngine:
         self.evidence_ttl_seconds = float(cfg.get("evidence_ttl_seconds", 10.0))
         self.identity_ttl_seconds = float(cfg.get("identity_ttl_seconds", 5.0))
 
-        self.evidence_buffers: Dict[Tuple[str, Any], List[EvidenceRecord]] = {}
-        self.retained_identities: Dict[Tuple[str, Any], Tuple[str, float]] = {}
+        self.evidence_buffers: dict[tuple[str, Any], list[EvidenceRecord]] = {}
+        self.retained_identities: dict[tuple[str, Any], tuple[str, float]] = {}
 
     def is_enabled(self) -> bool:
         return self.enabled
@@ -80,7 +80,7 @@ class RecognitionDeferralEngine:
         minimum_clean_ratio: float = 0.70,
         quality_threshold: float = 0.60,
         moderate_occlusion_threshold: float = 0.35,
-        timestamp: Optional[float] = None,
+        timestamp: float | None = None,
     ) -> DeferralResult:
         """
         Evaluate candidate match, accumulate evidence into bounded buffer, and determine recognition state.
@@ -89,13 +89,11 @@ class RecognitionDeferralEngine:
         key = (camera_id, track_id)
 
         if not self.enabled:
-            is_confirmed = (
-                open_set_state == "KNOWN"
-                and similarity >= 0.85
-                and identity_candidate != "UNKNOWN"
-            )
-            state = RecognitionState.CONFIRMED if is_confirmed else (
-                RecognitionState.UNCERTAIN if open_set_state == "UNCERTAIN" else RecognitionState.UNKNOWN
+            is_confirmed = open_set_state == "KNOWN" and similarity >= 0.85 and identity_candidate != "UNKNOWN"
+            state = (
+                RecognitionState.CONFIRMED
+                if is_confirmed
+                else (RecognitionState.UNCERTAIN if open_set_state == "UNCERTAIN" else RecognitionState.UNKNOWN)
             )
             return DeferralResult(
                 recognition_state=state,
@@ -126,7 +124,7 @@ class RecognitionDeferralEngine:
 
         buf[:] = [r for r in buf if (now - r.timestamp) <= self.evidence_ttl_seconds]
         if len(buf) > self.evidence_window * 2:
-            buf[:] = buf[-self.evidence_window * 2:]
+            buf[:] = buf[-self.evidence_window * 2 :]
 
         accumulated_count = len(buf)
 
@@ -166,7 +164,8 @@ class RecognitionDeferralEngine:
             defer_reasons.append(f"Reliability ({reliability:.2f}) < min ({self.minimum_reliability:.2f})")
 
         matching_confirmations = [
-            r for r in buf
+            r
+            for r in buf
             if r.identity_candidate == identity_candidate
             and r.reliability >= self.minimum_reliability
             and r.open_set_state == "KNOWN"
@@ -208,7 +207,7 @@ class RecognitionDeferralEngine:
             evidence_history=buf,
         )
 
-    def cleanup_inactive(self, max_idle_seconds: float = 15.0, current_time: Optional[float] = None) -> None:
+    def cleanup_inactive(self, max_idle_seconds: float = 15.0, current_time: float | None = None) -> None:
         """Clean expired evidence buffers and retained identities."""
         now = current_time if current_time is not None else time.monotonic()
 

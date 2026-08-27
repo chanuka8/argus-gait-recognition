@@ -5,9 +5,9 @@ Maintains bounded recently-lost track states and performs deterministic ID-switc
 and track recovery using spatial IoU, bounding box dimensions, and historical evidence.
 """
 
-from dataclasses import dataclass
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from dataclasses import dataclass
+from typing import Any
 
 from intelligence.crowd_occlusion_analyzer import compute_iou
 from monitoring.logging_config import get_logger
@@ -17,10 +17,10 @@ from monitoring.logging_config import get_logger
 class LostTrackRecord:
     camera_id: str
     track_id: int
-    last_bbox: List[int]
+    last_bbox: list[int]
     last_seen_time: float
     identity: str = "UNKNOWN"
-    feature_vector: Optional[Any] = None
+    feature_vector: Any | None = None
     quality: float = 1.0
 
 
@@ -40,17 +40,17 @@ class TrackRecoveryManager:
         self.max_buffered_tracks = max_buffered_tracks
         self.min_recovery_iou = min_recovery_iou
 
-        self.lost_tracks: Dict[Tuple[str, int], LostTrackRecord] = {}
+        self.lost_tracks: dict[tuple[str, int], LostTrackRecord] = {}
 
     def register_lost_track(
         self,
         camera_id: str,
         track_id: int,
-        last_bbox: List[int],
+        last_bbox: list[int],
         identity: str = "UNKNOWN",
-        feature_vector: Optional[Any] = None,
+        feature_vector: Any | None = None,
         quality: float = 1.0,
-        timestamp: Optional[float] = None,
+        timestamp: float | None = None,
     ) -> None:
         """Register a track that was lost by ByteTrack tracker."""
         now = timestamp if timestamp is not None else time.monotonic()
@@ -76,9 +76,9 @@ class TrackRecoveryManager:
         self,
         camera_id: str,
         new_track_id: int,
-        new_bbox: List[int],
-        timestamp: Optional[float] = None,
-    ) -> Optional[LostTrackRecord]:
+        new_bbox: list[int],
+        timestamp: float | None = None,
+    ) -> LostTrackRecord | None:
         """
         Attempt to match a newly initialized track ID to a recently lost track.
 
@@ -92,7 +92,7 @@ class TrackRecoveryManager:
 
         self.cleanup_expired(now)
 
-        best_match: Optional[LostTrackRecord] = None
+        best_match: LostTrackRecord | None = None
         best_score = 0.0
 
         w_new = max(1, new_bbox[2] - new_bbox[0])
@@ -129,7 +129,7 @@ class TrackRecoveryManager:
 
         return None
 
-    def cleanup_expired(self, current_time: Optional[float] = None) -> None:
+    def cleanup_expired(self, current_time: float | None = None) -> None:
         """Purge expired lost tracks."""
         now = current_time if current_time is not None else time.monotonic()
         for key, record in list(self.lost_tracks.items()):

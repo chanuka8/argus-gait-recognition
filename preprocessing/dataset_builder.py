@@ -52,7 +52,7 @@ class CasiaGEIDatasetBuilder:
             array = np.frombuffer(raw_bytes, dtype=np.uint8)
             image = cv2.imdecode(array, cv2.IMREAD_GRAYSCALE)
             return image
-        except Exception as error:
+        except (KeyError, OSError, cv2.error, ValueError) as error:
             self.logger.warning(f"Failed to read {file_name}: {error}")
             return None
 
@@ -76,8 +76,8 @@ class CasiaGEIDatasetBuilder:
 
                 sequence_map[key].append(file_name)
 
-        for key in sequence_map:
-            sequence_map[key].sort()
+        for files in sequence_map.values():
+            files.sort()
 
         self.logger.info(f"Detected sequences: {len(sequence_map)}")
 

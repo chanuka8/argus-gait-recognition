@@ -1,9 +1,7 @@
-from collections import Counter
-from collections import deque
+from collections import Counter, deque
 
 
 class PredictionSmoother:
-
     def __init__(
         self,
         history_size=10,
@@ -22,14 +20,10 @@ class PredictionSmoother:
         threshold=0.85,
     ):
         if track_id not in self.history:
-            self.history[track_id] = deque(
-                maxlen=self.history_size
-            )
+            self.history[track_id] = deque(maxlen=self.history_size)
             self.confirmed_identities[track_id] = "UNKNOWN"
 
-        self.history[track_id].append(
-            (prediction, score)
-        )
+        self.history[track_id].append((prediction, score))
 
         votes = Counter()
         for p, s in self.history[track_id]:

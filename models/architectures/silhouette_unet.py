@@ -1,5 +1,5 @@
 import torch
-import torch.nn as nn
+from torch import nn
 
 
 class DoubleConv(nn.Module):
@@ -82,4 +82,6 @@ if __name__ == "__main__":
     dummy_input = torch.randn(1, 3, 256, 256)
     model = SilhouetteUNet()
     output = model(dummy_input)
-    print(f"SilhouetteUNet forward shape: {output.shape}, min: {output.min().item():.4f}, max: {output.max().item():.4f}")
+    print(
+        f"SilhouetteUNet forward shape: {output.shape}, min: {output.min().item():.4f}, max: {output.max().item():.4f}"
+    )

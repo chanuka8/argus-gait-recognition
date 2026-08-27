@@ -9,9 +9,7 @@ from pipeline.folder_recognition import FolderRecognitionPipeline
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="ARGUS folder-based GEI recognition"
-    )
+    parser = argparse.ArgumentParser(description="ARGUS folder-based GEI recognition")
 
     parser.add_argument(
         "--folder",

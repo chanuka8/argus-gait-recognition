@@ -7,10 +7,11 @@ as well as latency (ms), throughput (FPS), and peak VRAM.
 """
 
 import json
-from pathlib import Path
 import sys
 import time
-from typing import Dict, List, Tuple, Any
+from pathlib import Path
+from typing import Any
+
 import numpy as np
 import torch
 
@@ -44,7 +45,7 @@ class Evaluator3D:
         self.sequence_length = sequence_length
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
 
-    def _load_model(self) -> Tuple[PoseLifter3D, torch.nn.Module]:
+    def _load_model(self) -> tuple[PoseLifter3D, torch.nn.Module]:
         if not self.model_path.exists():
             raise FileNotFoundError(f"3D Gait model checkpoint not found: {self.model_path}")
 
@@ -53,6 +54,7 @@ class Evaluator3D:
 
         encoder_type = ckpt.get("encoder_type", "tcn")
         from training.gait_3d_trainer import get_gait3d_model
+
         gait_net = get_gait3d_model(encoder_type=encoder_type, embedding_dim=256).to(self.device)
 
         lifter.load_state_dict(ckpt["lifter"])
@@ -63,9 +65,7 @@ class Evaluator3D:
 
         return lifter, gait_net
 
-    def _build_gallery_and_probes(
-        self, test_subjects: List[str]
-    ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    def _build_gallery_and_probes(self, test_subjects: list[str]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         gallery_items = []
         probe_items = []
         test_set = set(test_subjects)
@@ -102,7 +102,7 @@ class Evaluator3D:
 
         return gallery_items, probe_items
 
-    def evaluate(self, output_dir: str = "runs/exp_006_3d/evaluation") -> Dict[str, Any]:
+    def evaluate(self, output_dir: str = "runs/exp_006_3d/evaluation") -> dict[str, Any]:
         out_dir = Path(output_dir)
         out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -182,16 +182,18 @@ class Evaluator3D:
             if is_rank5:
                 rank5_hits += 1
 
-            probe_details.append({
-                "path": probe_items[i]["path"],
-                "actual_id": actual_id,
-                "predicted_id": predicted_id,
-                "score": best_sim,
-                "margin": round(margin, 4),
-                "is_genuine": is_rank1,
-                "condition": prb_conds[i],
-                "view": prb_views[i],
-            })
+            probe_details.append(
+                {
+                    "path": probe_items[i]["path"],
+                    "actual_id": actual_id,
+                    "predicted_id": predicted_id,
+                    "score": best_sim,
+                    "margin": round(margin, 4),
+                    "is_genuine": is_rank1,
+                    "condition": prb_conds[i],
+                    "view": prb_views[i],
+                }
+            )
 
         rank1_acc = rank1_hits / max(len(probe_items), 1)
         rank5_acc = rank5_hits / max(len(probe_items), 1)
@@ -206,9 +208,9 @@ class Evaluator3D:
                 cond_accs[c] = 0.0
 
         view_accs = {}
-        unique_views = sorted(list(set(prb_views)))
+        unique_views = sorted(set(prb_views))
         for v in unique_views:
-            mask = (prb_views == v)
+            mask = prb_views == v
             if np.sum(mask) > 0:
                 v_hits = sum(1 for i in np.where(mask)[0] if probe_details[i]["is_genuine"])
                 view_accs[v] = round(v_hits / float(np.sum(mask)), 4)
@@ -216,7 +218,9 @@ class Evaluator3D:
         known_test_subs = set(test_subs[: len(test_subs) // 2])
         scores_arr = np.array([p["score"] for p in probe_details], dtype=np.float32)
         margins_arr = np.array([p["margin"] for p in probe_details], dtype=np.float32)
-        is_genuine_arr = np.array([p["actual_id"] in known_test_subs and p["is_genuine"] for p in probe_details], dtype=bool)
+        is_genuine_arr = np.array(
+            [p["actual_id"] in known_test_subs and p["is_genuine"] for p in probe_details], dtype=bool
+        )
 
         roc_res = compute_roc_auc_eer(scores_arr, is_genuine_arr)
         operating_rates = compute_biometric_rates(scores_arr, is_genuine_arr, threshold=roc_res["eer_threshold"])

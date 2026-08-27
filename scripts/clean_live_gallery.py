@@ -25,9 +25,7 @@ def clean_gallery(
     current = store.load()
 
     if current is None:
-        print(
-            f"Gallery not found: {gallery_dir}"
-        )
+        print(f"Gallery not found: {gallery_dir}")
         return
 
     features, labels, metadata = current
@@ -40,16 +38,10 @@ def clean_gallery(
         labels,
     )
 
-    remove_set = {
-        str(person_id)
-        for person_id in remove_ids
-    }
+    remove_set = {str(person_id) for person_id in remove_ids}
 
     keep_mask = np.asarray(
-        [
-            str(label) not in remove_set
-            for label in labels
-        ],
+        [str(label) not in remove_set for label in labels],
         dtype=bool,
     )
 
@@ -71,24 +63,14 @@ def clean_gallery(
         metadata,
     )
 
-    print(
-        f"Gallery cleaned: {gallery_dir}"
-    )
-    print(
-        f"Removed identities: {sorted(remove_set)}"
-    )
-    print(
-        f"Embeddings removed: {removed_count}"
-    )
-    print(
-        f"Remaining embeddings: {int(np.sum(keep_mask))}"
-    )
+    print(f"Gallery cleaned: {gallery_dir}")
+    print(f"Removed identities: {sorted(remove_set)}")
+    print(f"Embeddings removed: {removed_count}")
+    print(f"Remaining embeddings: {int(np.sum(keep_mask))}")
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Clean contaminated identities from ARGUS live gallery"
-    )
+    parser = argparse.ArgumentParser(description="Clean contaminated identities from ARGUS live gallery")
 
     parser.add_argument(
         "--gallery-dir",

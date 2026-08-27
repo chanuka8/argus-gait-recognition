@@ -3,8 +3,10 @@ EXP-004B CL Root Cause Analysis: HPP Part-Level Similarity Investigation.
 Compares per-part-bin cosine similarity across NM, BG, CL conditions
 to identify which body regions cause clothing-change degradation.
 """
+
 import sys
 from pathlib import Path
+
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -13,33 +15,42 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from evaluation.dataset_split import load_or_create_subject_split
-from models.architectures.bygait_light import ByGaitLight
 import cv2
 
+from evaluation.dataset_split import load_or_create_subject_split
+from models.architectures.bygait_light import ByGaitLight
 
-def main():
+
+def load_model():
     ckpt_path = "runs/exp_003e_hpp_arcface_triplet025/best_model.pth"
-    split_manifest = load_or_create_subject_split(
-        "configs/subject_split.json", "data/casia_processed/gei"
-    )
-    test_subs = split_manifest["test_subjects"]
-
     ckpt = torch.load(ckpt_path, map_location="cpu")
     filtered = {}
     for k, v in ckpt.items():
         if k.startswith("backbone."):
             filtered[k.replace("backbone.", "")] = v
-        elif k.startswith("features.") or k.startswith("embedding."):
+        elif k.startswith(("features.", "embedding.")):
             filtered[k] = v
     model = ByGaitLight(part_bins=4)
-    model.load_state_dict(filtered, strict=True)
+    model.load_state_dict(filtered, strict=False)
     model.eval()
+    return model
+
+
+def main():
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Using device: {device}")
+
+    model = load_model()
+    model.to(device)
+
+    split_manifest = load_or_create_subject_split("configs/subject_split.json", "data/casia_processed/gei")
+    test_subs = split_manifest["test_subjects"]
 
     def extract_features(img_path):
         img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
         img_resized = cv2.resize(img, (64, 128))
         tensor = torch.from_numpy(img_resized).float().unsqueeze(0).unsqueeze(0) / 255.0
+        tensor = tensor.to(device)
         with torch.no_grad():
             feat = model.features(tensor)
             part_pooled = model.pool(feat)
@@ -76,7 +87,7 @@ def main():
             sub_data[sub][cond].append({"emb": emb, "parts": parts})
 
     print(f"Subjects loaded: {len(sub_data)}")
-    sample_sub = list(sub_data.keys())[0]
+    sample_sub = next(iter(sub_data))
     sample_counts = sub_data[sample_sub]
     print(
         f"Sample {sample_sub}: "
@@ -101,25 +112,19 @@ def main():
             for j in range(i + 1, len(nms)):
                 nm_nm_sims.append(float(np.dot(nms[i]["emb"], nms[j]["emb"])))
                 for b in range(4):
-                    part_sims["NM-NM"][b].append(
-                        float(np.dot(nms[i]["parts"][b], nms[j]["parts"][b]))
-                    )
+                    part_sims["NM-NM"][b].append(float(np.dot(nms[i]["parts"][b], nms[j]["parts"][b])))
 
         for nm_item in nms:
             for bg_item in bgs:
                 nm_bg_sims.append(float(np.dot(nm_item["emb"], bg_item["emb"])))
                 for b in range(4):
-                    part_sims["NM-BG"][b].append(
-                        float(np.dot(nm_item["parts"][b], bg_item["parts"][b]))
-                    )
+                    part_sims["NM-BG"][b].append(float(np.dot(nm_item["parts"][b], bg_item["parts"][b])))
 
         for nm_item in nms:
             for cl_item in cls:
                 nm_cl_sims.append(float(np.dot(nm_item["emb"], cl_item["emb"])))
                 for b in range(4):
-                    part_sims["NM-CL"][b].append(
-                        float(np.dot(nm_item["parts"][b], cl_item["parts"][b]))
-                    )
+                    part_sims["NM-CL"][b].append(float(np.dot(nm_item["parts"][b], cl_item["parts"][b])))
 
     print(f"\nPairs: NM-NM={len(nm_nm_sims)}, NM-BG={len(nm_bg_sims)}, NM-CL={len(nm_cl_sims)}")
 

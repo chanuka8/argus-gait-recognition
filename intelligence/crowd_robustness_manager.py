@@ -5,7 +5,7 @@ Coordinates crowd density estimation, occlusion-aware silhouette filtering,
 and adaptive identity/reliability decision thresholds in crowded environments.
 """
 
-from typing import Any, Dict, List, Optional, Tuple, Set
+from typing import Any
 
 from intelligence.crowd_density_estimator import (
     CrowdDensityEstimator,
@@ -23,7 +23,7 @@ class CrowdRobustnessManager:
     Disabled by default to ensure baseline behavior remains unaffected.
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, config: dict[str, Any] | None = None) -> None:
         self.logger = get_logger("crowd_robustness")
         cfg = config or {}
         self.enabled = bool(cfg.get("enabled", False))
@@ -54,16 +54,16 @@ class CrowdRobustnessManager:
 
     def process_frame_density(
         self,
-        detections: List[Dict[str, Any]],
-        frame_shape: Tuple[int, int] = (1080, 1920),
+        detections: list[dict[str, Any]],
+        frame_shape: tuple[int, int] = (1080, 1920),
     ) -> CrowdDensityResult:
         """Estimate crowd density for current frame."""
         return self.estimator.estimate_density(detections, frame_shape)
 
     def identify_occluded_tracks(
         self,
-        tracked_objects: List[Dict[str, Any]],
-    ) -> Tuple[Set[int], Dict[int, float]]:
+        tracked_objects: list[dict[str, Any]],
+    ) -> tuple[set[int], dict[int, float]]:
         """
         Identify tracks whose bounding boxes severely overlap with other active tracks.
 
@@ -76,8 +76,8 @@ class CrowdRobustnessManager:
         if not self.enabled or not tracked_objects:
             return set(), {}
 
-        occluded_ids: Set[int] = set()
-        max_overlap_map: Dict[int, float] = {}
+        occluded_ids: set[int] = set()
+        max_overlap_map: dict[int, float] = {}
 
         n = len(tracked_objects)
         for i in range(n):
@@ -94,10 +94,8 @@ class CrowdRobustnessManager:
 
                 iou = compute_iou(box_i, box_j)
 
-                if iou > max_overlap_map[t_id_i]:
-                    max_overlap_map[t_id_i] = iou
-                if iou > max_overlap_map[t_id_j]:
-                    max_overlap_map[t_id_j] = iou
+                max_overlap_map[t_id_i] = max(max_overlap_map[t_id_i], iou)
+                max_overlap_map[t_id_j] = max(max_overlap_map[t_id_j], iou)
 
                 if iou >= self.occlusion_overlap_threshold:
                     occluded_ids.add(t_id_i)
@@ -120,7 +118,7 @@ class CrowdRobustnessManager:
             quality -= 0.15
 
         if density_level == CrowdDensityLevel.SEVERE:
-            quality -= (self.high_density_quality_penalty * 1.5)
+            quality -= self.high_density_quality_penalty * 1.5
         elif density_level == CrowdDensityLevel.HIGH:
             quality -= self.high_density_quality_penalty
 
@@ -139,6 +137,6 @@ class CrowdRobustnessManager:
         if density_level == CrowdDensityLevel.SEVERE:
             margin += self.severe_density_margin_boost
         elif density_level == CrowdDensityLevel.HIGH:
-            margin += (self.severe_density_margin_boost * 0.5)
+            margin += self.severe_density_margin_boost * 0.5
 
         return margin

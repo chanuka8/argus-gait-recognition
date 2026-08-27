@@ -1,8 +1,8 @@
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
 from unittest.mock import MagicMock
-import zipfile
 
 import cv2
 import numpy as np
@@ -59,9 +59,7 @@ class TestSilhouetteUNetPipeline(unittest.TestCase):
             with zipfile.ZipFile(tmp_zip, "w") as zf:
                 zf.writestr("output/001/bg-01/000/001-bg-01-000-001.png", png_bytes.tobytes())
 
-            ds = SilhouetteSegmentationDataset(
-                zip_path=str(tmp_zip), subject_range=(1, 5), max_samples=10, seed=42
-            )
+            ds = SilhouetteSegmentationDataset(zip_path=str(tmp_zip), subject_range=(1, 5), max_samples=10, seed=42)
             self.assertEqual(len(ds), 1)
 
             img_tensor, mask_tensor = ds[0]

@@ -2,7 +2,8 @@
 
 import unittest
 
-from services.onvif_client import ONVIFClient, ONVIFCapabilities, ONVIFProfile
+from services.camera_discovery import CameraDiscoveryService, DiscoveredCamera
+from services.onvif_client import ONVIFCapabilities, ONVIFClient, ONVIFProfile
 from services.vendor_adapters import (
     VENDOR_REGISTRY,
     AxisAdapter,
@@ -13,7 +14,6 @@ from services.vendor_adapters import (
     UniviewAdapter,
     get_adapter,
 )
-from services.camera_discovery import CameraDiscoveryService, DiscoveredCamera
 
 
 class TestONVIFClient(unittest.TestCase):
@@ -182,15 +182,19 @@ class TestCameraDiscovery(unittest.TestCase):
         self.assertIn("cam1", all_cams)
 
     def test_detect_vendor_from_url(self):
-        self.assertEqual(CameraDiscoveryService.detect_vendor_from_url("rtsp://10.0.0.1/Streaming/Channels/101"), "hikvision")
-        self.assertEqual(CameraDiscoveryService.detect_vendor_from_url("rtsp://10.0.0.1/cam/realmonitor?channel=1"), "dahua")
+        self.assertEqual(
+            CameraDiscoveryService.detect_vendor_from_url("rtsp://10.0.0.1/Streaming/Channels/101"), "hikvision"
+        )
+        self.assertEqual(
+            CameraDiscoveryService.detect_vendor_from_url("rtsp://10.0.0.1/cam/realmonitor?channel=1"), "dahua"
+        )
         self.assertEqual(CameraDiscoveryService.detect_vendor_from_url("rtsp://10.0.0.1/media/video1"), "uniview")
         self.assertEqual(CameraDiscoveryService.detect_vendor_from_url("rtsp://10.0.0.1/axis-media/media.amp"), "axis")
         self.assertEqual(CameraDiscoveryService.detect_vendor_from_url("rtsp://10.0.0.1/live"), "generic")
 
     def test_parse_ws_discovery_xaddrs(self):
         service = CameraDiscoveryService()
-        xml = '<ProbeMatch><XAddrs>http://10.0.0.1:80/onvif/device_service http://10.0.0.2:80/onvif/device_service</XAddrs></ProbeMatch>'
+        xml = "<ProbeMatch><XAddrs>http://10.0.0.1:80/onvif/device_service http://10.0.0.2:80/onvif/device_service</XAddrs></ProbeMatch>"
         xaddrs = service.parse_ws_discovery_response(xml)
         self.assertEqual(len(xaddrs), 2)
         self.assertIn("http://10.0.0.1:80/onvif/device_service", xaddrs)

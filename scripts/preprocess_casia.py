@@ -9,9 +9,7 @@ from preprocessing.dataset_builder import CasiaGEIDatasetBuilder
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Build GEI images from CASIA-B ZIP dataset"
-    )
+    parser = argparse.ArgumentParser(description="Build GEI images from CASIA-B ZIP dataset")
 
     parser.add_argument(
         "--zip",

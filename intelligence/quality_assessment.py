@@ -45,7 +45,7 @@ class QualityAssessment:
         if crop is None or crop.size == 0 or len(crop.shape) != 3:
             return 0.0
 
-        h, w, c = crop.shape
+        h, w, _ = crop.shape
         if h < self.min_crop_height or w < self.min_crop_width:
             return 0.0
 
@@ -57,7 +57,7 @@ class QualityAssessment:
             gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
             lap_var = float(cv2.Laplacian(gray, cv2.CV_64F).var())
             blur_factor = min(1.0, lap_var / max(1.0, self.blur_threshold))
-        except Exception:
+        except (cv2.error, ValueError, TypeError):
             blur_factor = 0.5
 
         conf_factor = max(0.0, min(1.0, float(confidence)))

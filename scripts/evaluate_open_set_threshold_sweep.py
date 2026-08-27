@@ -11,9 +11,7 @@ from evaluation.open_set_evaluator import OpenSetEvaluator
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Evaluate ARGUS Open-Set Threshold and Matching Mode Sweep"
-    )
+    parser = argparse.ArgumentParser(description="Evaluate ARGUS Open-Set Threshold and Matching Mode Sweep")
 
     parser.add_argument(
         "--max-images",
@@ -60,18 +58,20 @@ def main() -> None:
                 max_test_images=args.max_images,
                 matching_mode=mode,
             )
-            sweep_results.append({
-                "matching_mode": mode,
-                "threshold": t,
-                "TP": res["TP"],
-                "FP": res["FP"],
-                "TN": res["TN"],
-                "FN": res["FN"],
-                "known_accuracy": res["known_accuracy"],
-                "unknown_rejection_rate": res["unknown_rejection_rate"],
-                "false_accept_rate": res["false_accept_rate"],
-                "false_reject_rate": res["false_reject_rate"],
-            })
+            sweep_results.append(
+                {
+                    "matching_mode": mode,
+                    "threshold": t,
+                    "TP": res["TP"],
+                    "FP": res["FP"],
+                    "TN": res["TN"],
+                    "FN": res["FN"],
+                    "known_accuracy": res["known_accuracy"],
+                    "unknown_rejection_rate": res["unknown_rejection_rate"],
+                    "false_accept_rate": res["false_accept_rate"],
+                    "false_reject_rate": res["false_reject_rate"],
+                }
+            )
 
     output_dir = Path("outputs/reports/evaluation")
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -95,7 +95,7 @@ def main() -> None:
                 "unknown_rejection_rate",
                 "false_accept_rate",
                 "false_reject_rate",
-            ]
+            ],
         )
         writer.writeheader()
         for r in sweep_results:

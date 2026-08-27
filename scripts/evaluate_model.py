@@ -11,9 +11,7 @@ from evaluation.evaluator import SplitEvaluator
 
 def main() -> None:
 
-    parser = argparse.ArgumentParser(
-        description="Evaluate ARGUS gait recognition model"
-    )
+    parser = argparse.ArgumentParser(description="Evaluate ARGUS gait recognition model")
 
     parser.add_argument(
         "--max-images",
@@ -42,35 +40,27 @@ def main() -> None:
     for key, value in results.items():
         print(f"{key}: {value}")
 
-    report_dir = Path(
-        "outputs/reports/evaluation"
-    )
+    report_dir = Path("outputs/reports/evaluation")
 
     report_dir.mkdir(
         parents=True,
         exist_ok=True,
     )
 
-    report_file = (
-        report_dir /
-        "split_eval_report.json"
-    )
+    report_file = report_dir / "split_eval_report.json"
 
     with open(
         report_file,
         "w",
         encoding="utf-8",
     ) as file:
-
         json.dump(
             results,
             file,
             indent=4,
         )
 
-    print(
-        f"\nReport saved -> {report_file}"
-    )
+    print(f"\nReport saved -> {report_file}")
 
 
 if __name__ == "__main__":

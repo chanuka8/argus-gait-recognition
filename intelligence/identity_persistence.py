@@ -2,7 +2,7 @@
 
 import time
 from threading import Lock
-from typing import Any, Dict, Optional
+from typing import Any
 
 from monitoring.logging_config import get_logger
 
@@ -16,10 +16,10 @@ class IdentityPersistence:
         self._logger = get_logger("identity_persistence")
         self._lock = Lock()
 
-        self._identities: Dict[str, Dict[str, Any]] = {}
-        self._alert_cooldowns: Dict[str, float] = {}
+        self._identities: dict[str, dict[str, Any]] = {}
+        self._alert_cooldowns: dict[str, float] = {}
 
-    def update_identity(self, identity: str, confidence_score: float, camera_id: str = "") -> Dict[str, Any]:
+    def update_identity(self, identity: str, confidence_score: float, camera_id: str = "") -> dict[str, Any]:
         """Update confidence score and history for a recognized identity."""
         now = time.monotonic()
         with self._lock:
@@ -34,7 +34,9 @@ class IdentityPersistence:
                 }
             else:
                 data = self._identities[identity]
-                data["accumulated_score"] = (data["accumulated_score"] * self.decay) + (confidence_score * (1.0 - self.decay))
+                data["accumulated_score"] = (data["accumulated_score"] * self.decay) + (
+                    confidence_score * (1.0 - self.decay)
+                )
                 data["detections"] += 1
                 data["last_seen"] = now
 
@@ -59,13 +61,13 @@ class IdentityPersistence:
             self._alert_cooldowns[identity] = now
             return False
 
-    def get_identity_state(self, identity: str) -> Optional[Dict[str, Any]]:
+    def get_identity_state(self, identity: str) -> dict[str, Any] | None:
         """Get current accumulated state for an identity."""
         with self._lock:
             state = self._identities.get(identity)
             return state.copy() if state else None
 
-    def get_all_identities(self) -> Dict[str, Dict[str, Any]]:
+    def get_all_identities(self) -> dict[str, dict[str, Any]]:
         """Get states for all active identities."""
         with self._lock:
             return {id_: data.copy() for id_, data in self._identities.items()}

@@ -1,9 +1,9 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 
 def timestamp() -> str:
-    return datetime.now().isoformat()
+    return datetime.now(timezone.utc).isoformat()
 
 
 def safe_name(value: str) -> str:

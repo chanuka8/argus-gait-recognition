@@ -9,13 +9,12 @@ ONNX Runtime or CUDA C-extensions are loaded.
 import os
 import sys
 from pathlib import Path
-from typing import List, Optional
 
-_DLL_DIRECTORIES_REGISTERED: List[str] = []
+_DLL_DIRECTORIES_REGISTERED: list[str] = []
 _INITIALIZED: bool = False
 
 
-def setup_cuda_dll_paths() -> List[str]:
+def setup_cuda_dll_paths() -> list[str]:
     """
     Safely configure Windows DLL search paths for PyTorch and ONNX Runtime CUDA.
 
@@ -30,21 +29,22 @@ def setup_cuda_dll_paths() -> List[str]:
     if _INITIALIZED:
         return list(_DLL_DIRECTORIES_REGISTERED)
 
-    added_paths: List[str] = []
+    added_paths: list[str] = []
 
     if sys.platform != "win32":
         _INITIALIZED = True
         return added_paths
 
-    candidate_paths: List[Path] = []
+    candidate_paths: list[Path] = []
 
     # 1. PyTorch /lib directory
     try:
         import torch
+
         torch_lib = Path(torch.__file__).parent / "lib"
         if torch_lib.exists():
             candidate_paths.append(torch_lib)
-    except Exception:
+    except (ImportError, AttributeError, OSError):
         pass
 
     # 2. CUDA_PATH environment variable if set

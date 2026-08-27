@@ -1,4 +1,5 @@
 import unittest
+
 import numpy as np
 
 from services.camera_service import CameraService

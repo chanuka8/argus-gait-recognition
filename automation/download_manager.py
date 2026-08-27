@@ -6,13 +6,11 @@ downloads (PyTorch CUDA wheels ~2.5 GB, ONNX wheels) with automatic range-based
 resume on interrupted transfers, speed calculation, ETA computation, and retries.
 """
 
-import os
-from pathlib import Path
 import sys
 import time
-from typing import Optional
-import urllib.request
 import urllib.error
+import urllib.request
+from pathlib import Path
 
 
 class DownloadManager:
@@ -23,10 +21,10 @@ class DownloadManager:
     @staticmethod
     def _format_size(num_bytes: float) -> str:
         """Format byte counts into human-readable strings (MB / GB)."""
-        if num_bytes >= 1024 ** 3:
-            return f"{num_bytes / (1024 ** 3):.2f} GB"
-        if num_bytes >= 1024 ** 2:
-            return f"{num_bytes / (1024 ** 2):.2f} MB"
+        if num_bytes >= 1024**3:
+            return f"{num_bytes / (1024**3):.2f} GB"
+        if num_bytes >= 1024**2:
+            return f"{num_bytes / (1024**2):.2f} MB"
         if num_bytes >= 1024:
             return f"{num_bytes / 1024:.2f} KB"
         return f"{num_bytes:.0f} B"
@@ -46,7 +44,7 @@ class DownloadManager:
         url: str,
         dest_path: Path,
         package_name: str,
-        expected_size: Optional[int] = None,
+        expected_size: int | None = None,
         max_retries: int = 5,
         retry_delay_sec: float = 3.0,
     ) -> bool:
@@ -151,7 +149,9 @@ class DownloadManager:
 
                 # Verify integrity and finalize file
                 if total_size > 0 and part_path.stat().st_size < total_size:
-                    print(f"[ARGUS WARN] Downloaded size ({part_path.stat().st_size}) < expected ({total_size}). Retrying...")
+                    print(
+                        f"[ARGUS WARN] Downloaded size ({part_path.stat().st_size}) < expected ({total_size}). Retrying..."
+                    )
                     time.sleep(retry_delay_sec)
                     continue
 

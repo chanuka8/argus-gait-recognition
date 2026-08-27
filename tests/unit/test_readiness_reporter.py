@@ -3,6 +3,7 @@ Unit tests for DeploymentReadinessReporter.
 """
 
 from pathlib import Path
+
 from deployment.readiness_reporter import ALLOWED_OVERALL_STATUSES, DeploymentReadinessReporter
 
 
@@ -30,4 +31,3 @@ def test_readiness_reporter_generation(tmp_path: Path):
     assert "backend_readiness" in report_data
     assert "metadata" in report_data["backend_readiness"]
     assert "exact_verification_evidence" in report_data
-

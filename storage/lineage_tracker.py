@@ -1,13 +1,10 @@
-from datetime import datetime
-from pathlib import Path
 import json
+from datetime import datetime, timezone
+from pathlib import Path
 
 
 class LineageTracker:
-    def __init__(
-        self,
-        output_file="outputs/reports/explainable/lineage.json"
-    ):
+    def __init__(self, output_file="outputs/reports/explainable/lineage.json"):
         self.output_file = Path(output_file)
 
         self.output_file.parent.mkdir(
@@ -47,7 +44,7 @@ class LineageTracker:
 
         records.append(
             {
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "operation": operation,
                 "details": details,
             }

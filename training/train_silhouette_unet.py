@@ -12,11 +12,11 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import time
-import torch
-import torch.nn as nn
-import torch.optim as optim
-from torch.utils.data import DataLoader
+
 import numpy as np
+import torch
+from torch import nn, optim
+from torch.utils.data import DataLoader
 
 from models.architectures.silhouette_unet import SilhouetteUNet
 from scripts.export_silhouette_unet_onnx import export_and_validate_onnx
@@ -71,12 +71,8 @@ def train_and_export_silhouette_unet(
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"[*] Training UNet Silhouette Segmenter on device: {device}")
 
-    train_ds = SilhouetteSegmentationDataset(
-        zip_path=zip_path, subject_range=(1, 62), max_samples=250, seed=42
-    )
-    val_ds = SilhouetteSegmentationDataset(
-        zip_path=zip_path, subject_range=(63, 74), max_samples=50, seed=101
-    )
+    train_ds = SilhouetteSegmentationDataset(zip_path=zip_path, subject_range=(1, 62), max_samples=250, seed=42)
+    val_ds = SilhouetteSegmentationDataset(zip_path=zip_path, subject_range=(63, 74), max_samples=50, seed=101)
 
     train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, drop_last=True)
     val_loader = DataLoader(val_ds, batch_size=batch_size, shuffle=False)

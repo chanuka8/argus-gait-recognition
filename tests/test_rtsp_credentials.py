@@ -21,7 +21,7 @@ class TestRTSPCredentials(unittest.TestCase):
         if self.test_enc_file.exists():
             self.test_enc_file.unlink()
         for key in list(os.environ.keys()):
-            if key.startswith("ARGUS_CAMERA_") or key.startswith("ARGUS_RTSP_") or key.startswith("ARGUS_LEGACY_"):
+            if key.startswith(("ARGUS_CAMERA_", "ARGUS_RTSP_", "ARGUS_LEGACY_")):
                 del os.environ[key]
 
     def test_sanitize_rtsp_url(self):

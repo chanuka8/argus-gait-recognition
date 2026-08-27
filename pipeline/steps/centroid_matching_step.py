@@ -1,5 +1,6 @@
-import numpy as np
 from collections import Counter
+
+import numpy as np
 
 from pipeline.steps.matching_step import MatchingStep
 
@@ -23,13 +24,11 @@ class CentroidMatchingStep:
         return self.flat_matcher._prepare_gallery(gallery_features, gallery_labels, metadata)
 
     def _build_centroids(self, gallery_features, gallery_labels, metadata):
-        active_features, active_labels = self._prepare_gallery(
-            gallery_features, gallery_labels, metadata
-        )
+        active_features, active_labels = self._prepare_gallery(gallery_features, gallery_labels, metadata)
         if active_features is None or len(active_features) == 0:
             return None, None
 
-        unique_labels = sorted(list(set(active_labels)))
+        unique_labels = sorted(set(active_labels))
         centroid_features = []
 
         for label in unique_labels:
@@ -59,17 +58,13 @@ class CentroidMatchingStep:
         - 'centroid_margin_topk': Centroid matching + margin rule + topk consensus
         """
         if mode == "flat":
-            return self.flat_matcher.match(
-                query_feature, gallery_features, gallery_labels, metadata
-            )
+            return self.flat_matcher.match(query_feature, gallery_features, gallery_labels, metadata)
 
         q_feat = self._prepare_query(query_feature)
         if q_feat is None:
             return "UNKNOWN", 0.0
 
-        centroids, centroid_labels = self._build_centroids(
-            gallery_features, gallery_labels, metadata
-        )
+        centroids, centroid_labels = self._build_centroids(gallery_features, gallery_labels, metadata)
         if centroids is None or len(centroids) == 0:
             return "UNKNOWN", 0.0
 
@@ -101,14 +96,12 @@ class CentroidMatchingStep:
             if best_score < self.threshold:
                 return "UNKNOWN", best_score
 
-            active_features, active_labels = self._prepare_gallery(
-                gallery_features, gallery_labels, metadata
-            )
+            active_features, active_labels = self._prepare_gallery(gallery_features, gallery_labels, metadata)
             if active_features is None or len(active_features) == 0:
                 return "UNKNOWN", best_score
 
             flat_scores = np.dot(active_features, q_feat)
-            top_k_indices = np.argsort(flat_scores)[::-1][:self.top_k]
+            top_k_indices = np.argsort(flat_scores)[::-1][: self.top_k]
             top_k_labels = [str(active_labels[i]) for i in top_k_indices]
 
             votes = Counter(top_k_labels)

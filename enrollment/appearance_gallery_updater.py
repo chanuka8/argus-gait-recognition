@@ -92,7 +92,4 @@ class AppearanceGalleryUpdater:
             metadata,
         )
 
-        print(
-            f"Added appearance identity {person_id} "
-            f"({len(embeddings)} embeddings)"
-        )
+        print(f"Added appearance identity {person_id} ({len(embeddings)} embeddings)")

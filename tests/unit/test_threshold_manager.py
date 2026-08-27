@@ -1,5 +1,6 @@
 import unittest
-from core.threshold_manager import ThresholdManager, RecognitionThresholds
+
+from core.threshold_manager import RecognitionThresholds, ThresholdManager
 from intelligence.open_set_recognizer import OpenSetRecognizer, OpenSetState
 
 
@@ -13,9 +14,7 @@ class TestThresholdManager(unittest.TestCase):
 
     def test_ordering_validation(self) -> None:
         tm = ThresholdManager()
-        invalid_cfg = {
-            "open_set": {"known_threshold": 0.60, "unknown_threshold": 0.80}
-        }
+        invalid_cfg = {"open_set": {"known_threshold": 0.60, "unknown_threshold": 0.80}}
         with self.assertRaises(ValueError):
             tm.load_thresholds(config_override=invalid_cfg)
 

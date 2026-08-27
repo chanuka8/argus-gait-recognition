@@ -41,7 +41,7 @@ class StreamGEIBuilder:
                 for key, val in defaults.items():
                     data.setdefault(key, val)
                 return data
-        except Exception:
+        except (yaml.YAMLError, OSError, ValueError):
             return defaults
 
     def add_silhouette(self, track_id: int, silhouette: np.ndarray | None) -> None:

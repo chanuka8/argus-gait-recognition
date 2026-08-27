@@ -1,9 +1,9 @@
 from pathlib import Path
 
 import supervision as sv
+import yaml
 from trackers import ByteTrackTracker
 from ultralytics import YOLO
-import yaml
 
 
 class TrackingStep:
@@ -20,7 +20,9 @@ class TrackingStep:
         self.config_path = Path(config_path)
         self.config = self._load_config(self.config_path)
 
-        resolved_model_path = model_path if model_path is not None else self.config.get("model_path", "models/weights/yolov8n.pt")
+        resolved_model_path = (
+            model_path if model_path is not None else self.config.get("model_path", "models/weights/yolov8n.pt")
+        )
         self.model_path = Path(resolved_model_path)
 
         raw_conf = confidence if confidence is not None else self.config.get("confidence", 0.4)
@@ -33,6 +35,7 @@ class TrackingStep:
         self.classes = list(raw_classes) if isinstance(raw_classes, list) else [0]
 
         from automation.device_manager import DeviceManager
+
         raw_device = str(self.config.get("device", "auto")).lower()
         if raw_device not in {"cpu", "cuda", "cuda:0", "0", "1", "auto"}:
             raw_device = "auto"
@@ -50,7 +53,7 @@ class TrackingStep:
         if self.runtime_device:
             try:
                 self.detector.to(self.runtime_device)
-            except Exception:
+            except (RuntimeError, ValueError, AttributeError, OSError):
                 pass
 
         self.tracker = ByteTrackTracker()
@@ -63,7 +66,7 @@ class TrackingStep:
             with open(config_path, encoding="utf-8") as f:
                 data = yaml.safe_load(f)
                 return data if isinstance(data, dict) else {}
-        except Exception:
+        except (yaml.YAMLError, OSError, ValueError):
             return {}
 
     def track(self, frame):

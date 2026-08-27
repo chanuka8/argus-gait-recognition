@@ -1,6 +1,7 @@
 import json
 import sys
 from pathlib import Path
+
 import numpy as np
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -38,7 +39,7 @@ class ThresholdCalibrator:
         output_dir: str = "runs/exp_001/evaluation_subject_disjoint",
     ) -> dict:
         gallery_items, _ = build_gallery_and_probe_sets(
-            subjects=sorted(list(self.known_val_subjects)),
+            subjects=sorted(self.known_val_subjects),
             gei_root=gei_root,
         )
 
@@ -50,7 +51,9 @@ class ThresholdCalibrator:
         if not gallery_items or not probe_items:
             raise RuntimeError("Validation gallery or probe items empty. Cannot calibrate threshold.")
 
-        gal_features = np.asarray([self.feature_extractor(Path(item["path"])) for item in gallery_items], dtype=np.float32)
+        gal_features = np.asarray(
+            [self.feature_extractor(Path(item["path"])) for item in gallery_items], dtype=np.float32
+        )
         gal_labels = np.asarray([item["subject_id"] for item in gallery_items])
 
         gal_norms = np.linalg.norm(gal_features, axis=1, keepdims=True)
@@ -102,7 +105,6 @@ class ThresholdCalibrator:
             th = float(th)
             accepted = (scores >= th) & (margins >= margin_threshold)
 
-
             tp = int(np.sum(accepted & is_genuine))
             fn = total_genuine_queries - tp
             fp = int(np.sum(accepted & (~is_genuine)))
@@ -117,17 +119,19 @@ class ThresholdCalibrator:
             recall = tar
             f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
 
-            sweep_records.append({
-                "threshold": th,
-                "FAR": far,
-                "FRR": frr,
-                "TAR": tar,
-                "TNR": tnr,
-                "precision": precision,
-                "recall": recall,
-                "f1_score": f1,
-                "EER_gap": abs(far - frr),
-            })
+            sweep_records.append(
+                {
+                    "threshold": th,
+                    "FAR": far,
+                    "FRR": frr,
+                    "TAR": tar,
+                    "TNR": tnr,
+                    "precision": precision,
+                    "recall": recall,
+                    "f1_score": f1,
+                    "EER_gap": abs(far - frr),
+                }
+            )
 
         if criterion == "min_eer":
             sweep_records_sorted = sorted(sweep_records, key=lambda x: x["EER_gap"])
@@ -146,8 +150,8 @@ class ThresholdCalibrator:
         calibration_result = {
             "protocol": "Validation Threshold Calibration (Validation Subjects Only)",
             "val_subjects": self.val_subjects,
-            "known_val_subjects": sorted(list(self.known_val_subjects)),
-            "unknown_val_subjects": sorted(list(self.unknown_val_subjects)),
+            "known_val_subjects": sorted(self.known_val_subjects),
+            "unknown_val_subjects": sorted(self.unknown_val_subjects),
             "criterion_used": criterion,
             "selected_threshold": round(float(best_threshold), 4),
             "calibration_score_min": round(min_score, 4),

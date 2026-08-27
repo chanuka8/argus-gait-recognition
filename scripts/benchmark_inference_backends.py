@@ -6,12 +6,11 @@ throughput, device, precision, and output parity against the PyTorch reference b
 """
 
 import argparse
-from datetime import datetime
 import json
-from pathlib import Path
 import sys
 import time
-from typing import List, Optional
+from datetime import datetime, timezone
+from pathlib import Path
 
 import numpy as np
 import torch
@@ -24,8 +23,8 @@ from models.inference.backend import get_inference_backend
 
 
 def compute_parity_metrics(
-    embeddings: List[np.ndarray],
-    reference_embeddings: List[np.ndarray],
+    embeddings: list[np.ndarray],
+    reference_embeddings: list[np.ndarray],
     atol: float = 1e-3,
     rtol: float = 1e-3,
     is_pytorch_fallback: bool = False,
@@ -84,12 +83,12 @@ def compute_parity_metrics(
 
 def benchmark_backend(
     backend_name: str,
-    sample_inputs: Optional[List[np.ndarray]] = None,
+    sample_inputs: list[np.ndarray] | None = None,
     sample_count: int = 50,
     device: str = "auto",
     precision: str = "fp32",
     model_path: str = "runs/exp_001/best_model.pth",
-    reference_embeddings: Optional[List[np.ndarray]] = None,
+    reference_embeddings: list[np.ndarray] | None = None,
 ) -> dict:
     """Benchmark initialization, warm latency, p95 latency, throughput, and parity for a backend."""
     config = {
@@ -207,7 +206,9 @@ def benchmark_backend(
         f"  - Parity Passed         : {result['parity_passed']} (Max Diff: {parity_info['max_abs_diff']}, Cosine Sim: {parity_info['cosine_similarity']})"
     )
     if fb_used:
-        print(f"  - Note: Active backend is PyTorch fallback ({req_backend} -> {act_backend}). Measurement reflects {act_backend} performance.")
+        print(
+            f"  - Note: Active backend is PyTorch fallback ({req_backend} -> {act_backend}). Measurement reflects {act_backend} performance."
+        )
 
     return result
 
@@ -259,7 +260,7 @@ def main() -> None:
     if args.save_report:
         report_dir = Path("outputs/reports/benchmark")
         report_dir.mkdir(parents=True, exist_ok=True)
-        ts_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+        ts_str = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
         report_path = report_dir / f"backend_benchmark_{ts_str}.json"
         with open(report_path, "w", encoding="utf-8") as f:
             json.dump(results, f, indent=2)

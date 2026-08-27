@@ -9,7 +9,7 @@ Classifies recognition candidates into a clear three-state decision model:
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 
 class OpenSetState(str, Enum):
@@ -24,7 +24,7 @@ class OpenSetDecisionResult:
     identity: str
     score: float
     confidence: float
-    details: Dict[str, Any] = field(default_factory=dict)
+    details: dict[str, Any] = field(default_factory=dict)
 
 
 class OpenSetRecognizer:
@@ -54,9 +54,9 @@ class OpenSetRecognizer:
 
     def evaluate_open_set_decision(
         self,
-        top_matches: List[Tuple[str, float]],
+        top_matches: list[tuple[str, float]],
         quality_score: float = 1.0,
-        temporal_decision: Optional[str] = None,
+        temporal_decision: str | None = None,
     ) -> OpenSetDecisionResult:
         """
         Evaluates open-set status for a list of candidate matches.

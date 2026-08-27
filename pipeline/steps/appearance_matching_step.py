@@ -83,13 +83,9 @@ class AppearanceMatchingStep:
         ):
             return "UNKNOWN", 0.0
 
-        gallery_features = gallery_features[
-            active_mask
-        ]
+        gallery_features = gallery_features[active_mask]
 
-        gallery_labels = gallery_labels[
-            active_mask
-        ]
+        gallery_labels = gallery_labels[active_mask]
 
         query_feature = np.asarray(
             query_feature,
@@ -103,9 +99,7 @@ class AppearanceMatchingStep:
         if query_norm == 0:
             return "UNKNOWN", 0.0
 
-        query_feature = query_feature / (
-            query_norm + 1e-8
-        )
+        query_feature = query_feature / (query_norm + 1e-8)
 
         gallery_norms = np.linalg.norm(
             gallery_features,
@@ -113,9 +107,7 @@ class AppearanceMatchingStep:
             keepdims=True,
         )
 
-        gallery_features = gallery_features / (
-            gallery_norms + 1e-8
-        )
+        gallery_features = gallery_features / (gallery_norms + 1e-8)
 
         scores = np.dot(
             gallery_features,

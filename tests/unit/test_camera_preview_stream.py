@@ -1,5 +1,5 @@
-import numpy as np
 import cv2
+import numpy as np
 from fastapi.testclient import TestClient
 
 from api.server import app
@@ -62,9 +62,11 @@ def test_mjpeg_stream_and_snapshot_endpoints():
     dummy = np.zeros((480, 640, 3), dtype=np.uint8)
     mock_cap.read.return_value = (True, dummy)
 
-    with TestClient(app) as client, \
-         patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap), \
-         patch("services.camera_source_resolver.CameraSourceResolver.probe_usb_webcam", return_value=True):
+    with (
+        TestClient(app) as client,
+        patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
+        patch("services.camera_source_resolver.CameraSourceResolver.probe_usb_webcam", return_value=True),
+    ):
         resp_404 = client.get("/api/v1/cameras/NON_EXISTENT_CAM/stream")
         assert resp_404.status_code == 404
 
@@ -78,7 +80,7 @@ def test_mjpeg_stream_and_snapshot_endpoints():
                 "source": "0",
                 "location": "Central Hub",
                 "zone_id": "Z01",
-            }
+            },
         )
         assert start_resp.status_code == 200
         cam_data = start_resp.json()
@@ -96,10 +98,7 @@ def test_mjpeg_stream_and_snapshot_endpoints():
         assert matching[0]["preview_url"] == "/api/v1/cameras/CCTV-PREVIEW-1/stream"
         assert matching[0]["resolved_source_label"] == "USB Webcam 0"
 
-        stop_resp = client.post(
-            "/api/v1/cameras/stop",
-            json={"camera_id": "CCTV-PREVIEW-1"}
-        )
+        stop_resp = client.post("/api/v1/cameras/stop", json={"camera_id": "CCTV-PREVIEW-1"})
         assert stop_resp.status_code == 200
         assert stop_resp.json()["success"] is True
 

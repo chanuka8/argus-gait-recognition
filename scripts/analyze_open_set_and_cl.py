@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+
 import numpy as np
 import torch
 
@@ -7,10 +8,11 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from models.architectures.bygait_light import ByGaitLight
+import cv2
+
 from evaluation.dataset_split import load_or_create_subject_split
 from evaluation.gallery_probe_builder import build_gallery_and_probe_sets
-import cv2
+from models.architectures.bygait_light import ByGaitLight
 
 
 def load_model(ckpt_path: str, part_bins: int = 4) -> ByGaitLight:
@@ -19,7 +21,7 @@ def load_model(ckpt_path: str, part_bins: int = 4) -> ByGaitLight:
     for key, value in ckpt.items():
         if key.startswith("backbone."):
             filtered[key.replace("backbone.", "")] = value
-        elif key.startswith("features.") or key.startswith("embedding."):
+        elif key.startswith(("features.", "embedding.")):
             filtered[key] = value
 
     model = ByGaitLight(part_bins=part_bins)
@@ -48,9 +50,9 @@ def main():
     model = load_model(ckpt_path, part_bins=4)
 
     print("--- Extracting Validation Set Features (063-074) ---")
-    val_known = val_subs[:len(val_subs)//2]
+    val_known = val_subs[: len(val_subs) // 2]
 
-    val_gal_items, _ = build_gallery_and_probe_sets(val_known, "data/casia_processed/gei")
+    _val_gal_items, _ = build_gallery_and_probe_sets(val_known, "data/casia_processed/gei")
     _, _ = build_gallery_and_probe_sets(val_subs, "data/casia_processed/gei")
 
     print("--- Extracting Test Set Features (075-124) ---")
@@ -108,8 +110,12 @@ def main():
     gen_margins = test_margins[test_is_genuine]
     imp_margins = test_margins[~test_is_genuine]
 
-    print(f"Genuine Scores: mean={np.mean(gen_scores):.4f}, std={np.std(gen_scores):.4f}, min={np.min(gen_scores):.4f}, max={np.max(gen_scores):.4f}")
-    print(f"Impostor Scores: mean={np.mean(imp_scores):.4f}, std={np.std(imp_scores):.4f}, min={np.min(imp_scores):.4f}, max={np.max(imp_scores):.4f}")
+    print(
+        f"Genuine Scores: mean={np.mean(gen_scores):.4f}, std={np.std(gen_scores):.4f}, min={np.min(gen_scores):.4f}, max={np.max(gen_scores):.4f}"
+    )
+    print(
+        f"Impostor Scores: mean={np.mean(imp_scores):.4f}, std={np.std(imp_scores):.4f}, min={np.min(imp_scores):.4f}, max={np.max(imp_scores):.4f}"
+    )
     print(f"Genuine Margins: mean={np.mean(gen_margins):.4f}, std={np.std(gen_margins):.4f}")
     print(f"Impostor Margins: mean={np.mean(imp_margins):.4f}, std={np.std(imp_margins):.4f}")
 
@@ -148,7 +154,7 @@ def main():
 
         if len(nm_list) > 1:
             for i in range(len(nm_list)):
-                for j in range(i+1, len(nm_list)):
+                for j in range(i + 1, len(nm_list)):
                     nm_nm_sims.append(np.dot(nm_list[i], nm_list[j]))
 
         for nm in nm_list:

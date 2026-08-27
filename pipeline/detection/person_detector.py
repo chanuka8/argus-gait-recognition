@@ -43,7 +43,7 @@ class PersonDetector:
         if self.runtime_device:
             try:
                 self.model.to(self.runtime_device)
-            except Exception:
+            except (RuntimeError, ValueError, AttributeError, OSError):
                 pass
 
     @staticmethod
@@ -69,7 +69,7 @@ class PersonDetector:
                 for key, val in defaults.items():
                     data.setdefault(key, val)
                 return data
-        except Exception:
+        except (yaml.YAMLError, OSError, ValueError):
             return defaults
 
     def detect(self, frame: np.ndarray) -> list[dict]:
@@ -110,10 +110,12 @@ class PersonDetector:
             box = xyxy[i].tolist()
             score = float(confidences[i])
 
-            detections.append({
-                "track_input": frame,
-                "bbox": [int(box[0]), int(box[1]), int(box[2]), int(box[3])],
-                "confidence": score,
-            })
+            detections.append(
+                {
+                    "track_input": frame,
+                    "bbox": [int(box[0]), int(box[1]), int(box[2]), int(box[3])],
+                    "confidence": score,
+                }
+            )
 
         return detections

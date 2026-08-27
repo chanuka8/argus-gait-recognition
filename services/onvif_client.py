@@ -1,7 +1,7 @@
 """ONVIF client for enterprise camera integration."""
 
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, ClassVar
 from xml.etree import ElementTree
 
 from monitoring.logging_config import get_logger
@@ -10,14 +10,16 @@ from monitoring.logging_config import get_logger
 class ONVIFProfile:
     """Parsed ONVIF media profile."""
 
-    def __init__(self, name: str, token: str, stream_uri: str = "", resolution: tuple = (640, 480), encoding: str = "H264") -> None:
+    def __init__(
+        self, name: str, token: str, stream_uri: str = "", resolution: tuple = (640, 480), encoding: str = "H264"
+    ) -> None:
         self.name = name
         self.token = token
         self.stream_uri = stream_uri
         self.resolution = resolution
         self.encoding = encoding
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "name": self.name,
             "token": self.token,
@@ -35,10 +37,10 @@ class ONVIFCapabilities:
         self.has_media: bool = False
         self.has_imaging: bool = False
         self.has_analytics: bool = False
-        self.device_info: Dict[str, str] = {}
-        self.profiles: List[ONVIFProfile] = []
+        self.device_info: dict[str, str] = {}
+        self.profiles: list[ONVIFProfile] = []
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "has_ptz": self.has_ptz,
             "has_media": self.has_media,
@@ -57,7 +59,7 @@ class ONVIFClient:
     for environments where those dependencies are unavailable.
     """
 
-    NAMESPACES = {
+    NAMESPACES: ClassVar[dict[str, str]] = {
         "s": "http://www.w3.org/2003/05/soap-envelope",
         "tds": "http://www.onvif.org/ver10/device/wsdl",
         "trt": "http://www.onvif.org/ver10/media/wsdl",
@@ -124,9 +126,9 @@ class ONVIFClient:
 
         return caps
 
-    def parse_device_info_response(self, xml_text: str) -> Dict[str, str]:
+    def parse_device_info_response(self, xml_text: str) -> dict[str, str]:
         """Parse GetDeviceInformation SOAP response."""
-        info: Dict[str, str] = {}
+        info: dict[str, str] = {}
         try:
             root = ElementTree.fromstring(xml_text)
             body = root.find(".//{http://www.w3.org/2003/05/soap-envelope}Body")
@@ -147,9 +149,9 @@ class ONVIFClient:
 
         return info
 
-    def parse_profiles_response(self, xml_text: str) -> List[ONVIFProfile]:
+    def parse_profiles_response(self, xml_text: str) -> list[ONVIFProfile]:
         """Parse GetProfiles SOAP response into list of ONVIFProfile."""
-        profiles: List[ONVIFProfile] = []
+        profiles: list[ONVIFProfile] = []
         try:
             root = ElementTree.fromstring(xml_text)
             body = root.find(".//{http://www.w3.org/2003/05/soap-envelope}Body")
@@ -177,12 +179,14 @@ class ONVIFClient:
                 if enc_elem is not None and enc_elem.text:
                     enc = enc_elem.text
 
-                profiles.append(ONVIFProfile(
-                    name=name,
-                    token=token,
-                    resolution=(width, height),
-                    encoding=enc,
-                ))
+                profiles.append(
+                    ONVIFProfile(
+                        name=name,
+                        token=token,
+                        resolution=(width, height),
+                        encoding=enc,
+                    )
+                )
 
         except ElementTree.ParseError as e:
             self._logger.error(f"Failed to parse profiles: {e}")
@@ -190,13 +194,15 @@ class ONVIFClient:
         return profiles
 
     @staticmethod
-    def build_rtsp_url(host: str, port: int = 554, path: str = "/Streaming/Channels/101", username: str = "", password: str = "") -> str:
+    def build_rtsp_url(
+        host: str, port: int = 554, path: str = "/Streaming/Channels/101", username: str = "", password: str = ""
+    ) -> str:
         """Build authenticated RTSP URL."""
         auth = f"{username}:{password}@" if username else ""
         return f"rtsp://{auth}{host}:{port}{path}"
 
     @staticmethod
-    def extract_host_from_xaddr(xaddr: str) -> Optional[str]:
+    def extract_host_from_xaddr(xaddr: str) -> str | None:
         """Extract host IP from ONVIF XAddr URL."""
         match = re.search(r"https?://([^:/]+)", xaddr)
         return match.group(1) if match else None

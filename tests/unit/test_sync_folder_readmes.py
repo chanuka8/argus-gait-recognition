@@ -311,15 +311,28 @@ class TestSyncCheckMode(unittest.TestCase):
     def test_check_exits_zero_when_current(self):
         result = subprocess.run(
             [sys.executable, "scripts/sync_folder_readmes.py", "--check"],
-            capture_output=True, text=True, cwd=str(Path(__file__).resolve().parent.parent.parent),
+            capture_output=True,
+            text=True,
+            cwd=str(Path(__file__).resolve().parent.parent.parent),
+            check=False,
         )
         self.assertEqual(result.returncode, 0, f"--check failed:\n{result.stdout}\n{result.stderr}")
 
     def test_check_does_not_modify_files(self):
         root = Path(__file__).resolve().parent.parent.parent
-        before = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True, cwd=str(root)).stdout
-        subprocess.run([sys.executable, "scripts/sync_folder_readmes.py", "--check"], capture_output=True, text=True, cwd=str(root))
-        after = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True, cwd=str(root)).stdout
+        before = subprocess.run(
+            ["git", "status", "--porcelain"], capture_output=True, text=True, cwd=str(root), check=False
+        ).stdout
+        subprocess.run(
+            [sys.executable, "scripts/sync_folder_readmes.py", "--check"],
+            capture_output=True,
+            text=True,
+            cwd=str(root),
+            check=False,
+        )
+        after = subprocess.run(
+            ["git", "status", "--porcelain"], capture_output=True, text=True, cwd=str(root), check=False
+        ).stdout
         self.assertEqual(before, after, "--check modified working tree state")
 
 
@@ -412,8 +425,10 @@ class TestNoRuntimeSideEffects(unittest.TestCase):
         path = Path(__file__).resolve().parent.parent.parent / "scripts" / "sync_folder_readmes.py"
         result = subprocess.run(
             [sys.executable, "-m", "py_compile", str(path)],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
             cwd=str(Path(__file__).resolve().parent.parent.parent),
+            check=False,
         )
         self.assertEqual(result.returncode, 0, f"Compile failed: {result.stderr}")
 

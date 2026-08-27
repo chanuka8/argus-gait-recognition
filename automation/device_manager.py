@@ -9,12 +9,11 @@ Architecture:
     HardwareDetector → EnvironmentValidator → DeviceManager → [YOLO / ONNX / ByGaitLight / PyTorch]
 """
 
-from dataclasses import dataclass
 import threading
-from typing import Any, Dict, Optional
+from dataclasses import dataclass
+from typing import Any, Optional
 
 from automation.environment_validator import (
-    ComputeBackend,
     EnvironmentState,
     EnvironmentValidationReport,
     EnvironmentValidator,
@@ -23,13 +22,13 @@ from automation.environment_validator import (
 
 @dataclass
 class DeviceInfo:
-    backend: str              # "cuda" | "cpu"
-    device: str               # "cuda:0" | "cpu"
+    backend: str  # "cuda" | "cpu"
+    device: str  # "cuda:0" | "cpu"
     cuda_available: bool
-    gpu_name: Optional[str]
+    gpu_name: str | None
     vram_mb: float
-    pytorch_version: Optional[str]
-    cuda_version: Optional[str]
+    pytorch_version: str | None
+    cuda_version: str | None
     onnx_provider: str
     status: str
 
@@ -45,7 +44,7 @@ class DeviceManager:
     def __init__(self, force_refresh: bool = False, force_cpu: bool = False) -> None:
         DeviceManager._instance = self
         self._validator = EnvironmentValidator()
-        self._report: Optional[EnvironmentValidationReport] = None
+        self._report: EnvironmentValidationReport | None = None
         self._force_cpu = force_cpu
         self._refresh(force_cpu=force_cpu)
 
@@ -55,11 +54,19 @@ class DeviceManager:
         self._report = self._validator.validate(force_cpu=force_cpu)
 
     @classmethod
-    def get_instance(cls, force_refresh: bool = False, force_cpu: Optional[bool] = None) -> "DeviceManager":
+    def get_instance(cls, force_refresh: bool = False, force_cpu: bool | None = None) -> "DeviceManager":
         """Retrieve or create the singleton DeviceManager instance."""
         with cls._lock:
-            target_force_cpu = force_cpu if force_cpu is not None else (cls._instance._force_cpu if cls._instance is not None else False)
-            if cls._instance is None or force_refresh or (force_cpu is not None and force_cpu != cls._instance._force_cpu):
+            target_force_cpu = (
+                force_cpu
+                if force_cpu is not None
+                else (cls._instance._force_cpu if cls._instance is not None else False)
+            )
+            if (
+                cls._instance is None
+                or force_refresh
+                or (force_cpu is not None and force_cpu != cls._instance._force_cpu)
+            ):
                 cls._instance = cls(force_refresh=force_refresh, force_cpu=target_force_cpu)
             return cls._instance
 
@@ -89,8 +96,9 @@ class DeviceManager:
         """Authoritative PyTorch device object."""
         try:
             import torch
+
             return torch.device(self.device)
-        except Exception:
+        except (ImportError, RuntimeError, ValueError):
             return None
 
     @property
@@ -109,7 +117,7 @@ class DeviceManager:
         return self.is_cuda
 
     @property
-    def gpu_name(self) -> Optional[str]:
+    def gpu_name(self) -> str | None:
         """Name of the active GPU or None in CPU mode."""
         if self.validation_report.hardware.gpu.present:
             return self.validation_report.hardware.gpu.gpu_name
@@ -123,21 +131,23 @@ class DeviceManager:
         return 0.0
 
     @property
-    def pytorch_version(self) -> Optional[str]:
+    def pytorch_version(self) -> str | None:
         """Installed PyTorch version string."""
         try:
             import torch
+
             return getattr(torch, "__version__", None)
-        except Exception:
+        except (ImportError, AttributeError):
             return None
 
     @property
-    def cuda_version(self) -> Optional[str]:
+    def cuda_version(self) -> str | None:
         """PyTorch CUDA build version or None."""
         try:
             import torch
+
             return getattr(torch.version, "cuda", None)
-        except Exception:
+        except (ImportError, AttributeError):
             return None
 
     @property
@@ -152,7 +162,7 @@ class DeviceManager:
         """Current EnvironmentState enum value."""
         return self.validation_report.state
 
-    def resolve_component_device(self, requested: Optional[str] = None) -> str:
+    def resolve_component_device(self, requested: str | None = None) -> str:
         """
         Arbitrate requested device strings ('auto', 'cuda', 'gpu', 'cpu') against authoritative state.
         Never yields 'cuda' if the system is not CUDA_READY.
@@ -168,7 +178,7 @@ class DeviceManager:
 
         return "cpu"
 
-    def summary(self) -> Dict[str, Any]:
+    def summary(self) -> dict[str, Any]:
         """Structured telemetry dictionary for logs, API responses, and manifest generation."""
         return {
             "backend": self.backend,

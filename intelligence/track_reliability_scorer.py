@@ -12,7 +12,8 @@ The overall Track Reliability Score combines both dimensions into a single norma
 Components are also reported separately in detailed evaluations to prevent mixing stability and identity confidence.
 """
 
-from typing import Any, Dict, Optional, Union
+from typing import Any
+
 import numpy as np
 
 from monitoring.logging_config import get_logger
@@ -29,7 +30,7 @@ class TrackReliabilityScorer:
     def __init__(
         self,
         enabled: bool = False,
-        weights: Optional[Dict[str, float]] = None,
+        weights: dict[str, float] | None = None,
         target_observation_frames: int = 15,
         min_reliability_threshold: float = 0.50,
         high_reliability_threshold: float = 0.80,
@@ -62,7 +63,7 @@ class TrackReliabilityScorer:
 
     def _compute_quality_subscore(
         self,
-        quality_score: Union[float, Dict[str, Any], None],
+        quality_score: float | dict[str, Any] | None,
     ) -> float:
         if quality_score is None:
             return 1.0
@@ -73,7 +74,7 @@ class TrackReliabilityScorer:
 
     def _compute_temporal_subscore(
         self,
-        temporal_decision: Optional[str],
+        temporal_decision: str | None,
     ) -> float:
         if not temporal_decision:
             return 0.50
@@ -94,7 +95,7 @@ class TrackReliabilityScorer:
 
     def _compute_open_set_subscore(
         self,
-        open_set_state: Optional[str],
+        open_set_state: str | None,
     ) -> float:
         """
         Compute identity reliability open-set subscore.
@@ -127,7 +128,7 @@ class TrackReliabilityScorer:
     def _compute_detection_subscore(
         self,
         detection_confidence: float = 1.0,
-        stability_score: Optional[float] = None,
+        stability_score: float | None = None,
     ) -> float:
         conf = float(np.clip(detection_confidence, 0.0, 1.0))
         if stability_score is not None:
@@ -137,16 +138,16 @@ class TrackReliabilityScorer:
 
     def compute_reliability(
         self,
-        quality_score: Union[float, Dict[str, Any], None] = 1.0,
-        temporal_decision: Optional[str] = None,
-        open_set_state: Optional[str] = None,
+        quality_score: float | dict[str, Any] | None = 1.0,
+        temporal_decision: str | None = None,
+        open_set_state: str | None = None,
         observation_count: int = 1,
         detection_confidence: float = 1.0,
-        persistence_score: Optional[float] = None,
-        transition_score: Optional[float] = None,
-        stability_score: Optional[float] = None,
-        occlusion_score: Optional[float] = None,
-        clean_frame_ratio: Optional[float] = None,
+        persistence_score: float | None = None,
+        transition_score: float | None = None,
+        stability_score: float | None = None,
+        occlusion_score: float | None = None,
+        clean_frame_ratio: float | None = None,
     ) -> float:
         """
         Compute normalized track reliability score in [0.0, 1.0].
@@ -175,26 +176,26 @@ class TrackReliabilityScorer:
 
         if occlusion_score is not None:
             occ_penalty = float(np.clip(occlusion_score, 0.0, 1.0))
-            reliability *= (1.0 - 0.3 * occ_penalty)
+            reliability *= 1.0 - 0.3 * occ_penalty
 
         if clean_frame_ratio is not None:
             clean_factor = float(np.clip(clean_frame_ratio, 0.0, 1.0))
-            reliability *= (0.7 + 0.3 * clean_factor)
+            reliability *= 0.7 + 0.3 * clean_factor
 
         final_score = float(np.clip(reliability, 0.0, 1.0))
         return final_score
 
     def evaluate_track(
         self,
-        quality_score: Union[float, Dict[str, Any], None] = 1.0,
-        temporal_decision: Optional[str] = None,
-        open_set_state: Optional[str] = None,
+        quality_score: float | dict[str, Any] | None = 1.0,
+        temporal_decision: str | None = None,
+        open_set_state: str | None = None,
         observation_count: int = 1,
         detection_confidence: float = 1.0,
-        persistence_score: Optional[float] = None,
-        transition_score: Optional[float] = None,
-        stability_score: Optional[float] = None,
-    ) -> Dict[str, Any]:
+        persistence_score: float | None = None,
+        transition_score: float | None = None,
+        stability_score: float | None = None,
+    ) -> dict[str, Any]:
         """
         Full evaluation of track reliability returning detailed metadata dict.
 
@@ -219,7 +220,9 @@ class TrackReliabilityScorer:
         )
 
         identity_confidence = 0.5 * s_temp + 0.5 * s_open
-        track_stability = (s_qual * self.weights["quality"] + s_obs * self.weights["observation"] + s_det * self.weights["detection"]) / max(1e-5, (self.weights["quality"] + self.weights["observation"] + self.weights["detection"]))
+        track_stability = (
+            s_qual * self.weights["quality"] + s_obs * self.weights["observation"] + s_det * self.weights["detection"]
+        ) / max(1e-5, (self.weights["quality"] + self.weights["observation"] + self.weights["detection"]))
 
         if reliability >= self.high_reliability_threshold:
             level = "HIGH"

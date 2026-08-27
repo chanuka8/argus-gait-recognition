@@ -1,15 +1,11 @@
-from services.camera_worker import CameraWorker
-from typing import Optional, List
-from pathlib import Path
-import yaml
-from services.camera_source_resolver import CameraSourceResolver
-from security_layer.credentials import sanitize_rtsp_url
 import asyncio
-from datetime import datetime, timezone
 import uuid
+from datetime import datetime, timezone
+from pathlib import Path
 
 import cv2
 import numpy as np
+import yaml
 from fastapi import WebSocket
 
 from core.logger import setup_logger
@@ -18,6 +14,9 @@ from pipeline.detection.person_detector import PersonDetector
 from pipeline.silhouette.extractor import SilhouetteExtractor
 from pipeline.steps.feature_extraction import FeatureExtractionStep
 from pipeline.steps.matching_step import MatchingStep
+from security_layer.credentials import sanitize_rtsp_url
+from services.camera_source_resolver import CameraSourceResolver
+from services.camera_worker import CameraWorker
 from storage.vector_store import VectorStore
 
 
@@ -39,7 +38,7 @@ class WebSocketManager:
         for connection in list(self.active_connections):
             try:
                 await connection.send_json(message)
-            except Exception:
+            except (RuntimeError, ValueError, OSError):
                 self.disconnect(connection)
 
 
@@ -63,7 +62,7 @@ class GaitService:
         self.detector = None
         try:
             self.detector = PersonDetector()
-        except Exception as err:
+        except (ImportError, RuntimeError, ValueError, OSError) as err:
             self.logger.warning(f"PersonDetector initialization skipped: {err}")
 
         self.ws_manager = WebSocketManager()
@@ -92,7 +91,7 @@ class GaitService:
                 self.gallery_labels = []
                 self.metadata = []
                 self.logger.warning("No gallery found; operating with empty gallery.")
-        except Exception as err:
+        except (RuntimeError, ValueError, TypeError, OSError) as err:
             self.logger.error(f"Failed to load gallery: {err}")
             self.gallery_features = np.empty((0, 256), dtype=np.float32)
             self.gallery_labels = []
@@ -117,7 +116,7 @@ class GaitService:
             loop = asyncio.get_event_loop()
             if loop.is_running():
                 asyncio.create_task(self.ws_manager.broadcast(event_dict))
-        except Exception:
+        except (RuntimeError, ValueError, TypeError, OSError):
             pass
 
     def get_metrics(self) -> dict:
@@ -149,7 +148,7 @@ class GaitService:
                 detections = self.detector.detect(frame)
                 if detections and len(detections) > 0:
                     bbox = detections[0]["bbox"]
-            except Exception as err:
+            except (RuntimeError, ValueError, TypeError, cv2.error, OSError) as err:
                 self.logger.warning(f"Detection failed; using full frame: {err}")
 
         x1, y1, x2, y2 = map(int, bbox)
@@ -215,7 +214,7 @@ class GaitService:
             loop = asyncio.get_event_loop()
             if loop.is_running():
                 loop.create_task(self.ws_manager.broadcast(event))
-        except Exception:
+        except (RuntimeError, ValueError, TypeError, OSError):
             pass
 
         return event
@@ -300,7 +299,7 @@ class GaitService:
                     for k in defaults:
                         if k in section:
                             defaults[k] = section[k]
-        except Exception as e:
+        except (yaml.YAMLError, OSError, ValueError) as e:
             self.logger.warning(f"Could not load system camera configuration: {e}")
 
         return defaults
@@ -310,9 +309,9 @@ class GaitService:
         camera_id: str,
         source: str = "auto",
         location: str = "Surveillance Zone",
-        zone_id: Optional[str] = None,
+        zone_id: str | None = None,
         user_id: str = "default_user",
-        credential_id: Optional[str] = None,
+        credential_id: str | None = None,
     ) -> dict:
         """Starts camera tracking worker state with automatic or explicit source resolution."""
         if camera_id in self.active_cameras:
@@ -328,7 +327,11 @@ class GaitService:
 
         resolved_source = resolution["resolved_source"]
         resolved_type = resolution.get("resolved_source_type") or resolution.get("source_type") or "webcam"
-        source_type = "webcam" if resolved_type in ("usb", "webcam", "local") else ("rtsp" if resolved_type == "rtsp" else resolved_type)
+        source_type = (
+            "webcam"
+            if resolved_type in ("usb", "webcam", "local")
+            else ("rtsp" if resolved_type == "rtsp" else resolved_type)
+        )
         resolved_label = resolution["resolved_source_label"]
         res_cred_id = resolution.get("credential_id")
         res_cred_conf = resolution.get("credential_configured", False)
@@ -346,6 +349,7 @@ class GaitService:
         recognition_worker = None
         try:
             from services.recognition_worker import RecognitionWorker
+
             recognition_worker = RecognitionWorker(
                 camera_id=camera_id,
                 config=worker_cfg.get("recognition", {}),
@@ -359,7 +363,7 @@ class GaitService:
                 metadata=self.metadata,
                 event_callback=self._handle_recognition_event,
             )
-        except Exception as rec_err:
+        except (ImportError, RuntimeError, ValueError, TypeError, OSError) as rec_err:
             self.logger.warning(f"Recognition worker init deferred for {camera_id}: {rec_err}")
 
         worker = CameraWorker(
@@ -373,7 +377,9 @@ class GaitService:
         started = worker.start()
         if not started:
             self.source_resolver.release_source_by_camera_id(camera_id)
-            raise RuntimeError(f"Unable to establish stream connection for {sanitized_source} ({camera_id}): failed to capture video frames")
+            raise RuntimeError(
+                f"Unable to establish stream connection for {sanitized_source} ({camera_id}): failed to capture video frames"
+            )
 
         self.camera_workers[camera_id] = worker
 
@@ -403,7 +409,9 @@ class GaitService:
             "credential_configured": res_cred_conf,
         }
         self.active_cameras[camera_id] = cam_info
-        self.logger.info(f"Camera worker {camera_id} active with {sanitize_rtsp_url(resolved_label)} [type={source_type}]")
+        self.logger.info(
+            f"Camera worker {camera_id} active with {sanitize_rtsp_url(resolved_label)} [type={source_type}]"
+        )
         return cam_info
 
     def stop_camera(self, camera_id: str) -> bool:
@@ -412,7 +420,7 @@ class GaitService:
         if worker:
             try:
                 worker.stop()
-            except Exception as e:
+            except (RuntimeError, ValueError, TypeError, OSError) as e:
                 self.logger.warning(f"Error stopping worker {camera_id}: {sanitize_rtsp_url(str(e))}")
 
         if camera_id in self.active_cameras:
@@ -422,11 +430,11 @@ class GaitService:
             return True
         return False
 
-    def get_camera_worker(self, camera_id: str) -> Optional[CameraWorker]:
+    def get_camera_worker(self, camera_id: str) -> CameraWorker | None:
         """Return active CameraWorker instance if present."""
         return self.camera_workers.get(camera_id)
 
-    def get_camera_info(self, camera_id: str) -> Optional[dict]:
+    def get_camera_info(self, camera_id: str) -> dict | None:
         """Return updated camera status with live telemetry metrics."""
         cam = self.active_cameras.get(camera_id)
         if not cam:
@@ -444,10 +452,14 @@ class GaitService:
             cam["preview_url"] = f"/api/v1/cameras/{camera_id}/stream"
             cam["last_frame_at"] = stats.get("last_frame_at")
             cam["source_type"] = cam.get("source_type") or stats.get("source_type", "webcam")
-            cam["status"] = "ACTIVE" if worker.is_running() and worker.is_connected() else ("ACTIVE" if worker.is_running() else "STOPPED")
+            cam["status"] = (
+                "ACTIVE"
+                if worker.is_running() and worker.is_connected()
+                else ("ACTIVE" if worker.is_running() else "STOPPED")
+            )
         return cam
 
-    def list_all_cameras(self) -> List[dict]:
+    def list_all_cameras(self) -> list[dict]:
         """Return all active camera info with updated telemetry."""
         result = []
         for cam_id in list(self.active_cameras.keys()):

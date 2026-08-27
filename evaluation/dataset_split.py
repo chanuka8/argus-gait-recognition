@@ -81,11 +81,11 @@ def validate_disjoint_splits(manifest: dict) -> None:
 
     errors = []
     if train_val_overlap:
-        errors.append(f"Train and Val subjects overlap: {sorted(list(train_val_overlap))}")
+        errors.append(f"Train and Val subjects overlap: {sorted(train_val_overlap)}")
     if train_test_overlap:
-        errors.append(f"Train and Test subjects overlap: {sorted(list(train_test_overlap))}")
+        errors.append(f"Train and Test subjects overlap: {sorted(train_test_overlap)}")
     if val_test_overlap:
-        errors.append(f"Val and Test subjects overlap: {sorted(list(val_test_overlap))}")
+        errors.append(f"Val and Test subjects overlap: {sorted(val_test_overlap)}")
 
     if errors:
         raise ValueError("DATA LEAKAGE DETECTED in subject split manifest:\n" + "\n".join(errors))

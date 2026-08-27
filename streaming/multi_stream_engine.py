@@ -7,11 +7,12 @@ Frames are placed into per-camera thread-safe queues for
 consumption by the main recognition pipeline.
 """
 
-import time
 import threading
-from queue import Queue, Full, Empty
+import time
+from queue import Empty, Full, Queue
 
 import cv2
+
 from security_layer.credentials import resolve_camera_config, sanitize_rtsp_url
 
 
@@ -48,10 +49,7 @@ class CameraStream:
 
         if not self.cap.isOpened():
             safe_source = sanitize_rtsp_url(str(self.source))
-            self.error = (
-                f"Camera {self.camera_id}: "
-                f"Failed to open source {safe_source}"
-            )
+            self.error = f"Camera {self.camera_id}: Failed to open source {safe_source}"
             return False
 
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
@@ -74,10 +72,7 @@ class CameraStream:
                 ret, frame = self.cap.read()
 
                 if not ret:
-                    self.error = (
-                        f"Camera {self.camera_id}: "
-                        f"Failed to read frame"
-                    )
+                    self.error = f"Camera {self.camera_id}: Failed to read frame"
                     self.running = False
                     break
 
@@ -100,10 +95,8 @@ class CameraStream:
 
                 time.sleep(self.frame_interval)
 
-            except Exception as e:
-                self.error = (
-                    f"Camera {self.camera_id}: {e}"
-                )
+            except (RuntimeError, ValueError, OSError) as e:
+                self.error = f"Camera {self.camera_id}: {e}"
                 self.running = False
                 break
 
@@ -121,11 +114,7 @@ class CameraStream:
 
     def is_opened(self) -> bool:
         """Check if the camera stream is still running."""
-        return (
-            self.running
-            and self.cap is not None
-            and self.cap.isOpened()
-        )
+        return self.running and self.cap is not None and self.cap.isOpened()
 
     def stop(self) -> None:
         """Stop the capture thread and release the camera."""
@@ -170,7 +159,7 @@ class MultiStreamEngine:
             camera_id = str(cam_cfg.get("id", "cam"))
             try:
                 cam_cfg = resolve_camera_config(cam_cfg)
-            except Exception:
+            except (KeyError, ValueError, TypeError):
                 pass
 
             source = cam_cfg.get("url") or cam_cfg.get("source", 0)
@@ -198,9 +187,7 @@ class MultiStreamEngine:
             results[camera_id] = success
 
             if not success:
-                print(
-                    f"[WARNING] {stream.error}"
-                )
+                print(f"[WARNING] {stream.error}")
 
         return results
 
@@ -218,11 +205,7 @@ class MultiStreamEngine:
 
     def active_cameras(self) -> list[str]:
         """Return list of camera IDs with active streams."""
-        return [
-            cid
-            for cid, stream in self.streams.items()
-            if stream.is_opened()
-        ]
+        return [cid for cid, stream in self.streams.items() if stream.is_opened()]
 
     def stop_all(self) -> None:
         """Stop all camera streams and release resources."""
@@ -231,7 +214,4 @@ class MultiStreamEngine:
 
     def stats(self) -> dict[str, dict]:
         """Return statistics for all camera streams."""
-        return {
-            cid: stream.stats()
-            for cid, stream in self.streams.items()
-        }
+        return {cid: stream.stats() for cid, stream in self.streams.items()}

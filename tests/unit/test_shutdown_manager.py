@@ -6,6 +6,7 @@ import signal
 import threading
 import time
 from unittest.mock import MagicMock
+
 from deployment.shutdown_manager import ShutdownManager, reset_shutdown_manager
 
 

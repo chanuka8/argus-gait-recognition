@@ -1,13 +1,13 @@
-from pathlib import Path
-from datetime import datetime
 import csv
 import threading
 import time
+from datetime import datetime, timezone
+from pathlib import Path
+
 import yaml
 
 
 class AlertManager:
-
     def __init__(
         self,
         alert_file="outputs/logs/events/alerts.csv",
@@ -31,20 +31,17 @@ class AlertManager:
                 with open(config_path, encoding="utf-8") as f:
                     data = yaml.safe_load(f) or {}
                 self.alert_cooldown_seconds = float(data.get("crowd_control", {}).get("alert_cooldown_seconds", 5.0))
-        except Exception:
+        except (yaml.YAMLError, OSError, ValueError, KeyError):
             pass
         self.last_alert_times = {}
 
-
         if not self.alert_file.exists():
-
             with open(
                 self.alert_file,
                 "w",
                 newline="",
                 encoding="utf-8",
             ) as f:
-
                 writer = csv.writer(f)
 
                 writer.writerow(
@@ -70,9 +67,8 @@ class AlertManager:
         with self._lock:
             key = (camera_id, identity, alert_type)
             now = time.time()
-            if key in self.last_alert_times:
-                if now - self.last_alert_times[key] < self.alert_cooldown_seconds:
-                    return
+            if key in self.last_alert_times and now - self.last_alert_times[key] < self.alert_cooldown_seconds:
+                return
             self.last_alert_times[key] = now
 
             with open(
@@ -81,12 +77,11 @@ class AlertManager:
                 newline="",
                 encoding="utf-8",
             ) as f:
-
                 writer = csv.writer(f)
 
                 writer.writerow(
                     [
-                        datetime.now().isoformat(),
+                        datetime.now(timezone.utc).isoformat(),
                         track_id,
                         alert_type,
                         identity,
@@ -95,15 +90,7 @@ class AlertManager:
                     ]
                 )
 
-        print(
-            f"[ALERT] "
-            f"{alert_type} | "
-            f"Camera={camera_id} | "
-            f"Track={track_id} | "
-            f"Identity={identity} | "
-            f"Score={score:.2f}"
-        )
-
+        print(f"[ALERT] {alert_type} | Camera={camera_id} | Track={track_id} | Identity={identity} | Score={score:.2f}")
 
     def evaluate(
         self,
@@ -116,7 +103,6 @@ class AlertManager:
     ):
 
         if identity == "UNKNOWN":
-
             self.create_alert(
                 track_id,
                 identity,
@@ -128,7 +114,6 @@ class AlertManager:
             return
 
         if score < self.confidence_threshold:
-
             self.create_alert(
                 track_id,
                 identity,

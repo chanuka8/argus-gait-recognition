@@ -1,6 +1,7 @@
 import sys
 from collections import defaultdict
 from pathlib import Path
+
 import numpy as np
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -87,8 +88,13 @@ def compute_biometric_rates(
     if len(scores_arr) == 0:
         return {
             "threshold": threshold,
-            "FAR": 0.0, "FRR": 0.0, "TAR": 0.0, "TNR": 0.0,
-            "precision": 0.0, "recall": 0.0, "f1_score": 0.0,
+            "FAR": 0.0,
+            "FRR": 0.0,
+            "TAR": 0.0,
+            "TNR": 0.0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1_score": 0.0,
         }
 
     accepted = scores_arr >= threshold
@@ -119,7 +125,10 @@ def compute_biometric_rates(
         "precision": precision,
         "recall": recall,
         "f1_score": f1,
-        "tp": tp, "fp": fp, "tn": tn, "fn": fn,
+        "tp": tp,
+        "fp": fp,
+        "tn": tn,
+        "fn": fn,
     }
 
 

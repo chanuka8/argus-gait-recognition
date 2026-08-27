@@ -34,24 +34,22 @@ class Watchdog:
 
         try:
             import psutil
+
             process = psutil.Process()
             metrics["cpu_percent"] = process.cpu_percent(interval=0.1)
             mem_info = process.memory_info()
             metrics["ram_used_mb"] = round(mem_info.rss / (1024 * 1024), 1)
             metrics["ram_percent"] = psutil.virtual_memory().percent
-        except ImportError:
-            pass
-        except Exception:
+        except (ImportError, AttributeError, OSError):
             pass
 
         try:
             import torch
+
             if torch.cuda.is_available():
                 metrics["gpu_name"] = torch.cuda.get_device_name(0)
-                metrics["gpu_memory_used_mb"] = round(
-                    torch.cuda.memory_allocated(0) / (1024 * 1024), 1
-                )
-        except Exception:
+                metrics["gpu_memory_used_mb"] = round(torch.cuda.memory_allocated(0) / (1024 * 1024), 1)
+        except (ImportError, RuntimeError, AttributeError):
             pass
 
         return metrics
@@ -65,8 +63,8 @@ class Watchdog:
 
             try:
                 self.check_health()
-            except Exception as error:
-                self._error_logger.error(f"Watchdog execution failure: {error}", exc_info=True)
+            except (RuntimeError, ValueError, KeyError, OSError, TypeError):
+                self._error_logger.exception("Watchdog execution failure")
 
     def check_health(self) -> dict:
         status = self._service.get_status()
@@ -102,14 +100,10 @@ class Watchdog:
             self._logger.warning("Camera service is running but disconnected.")
 
         if queue_size > self._max_queue_warning:
-            self._logger.warning(
-                f"Queue size ({queue_size}) exceeded warning threshold ({self._max_queue_warning})."
-            )
+            self._logger.warning(f"Queue size ({queue_size}) exceeded warning threshold ({self._max_queue_warning}).")
 
         if cam_connected and fps < self._min_fps_warning:
-            self._logger.warning(
-                f"Capture FPS ({fps:.1f}) is below warning threshold ({self._min_fps_warning})."
-            )
+            self._logger.warning(f"Capture FPS ({fps:.1f}) is below warning threshold ({self._min_fps_warning}).")
 
         if self._auto_restart:
             if not rec_alive:
@@ -134,8 +128,7 @@ class Watchdog:
 
         if self._consecutive_restarts > self._max_restarts:
             fatal_message = (
-                f"Max consecutive restart attempts ({self._max_restarts}) reached. "
-                "Manual intervention required."
+                f"Max consecutive restart attempts ({self._max_restarts}) reached. Manual intervention required."
             )
             self._error_logger.critical(fatal_message)
             self._logger.critical(fatal_message)

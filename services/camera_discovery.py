@@ -4,13 +4,12 @@ import re
 import socket
 import time
 from threading import Lock
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import cv2
 
 from monitoring.logging_config import get_logger
 from security_layer.credentials import resolve_camera_config
-
 
 
 class DiscoveredCamera:
@@ -24,9 +23,9 @@ class DiscoveredCamera:
         self.reachable: bool = False
         self.rtsp_valid: bool = False
         self.last_check: float = 0.0
-        self.metadata: Dict[str, Any] = {}
+        self.metadata: dict[str, Any] = {}
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "host": self.host,
             "port": self.port,
@@ -44,22 +43,22 @@ class CameraDiscoveryService:
 
     def __init__(
         self,
-        discovery_config: Optional[Dict[str, Any]] = None,
+        discovery_config: dict[str, Any] | None = None,
     ) -> None:
         self._logger = get_logger("camera_discovery")
         self._lock = Lock()
         self._config = discovery_config or {}
-        self._cameras: Dict[str, DiscoveredCamera] = {}
+        self._cameras: dict[str, DiscoveredCamera] = {}
 
-    def discover_from_config(self, cameras_config: Dict[str, Dict[str, Any]]) -> List[DiscoveredCamera]:
+    def discover_from_config(self, cameras_config: dict[str, dict[str, Any]]) -> list[DiscoveredCamera]:
         """Discover cameras from a cameras.yaml-style config dict."""
-        discovered: List[DiscoveredCamera] = []
+        discovered: list[DiscoveredCamera] = []
         for cam_id, raw_cfg in cameras_config.items():
             cfg_dict = dict(raw_cfg) if isinstance(raw_cfg, dict) else {}
             cfg_dict.setdefault("id", cam_id)
             try:
                 cam_cfg = resolve_camera_config(cfg_dict)
-            except Exception:
+            except (ValueError, KeyError, TypeError, OSError):
                 cam_cfg = cfg_dict
 
             url = cam_cfg.get("url", "")
@@ -82,16 +81,16 @@ class CameraDiscoveryService:
         self._logger.info(f"Discovered {len(discovered)} cameras from config")
         return discovered
 
-    def parse_ws_discovery_response(self, xml_text: str) -> List[str]:
+    def parse_ws_discovery_response(self, xml_text: str) -> list[str]:
         """Parse WS-Discovery ProbeMatch responses to extract XAddrs."""
-        xaddrs: List[str] = []
+        xaddrs: list[str] = []
         try:
             matches = re.findall(r"<[\w:]*XAddrs[^>]*>([^<]+)</[\w:]*XAddrs>", xml_text)
             for m in matches:
                 for addr in m.split():
                     if addr.startswith("http"):
                         xaddrs.append(addr.strip())
-        except Exception as e:
+        except (re.error, ValueError, AttributeError) as e:
             self._logger.error(f"WS-Discovery parse error: {e}")
         return xaddrs
 
@@ -105,7 +104,7 @@ class CameraDiscoveryService:
             ret, _ = cap.read()
             cap.release()
             return ret
-        except Exception:
+        except (cv2.error, OSError):
             return False
 
     def check_host_reachable(self, host: str, port: int = 554, timeout: float = 2.0) -> bool:
@@ -116,10 +115,10 @@ class CameraDiscoveryService:
             result = sock.connect_ex((host, port))
             sock.close()
             return result == 0
-        except Exception:
+        except (OSError, ValueError):
             return False
 
-    def health_check_camera(self, camera_id: str, rtsp_url: str = "") -> Dict[str, Any]:
+    def health_check_camera(self, camera_id: str, rtsp_url: str = "") -> dict[str, Any]:
         """Run full health check on a discovered camera."""
         with self._lock:
             cam = self._cameras.get(camera_id)
@@ -143,7 +142,7 @@ class CameraDiscoveryService:
             "vendor": cam.vendor,
         }
 
-    def get_all_discovered(self) -> Dict[str, Dict[str, Any]]:
+    def get_all_discovered(self) -> dict[str, dict[str, Any]]:
         """Return all discovered cameras."""
         with self._lock:
             return {cid: cam.to_dict() for cid, cam in self._cameras.items()}

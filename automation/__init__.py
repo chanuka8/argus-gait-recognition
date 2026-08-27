@@ -15,15 +15,15 @@ from automation.onnx_manager import OnnxManager
 from automation.pytorch_manager import PyTorchManager
 
 __all__ = [
-    "EnvironmentBootstrap",
-    "DeviceManager",
-    "HardwareDetector",
-    "CudaDetector",
-    "EnvironmentValidator",
-    "PyTorchManager",
-    "OnnxManager",
     "ComputeBackend",
+    "CudaDetector",
+    "DeviceManager",
+    "EnvironmentBootstrap",
     "EnvironmentState",
+    "EnvironmentValidator",
+    "HardwareDetector",
+    "OnnxManager",
+    "PyTorchManager",
     "setup_cuda_dll_paths",
 ]
 
@@ -31,6 +31,6 @@ __all__ = [
 def __getattr__(name: str):
     if name == "EnvironmentBootstrap":
         from automation.bootstrap import EnvironmentBootstrap
+
         return EnvironmentBootstrap
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
-

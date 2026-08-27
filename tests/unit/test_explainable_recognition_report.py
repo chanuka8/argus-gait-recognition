@@ -5,6 +5,7 @@ Unit tests for Explainable Recognition Report Generator.
 import csv
 import json
 from pathlib import Path
+
 import pytest
 
 from intelligence.explainable_recognition_report import (

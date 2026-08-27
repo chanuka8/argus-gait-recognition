@@ -1,6 +1,6 @@
+import csv
 from collections import Counter
 from pathlib import Path
-import csv
 
 from pipeline.inference_pipeline import InferencePipeline
 
@@ -16,14 +16,10 @@ class FolderRecognitionPipeline:
         folder = Path(folder_path)
 
         if not folder.exists():
-            raise FileNotFoundError(
-                f"Folder not found: {folder_path}"
-            )
+            raise FileNotFoundError(f"Folder not found: {folder_path}")
 
         if not folder.is_dir():
-            raise NotADirectoryError(
-                f"Not a folder: {folder_path}"
-            )
+            raise NotADirectoryError(f"Not a folder: {folder_path}")
 
         images: list[Path] = []
 
@@ -32,9 +28,7 @@ class FolderRecognitionPipeline:
             "*.jpg",
             "*.jpeg",
         ):
-            images.extend(
-                folder.glob(pattern)
-            )
+            images.extend(folder.glob(pattern))
 
         return sorted(images)
 
@@ -79,9 +73,7 @@ class FolderRecognitionPipeline:
         output_path: str | None = None,
     ) -> dict:
         self.pipeline.matcher.threshold = threshold
-        images = self._collect_images(
-            folder_path
-        )
+        images = self._collect_images(folder_path)
 
         if not images:
             return {
@@ -105,18 +97,14 @@ class FolderRecognitionPipeline:
         print(f"Threshold: {threshold:.4f}\n")
 
         for image_path in images:
-            prediction = self.pipeline.predict(
-                str(image_path)
-            )
+            prediction = self.pipeline.predict(str(image_path))
 
             score = round(
                 float(prediction["score"]),
                 4,
             )
 
-            identity = str(
-                prediction["identity"]
-            )
+            identity = str(prediction["identity"])
 
             accepted = score >= threshold
 
@@ -132,33 +120,15 @@ class FolderRecognitionPipeline:
 
             status = "ACCEPTED" if accepted else "REJECTED"
 
-            print(
-                f"{row['image']} -> "
-                f"{row['identity']} | "
-                f"{row['score']:.4f} | "
-                f"{status}"
-            )
+            print(f"{row['image']} -> {row['identity']} | {row['score']:.4f} | {status}")
 
-        accepted_results = [
-            row
-            for row in results
-            if row["accepted"]
-        ]
+        accepted_results = [row for row in results if row["accepted"]]
 
-        identities = [
-            str(row["identity"])
-            for row in accepted_results
-        ]
+        identities = [str(row["identity"]) for row in accepted_results]
 
-        counts = Counter(
-            identities
-        )
+        counts = Counter(identities)
 
-        most_common_identity = (
-            counts.most_common(1)[0][0]
-            if counts
-            else "UNKNOWN"
-        )
+        most_common_identity = counts.most_common(1)[0][0] if counts else "UNKNOWN"
 
         summary = {
             "success": True,
@@ -178,21 +148,13 @@ class FolderRecognitionPipeline:
                 output_path,
             )
 
-            print(
-                f"\nReport saved -> {output_path}"
-            )
+            print(f"\nReport saved -> {output_path}")
 
         print("\n=== SUMMARY ===")
         print(f"Total images: {summary['total']}")
         print(f"Accepted: {summary['accepted_total']}")
         print(f"Rejected: {summary['rejected_total']}")
-        print(
-            "Most common identity: "
-            f"{summary['most_common_identity']}"
-        )
-        print(
-            "Identity counts: "
-            f"{summary['identity_counts']}"
-        )
+        print(f"Most common identity: {summary['most_common_identity']}")
+        print(f"Identity counts: {summary['identity_counts']}")
 
         return summary

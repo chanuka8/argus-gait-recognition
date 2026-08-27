@@ -1,4 +1,3 @@
-from typing import List, Optional
 from pydantic import BaseModel, Field
 
 
@@ -20,18 +19,18 @@ class HealthResponse(BaseModel):
 class ComputeInfo(BaseModel):
     backend: str = "cpu"
     device: str = "cpu"
-    gpu: Optional[str] = None
+    gpu: str | None = None
     vram_mb: float = 0.0
     cuda_available: bool = False
-    pytorch_version: Optional[str] = None
-    cuda_version: Optional[str] = None
+    pytorch_version: str | None = None
+    cuda_version: str | None = None
     onnx_provider: str = "CPUExecutionProvider"
 
 
 class StatusResponse(BaseModel):
     status: str = "operational"
     device: str = "cuda"
-    compute: Optional[ComputeInfo] = None
+    compute: ComputeInfo | None = None
     thresholds: dict[str, float] = Field(
         default_factory=lambda: {
             "known_threshold": 0.85,
@@ -65,17 +64,17 @@ class RecognitionEvent(BaseModel):
     decision: str
     confidence: float
     quality: float = 0.85
-    bbox: List[int] = Field(default_factory=lambda: [0, 0, 0, 0])
+    bbox: list[int] = Field(default_factory=lambda: [0, 0, 0, 0])
     recognition_branch: str = "2D_GEI"
     timestamp: str
 
 
 class CameraStartRequest(BaseModel):
     camera_id: str
-    source: Optional[str] = "auto"
-    location: Optional[str] = "Surveillance Zone"
-    zone_id: Optional[str] = None
-    credential_id: Optional[str] = None
+    source: str | None = "auto"
+    location: str | None = "Surveillance Zone"
+    zone_id: str | None = None
+    credential_id: str | None = None
 
 
 class CameraStopRequest(BaseModel):
@@ -85,34 +84,34 @@ class CameraStopRequest(BaseModel):
 class CameraInfoResponse(BaseModel):
     camera_id: str
     source: str
-    source_type: Optional[str] = "webcam"
+    source_type: str | None = "webcam"
     location: str
     status: str
     fps: float = 0.0
     processed_frames: int = 0
     active_tracks: int = 0
-    recognition_active: Optional[bool] = False
-    last_recognition_at: Optional[str] = None
-    active_clients: Optional[int] = 0
-    recognized_identities: Optional[List[str]] = Field(default_factory=list)
-    zone_id: Optional[str] = None
-    requested_source: Optional[str] = None
-    resolved_source: Optional[str] = None
-    resolved_source_type: Optional[str] = None
-    resolved_source_label: Optional[str] = None
-    preview_url: Optional[str] = None
-    started_at: Optional[str] = None
-    last_frame_at: Optional[str] = None
-    credential_id: Optional[str] = None
-    credential_configured: Optional[bool] = False
+    recognition_active: bool | None = False
+    last_recognition_at: str | None = None
+    active_clients: int | None = 0
+    recognized_identities: list[str] | None = Field(default_factory=list)
+    zone_id: str | None = None
+    requested_source: str | None = None
+    resolved_source: str | None = None
+    resolved_source_type: str | None = None
+    resolved_source_label: str | None = None
+    preview_url: str | None = None
+    started_at: str | None = None
+    last_frame_at: str | None = None
+    credential_id: str | None = None
+    credential_configured: bool | None = False
 
 
 class CredentialCreateRequest(BaseModel):
     username: str
     password: str
-    credential_id: Optional[str] = None
-    description: Optional[str] = None
-    shared_user_ids: Optional[List[str]] = Field(default_factory=list)
+    credential_id: str | None = None
+    description: str | None = None
+    shared_user_ids: list[str] | None = Field(default_factory=list)
 
 
 class CredentialResponse(BaseModel):
@@ -120,12 +119,12 @@ class CredentialResponse(BaseModel):
     owner_user_id: str
     username: str = "***"
     password: str = "***"
-    description: Optional[str] = ""
-    created_at: Optional[str] = None
-    updated_at: Optional[str] = None
-    shared_user_ids: List[str] = Field(default_factory=list)
+    description: str | None = ""
+    created_at: str | None = None
+    updated_at: str | None = None
+    shared_user_ids: list[str] = Field(default_factory=list)
     credential_configured: bool = True
-    is_owner: Optional[bool] = True
+    is_owner: bool | None = True
 
 
 class CredentialShareRequest(BaseModel):
@@ -150,4 +149,3 @@ class IdentifyRequest(BaseModel):
 class IdentifyResponse(BaseModel):
     identity: str
     score: float
-

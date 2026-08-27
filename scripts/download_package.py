@@ -17,7 +17,6 @@ import time
 import urllib.error
 import urllib.request
 from pathlib import Path
-from typing import Optional
 
 
 def format_bytes(num_bytes: float) -> str:
@@ -46,7 +45,7 @@ def format_time(seconds: float) -> str:
 def render_progress_bar(
     package_name: str,
     downloaded_bytes: int,
-    total_bytes: Optional[int],
+    total_bytes: int | None,
     speed_bps: float,
     start_time: float,
     is_tty: bool,
@@ -86,11 +85,11 @@ def render_progress_bar(
 def download_file(
     url: str,
     output_path: Path,
-    package_name: Optional[str] = None,
-    version: Optional[str] = None,
-    platform: Optional[str] = None,
-    source: Optional[str] = None,
-    expected_sha256: Optional[str] = None,
+    package_name: str | None = None,
+    version: str | None = None,
+    platform: str | None = None,
+    source: str | None = None,
+    expected_sha256: str | None = None,
     max_retries: int = 5,
     chunk_size: int = 256 * 1024,
 ) -> bool:
@@ -126,7 +125,9 @@ def download_file(
         if existing_bytes > 0:
             headers["Range"] = f"bytes={existing_bytes}-"
             print(f"[ARGUS DOWNLOAD] Existing partial data: {format_bytes(existing_bytes)}", flush=True)
-            print(f"[ARGUS DOWNLOAD] Resuming from byte {existing_bytes} (Attempt {attempt}/{max_retries})...", flush=True)
+            print(
+                f"[ARGUS DOWNLOAD] Resuming from byte {existing_bytes} (Attempt {attempt}/{max_retries})...", flush=True
+            )
         elif attempt > 1:
             print(f"[ARGUS DOWNLOAD] Retrying connection (Attempt {attempt}/{max_retries})...", flush=True)
 
@@ -221,10 +222,13 @@ def download_file(
                 if output_path.exists():
                     try:
                         output_path.unlink()
-                    except Exception:
+                    except OSError:
                         pass
                 part_path.rename(output_path)
-                print(f"[ARGUS DOWNLOAD] ✓ Successfully downloaded: {pkg_name} ({format_bytes(final_total)})\n", flush=True)
+                print(
+                    f"[ARGUS DOWNLOAD] ✓ Successfully downloaded: {pkg_name} ({format_bytes(final_total)})\n",
+                    flush=True,
+                )
                 return True
 
         except (urllib.error.URLError, TimeoutError, ConnectionResetError, OSError) as err:
@@ -250,7 +254,7 @@ def main() -> int:
     parser.add_argument(
         "--retries",
         type=int,
-        default=int(os.environ.get("ARGUS_DOWNLOAD_RETRIES", 5)),
+        default=int(os.environ.get("ARGUS_DOWNLOAD_RETRIES", "5")),
         help="Maximum retry attempts",
     )
 

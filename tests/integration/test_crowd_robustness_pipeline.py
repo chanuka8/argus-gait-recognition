@@ -50,23 +50,28 @@ def test_crowd_robustness_end_to_end_simulation():
 
     detections = []
     for i in range(8):
-        detections.append({
-            "track_id": i + 1,
-            "bbox": [100 + (i % 3) * 15, 100 + (i % 3) * 15, 200 + (i % 3) * 15, 300 + (i % 3) * 15],
-            "confidence": 0.85,
-        })
+        detections.append(
+            {
+                "track_id": i + 1,
+                "bbox": [100 + (i % 3) * 15, 100 + (i % 3) * 15, 200 + (i % 3) * 15, 300 + (i % 3) * 15],
+                "confidence": 0.85,
+            }
+        )
 
     density_res = mgr.process_frame_density(detections, (1080, 1920))
     assert density_res.person_count == 8
     assert density_res.level in (CrowdDensityLevel.HIGH, CrowdDensityLevel.SEVERE, CrowdDensityLevel.MODERATE)
 
-    occluded_ids, overlap_map = mgr.identify_occluded_tracks(detections)
+    occluded_ids, _overlap_map = mgr.identify_occluded_tracks(detections)
     assert len(occluded_ids) > 0
 
 
 def test_inference_skipping_when_evidence_insufficient():
     from intelligence.crowd_intelligence_system import CrowdIntelligenceSystem
-    system = CrowdIntelligenceSystem({"enabled": True, "recognition_deferral": {"enabled": True, "minimum_confirmations": 3}})
+
+    system = CrowdIntelligenceSystem(
+        {"enabled": True, "recognition_deferral": {"enabled": True, "minimum_confirmations": 3}}
+    )
 
     res = system.evaluate_track_recognition(
         camera_id="cam_00",

@@ -68,10 +68,7 @@ class ReIDMatchingStep:
             (identity, reid_score)
         """
 
-        if (
-            gallery_features is None
-            or gallery_labels is None
-        ):
+        if gallery_features is None or gallery_labels is None:
             return "UNKNOWN", 0.0
 
         gallery_features = np.asarray(
@@ -102,13 +99,9 @@ class ReIDMatchingStep:
         ):
             return "UNKNOWN", 0.0
 
-        gallery_features = gallery_features[
-            active_mask
-        ]
+        gallery_features = gallery_features[active_mask]
 
-        gallery_labels = gallery_labels[
-            active_mask
-        ]
+        gallery_labels = gallery_labels[active_mask]
 
         query_feature = np.asarray(
             query_feature,
@@ -122,9 +115,7 @@ class ReIDMatchingStep:
         if query_norm == 0:
             return "UNKNOWN", 0.0
 
-        query_feature = query_feature / (
-            query_norm + 1e-8
-        )
+        query_feature = query_feature / (query_norm + 1e-8)
 
         gallery_norms = np.linalg.norm(
             gallery_features,
@@ -132,9 +123,7 @@ class ReIDMatchingStep:
             keepdims=True,
         )
 
-        gallery_features = gallery_features / (
-            gallery_norms + 1e-8
-        )
+        gallery_features = gallery_features / (gallery_norms + 1e-8)
 
         scores = np.dot(
             gallery_features,

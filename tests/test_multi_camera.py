@@ -286,7 +286,7 @@ class TestConfigurationLoading(unittest.TestCase):
 
         cameras = config.get("cameras", {})
 
-        for camera_id, camera_config in cameras.items():
+        for camera_config in cameras.values():
             self.assertIn("id", camera_config)
             self.assertIn("name", camera_config)
             self.assertIn("type", camera_config)

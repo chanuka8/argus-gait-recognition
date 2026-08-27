@@ -29,9 +29,7 @@ class GaitClassifier(nn.Module):
             raise ValueError(f"num_classes must be greater than 0, got {num_classes}")
 
         if loss_mode not in ("ce", "ce_arcface"):
-            raise ValueError(
-                f"Invalid loss_mode: '{loss_mode}'. Supported options are 'ce' and 'ce_arcface'."
-            )
+            raise ValueError(f"Invalid loss_mode: '{loss_mode}'. Supported options are 'ce' and 'ce_arcface'.")
 
         self.backbone = ByGaitLight(
             embedding_dim=embedding_dim,
@@ -114,9 +112,7 @@ class Trainer:
         if learning_rate <= 0:
             raise ValueError(f"learning_rate must be positive, got {learning_rate}")
         if loss_mode not in ("ce", "ce_arcface"):
-            raise ValueError(
-                f"Invalid loss_mode: '{loss_mode}'. Supported options are 'ce' and 'ce_arcface'."
-            )
+            raise ValueError(f"Invalid loss_mode: '{loss_mode}'. Supported options are 'ce' and 'ce_arcface'.")
         if triplet_margin < 0:
             raise ValueError(f"triplet_margin cannot be negative, got {triplet_margin}")
         if triplet_weight < 0:
@@ -151,9 +147,7 @@ class Trainer:
             self.device = "cuda" if torch.cuda.is_available() else "cpu"
         else:
             if device == "cuda" and not torch.cuda.is_available():
-                self.logger.warning(
-                    "CUDA device requested but not available. Falling back to CPU."
-                )
+                self.logger.warning("CUDA device requested but not available. Falling back to CPU.")
                 self.device = "cpu"
             else:
                 self.device = device
@@ -167,9 +161,7 @@ class Trainer:
     def train(
         self,
     ) -> dict:
-        self.logger.info(
-            "Building dataloaders"
-        )
+        self.logger.info("Building dataloaders")
 
         use_return_condition = self.cross_condition_triplet or self.condition_balanced
 
@@ -192,15 +184,9 @@ class Trainer:
         if len(dataset) <= 0:
             raise ValueError(f"Dataset at '{self.data_dir}' contains 0 samples.")
 
-        self.logger.info(
-            f"Samples: {len(dataset)}"
-        )
-        self.logger.info(
-            f"Classes: {num_classes}"
-        )
-        self.logger.info(
-            f"Device: {self.device}"
-        )
+        self.logger.info(f"Samples: {len(dataset)}")
+        self.logger.info(f"Classes: {num_classes}")
+        self.logger.info(f"Device: {self.device}")
         self.logger.info(
             f"Loss mode: {self.loss_mode} (scale={self.arcface_scale}, margin={self.arcface_margin}) | "
             f"Triplet | margin={self.triplet_margin} | weight={self.triplet_weight}"
@@ -256,10 +242,12 @@ class Trainer:
         }
         with open(self.run_dir / "experiment_config.json", "w", encoding="utf-8") as f:
             import json
+
             json.dump(exp_config, f, indent=4)
 
         if self.split_config_path and Path(self.split_config_path).exists():
             import shutil
+
             shutil.copy(self.split_config_path, self.run_dir / "subject_split.json")
 
         model_meta = {
@@ -271,6 +259,7 @@ class Trainer:
         }
         with open(self.run_dir / "model_metadata.json", "w", encoding="utf-8") as f:
             import json
+
             json.dump(model_meta, f, indent=4)
 
         history = {
@@ -314,9 +303,7 @@ class Trainer:
                 **val_metrics,
             }
 
-            history[
-                "epochs"
-            ].append(
+            history["epochs"].append(
                 epoch_metrics,
             )
 
@@ -337,16 +324,10 @@ class Trainer:
                 "last_model.pth",
             )
 
-            if val_metrics[
-                "val_accuracy"
-            ] > best_val_accuracy:
-                best_val_accuracy = val_metrics[
-                    "val_accuracy"
-                ]
+            if val_metrics["val_accuracy"] > best_val_accuracy:
+                best_val_accuracy = val_metrics["val_accuracy"]
 
-                history[
-                    "best_val_accuracy"
-                ] = best_val_accuracy
+                history["best_val_accuracy"] = best_val_accuracy
 
                 self.checkpointer.save_model(
                     model,
@@ -357,9 +338,7 @@ class Trainer:
             history,
         )
 
-        self.logger.info(
-            "Training completed"
-        )
+        self.logger.info("Training completed")
 
         return history
 
@@ -429,9 +408,7 @@ class Trainer:
                 dim=1,
             )
 
-            correct += (
-                predictions == labels
-            ).sum().item()
+            correct += (predictions == labels).sum().item()
 
             total += labels.size(
                 0,
@@ -479,7 +456,7 @@ class Trainer:
                     self.device,
                 )
 
-                loss_logits, pred_logits, embeddings = model(
+                loss_logits, _pred_logits, embeddings = model(
                     images,
                     labels=labels,
                 )
@@ -523,5 +500,3 @@ class Trainer:
             "val_triplet_loss": total_triplet / max(total, 1),
             "val_accuracy": val_acc,
         }
-
-

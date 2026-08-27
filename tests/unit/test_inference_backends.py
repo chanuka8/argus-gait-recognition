@@ -3,6 +3,7 @@ Unit tests for Inference Backends abstraction and fallback mechanisms.
 """
 
 from pathlib import Path
+
 import numpy as np
 import pytest
 
@@ -13,7 +14,9 @@ from scripts.export_bygait_onnx import export_onnx
 
 
 def test_pytorch_backend_predict_shape_and_l2_normalization():
-    backend = PyTorchBackend(config={"backend": "pytorch", "device": "cpu", "precision": "fp32", "warmup_iterations": 0})
+    backend = PyTorchBackend(
+        config={"backend": "pytorch", "device": "cpu", "precision": "fp32", "warmup_iterations": 0}
+    )
     dummy_input = np.random.randn(1, 1, 128, 64).astype(np.float32)
     embedding = backend.predict(dummy_input)
 
@@ -66,7 +69,9 @@ def test_invalid_backend_rejection():
 def test_onnx_export_script_execution(tmp_path: Path):
     ckpt_file = tmp_path / "model.pth"
     import torch
+
     from models.architectures.bygait_light import ByGaitLight
+
     torch.save(ByGaitLight().state_dict(), ckpt_file)
 
     onnx_file = tmp_path / "bygait_light_test.onnx"
@@ -76,6 +81,7 @@ def test_onnx_export_script_execution(tmp_path: Path):
         precision="fp32",
     )
     import importlib.util
+
     has_onnx = (importlib.util.find_spec("onnx") is not None) and (importlib.util.find_spec("onnxruntime") is not None)
 
     if has_onnx:
@@ -190,7 +196,9 @@ def test_backend_validator_and_report_generation(tmp_path: Path):
 def test_genuine_onnx_session_properties_and_metrics(tmp_path: Path):
     ckpt_file = tmp_path / "model.pth"
     import torch
+
     from models.architectures.bygait_light import ByGaitLight
+
     torch.save(ByGaitLight().state_dict(), ckpt_file)
 
     onnx_file = tmp_path / "test_model.onnx"
@@ -216,21 +224,22 @@ def test_genuine_onnx_session_properties_and_metrics(tmp_path: Path):
             assert backend.active_backend == "onnxruntime"
             assert backend.fallback_used is False
             assert backend.execution_provider == "CPUExecutionProvider"
-    except Exception:
+    except (ImportError, RuntimeError, ValueError, OSError):
         pytest.skip("ONNXRuntime unavailable in environment")
 
 
 def test_cpu_only_onnx_provider_selection_emits_no_cuda_warning(tmp_path: Path, capwarn=None):
     ckpt_file = tmp_path / "model.pth"
     import torch
+
     from models.architectures.bygait_light import ByGaitLight
+
     torch.save(ByGaitLight().state_dict(), ckpt_file)
 
     onnx_file = tmp_path / "test_model.onnx"
     export_onnx(str(ckpt_file), str(onnx_file), "fp32")
     if not onnx_file.exists():
         pytest.skip("ONNX model unavailable for test")
-
 
     from models.inference.onnx_backend import ONNXBackend
 
@@ -243,6 +252,7 @@ def test_cpu_only_onnx_provider_selection_emits_no_cuda_warning(tmp_path: Path, 
     }
     try:
         import warnings
+
         with warnings.catch_warnings(record=True) as record:
             warnings.simplefilter("always")
             onnx_be = ONNXBackend(config=cfg)
@@ -250,7 +260,7 @@ def test_cpu_only_onnx_provider_selection_emits_no_cuda_warning(tmp_path: Path, 
                 assert onnx_be.execution_provider == "CPUExecutionProvider"
                 cuda_warns = [w for w in record if "CUDAExecutionProvider" in str(w.message)]
                 assert len(cuda_warns) == 0
-    except Exception:
+    except (ImportError, RuntimeError, ValueError, OSError):
         pytest.skip("ONNXRuntime not installed")
 
 
@@ -306,6 +316,7 @@ def test_pytorch_fallback_parity_is_exact(tmp_path: Path):
 
 def test_tensorrt_failure_emits_single_warning():
     import logging
+
     from monitoring.logging_config import get_logger
 
     logger = get_logger("detection")

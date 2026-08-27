@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+
 import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -8,14 +9,13 @@ if str(ROOT) not in sys.path:
 
 from evaluation.dataset_split import load_or_create_subject_split
 from evaluation.leakage_validator import (
-    assert_subject_disjointness,
     assert_gallery_probe_disjointness,
     assert_no_test_threshold_calibration,
+    assert_subject_disjointness,
 )
 
 
 class TestLeakagePrevention:
-
     def test_repository_subject_split_disjointness(self):
         manifest = load_or_create_subject_split()
         train_subs = manifest["train_subjects"]

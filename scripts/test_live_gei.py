@@ -6,10 +6,10 @@ sys.path.insert(0, str(ROOT))
 
 import cv2
 
-from streaming.stream_engine import StreamEngine
-from pipeline.steps.tracking import TrackingStep
-from pipeline.steps.silhouette_step import SilhouetteStep
 from pipeline.steps.live_gei import LiveGEI
+from pipeline.steps.silhouette_step import SilhouetteStep
+from pipeline.steps.tracking import TrackingStep
+from streaming.stream_engine import StreamEngine
 
 
 def crop_person(frame, box):
@@ -38,34 +38,27 @@ def main():
 
     silhouette_step = SilhouetteStep()
 
-    gei_buffer = LiveGEI(
-        max_frames=15
-    )
+    gei_buffer = LiveGEI(max_frames=15)
 
     print("Live GEI started")
     print("Press Q to quit")
 
     while True:
-
         ret, frame = stream.read()
 
         if not ret:
             break
 
-        detections = tracker.track(
-            frame
-        )
+        detections = tracker.track(frame)
 
         xyxy = detections.xyxy
         ids = detections.tracker_id
 
         if ids is not None:
-
             for box, track_id in zip(
                 xyxy,
                 ids,
             ):
-
                 crop = crop_person(
                     frame,
                     box,
@@ -74,22 +67,14 @@ def main():
                 if crop is None:
                     continue
 
-                silhouette = (
-                    silhouette_step.extract_from_crop(
-                        crop
-                    )
-                )
+                silhouette = silhouette_step.extract_from_crop(crop)
 
                 if silhouette is None:
                     continue
 
-                gei_buffer.add(
-                    silhouette
-                )
+                gei_buffer.add(silhouette)
 
-                count = (
-                    gei_buffer.count()
-                )
+                count = gei_buffer.count()
 
                 x1, y1, x2, y2 = map(
                     int,
@@ -120,7 +105,6 @@ def main():
                 )
 
         if gei_buffer.ready():
-
             gei = gei_buffer.build()
 
             cv2.imshow(
@@ -133,11 +117,7 @@ def main():
             frame,
         )
 
-        if (
-            cv2.waitKey(1)
-            & 0xFF
-            == ord("q")
-        ):
+        if cv2.waitKey(1) & 0xFF == ord("q"):
             break
 
     stream.release()

@@ -3,7 +3,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 PROJECT_ROOT = Path(__file__).resolve().parent
 
 
@@ -700,7 +699,7 @@ Detections are classified into the following statuses based on the confidence sc
         with open(doc_path, "w", encoding="utf-8") as f:
             f.write(content.strip() + "\n")
         print("[OK] Automatically generated: docs/matching_person_detection.md")
-    except Exception as e:
+    except (OSError, ValueError) as e:
         print(f"[ERROR] Failed to auto-generate docs: {e}")
         return 1
 
@@ -709,7 +708,7 @@ Detections are classified into the following statuses based on the confidence sc
             try:
                 item.unlink()
                 print(f"[CLEANUP] Deleted unneeded file: docs/{item.name}")
-            except Exception as e:
+            except OSError as e:
                 print(f"[WARNING] Failed to delete docs/{item.name}: {e}")
 
     required_files = ["README.md", "requirements.txt", "Makefile", "docs/matching_person_detection.md"]
@@ -887,6 +886,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main() -> None:
     from deployment.shutdown_manager import get_shutdown_manager
+
     get_shutdown_manager().register_signal_handlers()
 
     parser = build_parser()

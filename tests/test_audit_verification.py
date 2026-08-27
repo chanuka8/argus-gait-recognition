@@ -6,6 +6,7 @@ import tempfile
 import threading
 import time
 import unittest
+
 import numpy as np
 
 from intelligence.cross_camera_tracker import CrossCameraTracker
@@ -71,7 +72,7 @@ class TestSystemAuditVerification(unittest.TestCase):
                 for i in range(20):
                     cache.put(f"key_{idx}_{i}", f"val_{i}")
                     _ = cache.get(f"key_{idx}_{i}")
-            except Exception as e:
+            except (RuntimeError, ValueError, TypeError, OSError) as e:
                 errors.append(e)
 
         threads = [threading.Thread(target=worker, args=(t,)) for t in range(5)]

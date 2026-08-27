@@ -12,14 +12,13 @@ No model weights, recognition thresholds, or matching math are
 modified or referenced by this module.
 """
 
-from datetime import datetime
-from pathlib import Path
-from typing import Any, Optional
-
 import csv
 import json
 import threading
 import time
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
 
 import cv2
 import numpy as np
@@ -54,7 +53,7 @@ def load_reporting_config() -> dict:
     try:
         with open(config_path, encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
-    except Exception:
+    except (yaml.YAMLError, OSError, ValueError, KeyError):
         return defaults
 
     section = data.get("reporting", {})
@@ -99,7 +98,7 @@ class DetectionReporter:
 
     def __init__(
         self,
-        config: Optional[dict] = None,
+        config: dict | None = None,
         source_mode: str = "live",
     ) -> None:
         self.cfg = config if config is not None else load_reporting_config()
@@ -118,7 +117,6 @@ class DetectionReporter:
             "UNCERTAIN": bool(self.cfg.get("report_uncertain", True)),
             "CONFIRMED": bool(self.cfg.get("report_confirmed", True)),
         }
-
 
         output_dir = Path(self.cfg.get("output_dir", "outputs/media/detections"))
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -141,7 +139,6 @@ class DetectionReporter:
                 writer = csv.DictWriter(f, fieldnames=_CSV_FIELDS)
                 writer.writeheader()
 
-
     def report(
         self,
         camera_id: str,
@@ -151,7 +148,7 @@ class DetectionReporter:
         status: str,
         score: float,
         bbox: list[int],
-        frame: Optional[np.ndarray] = None,
+        frame: np.ndarray | None = None,
         **kwargs: Any,
     ) -> bool:
         """Record a detection event if it passes status and cooldown filters.
@@ -196,12 +193,16 @@ class DetectionReporter:
                 return False
             self._cooldown_map[cooldown_key] = now
 
-        ts = datetime.now()
+        ts = datetime.now(timezone.utc)
         snapshot_path = ""
 
         if self._save_snapshots and frame is not None:
             snapshot_path = self._save_snapshot(
-                frame, bbox, camera_id, track_id, ts,
+                frame,
+                bbox,
+                camera_id,
+                track_id,
+                ts,
             )
 
         record = {
@@ -252,7 +253,6 @@ class DetectionReporter:
 
         return True
 
-
     def _write_jsonl(self, record: dict) -> None:
         with open(self._jsonl_path, "a", encoding="utf-8") as f:
             f.write(json.dumps(record, ensure_ascii=False) + "\n")
@@ -264,7 +264,7 @@ class DetectionReporter:
                 row[k] = str(v)
 
         fieldnames = list(_CSV_FIELDS)
-        for k in row.keys():
+        for k in row:
             if k not in fieldnames:
                 fieldnames.append(k)
 
@@ -296,11 +296,9 @@ class DetectionReporter:
                 return ""
 
             crop = frame[y1:y2, x1:x2]
-            filename = (
-                f"{camera_id}_T{track_id}_{ts.strftime('%Y%m%d_%H%M%S')}.jpg"
-            )
+            filename = f"{camera_id}_T{track_id}_{ts.strftime('%Y%m%d_%H%M%S')}.jpg"
             path = self._snapshot_dir / filename
             cv2.imwrite(str(path), crop)
             return str(path)
-        except Exception:
+        except (cv2.error, OSError, ValueError, TypeError):
             return ""

@@ -1,28 +1,28 @@
+import csv
 from collections import Counter
 from pathlib import Path
-import csv
 
 import cv2
 import numpy as np
 import torch
 import yaml
 
+from intelligence.open_set_recognizer import OpenSetRecognizer
+from intelligence.track_reliability_scorer import TrackReliabilityScorer
 from models.architectures.bygait_light import ByGaitLight
 from pipeline.steps.centroid_matching_step import CentroidMatchingStep
 from pipeline.steps.live_gei import LiveGEI
 from pipeline.steps.matching_step import MatchingStep
 from pipeline.steps.silhouette_step import SilhouetteStep
 from pipeline.steps.tracking import TrackingStep
-from intelligence.open_set_recognizer import OpenSetRecognizer
-from intelligence.track_reliability_scorer import TrackReliabilityScorer
 from security_layer.security_engine import SecurityEngine
 from storage.vector_store import VectorStore
 from utils.alert_manager import AlertManager
+from utils.box_stabilizer import BoxStabilizer
+from utils.detection_reporter import DetectionReporter, load_reporting_config
+from utils.display_renderer import DetectionDisplayRenderer, load_display_config
 from utils.event_logger import EventLogger
 from utils.prediction_smoother import PredictionSmoother
-from utils.box_stabilizer import BoxStabilizer
-from utils.display_renderer import DetectionDisplayRenderer, load_display_config
-from utils.detection_reporter import DetectionReporter, load_reporting_config
 
 
 def _load_matching_policy() -> dict:
@@ -48,7 +48,7 @@ def _load_matching_policy() -> dict:
     try:
         with open(config_path, encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
-    except Exception:
+    except (yaml.YAMLError, OSError, ValueError):
         return defaults
 
     policy = data.get("matching_policy", {})
@@ -86,7 +86,7 @@ def _load_crowd_control_config() -> dict:
     try:
         with open(config_path, encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
-    except Exception:
+    except (yaml.YAMLError, OSError, ValueError):
         return defaults
 
     cc = data.get("crowd_control", {})
@@ -123,7 +123,7 @@ def _load_box_stability_config() -> dict:
     try:
         with open(config_path, encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
-    except Exception:
+    except (yaml.YAMLError, OSError, ValueError):
         return defaults
 
     bs = data.get("box_stability", {})
@@ -157,7 +157,7 @@ def _load_reid_config() -> dict:
     try:
         with open(config_path, encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
-    except Exception:
+    except (yaml.YAMLError, OSError, ValueError):
         return defaults
 
     reid = data.get("reid", {})
@@ -191,7 +191,7 @@ def _load_fusion_config() -> dict:
     try:
         with open(config_path, encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
-    except Exception:
+    except (yaml.YAMLError, OSError, ValueError):
         return defaults
 
     fusion = data.get("dual_modal_fusion", data.get("fusion", {}))
@@ -222,7 +222,7 @@ def _load_quality_config() -> dict:
     try:
         with open(config_path, encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
-    except Exception:
+    except (yaml.YAMLError, OSError, ValueError):
         return defaults
 
     quality = data.get("gei_quality", {})
@@ -253,7 +253,7 @@ def _load_temporal_config() -> dict:
     try:
         with open(config_path, encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
-    except Exception:
+    except (yaml.YAMLError, OSError, ValueError):
         return defaults
 
     temporal = data.get("temporal_verification", {})
@@ -292,7 +292,7 @@ def _load_track_reliability_config() -> dict:
     try:
         with open(config_path, encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
-    except Exception:
+    except (yaml.YAMLError, OSError, ValueError):
         return defaults
 
     section = data.get("track_reliability", {})
@@ -324,7 +324,7 @@ def _load_watchlist_config() -> dict:
     try:
         with open(config_path, encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
-    except Exception:
+    except (yaml.YAMLError, OSError, ValueError):
         return defaults
 
     section = data.get("watchlist", {})
@@ -371,7 +371,7 @@ def _load_crowd_robustness_config() -> dict:
     try:
         with open(config_path, "r", encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
-    except Exception:
+    except (yaml.YAMLError, OSError, ValueError):
         return defaults
 
     section = data.get("crowd_robustness", {})
@@ -388,8 +388,6 @@ def _load_crowd_robustness_config() -> dict:
 
 
 class VideoRecognitionPipeline:
-
-
     def __init__(
         self,
         model_path: str = "runs/exp_001/best_model.pth",
@@ -412,6 +410,7 @@ class VideoRecognitionPipeline:
         self.crowd_robustness_config = _load_crowd_robustness_config()
         from intelligence.crowd_robustness_manager import CrowdRobustnessManager
         from intelligence.track_recovery_manager import TrackRecoveryManager
+
         self.crowd_robustness_manager = CrowdRobustnessManager(self.crowd_robustness_config)
         self.track_recovery_manager = TrackRecoveryManager(max_lost_seconds=3.0)
 
@@ -420,8 +419,9 @@ class VideoRecognitionPipeline:
             config=load_reporting_config(),
             source_mode="video",
         )
-        from intelligence.explainable_recognition_report import ExplainableRecognitionReporter
         from intelligence.event_timeline_reconstructor import EventTimelineReconstructor
+        from intelligence.explainable_recognition_report import ExplainableRecognitionReporter
+
         self.explainable_reporter = ExplainableRecognitionReporter()
         self.timeline_reconstructor = EventTimelineReconstructor()
         self.camera_id = "cam_00"
@@ -429,13 +429,13 @@ class VideoRecognitionPipeline:
 
         self.watchlist_config = _load_watchlist_config()
         from intelligence.missing_person_workflow import MissingPersonWorkflow
+
         self.watchlist_manager = MissingPersonWorkflow(
             alert_threshold=self.watchlist_config.get("alert_threshold", alert_threshold),
             cooldown_seconds=self.watchlist_config.get("cooldown_seconds", 10.0),
         )
 
         self.matcher = MatchingStep(threshold=threshold)
-
 
         self.open_set_recognizer = OpenSetRecognizer(
             known_threshold=threshold,
@@ -457,7 +457,6 @@ class VideoRecognitionPipeline:
             top_k=self.policy["top_k"],
         )
 
-
         self.model = self._load_model(model_path)
 
         gallery = VectorStore(
@@ -465,9 +464,7 @@ class VideoRecognitionPipeline:
         ).load()
 
         if gallery is None:
-            raise RuntimeError(
-                "Live gallery not found. Run auto enrollment first."
-            )
+            raise RuntimeError("Live gallery not found. Run auto enrollment first.")
 
         self.gallery_features, self.gallery_labels, self.metadata = gallery
 
@@ -538,7 +535,9 @@ class VideoRecognitionPipeline:
             )
             self.fusion_engine = DualModalFusion(
                 default_gait_weight=self.fusion_config.get("gait_weight", 0.70),
-                default_reid_weight=self.fusion_config.get("appearance_weight", self.fusion_config.get("reid_weight", 0.30)),
+                default_reid_weight=self.fusion_config.get(
+                    "appearance_weight", self.fusion_config.get("reid_weight", 0.30)
+                ),
                 enabled=True,
             )
             print("[DUAL_MODAL] Dual-Modal ReID + Gait Fusion enabled")
@@ -552,9 +551,7 @@ class VideoRecognitionPipeline:
             self.quality_estimator = QualityEstimator(
                 quality_threshold=self.quality_config["quality_threshold"],
             )
-            print(
-                f"[QUALITY] GEI Quality Estimator enabled (threshold={self.quality_config['quality_threshold']})"
-            )
+            print(f"[QUALITY] GEI Quality Estimator enabled (threshold={self.quality_config['quality_threshold']})")
 
         self.temporal_config = _load_temporal_config()
         self.temporal_verifier = None
@@ -567,19 +564,14 @@ class VideoRecognitionPipeline:
             self.temporal_verifier = TemporalGaitVerifier(
                 window_size=self.temporal_config["window_size"],
             )
-            print(
-                f"[TEMPORAL] Temporal Gait Verifier enabled (window_size={self.temporal_config['window_size']})"
-            )
-
+            print(f"[TEMPORAL] Temporal Gait Verifier enabled (window_size={self.temporal_config['window_size']})")
 
     def _load_model(
         self,
         model_path: str,
     ) -> ByGaitLight:
         if not Path(model_path).exists():
-            raise FileNotFoundError(
-                f"Model checkpoint not found: {model_path}"
-            )
+            raise FileNotFoundError(f"Model checkpoint not found: {model_path}")
 
         model = ByGaitLight()
 
@@ -628,14 +620,23 @@ class VideoRecognitionPipeline:
     ) -> np.ndarray:
         gei = gei.astype(np.float32) / 255.0
 
-        tensor = torch.from_numpy(
-            gei,
-        ).unsqueeze(0).unsqueeze(0)
+        tensor = (
+            torch.from_numpy(
+                gei,
+            )
+            .unsqueeze(0)
+            .unsqueeze(0)
+        )
 
         with torch.no_grad():
-            embedding = self.model(
-                tensor,
-            ).cpu().numpy().flatten()
+            embedding = (
+                self.model(
+                    tensor,
+                )
+                .cpu()
+                .numpy()
+                .flatten()
+            )
 
         return embedding
 
@@ -648,11 +649,7 @@ class VideoRecognitionPipeline:
 
         self.frame_counters[track_id] += 1
 
-        return (
-            self.frame_counters[track_id]
-            % self.recognition_interval
-            == 0
-        )
+        return self.frame_counters[track_id] % self.recognition_interval == 0
 
     def _adaptive_decision(
         self,
@@ -688,7 +685,7 @@ class VideoRecognitionPipeline:
             return flat_identity, flat_score, "CONFIRMED_MATCH"
 
         if verify_low <= flat_score < verify_high:
-            centroid_identity, centroid_score = self.centroid_matcher.match(
+            centroid_identity, _centroid_score = self.centroid_matcher.match(
                 embedding,
                 self.gallery_features,
                 self.gallery_labels,
@@ -760,23 +757,19 @@ class VideoRecognitionPipeline:
         if self.quality_estimator is not None:
             q_res = self.quality_estimator.evaluate(gei)
             if not q_res["accepted"]:
-                print(
-                    f"[QUALITY_REJECT] Track {track_id}: {q_res['reason']}"
-                )
+                print(f"[QUALITY_REJECT] Track {track_id}: {q_res['reason']}")
                 return None
 
         embedding = self._gei_to_embedding(gei)
 
         if self.temporal_verifier is not None:
             self.temporal_verifier.add_embedding(track_id, embedding)
-            raw_identity, score, decision = (
-                self.temporal_verifier.verify_identity(
-                    track_id=track_id,
-                    matcher_func=self._match_single_embedding,
-                    gallery_features=self.gallery_features,
-                    gallery_labels=self.gallery_labels,
-                    metadata=self.metadata,
-                )
+            raw_identity, score, decision = self.temporal_verifier.verify_identity(
+                track_id=track_id,
+                matcher_func=self._match_single_embedding,
+                gallery_features=self.gallery_features,
+                gallery_labels=self.gallery_labels,
+                metadata=self.metadata,
             )
         else:
             matches = self.matcher.top_k_matches(
@@ -806,13 +799,9 @@ class VideoRecognitionPipeline:
         if stable_identity == "UNKNOWN":
             decision = "UNKNOWN_PERSON"
             severity = "HIGH"
-        elif decision == "CONFIRMED_MATCH":
+        elif decision == "CONFIRMED_MATCH" or decision == "VERIFIED_MATCH":
             severity = "INFO"
-        elif decision == "VERIFIED_MATCH":
-            severity = "INFO"
-        elif decision == "REVIEW_REQUIRED":
-            severity = "MEDIUM"
-        elif decision == "LOW_CONFIDENCE":
+        elif decision == "REVIEW_REQUIRED" or decision == "LOW_CONFIDENCE":
             severity = "MEDIUM"
         else:
             severity = "INFO"
@@ -830,7 +819,6 @@ class VideoRecognitionPipeline:
                 score=score,
                 decision=decision,
             )
-
 
         self.security_engine.evaluate(
             track_id=track_id,
@@ -858,7 +846,7 @@ class VideoRecognitionPipeline:
 
         if self.tr_config.get("enabled", False):
             q_score = 1.0
-            if self.quality_estimator is not None and 'q_res' in locals():
+            if self.quality_estimator is not None and "q_res" in locals():
                 q_score = q_res.get("overall_quality", 1.0)
 
             track_rel_score = self.track_reliability_scorer.compute_reliability(
@@ -869,7 +857,9 @@ class VideoRecognitionPipeline:
             )
             result["track_reliability"] = round(float(track_rel_score), 4)
 
-        if (self.watchlist_config.get("enabled", False) or len(self.watchlist_manager.get_active_targets()) > 0) and stable_identity != "UNKNOWN":
+        if (
+            self.watchlist_config.get("enabled", False) or len(self.watchlist_manager.get_active_targets()) > 0
+        ) and stable_identity != "UNKNOWN":
             w_match = self.watchlist_manager.process_match(
                 identity=stable_identity,
                 confidence_score=float(score),
@@ -886,7 +876,6 @@ class VideoRecognitionPipeline:
                         alert_type=str(w_match.get("event_type", "WATCHLIST_MATCH")),
                         camera_id=self.camera_id,
                     )
-
 
         if self.reid_extractor is not None:
             reid_crop = self.reid_crops.get(track_id)
@@ -927,6 +916,7 @@ class VideoRecognitionPipeline:
 
         if getattr(self, "explainable_reporter", None) is not None and self.explainable_reporter.enabled:
             from intelligence.explainable_recognition_report import RecognitionEvidence
+
             ev_obj = RecognitionEvidence(
                 camera_id=self.camera_id,
                 local_track_id=track_id,
@@ -942,7 +932,11 @@ class VideoRecognitionPipeline:
             self.explainable_reporter.generate_report(ev_obj)
 
         if getattr(self, "timeline_reconstructor", None) is not None and self.timeline_reconstructor.enabled:
-            evt = "WATCHLIST_MATCH" if "watchlist_match" in result else ("IDENTITY_CONFIRMED" if str(stable_identity) != "UNKNOWN" else "UNKNOWN")
+            evt = (
+                "WATCHLIST_MATCH"
+                if "watchlist_match" in result
+                else ("IDENTITY_CONFIRMED" if str(stable_identity) != "UNKNOWN" else "UNKNOWN")
+            )
             self.timeline_reconstructor.record_event(
                 event_type=evt,
                 camera_id=self.camera_id,
@@ -1068,18 +1062,14 @@ class VideoRecognitionPipeline:
         path = Path(video_path)
 
         if not path.exists():
-            raise FileNotFoundError(
-                f"Video file not found: {video_path}"
-            )
+            raise FileNotFoundError(f"Video file not found: {video_path}")
 
         cap = cv2.VideoCapture(
             str(path),
         )
 
         if not cap.isOpened():
-            raise RuntimeError(
-                f"Unable to open video file: {video_path}"
-            )
+            raise RuntimeError(f"Unable to open video file: {video_path}")
 
         results: list[dict] = []
         frame_index = 0
@@ -1116,11 +1106,9 @@ class VideoRecognitionPipeline:
             if tracker_ids is not None:
                 confidences = getattr(detections, "confidence", None)
                 for i in range(len(tracker_ids)):
-                    raw_detections.append((
-                        int(tracker_ids[i]),
-                        xyxy[i],
-                        float(confidences[i]) if confidences is not None else 1.0
-                    ))
+                    raw_detections.append(
+                        (int(tracker_ids[i]), xyxy[i], float(confidences[i]) if confidences is not None else 1.0)
+                    )
 
             stable_results = self.box_stabilizer.update(raw_detections, frame.shape)
 
@@ -1135,7 +1123,11 @@ class VideoRecognitionPipeline:
                         raw_box = xyxy[list(tracker_ids).index(track_id)]
 
                     if raw_detected:
-                        box_to_crop = stable_box if self.box_stability_config.get("use_stable_box_for_silhouette", True) else raw_box
+                        box_to_crop = (
+                            stable_box
+                            if self.box_stability_config.get("use_stable_box_for_silhouette", True)
+                            else raw_box
+                        )
                         crop = self._crop_person(frame, box_to_crop)
                         if crop is not None:
                             silhouette = self.silhouette_step.extract_from_crop(crop)
@@ -1147,26 +1139,34 @@ class VideoRecognitionPipeline:
                             if self.reid_extractor is not None:
                                 self.reid_crops[track_id] = crop
 
-                    if track_id in self.buffers and self.buffers[track_id].ready() and self._should_recognize(track_id):
-                        if not (is_predicted and not self.buffers[track_id].ready()):
-                            recognition = self._recognize_track(
-                                track_id=track_id,
-                                frame_index=frame_index,
-                                is_predicted=is_predicted,
+                    if (
+                        track_id in self.buffers
+                        and self.buffers[track_id].ready()
+                        and self._should_recognize(track_id)
+                        and not (is_predicted and not self.buffers[track_id].ready())
+                    ):
+                        recognition = self._recognize_track(
+                            track_id=track_id,
+                            frame_index=frame_index,
+                            is_predicted=is_predicted,
+                        )
+                        if recognition is not None:
+                            results.append(recognition)
+                            print(
+                                f"Frame {recognition['frame']} | "
+                                f"Track {recognition['track_id']} -> "
+                                f"{recognition['identity']} | "
+                                f"{recognition['score']:.4f} | "
+                                f"{recognition['decision']} | "
+                                f"{recognition['severity']}"
                             )
-                            if recognition is not None:
-                                results.append(recognition)
-                                print(
-                                    f"Frame {recognition['frame']} | "
-                                    f"Track {recognition['track_id']} -> "
-                                    f"{recognition['identity']} | "
-                                    f"{recognition['score']:.4f} | "
-                                    f"{recognition['decision']} | "
-                                    f"{recognition['severity']}"
-                                )
 
                     if show:
-                        box_to_draw = stable_box if self.box_stability_config.get("use_stable_box_for_display", True) else (raw_box if raw_detected else stable_box)
+                        box_to_draw = (
+                            stable_box
+                            if self.box_stability_config.get("use_stable_box_for_display", True)
+                            else (raw_box if raw_detected else stable_box)
+                        )
                         self._draw_track(frame, box_to_draw, track_id, is_predicted)
             else:
                 self.current_frame_index += 1
@@ -1178,7 +1178,7 @@ class VideoRecognitionPipeline:
                     if not is_valid:
                         continue
 
-                    box_to_use = stable_box if self.box_stability_config.get("use_stable_box_for_display", True) else stable_box
+                    box_to_use = stable_box
                     x1, y1, x2, y2 = box_to_use
                     box_h = y2 - y1
                     box_w = x2 - x1
@@ -1204,7 +1204,11 @@ class VideoRecognitionPipeline:
 
                     if raw_detected:
                         self.track_frames[track_id] = self.track_frames.get(track_id, 0) + 1
-                        box_to_crop = stable_box if self.box_stability_config.get("use_stable_box_for_silhouette", True) else raw_box
+                        box_to_crop = (
+                            stable_box
+                            if self.box_stability_config.get("use_stable_box_for_silhouette", True)
+                            else raw_box
+                        )
                         crop = self._crop_person(frame, box_to_crop)
                         if crop is not None:
                             silhouette = self.silhouette_step.extract_from_crop(crop)
@@ -1216,28 +1220,32 @@ class VideoRecognitionPipeline:
                             if self.reid_extractor is not None:
                                 self.reid_crops[track_id] = crop
 
-                    if track_id in self.buffers and self.buffers[track_id].ready() and self._should_recognize(track_id):
-                        if not (is_predicted and not self.buffers[track_id].ready()):
-                            not_rec_rec = self.current_frame_index - self.last_recognition_frame.get(track_id, 0)
-                            priority = (
-                                not_rec_rec,
-                                1 if self.buffers[track_id].ready() else 0,
-                                self.track_frames.get(track_id, 0),
-                                box_area
-                            )
-                            queued_item = next((item for item in self.queue if item["track_id"] == track_id), None)
-                            if queued_item is not None:
-                                queued_item["priority"] = priority
-                                queued_item["box"] = stable_box
-                            else:
-                                self.queue.append({
-                                    "track_id": track_id,
-                                    "priority": priority,
-                                    "box": stable_box
-                                })
+                    if (
+                        track_id in self.buffers
+                        and self.buffers[track_id].ready()
+                        and self._should_recognize(track_id)
+                        and not (is_predicted and not self.buffers[track_id].ready())
+                    ):
+                        not_rec_rec = self.current_frame_index - self.last_recognition_frame.get(track_id, 0)
+                        priority = (
+                            not_rec_rec,
+                            1 if self.buffers[track_id].ready() else 0,
+                            self.track_frames.get(track_id, 0),
+                            box_area,
+                        )
+                        queued_item = next((item for item in self.queue if item["track_id"] == track_id), None)
+                        if queued_item is not None:
+                            queued_item["priority"] = priority
+                            queued_item["box"] = stable_box
+                        else:
+                            self.queue.append({"track_id": track_id, "priority": priority, "box": stable_box})
 
                     if show:
-                        box_to_draw = stable_box if self.box_stability_config.get("use_stable_box_for_display", True) else (raw_box if raw_detected else stable_box)
+                        box_to_draw = (
+                            stable_box
+                            if self.box_stability_config.get("use_stable_box_for_display", True)
+                            else (raw_box if raw_detected else stable_box)
+                        )
                         self._draw_track(frame, box_to_draw, track_id, is_predicted)
 
                 update_interval = self.cc_config["priority_update_interval"]
@@ -1308,7 +1316,6 @@ class VideoRecognitionPipeline:
                         self.interval_processed += 1
                         processed_this_frame += 1
 
-
             if show:
                 cv2.imshow(
                     "ARGUS Video Recognition",
@@ -1323,21 +1330,13 @@ class VideoRecognitionPipeline:
         if show:
             cv2.destroyAllWindows()
 
-        identities = [
-            row["identity"]
-            for row in results
-            if row["identity"] != "UNKNOWN"
-        ]
+        identities = [row["identity"] for row in results if row["identity"] != "UNKNOWN"]
 
         counts = Counter(
             identities,
         )
 
-        most_common_identity = (
-            counts.most_common(1)[0][0]
-            if counts
-            else "UNKNOWN"
-        )
+        most_common_identity = counts.most_common(1)[0][0] if counts else "UNKNOWN"
 
         summary = {
             "success": True,
@@ -1355,20 +1354,12 @@ class VideoRecognitionPipeline:
                 output_path,
             )
 
-            print(
-                f"\nReport saved -> {output_path}"
-            )
+            print(f"\nReport saved -> {output_path}")
 
         print("\n=== SUMMARY ===")
         print(f"Frames processed: {summary['frames_processed']}")
         print(f"Recognition events: {summary['recognitions']}")
-        print(
-            "Most common identity: "
-            f"{summary['most_common_identity']}"
-        )
-        print(
-            "Identity counts: "
-            f"{summary['identity_counts']}"
-        )
+        print(f"Most common identity: {summary['most_common_identity']}")
+        print(f"Identity counts: {summary['identity_counts']}")
 
         return summary

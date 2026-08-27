@@ -9,9 +9,7 @@ from pipeline.video_recognition import VideoRecognitionPipeline
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="ARGUS video-file gait recognition"
-    )
+    parser = argparse.ArgumentParser(description="ARGUS video-file gait recognition")
 
     parser.add_argument(
         "--video",

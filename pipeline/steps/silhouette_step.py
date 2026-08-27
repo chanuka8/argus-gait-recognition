@@ -30,7 +30,10 @@ class LearnedSilhouetteSegmenter:
                 Path("models/weights/silhouette_segmenter.onnx"),
                 Path("models/engines/silhouette_segmenter.onnx"),
             ]
-            if str(self.model_path) in {"models/weights/silhouette_segmenter.onnx", "models/engines/silhouette_segmenter.onnx"}:
+            if str(self.model_path) in {
+                "models/weights/silhouette_segmenter.onnx",
+                "models/engines/silhouette_segmenter.onnx",
+            }:
                 for p in defaults:
                     if p.exists():
                         target_path = p
@@ -41,6 +44,7 @@ class LearnedSilhouetteSegmenter:
         try:
             from automation.device_manager import DeviceManager
             from automation.dll_manager import setup_cuda_dll_paths
+
             setup_cuda_dll_paths()
 
             import onnxruntime as ort
@@ -227,4 +231,3 @@ class SilhouetteStep:
         mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=1)
         mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=2)
         return mask
-

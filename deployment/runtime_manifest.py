@@ -6,10 +6,9 @@ ensuring Windows-native deployment packages contain all required runtime modules
 while excluding tests, development tools, caches, and sensitive credentials.
 """
 
-from dataclasses import asdict, dataclass, field
 import json
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
-
 
 BUILD_TIME_ASSETS = [
     "tests",
@@ -137,19 +136,23 @@ class RuntimeManifest:
         for asset in self.runtime_assets:
             content.append(f"- `{asset}`")
 
-        content.extend([
-            "",
-            "## Build-Only Assets (Excluded from Production Runtime)",
-            "",
-        ])
+        content.extend(
+            [
+                "",
+                "## Build-Only Assets (Excluded from Production Runtime)",
+                "",
+            ]
+        )
         for asset in self.build_assets:
             content.append(f"- `{asset}`")
 
-        content.extend([
-            "",
-            "## Excluded Security & Development Patterns",
-            "",
-        ])
+        content.extend(
+            [
+                "",
+                "## Excluded Security & Development Patterns",
+                "",
+            ]
+        )
         for pattern in self.excluded_patterns:
             content.append(f"- `{pattern}`")
 

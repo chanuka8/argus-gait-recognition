@@ -6,7 +6,7 @@ when overload is detected, and supports dynamic worker migration.
 """
 
 from threading import Lock
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from monitoring.logging_config import get_logger
 
@@ -25,8 +25,8 @@ class CameraLoadBalancer:
         self._logger = get_logger("load_balancer")
         self._lock = Lock()
 
-        self._worker_assignments: Dict[str, List[str]] = {}
-        self._camera_weights: Dict[str, float] = {}
+        self._worker_assignments: dict[str, list[str]] = {}
+        self._camera_weights: dict[str, float] = {}
 
     def register_worker(self, worker_id: str) -> None:
         """Register a worker to handle camera streams."""
@@ -34,7 +34,7 @@ class CameraLoadBalancer:
             if worker_id not in self._worker_assignments:
                 self._worker_assignments[worker_id] = []
 
-    def unregister_worker(self, worker_id: str) -> List[str]:
+    def unregister_worker(self, worker_id: str) -> list[str]:
         """Unregister a worker and return orphaned cameras for re-assignment."""
         with self._lock:
             orphaned = self._worker_assignments.pop(worker_id, [])
@@ -46,7 +46,7 @@ class CameraLoadBalancer:
             weight = (width * height * fps) / (640 * 480 * 15)
             self._camera_weights[camera_id] = max(0.1, weight)
 
-    def assign_camera(self, camera_id: str, fps: float = 15.0, width: int = 640, height: int = 480) -> Optional[str]:
+    def assign_camera(self, camera_id: str, fps: float = 15.0, width: int = 640, height: int = 480) -> str | None:
         """Assign a new camera to the least loaded worker."""
         self.set_camera_weight(camera_id, fps, width, height)
 
@@ -69,7 +69,7 @@ class CameraLoadBalancer:
             self._logger.info(f"Assigned camera {camera_id} to worker {best_worker}")
             return best_worker
 
-    def unassign_camera(self, camera_id: str) -> Optional[str]:
+    def unassign_camera(self, camera_id: str) -> str | None:
         """Remove a camera assignment."""
         with self._lock:
             self._camera_weights.pop(camera_id, None)
@@ -96,7 +96,7 @@ class CameraLoadBalancer:
             self._logger.info(f"Migrated camera {camera_id} from {old_worker} to {target_worker_id}")
             return True
 
-    def check_and_rebalance(self) -> Dict[str, str]:
+    def check_and_rebalance(self) -> dict[str, str]:
         """Check for workload imbalance and generate camera migrations {camera_id: new_worker_id}."""
         with self._lock:
             if len(self._worker_assignments) < 2:
@@ -124,7 +124,7 @@ class CameraLoadBalancer:
         cameras = self._worker_assignments.get(worker_id, [])
         return sum(self._camera_weights.get(cid, 1.0) for cid in cameras)
 
-    def get_assignment_stats(self) -> Dict[str, Any]:
+    def get_assignment_stats(self) -> dict[str, Any]:
         """Get load balancer statistics."""
         with self._lock:
             return {

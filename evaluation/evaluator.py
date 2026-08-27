@@ -2,6 +2,7 @@ import json
 import sys
 import time
 from pathlib import Path
+
 import cv2
 import numpy as np
 import torch
@@ -13,13 +14,13 @@ if str(ROOT) not in sys.path:
 from evaluation.dataset_split import load_or_create_subject_split
 from evaluation.gallery_probe_builder import build_gallery_and_probe_sets
 from evaluation.leakage_validator import (
-    assert_subject_disjointness,
     assert_gallery_probe_disjointness,
+    assert_subject_disjointness,
 )
 from evaluation.metrics import (
-    compute_rank_k_accuracies,
-    compute_cmc_curve,
     compute_biometric_rates,
+    compute_cmc_curve,
+    compute_rank_k_accuracies,
 )
 from models.architectures.bygait_light import ByGaitLight
 from pipeline.steps.matching_step import MatchingStep
@@ -68,7 +69,7 @@ class SubjectDisjointEvaluator:
         for key, value in checkpoint.items():
             if key.startswith("backbone."):
                 filtered[key.replace("backbone.", "")] = value
-            elif key.startswith("features.") or key.startswith("embedding."):
+            elif key.startswith(("features.", "embedding.")):
                 filtered[key] = value
 
         part_bins = 4
@@ -82,7 +83,7 @@ class SubjectDisjointEvaluator:
                 with open(meta_path, "r", encoding="utf-8") as f:
                     meta = json.load(f)
                     part_bins = meta.get("part_bins", part_bins)
-            except Exception:
+            except (json.JSONDecodeError, OSError, KeyError):
                 pass
 
         model = ByGaitLight(part_bins=part_bins)
@@ -128,7 +129,9 @@ class SubjectDisjointEvaluator:
         )
 
         print(f"Extracting features for {len(gallery_items)} gallery and {len(probe_items)} probe items...")
-        gallery_features = np.asarray([self.image_to_embedding(Path(i["path"])) for i in gallery_items], dtype=np.float32)
+        gallery_features = np.asarray(
+            [self.image_to_embedding(Path(i["path"])) for i in gallery_items], dtype=np.float32
+        )
         gallery_labels = np.asarray([i["subject_id"] for i in gallery_items])
 
         metadata = {
@@ -139,7 +142,11 @@ class SubjectDisjointEvaluator:
         top_k_lists = []
         true_labels = []
         inference_times = []
-        condition_results = {"NM": {"correct": 0, "total": 0}, "BG": {"correct": 0, "total": 0}, "CL": {"correct": 0, "total": 0}}
+        condition_results = {
+            "NM": {"correct": 0, "total": 0},
+            "BG": {"correct": 0, "total": 0},
+            "CL": {"correct": 0, "total": 0},
+        }
 
         scores_list = []
         is_genuine_list = []

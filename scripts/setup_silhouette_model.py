@@ -34,10 +34,7 @@ def setup_or_verify_silhouette_model(
         "       Please place a trained ONNX human segmentation model (UNet/SegFormer "
         "256x256 RGB input) at 'models/engines/silhouette_segmenter.onnx'."
     )
-    print(
-        "       The ARGUS AI runtime will continue using Otsu thresholding fallback "
-        "until this asset is supplied."
-    )
+    print("       The ARGUS AI runtime will continue using Otsu thresholding fallback until this asset is supplied.")
     return False
 
 

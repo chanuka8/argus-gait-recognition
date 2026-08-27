@@ -9,8 +9,8 @@ from models.inference.tensorrt_backend import TensorRTBackend
 
 __all__ = [
     "BaseInferenceBackend",
-    "PyTorchBackend",
     "ONNXBackend",
+    "PyTorchBackend",
     "TensorRTBackend",
     "get_inference_backend",
     "load_inference_backend_config",

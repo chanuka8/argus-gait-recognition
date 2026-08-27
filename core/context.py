@@ -1,5 +1,4 @@
 class SystemContext:
-
     def __init__(self):
 
         self._state = {}

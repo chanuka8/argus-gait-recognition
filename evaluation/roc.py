@@ -163,13 +163,7 @@ class ROCAnalyzer:
                 )
             )
 
-            eer = float(
-                (
-                    fpr[index]
-                    + fnr[index]
-                )
-                / 2.0
-            )
+            eer = float((fpr[index] + fnr[index]) / 2.0)
         else:
             eer = 0.0
 
@@ -204,9 +198,7 @@ class ROCAnalyzer:
         return {
             "roc_auc": roc_auc,
             "eer": eer,
-            "threshold_count": int(
-                len(
-                    thresholds,
-                )
+            "threshold_count": len(
+                thresholds,
             ),
         }

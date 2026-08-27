@@ -22,9 +22,7 @@ class AppearanceFeatureExtractionStep:
         )
 
         if image is None:
-            raise ValueError(
-                f"Unable to read image: {image_path}"
-            )
+            raise ValueError(f"Unable to read image: {image_path}")
 
         return image
 
@@ -143,9 +141,7 @@ class AppearanceFeatureExtractionStep:
             feature,
         )
 
-        feature = feature / (
-            norm + 1e-8
-        )
+        feature = feature / (norm + 1e-8)
 
         return feature.astype(
             np.float32,

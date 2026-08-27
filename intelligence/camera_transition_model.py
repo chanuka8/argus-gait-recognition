@@ -1,9 +1,10 @@
 """Production-grade Camera Transition Model for spatial-temporal multi-camera tracking."""
 
+import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from threading import Lock
-import time
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any
 
 import numpy as np
 
@@ -19,8 +20,8 @@ class CameraTransitionRule:
     min_travel_seconds: float
     max_travel_seconds: float
     probability: float
-    entry_zone: Optional[str] = None
-    exit_zone: Optional[str] = None
+    entry_zone: str | None = None
+    exit_zone: str | None = None
 
 
 @dataclass
@@ -29,13 +30,13 @@ class ExitRecord:
 
     camera_id: str
     local_track_id: Any
-    global_id: Optional[str]
+    global_id: str | None
     exit_timestamp: float
-    identity: Optional[str] = None
-    feature_vector: Optional[Any] = None
+    identity: str | None = None
+    feature_vector: Any | None = None
     quality: float = 1.0
-    exit_zone: Optional[str] = None
-    direction: Optional[str] = None
+    exit_zone: str | None = None
+    direction: str | None = None
 
 
 class CameraTransitionModel:
@@ -43,15 +44,15 @@ class CameraTransitionModel:
 
     def __init__(
         self,
-        config: Optional[Dict[str, Any]] = None,
-        time_provider: Optional[Callable[[], float]] = None,
+        config: dict[str, Any] | None = None,
+        time_provider: Callable[[], float] | None = None,
     ) -> None:
         self._logger = get_logger("camera_transition_model")
         self._lock = Lock()
         self._time_provider = time_provider or time.monotonic
 
-        self._topology: Dict[str, Dict[str, CameraTransitionRule]] = {}
-        self._exits: Dict[Tuple[str, Any], ExitRecord] = {}
+        self._topology: dict[str, dict[str, CameraTransitionRule]] = {}
+        self._exits: dict[tuple[str, Any], ExitRecord] = {}
 
         self._weight_identity = 0.6
         self._weight_probability = 0.2
@@ -63,7 +64,7 @@ class CameraTransitionModel:
         if config:
             self.load_config(config)
 
-    def load_config(self, config: Dict[str, Any]) -> None:
+    def load_config(self, config: dict[str, Any]) -> None:
         """Parse and validate camera transition topology and scoring weights."""
         with self._lock:
             self._topology.clear()
@@ -131,17 +132,25 @@ class CameraTransitionModel:
                         max_t = float(rule_data.get("max_travel_seconds", 60.0))
                         prob = float(rule_data.get("probability", 1.0))
                     except (ValueError, TypeError) as e:
-                        self._logger.warning(f"Failed to parse transition rule numbers for {src_cam_str} -> {dest_cam_str}: {e}")
+                        self._logger.warning(
+                            f"Failed to parse transition rule numbers for {src_cam_str} -> {dest_cam_str}: {e}"
+                        )
                         continue
 
                     if min_t < 0.0:
-                        self._logger.warning(f"Invalid min_travel_seconds ({min_t}) for {src_cam_str} -> {dest_cam_str}; must be >= 0.")
+                        self._logger.warning(
+                            f"Invalid min_travel_seconds ({min_t}) for {src_cam_str} -> {dest_cam_str}; must be >= 0."
+                        )
                         continue
                     if max_t < min_t:
-                        self._logger.warning(f"Invalid max_travel_seconds ({max_t} < {min_t}) for {src_cam_str} -> {dest_cam_str}.")
+                        self._logger.warning(
+                            f"Invalid max_travel_seconds ({max_t} < {min_t}) for {src_cam_str} -> {dest_cam_str}."
+                        )
                         continue
                     if not (0.0 <= prob <= 1.0):
-                        self._logger.warning(f"Invalid probability ({prob}) for {src_cam_str} -> {dest_cam_str}; must be in [0.0, 1.0].")
+                        self._logger.warning(
+                            f"Invalid probability ({prob}) for {src_cam_str} -> {dest_cam_str}; must be in [0.0, 1.0]."
+                        )
                         continue
 
                     entry_z = rule_data.get("entry_zone")
@@ -197,13 +206,13 @@ class CameraTransitionModel:
         self,
         camera_id: str,
         local_track_id: Any,
-        global_id: Optional[str] = None,
-        identity: Optional[str] = None,
-        feature_vector: Optional[Any] = None,
+        global_id: str | None = None,
+        identity: str | None = None,
+        feature_vector: Any | None = None,
         quality: float = 1.0,
-        exit_zone: Optional[str] = None,
-        direction: Optional[str] = None,
-        timestamp: Optional[float] = None,
+        exit_zone: str | None = None,
+        direction: str | None = None,
+        timestamp: float | None = None,
     ) -> None:
         """Record an exit or track observation for a camera track."""
         if not camera_id:
@@ -232,11 +241,11 @@ class CameraTransitionModel:
         self,
         dest_camera_id: str,
         dest_local_track_id: Any,
-        identity: Optional[str] = None,
-        feature_vector: Optional[Any] = None,
-        entry_zone: Optional[str] = None,
-        timestamp: Optional[float] = None,
-    ) -> Optional[Tuple[ExitRecord, float]]:
+        identity: str | None = None,
+        feature_vector: Any | None = None,
+        entry_zone: str | None = None,
+        timestamp: float | None = None,
+    ) -> tuple[ExitRecord, float] | None:
         """Filter candidates by topology/time-window and score candidates deterministically."""
         now = timestamp if timestamp is not None else self._time_provider()
 
@@ -275,7 +284,9 @@ class CameraTransitionModel:
                     identity, feature_vector, exit_rec.identity, exit_rec.feature_vector
                 )
 
-                time_like = self._calculate_travel_time_likelihood(delta_t, rule.min_travel_seconds, rule.max_travel_seconds)
+                time_like = self._calculate_travel_time_likelihood(
+                    delta_t, rule.min_travel_seconds, rule.max_travel_seconds
+                )
 
                 trans_prob = rule.probability
 
@@ -289,13 +300,15 @@ class CameraTransitionModel:
                 if final_score >= self._similarity_threshold:
                     mid_t = (rule.min_travel_seconds + rule.max_travel_seconds) / 2.0
                     dist_from_mid = abs(delta_t - mid_t)
-                    valid_candidates.append({
-                        "record": exit_rec,
-                        "score": final_score,
-                        "dist_from_mid": dist_from_mid,
-                        "delta_t": delta_t,
-                        "src_key": key,
-                    })
+                    valid_candidates.append(
+                        {
+                            "record": exit_rec,
+                            "score": final_score,
+                            "dist_from_mid": dist_from_mid,
+                            "delta_t": delta_t,
+                            "src_key": key,
+                        }
+                    )
 
             if not valid_candidates:
                 return None
@@ -314,10 +327,10 @@ class CameraTransitionModel:
 
     def _calculate_identity_similarity(
         self,
-        candidate_identity: Optional[str],
-        candidate_feature: Optional[Any],
-        exit_identity: Optional[str],
-        exit_feature: Optional[Any],
+        candidate_identity: str | None,
+        candidate_feature: Any | None,
+        exit_identity: str | None,
+        exit_feature: Any | None,
     ) -> float:
         """Compute normalized similarity score in [0.0, 1.0]."""
         if candidate_feature is not None and exit_feature is not None:
@@ -329,7 +342,7 @@ class CameraTransitionModel:
                 if norm1 > 0 and norm2 > 0:
                     cos_sim = float(np.dot(f1, f2) / (norm1 * norm2))
                     return max(0.0, min(1.0, (cos_sim + 1.0) / 2.0))
-            except Exception:
+            except (ValueError, TypeError, AttributeError):
                 pass
 
         if candidate_identity and exit_identity:
@@ -353,22 +366,18 @@ class CameraTransitionModel:
     def _cleanup_expired_exits_locked(self, now: float) -> int:
         """Purge exit records exceeding maximum history window."""
         expired_keys = [
-            key for key, rec in self._exits.items()
-            if (now - rec.exit_timestamp) > self._max_history_seconds
+            key for key, rec in self._exits.items() if (now - rec.exit_timestamp) > self._max_history_seconds
         ]
         for key in expired_keys:
             del self._exits[key]
         return len(expired_keys)
 
-    def cleanup_stale_exits(self, max_age_seconds: Optional[float] = None) -> int:
+    def cleanup_stale_exits(self, max_age_seconds: float | None = None) -> int:
         """Public method to purge stale exit records."""
         now = self._time_provider()
         with self._lock:
             cutoff = max_age_seconds if max_age_seconds is not None else self._max_history_seconds
-            expired = [
-                key for key, rec in self._exits.items()
-                if (now - rec.exit_timestamp) > cutoff
-            ]
+            expired = [key for key, rec in self._exits.items() if (now - rec.exit_timestamp) > cutoff]
             for key in expired:
                 del self._exits[key]
             return len(expired)

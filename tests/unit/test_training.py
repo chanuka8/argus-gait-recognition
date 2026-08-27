@@ -19,7 +19,7 @@ def test_gei_dataloader() -> None:
     if not dataset_dir.exists() or not any(dataset_dir.rglob("*.png")):
         pytest.skip(f"Processed CASIA GEI dataset not found in {dataset_dir}")
 
-    train_loader, val_loader, dataset = build_dataloaders(
+    train_loader, _val_loader, _dataset = build_dataloaders(
         root_dir="data/casia_processed/gei",
         batch_size=8,
     )
@@ -52,7 +52,7 @@ def test_gait_classifier_validation_and_forward() -> None:
     assert pred_logits.shape == (4, 10)
     assert embeddings.shape == (4, 256)
 
-    loss_logits_no_label, pred_logits_no_label, embeddings_no_label = model_arc(dummy_x, labels=None)
+    loss_logits_no_label, _pred_logits_no_label, _embeddings_no_label = model_arc(dummy_x, labels=None)
     assert loss_logits_no_label.shape == (4, 10)
 
 
@@ -104,4 +104,3 @@ if __name__ == "__main__":
     test_gait_classifier_validation_and_forward()
     test_trainer_validation_and_training()
     print("ALL TRAINING TESTS PASSED SUCCESSFULLY!")
-

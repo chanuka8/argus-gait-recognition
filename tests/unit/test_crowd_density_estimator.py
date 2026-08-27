@@ -3,6 +3,7 @@ Unit tests for CrowdDensityEstimator.
 """
 
 import pytest
+
 from intelligence.crowd_density_estimator import (
     CrowdDensityEstimator,
     CrowdDensityLevel,

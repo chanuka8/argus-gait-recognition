@@ -4,6 +4,7 @@ Unit tests for extended DeploymentStartupValidator health checks and approved st
 
 from pathlib import Path
 from unittest.mock import MagicMock
+
 import numpy as np
 import pytest
 
@@ -28,6 +29,7 @@ def test_startup_validator_missing_manifest_asset(monkeypatch, tmp_path: Path):
     validator = DeploymentStartupValidator()
 
     from deployment.runtime_manifest import RuntimeManifest
+
     mock_manifest = RuntimeManifest(runtime_assets=["non_existent_asset_path.py"])
     monkeypatch.setattr("deployment.startup_validator.get_runtime_manifest", lambda: mock_manifest)
 

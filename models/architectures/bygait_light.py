@@ -23,7 +23,6 @@ class ByGaitLight(nn.Module):
             nn.BatchNorm2d(32),
             nn.ReLU(inplace=True),
             nn.MaxPool2d(2),
-
             nn.Conv2d(
                 32,
                 64,
@@ -33,7 +32,6 @@ class ByGaitLight(nn.Module):
             nn.BatchNorm2d(64),
             nn.ReLU(inplace=True),
             nn.MaxPool2d(2),
-
             nn.Conv2d(
                 64,
                 128,
@@ -83,4 +81,3 @@ class ByGaitLight(nn.Module):
             p=2,
             dim=1,
         )
-

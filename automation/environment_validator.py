@@ -9,9 +9,9 @@ the bootstrap process.
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
-from automation.cuda_detector import CudaDetector, CudaDetectionReport
+from automation.cuda_detector import CudaDetectionReport, CudaDetector
 from automation.hardware_detector import HardwareDetector, HardwareProfile
 
 
@@ -40,12 +40,12 @@ class EnvironmentValidationReport:
     requires_repair: bool
     repair_action: str
     hardware: HardwareProfile
-    cuda_report: Optional[CudaDetectionReport] = None
+    cuda_report: CudaDetectionReport | None = None
     cpu_validation_passed: bool = False
-    details: List[str] = field(default_factory=list)
-    errors: List[str] = field(default_factory=list)
+    details: list[str] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "state": self.state.value,
             "target_compute": self.target_compute.value,
@@ -70,7 +70,7 @@ class EnvironmentValidator:
         self.cuda_detector = CudaDetector(weights_dir=str(self.weights_dir))
 
     @staticmethod
-    def validate_cpu_pipeline() -> Tuple[bool, List[str], List[str]]:
+    def validate_cpu_pipeline() -> tuple[bool, list[str], list[str]]:
         """
         Verify that core inference components are functional on CPU.
         Tests:
@@ -78,13 +78,14 @@ class EnvironmentValidator:
         2. ByGaitLight forward pass on CPU ([1, 256], unit L2 norm)
         3. ONNX Runtime CPUExecutionProvider silhouette inference
         """
-        details: List[str] = []
-        errors: List[str] = []
+        details: list[str] = []
+        errors: list[str] = []
         cpu_ok = True
 
         # 1. PyTorch CPU tensor
         try:
             import torch
+
             a = torch.zeros((256, 256), device="cpu")
             b = torch.ones((256, 256), device="cpu")
             c = a @ b
@@ -93,14 +94,16 @@ class EnvironmentValidator:
             else:
                 cpu_ok = False
                 errors.append(f"PyTorch CPU matmul shape mismatch: {c.shape}")
-        except Exception as e:
+        except (RuntimeError, ValueError, TypeError, AttributeError, OSError, ImportError) as e:
             cpu_ok = False
             errors.append(f"PyTorch CPU tensor failed: {e}")
 
         # 2. ByGaitLight CPU
         try:
             import torch
+
             from models.architectures.bygait_light import ByGaitLight
+
             model = ByGaitLight().to("cpu")
             model.eval()
             dummy_gei = torch.randn(1, 1, 128, 64, device="cpu")
@@ -116,7 +119,7 @@ class EnvironmentValidator:
             else:
                 cpu_ok = False
                 errors.append(f"ByGaitLight CPU invalid shape: {emb.shape}")
-        except Exception as e:
+        except (RuntimeError, ValueError, TypeError, AttributeError, OSError, ImportError) as e:
             cpu_ok = False
             errors.append(f"ByGaitLight CPU forward pass failed: {e}")
 
@@ -124,6 +127,7 @@ class EnvironmentValidator:
         try:
             import numpy as np
             import onnxruntime as ort
+
             model_candidates = [
                 Path("models/weights/silhouette_segmenter.onnx"),
                 Path("models/engines/silhouette_segmenter.onnx"),
@@ -142,7 +146,7 @@ class EnvironmentValidator:
                     errors.append("ONNX CPU inference returned empty output")
             else:
                 details.append("Silhouette ONNX model not found, Otsu fallback available")
-        except Exception as e:
+        except (RuntimeError, ValueError, TypeError, AttributeError, OSError, ImportError) as e:
             cpu_ok = False
             errors.append(f"ONNX CPU inference failed: {e}")
 
@@ -158,8 +162,8 @@ class EnvironmentValidator:
            - Failures present -> Determine if REPAIR_REQUIRED or fallback to CPU_READY
         """
         hw = HardwareDetector.detect()
-        details: List[str] = []
-        errors: List[str] = []
+        details: list[str] = []
+        errors: list[str] = []
 
         if force_cpu or not hw.gpu.present:
             cpu_ok, cpu_details, cpu_errors = self.validate_cpu_pipeline()
@@ -208,7 +212,9 @@ class EnvironmentValidator:
         errors.extend(cuda_report.failure_reasons)
 
         # Check if PyTorch CUDA build is missing or incompatible
-        needs_pytorch_repair = not (cuda_report.pytorch_installed and cuda_report.pytorch_cuda_build and cuda_report.cuda_is_available)
+        needs_pytorch_repair = not (
+            cuda_report.pytorch_installed and cuda_report.pytorch_cuda_build and cuda_report.cuda_is_available
+        )
         needs_onnx_repair = not cuda_report.onnx_cuda_passed
 
         if needs_pytorch_repair or needs_onnx_repair:

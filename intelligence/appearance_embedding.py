@@ -5,7 +5,8 @@ Extracts 512D L2-normalized feature vectors using OSNet pretrained backbone.
 Maintains per-track caching and performance gating to minimize inference overhead.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
+
 import numpy as np
 
 from monitoring.logging_config import get_logger
@@ -31,7 +32,7 @@ class AppearanceEmbeddingExtractor:
         self._logger = get_logger("appearance_embedding")
 
         self.backbone = None
-        self._cache: Dict[int, Dict[str, Any]] = {}
+        self._cache: dict[int, dict[str, Any]] = {}
         self._init_model()
 
     def _init_model(self) -> None:
@@ -43,11 +44,8 @@ class AppearanceEmbeddingExtractor:
                 model_path=self.model_path,
                 device=self.device,
             )
-        except Exception as exc:
-            self._logger.warning(
-                f"[APPEARANCE] Backbone initialization failed: {exc}. "
-                f"Falling back to gait-only mode."
-            )
+        except (ImportError, RuntimeError, OSError, ValueError) as exc:
+            self._logger.warning(f"[APPEARANCE] Backbone initialization failed: {exc}. Falling back to gait-only mode.")
             self.backbone = None
 
     def is_available(self) -> bool:
@@ -56,12 +54,12 @@ class AppearanceEmbeddingExtractor:
 
     def extract(
         self,
-        crop: Optional[np.ndarray],
-        track_id: Optional[int] = None,
+        crop: np.ndarray | None,
+        track_id: int | None = None,
         frame_index: int = 0,
         track_reliable: bool = True,
         recognition_deferred: bool = False,
-    ) -> Optional[np.ndarray]:
+    ) -> np.ndarray | None:
         """
         Extract 512D L2-normalized appearance embedding for a track crop.
 
@@ -97,7 +95,7 @@ class AppearanceEmbeddingExtractor:
 
         return cached_embedding
 
-    def _extract_raw(self, crop: Optional[np.ndarray]) -> Optional[np.ndarray]:
+    def _extract_raw(self, crop: np.ndarray | None) -> np.ndarray | None:
         """Extract and normalize 512D embedding vector from a BGR crop."""
         if not self.is_available() or crop is None or crop.size == 0:
             return None
@@ -126,11 +124,11 @@ class AppearanceEmbeddingExtractor:
                 return None
 
             return vec.astype(np.float32)
-        except Exception as exc:
+        except (RuntimeError, ValueError, TypeError, AttributeError) as exc:
             self._logger.debug(f"[APPEARANCE] Feature extraction error: {exc}")
             return None
 
-    def get_cached(self, track_id: int) -> Optional[np.ndarray]:
+    def get_cached(self, track_id: int) -> np.ndarray | None:
         """Retrieve cached embedding for a track ID."""
         entry = self._cache.get(track_id)
         return entry["embedding"] if entry else None

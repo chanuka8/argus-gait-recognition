@@ -6,9 +6,9 @@ Performs matching across all buffered valid embeddings and applies majority voti
 for robust identity verification.
 """
 
-from collections import Counter
 import threading
-from typing import Any, Dict, List, Tuple
+from collections import Counter
+from typing import Any
 
 import numpy as np
 
@@ -31,9 +31,9 @@ class TemporalGaitVerifier:
         self.logger = get_logger("temporal_gait_verifier")
         self._lock = threading.Lock()
 
-        self.buffers: Dict[int, List[np.ndarray]] = {}
+        self.buffers: dict[int, list[np.ndarray]] = {}
 
-        self.last_identities: Dict[int, str] = {}
+        self.last_identities: dict[int, str] = {}
 
     def add_embedding(
         self,
@@ -57,7 +57,7 @@ class TemporalGaitVerifier:
     def get_buffer(
         self,
         track_id: int,
-    ) -> List[np.ndarray]:
+    ) -> list[np.ndarray]:
         """Get copy of current valid embedding buffer for a track."""
         with self._lock:
             return list(self.buffers.get(track_id, []))
@@ -69,7 +69,7 @@ class TemporalGaitVerifier:
         gallery_features: Any,
         gallery_labels: Any,
         metadata: dict | None = None,
-    ) -> Tuple[str, float, str]:
+    ) -> tuple[str, float, str]:
         """
         Perform matching across all valid embeddings in rolling buffer and apply majority voting.
 
@@ -91,7 +91,7 @@ class TemporalGaitVerifier:
         if not embeddings:
             return "UNKNOWN", 0.0, "UNCERTAIN"
 
-        match_results: List[Tuple[str, float]] = []
+        match_results: list[tuple[str, float]] = []
 
         for emb in embeddings:
             matches = matcher_func(
@@ -155,7 +155,6 @@ class TemporalGaitVerifier:
             return "UNCERTAIN"
 
     def clear_track(
-
         self,
         track_id: int,
     ) -> None:

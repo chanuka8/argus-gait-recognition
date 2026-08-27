@@ -85,13 +85,9 @@ class MatchingStep:
         ):
             return None, None
 
-        gallery_features = gallery_features[
-            active_mask
-        ]
+        gallery_features = gallery_features[active_mask]
 
-        gallery_labels = gallery_labels[
-            active_mask
-        ]
+        gallery_labels = gallery_labels[active_mask]
 
         gallery_norms = np.linalg.norm(
             gallery_features,
@@ -99,9 +95,7 @@ class MatchingStep:
             keepdims=True,
         )
 
-        gallery_features = gallery_features / (
-            gallery_norms + 1e-8
-        )
+        gallery_features = gallery_features / (gallery_norms + 1e-8)
 
         return gallery_features, gallery_labels
 
@@ -121,9 +115,7 @@ class MatchingStep:
         if query_norm == 0:
             return None
 
-        return query_feature / (
-            query_norm + 1e-8
-        )
+        return query_feature / (query_norm + 1e-8)
 
     def match(
         self,
@@ -241,6 +233,7 @@ class MatchingStep:
         )
         if open_set_recognizer is None:
             from intelligence.open_set_recognizer import OpenSetRecognizer
+
             open_set_recognizer = OpenSetRecognizer(known_threshold=self.threshold)
 
         return open_set_recognizer.evaluate_open_set_decision(

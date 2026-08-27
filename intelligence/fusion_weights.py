@@ -5,8 +5,6 @@ Enforces constraint: gait_weight + reid_weight = 1.0.
 Supports default static weights and quality-adaptive dynamic weighting.
 """
 
-from typing import Tuple
-
 
 class DynamicFusionWeights:
     """
@@ -35,7 +33,7 @@ class DynamicFusionWeights:
         reid_available: bool = True,
         gait_quality: float = 1.0,
         reid_quality: float = 1.0,
-    ) -> Tuple[float, float]:
+    ) -> tuple[float, float]:
         """
         Compute normalized dual-modal weights (w_gait, w_reid).
 

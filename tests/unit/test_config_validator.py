@@ -3,6 +3,7 @@ Unit tests for ConfigValidator and RTSP credential sanitization.
 """
 
 from pathlib import Path
+
 from utils.config_validator import ConfigValidator, sanitize_rtsp_url
 
 
@@ -25,7 +26,9 @@ def test_rtsp_credential_sanitization_edge_cases():
     assert "pass123" not in s_query
     assert "?channel=1&subtype=0" in s_query
 
-    exc_text = "ConnectionFailedError: Failed to connect to rtsp://admin:secret_pass@192.168.1.10:554/live after 5 retries"
+    exc_text = (
+        "ConnectionFailedError: Failed to connect to rtsp://admin:secret_pass@192.168.1.10:554/live after 5 retries"
+    )
     s_exc = sanitize_rtsp_url(exc_text)
     assert "secret_pass" not in s_exc
     assert "ConnectionFailedError" in s_exc

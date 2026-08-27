@@ -6,9 +6,9 @@ EXP-006 End-to-End Runner:
 """
 
 import json
-from pathlib import Path
 import sys
 import time
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
@@ -41,7 +41,7 @@ def main():
         seed=42,
     )
     train_results = trainer.train()
-    print(f"Training Complete! Best Val Accuracy: {train_results['best_val_acc']*100:.2f}%\n")
+    print(f"Training Complete! Best Val Accuracy: {train_results['best_val_acc'] * 100:.2f}%\n")
 
     print("Starting Strict Subject-Disjoint 3D Gait Evaluation on Test Set (075-124)...")
     evaluator = Evaluator3D(
@@ -76,15 +76,19 @@ def main():
     print("=======================================================")
     print("Metric             | 2D Baseline (EXP-003E/004B) | EXP-006 3D Pose Gait")
     print("-------------------------------------------------------------------------")
-    print(f"Rank-1 Accuracy    | {eval_2d['rank1']*100:.2f}%                      | {m3d['rank1']*100:.2f}%")
-    print(f"Rank-5 Accuracy    | {eval_2d['rank5']*100:.2f}%                      | {m3d['rank5']*100:.2f}%")
-    print(f"NM Accuracy        | {eval_2d['NM']*100:.2f}%                      | {m3d['NM']*100:.2f}%")
-    print(f"BG Accuracy        | {eval_2d['BG']*100:.2f}%                      | {m3d['BG']*100:.2f}%")
-    print(f"CL Accuracy        | {eval_2d['CL']*100:.2f}%                      | {m3d['CL']*100:.2f}%")
+    print(f"Rank-1 Accuracy    | {eval_2d['rank1'] * 100:.2f}%                      | {m3d['rank1'] * 100:.2f}%")
+    print(f"Rank-5 Accuracy    | {eval_2d['rank5'] * 100:.2f}%                      | {m3d['rank5'] * 100:.2f}%")
+    print(f"NM Accuracy        | {eval_2d['NM'] * 100:.2f}%                      | {m3d['NM'] * 100:.2f}%")
+    print(f"BG Accuracy        | {eval_2d['BG'] * 100:.2f}%                      | {m3d['BG'] * 100:.2f}%")
+    print(f"CL Accuracy        | {eval_2d['CL'] * 100:.2f}%                      | {m3d['CL'] * 100:.2f}%")
     print(f"ROC-AUC            | {eval_2d['ROC_AUC']:.4f}                      | {m3d['ROC_AUC']:.4f}")
-    print(f"EER                | {eval_2d['EER']*100:.2f}%                      | {m3d['EER']*100:.2f}%")
-    print(f"Open-Set FAR (M)   | {eval_2d['margin_aware_FAR']*100:.2f}%                      | {m3d['margin_aware_FAR']*100:.2f}%")
-    print(f"Open-Set FRR (M)   | {eval_2d['margin_aware_FRR']*100:.2f}%                      | {m3d['margin_aware_FRR']*100:.2f}%")
+    print(f"EER                | {eval_2d['EER'] * 100:.2f}%                      | {m3d['EER'] * 100:.2f}%")
+    print(
+        f"Open-Set FAR (M)   | {eval_2d['margin_aware_FAR'] * 100:.2f}%                      | {m3d['margin_aware_FAR'] * 100:.2f}%"
+    )
+    print(
+        f"Open-Set FRR (M)   | {eval_2d['margin_aware_FRR'] * 100:.2f}%                      | {m3d['margin_aware_FRR'] * 100:.2f}%"
+    )
     print(f"Throughput (FPS)   | ~45.0                      | {p3d['fps']:.1f}")
     print(f"Latency (ms)       | ~22.0ms                    | {p3d['latency_ms']:.2f}ms")
     print(f"Peak VRAM          | ~850MB                     | {p3d['vram_mb']:.1f}MB")

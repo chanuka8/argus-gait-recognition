@@ -1,9 +1,9 @@
 """Missing person search, continuous monitoring, operational watchlist, and evidence triggering workflow."""
 
-from dataclasses import dataclass
 import time
+from dataclasses import dataclass
 from threading import Lock
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from monitoring.logging_config import get_logger
 
@@ -19,7 +19,7 @@ class WatchlistEntry:
     alert_enabled: bool = True
     notes: str = ""
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert entry to dictionary representation."""
         return {
             "identity_id": self.identity_id,
@@ -31,7 +31,7 @@ class WatchlistEntry:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "WatchlistEntry":
+    def from_dict(cls, data: dict[str, Any]) -> "WatchlistEntry":
         """Create a WatchlistEntry instance from dictionary."""
         return cls(
             identity_id=str(data.get("identity_id") or data.get("identity", "")),
@@ -53,6 +53,7 @@ class MissingPersonWorkflow:
         output_dir: str = "outputs/watchlist",
     ) -> None:
         from pathlib import Path
+
         self.alert_threshold = alert_threshold
         self.cooldown_seconds = cooldown_seconds
         self.output_dir = Path(output_dir)
@@ -60,15 +61,15 @@ class MissingPersonWorkflow:
         self._logger = get_logger("missing_person_workflow")
         self._lock = Lock()
 
-        self._watchlist_entries: Dict[str, WatchlistEntry] = {}
-        self._target_watchlist: Dict[str, Dict[str, Any]] = {}
-        self._last_alerts: Dict[str, float] = {}
-        self._events: List[Dict[str, Any]] = []
+        self._watchlist_entries: dict[str, WatchlistEntry] = {}
+        self._target_watchlist: dict[str, dict[str, Any]] = {}
+        self._last_alerts: dict[str, float] = {}
+        self._events: list[dict[str, Any]] = []
 
     def register_target(
         self,
         identity: str,
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
         category: str = "MISSING_PERSON",
         priority: str = "HIGH",
         enabled: bool = True,
@@ -119,7 +120,7 @@ class MissingPersonWorkflow:
                 return True
             return False
 
-    def get_entry(self, identity: str) -> Optional[WatchlistEntry]:
+    def get_entry(self, identity: str) -> WatchlistEntry | None:
         """Return WatchlistEntry object for identity if registered."""
         with self._lock:
             return self._watchlist_entries.get(identity)
@@ -129,10 +130,10 @@ class MissingPersonWorkflow:
         identity: str,
         confidence_score: float,
         camera_id: str,
-        gei_data: Optional[Any] = None,
-        frame_data: Optional[Any] = None,
-        track_id: Optional[int] = None,
-    ) -> Optional[Dict[str, Any]]:
+        gei_data: Any | None = None,
+        frame_data: Any | None = None,
+        track_id: int | None = None,
+    ) -> dict[str, Any] | None:
         """Evaluate a gait match against the active watchlist."""
         now = time.monotonic()
         with self._lock:
@@ -178,12 +179,12 @@ class MissingPersonWorkflow:
             )
             return event
 
-    def get_active_targets(self) -> List[str]:
+    def get_active_targets(self) -> list[str]:
         """Return list of active watchlist target identities."""
         with self._lock:
             return [k for k, v in self._watchlist_entries.items() if v.enabled] or list(self._target_watchlist.keys())
 
-    def get_recent_events(self) -> List[Dict[str, Any]]:
+    def get_recent_events(self) -> list[dict[str, Any]]:
         """Return all logged missing person match events."""
         with self._lock:
             return self._events.copy()
@@ -191,6 +192,7 @@ class MissingPersonWorkflow:
     def export_watchlist_events(self, filename: str = "watchlist_events.json"):
         """Export watchlist match events to output directory."""
         import json
+
         with self._lock:
             target_path = self.output_dir / filename
             with open(target_path, "w", encoding="utf-8") as f:

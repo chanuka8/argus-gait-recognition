@@ -51,8 +51,9 @@ def test_open_set_recognizer_uncertain():
 
 
 def test_matching_step_open_set_integration():
-    from pipeline.steps.matching_step import MatchingStep
     import numpy as np
+
+    from pipeline.steps.matching_step import MatchingStep
 
     matcher = MatchingStep(threshold=0.85)
     gal_feats = np.eye(4, dtype=np.float32)

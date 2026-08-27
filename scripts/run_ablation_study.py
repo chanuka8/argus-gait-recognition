@@ -7,9 +7,8 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from training.trainer import Trainer
 from scripts.evaluate_subject_disjoint import main as run_evaluation
-
+from training.trainer import Trainer
 
 EXPERIMENTS = [
     {
@@ -73,7 +72,9 @@ def run_experiment(exp: dict, epochs: int = 25, batch_size: int = 16, lr: float 
     print("\n=======================================================")
     print(f" STARTING EXPERIMENT: {exp['id']} ({exp['name']})")
     print(f" Description: {exp['description']}")
-    print(f" Config: part_bins={exp['part_bins']}, loss_mode={exp['loss_mode']}, triplet_weight={exp['triplet_weight']}")
+    print(
+        f" Config: part_bins={exp['part_bins']}, loss_mode={exp['loss_mode']}, triplet_weight={exp['triplet_weight']}"
+    )
     print("=======================================================\n")
 
     trainer = Trainer(
@@ -95,10 +96,14 @@ def run_experiment(exp: dict, epochs: int = 25, batch_size: int = 16, lr: float 
     orig_argv = sys.argv
     sys.argv = [
         "evaluate_subject_disjoint.py",
-        "--model-path", str(best_ckpt),
-        "--gei-root", "data/casia_processed/gei",
-        "--split-config", "configs/subject_split.json",
-        "--output-dir", str(eval_dir),
+        "--model-path",
+        str(best_ckpt),
+        "--gei-root",
+        "data/casia_processed/gei",
+        "--split-config",
+        "configs/subject_split.json",
+        "--output-dir",
+        str(eval_dir),
     ]
     try:
         run_evaluation()
@@ -158,7 +163,9 @@ def main():
     print("-" * len(header))
     for r in results:
         pool_str = "HPP (4)" if r["part_bins"] == 4 else "Global(1)"
-        print(f"{r['exp_id']:<10} | {pool_str:<8} | {r['loss_mode']:<12} | {r['triplet_weight']:<6.2f} | {r['rank1']*100:<6.2f}% | {r['rank5']*100:<6.2f}% | {r['nm']*100:<6.2f}% | {r['bg']*100:<6.2f}% | {r['cl']*100:<6.2f}% | {r['roc_auc']:<7.4f} | {r['far']*100:<6.2f}% | {r['threshold']:<7.4f}")
+        print(
+            f"{r['exp_id']:<10} | {pool_str:<8} | {r['loss_mode']:<12} | {r['triplet_weight']:<6.2f} | {r['rank1'] * 100:<6.2f}% | {r['rank5'] * 100:<6.2f}% | {r['nm'] * 100:<6.2f}% | {r['bg'] * 100:<6.2f}% | {r['cl'] * 100:<6.2f}% | {r['roc_auc']:<7.4f} | {r['far'] * 100:<6.2f}% | {r['threshold']:<7.4f}"
+        )
 
     print(f"\nSaved full ablation summary to {out_file}\n")
 

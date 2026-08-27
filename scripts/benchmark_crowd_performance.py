@@ -6,7 +6,9 @@ sample count, and memory allocation delta.
 """
 
 import time
+
 import numpy as np
+
 from intelligence.crowd_intelligence_system import CrowdIntelligenceSystem
 
 
@@ -31,11 +33,13 @@ def run_performance_benchmark(num_frames: int = 200, num_tracks_per_frame: int =
             y1 = int(rng.randint(0, 800))
             w = int(rng.randint(40, 120))
             h = int(rng.randint(80, 250))
-            detections.append({
-                "track_id": t + 1,
-                "bbox": [x1, y1, x1 + w, y1 + h],
-                "confidence": float(rng.uniform(0.7, 0.99)),
-            })
+            detections.append(
+                {
+                    "track_id": t + 1,
+                    "bbox": [x1, y1, x1 + w, y1 + h],
+                    "confidence": float(rng.uniform(0.7, 0.99)),
+                }
+            )
 
         t0 = time.perf_counter()
 

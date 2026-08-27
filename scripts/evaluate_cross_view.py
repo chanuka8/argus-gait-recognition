@@ -9,9 +9,7 @@ from evaluation.cross_view_evaluator import CrossViewEvaluator
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Evaluate ARGUS Cross-View Gait Recognition Metrics"
-    )
+    parser = argparse.ArgumentParser(description="Evaluate ARGUS Cross-View Gait Recognition Metrics")
 
     parser.add_argument(
         "--max-images",

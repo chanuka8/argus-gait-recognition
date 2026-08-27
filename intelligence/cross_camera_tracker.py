@@ -2,8 +2,9 @@
 
 import time
 import uuid
+from collections.abc import Callable
 from threading import Lock
-from typing import Any, Callable, Dict, Optional
+from typing import Any
 
 from intelligence.camera_transition_model import CameraTransitionModel
 from monitoring.logging_config import get_logger
@@ -15,8 +16,8 @@ class CrossCameraTracker:
     def __init__(
         self,
         max_transition_time_seconds: float = 60.0,
-        transition_model: Optional[CameraTransitionModel] = None,
-        time_provider: Optional[Callable[[], float]] = None,
+        transition_model: CameraTransitionModel | None = None,
+        time_provider: Callable[[], float] | None = None,
     ) -> None:
         self.max_transition_time = max_transition_time_seconds
         self.transition_model = transition_model
@@ -24,18 +25,18 @@ class CrossCameraTracker:
         self._lock = Lock()
         self._time_provider = time_provider or time.monotonic
 
-        self._global_tracks: Dict[str, Dict[str, Any]] = {}
-        self._local_to_global: Dict[tuple, str] = {}
+        self._global_tracks: dict[str, dict[str, Any]] = {}
+        self._local_to_global: dict[tuple, str] = {}
 
     def get_or_create_global_id(
         self,
         camera_id: str,
         local_track_id: int,
-        identity: Optional[str] = None,
-        feature_vector: Optional[Any] = None,
+        identity: str | None = None,
+        feature_vector: Any | None = None,
         quality: float = 1.0,
-        direction: Optional[str] = None,
-        entry_zone: Optional[str] = None,
+        direction: str | None = None,
+        entry_zone: str | None = None,
     ) -> str:
         """Assign or retrieve a global track ID for a camera stream track."""
         now = self._time_provider()
@@ -82,12 +83,14 @@ class CrossCameraTracker:
                         data["last_camera"] = camera_id
                         if identity:
                             data["identity"] = identity
-                        data["transitions"].append({
-                            "from": old_cam,
-                            "to": camera_id,
-                            "timestamp": now,
-                            "score": score,
-                        })
+                        data["transitions"].append(
+                            {
+                                "from": old_cam,
+                                "to": camera_id,
+                                "timestamp": now,
+                                "score": score,
+                            }
+                        )
                         self._local_to_global[key] = gid
                         self._logger.info(
                             f"Transition model match for {identity or gid}: {old_cam} -> {camera_id} "
@@ -156,11 +159,11 @@ class CrossCameraTracker:
         self,
         camera_id: str,
         local_track_id: Any,
-        identity: Optional[str] = None,
-        feature_vector: Optional[Any] = None,
+        identity: str | None = None,
+        feature_vector: Any | None = None,
         quality: float = 1.0,
-        exit_zone: Optional[str] = None,
-        direction: Optional[str] = None,
+        exit_zone: str | None = None,
+        direction: str | None = None,
     ) -> None:
         """Explicitly record a track exit in the transition model."""
         now = self._time_provider()
@@ -180,7 +183,7 @@ class CrossCameraTracker:
                     timestamp=now,
                 )
 
-    def get_track_history(self, global_track_id: str) -> Optional[Dict[str, Any]]:
+    def get_track_history(self, global_track_id: str) -> dict[str, Any] | None:
         """Get history and transition log for a global track ID."""
         with self._lock:
             track = self._global_tracks.get(global_track_id)
@@ -192,17 +195,13 @@ class CrossCameraTracker:
         removed = 0
         with self._lock:
             stale_gids = [
-                gid for gid, data in self._global_tracks.items()
-                if (now - data["last_seen"]) > max_age_seconds
+                gid for gid, data in self._global_tracks.items() if (now - data["last_seen"]) > max_age_seconds
             ]
             for gid in stale_gids:
                 del self._global_tracks[gid]
                 removed += 1
 
-            stale_keys = [
-                k for k, gid in self._local_to_global.items()
-                if gid in stale_gids
-            ]
+            stale_keys = [k for k, gid in self._local_to_global.items() if gid in stale_gids]
             for k in stale_keys:
                 del self._local_to_global[k]
 
@@ -210,4 +209,3 @@ class CrossCameraTracker:
                 self.transition_model.cleanup_stale_exits(max_age_seconds)
 
         return removed
-

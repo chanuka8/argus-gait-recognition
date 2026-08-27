@@ -18,14 +18,13 @@ Exit Codes:
 """
 
 import json
-from pathlib import Path
 import sys
+from pathlib import Path
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from typing import Tuple
 
 import numpy as np
 
@@ -39,7 +38,7 @@ from storage.vector_store import validate_gallery_files
 
 def run_deployment_smoke_test(
     output_dir: str = "outputs/reports",
-) -> Tuple[int, dict]:
+) -> tuple[int, dict]:
     """
     Run complete deployment smoke test suite.
 
@@ -99,12 +98,14 @@ def run_deployment_smoke_test(
                     report["defects"].append(
                         f"Synthetic inference assertion failed (shape={getattr(embedding, 'shape', None)}, norm={norm})"
                     )
-            except Exception as e:
+            except (RuntimeError, ValueError, TypeError, OSError) as e:
                 report["checks"]["synthetic_inference"] = "FAILED"
                 report["defects"].append(f"Synthetic inference exception: {e}")
 
-        g_valid, g_err, g_count = validate_gallery_files(gallery_dir=Path("models/gallery"), expected_dim=256)
-        report["checks"]["gallery_validation"] = "PASSED" if g_valid or "files missing" in (g_err or "").lower() else "FAILED"
+        g_valid, g_err, _g_count = validate_gallery_files(gallery_dir=Path("models/gallery"), expected_dim=256)
+        report["checks"]["gallery_validation"] = (
+            "PASSED" if g_valid or "files missing" in (g_err or "").lower() else "FAILED"
+        )
         if not g_valid and "files missing" not in (g_err or "").lower():
             report["defects"].append(f"Gallery validation defect: {g_err}")
 
@@ -126,7 +127,7 @@ def run_deployment_smoke_test(
             report["exit_code"] = 1
             exit_code = 1
 
-    except Exception as e:
+    except (RuntimeError, ValueError, TypeError, OSError) as e:
         report["status"] = "INTERNAL_FAILURE"
         report["exit_code"] = 2
         report["defects"].append(f"Unhandled smoke test exception: {e}")
@@ -162,7 +163,7 @@ def run_deployment_smoke_test(
 
         md_file.write_text("\n".join(md_lines) + "\n", encoding="utf-8")
         report["checks"]["report_generation"] = "PASSED"
-    except Exception as e:
+    except (OSError, ValueError) as e:
         report["defects"].append(f"Failed writing smoke test report: {e}")
         if exit_code == 0:
             exit_code = 1

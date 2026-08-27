@@ -13,15 +13,14 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import List, Optional, Union
 
 
 def run_process_streaming(
-    command: Union[List[str], str],
-    cwd: Optional[Union[Path, str]] = None,
-    env: Optional[dict] = None,
-    tag: Optional[str] = None,
-    timeout_seconds: Optional[int] = None,
+    command: list[str] | str,
+    cwd: Path | str | None = None,
+    env: dict | None = None,
+    tag: str | None = None,
+    timeout_seconds: int | None = None,
     shell: bool = False,
 ) -> int:
     """
@@ -68,7 +67,7 @@ def run_process_streaming(
         proc.kill()
         print(f"[ARGUS ERROR] Process timed out after {timeout_seconds}s: {cmd_str}", flush=True)
         return 124
-    except Exception as e:
+    except (subprocess.SubprocessError, OSError, ValueError) as e:
         print(f"[ARGUS ERROR] Execution error ({e}): {cmd_str}", flush=True)
         return 1
 

@@ -6,7 +6,7 @@ automatic recovery on failure, graceful shutdown, and health reporting.
 """
 
 from threading import Lock
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from monitoring.logging_config import get_logger
 from services.camera_worker import CameraWorker
@@ -19,8 +19,8 @@ class CameraWorkerPool:
         self,
         min_workers: int = 1,
         max_workers: int = 16,
-        inference_pipeline: Optional[Any] = None,
-        detection_processor: Optional[Any] = None,
+        inference_pipeline: Any | None = None,
+        detection_processor: Any | None = None,
     ) -> None:
         self.min_workers = max(1, min_workers)
         self.max_workers = max(self.min_workers, max_workers)
@@ -30,10 +30,10 @@ class CameraWorkerPool:
         self._logger = get_logger("worker_pool")
         self._lock = Lock()
 
-        self._workers: Dict[str, CameraWorker] = {}
-        self._worker_health: Dict[str, bool] = {}
+        self._workers: dict[str, CameraWorker] = {}
+        self._worker_health: dict[str, bool] = {}
 
-    def add_worker_for_camera(self, camera_id: str, camera_config: dict) -> Optional[CameraWorker]:
+    def add_worker_for_camera(self, camera_id: str, camera_config: dict) -> CameraWorker | None:
         """Create and register a new camera worker in the pool."""
         with self._lock:
             if len(self._workers) >= self.max_workers:
@@ -101,7 +101,7 @@ class CameraWorkerPool:
                 stopped += 1
         return stopped
 
-    def auto_recover_failed_workers(self) -> List[str]:
+    def auto_recover_failed_workers(self) -> list[str]:
         """Perform health checks and automatically restart crashed workers."""
         recovered = []
         with self._lock:
@@ -120,7 +120,7 @@ class CameraWorkerPool:
 
         return recovered
 
-    def get_pool_health(self) -> Dict[str, Any]:
+    def get_pool_health(self) -> dict[str, Any]:
         """Get pool health status and statistics."""
         with self._lock:
             active_count = sum(1 for w in self._workers.values() if w.is_running())
@@ -132,7 +132,7 @@ class CameraWorkerPool:
                 "health_map": self._worker_health.copy(),
             }
 
-    def get_worker(self, camera_id: str) -> Optional[CameraWorker]:
+    def get_worker(self, camera_id: str) -> CameraWorker | None:
         """Retrieve worker for a camera."""
         with self._lock:
             return self._workers.get(camera_id)

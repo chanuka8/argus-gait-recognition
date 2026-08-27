@@ -1,4 +1,5 @@
 import numpy as np
+
 from pipeline.steps.silhouette_step import SilhouetteStep
 
 
@@ -27,4 +28,3 @@ class SilhouetteExtractor:
 
         crop = frame[y1:y2, x1:x2]
         return self.extract_from_crop(crop)
-

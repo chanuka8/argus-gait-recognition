@@ -1,6 +1,7 @@
+from unittest.mock import MagicMock, patch
+
 import numpy as np
 import pytest
-from unittest.mock import MagicMock, patch
 from fastapi.testclient import TestClient
 
 from api.server import app
@@ -51,8 +52,10 @@ def test_source_resolver_skip_unavailable_usb_and_select_rtsp():
         {"id": "camera_01", "name": "Main Gate", "url": "rtsp://192.168.1.100:554/stream1", "enabled": True}
     ]
 
-    with patch.object(resolver, "probe_usb_webcam", return_value=False), \
-         patch.object(resolver, "probe_stream", return_value=True):
+    with (
+        patch.object(resolver, "probe_usb_webcam", return_value=False),
+        patch.object(resolver, "probe_stream", return_value=True),
+    ):
         res = resolver.resolve_source(camera_id="CCTV-TEST-RTSP", requested_source="auto")
         assert res["resolved_source_type"] == "rtsp"
         assert res["source_type"] == "rtsp"
@@ -65,10 +68,9 @@ def test_source_resolver_no_source_available_raises():
     resolver = CameraSourceResolver()
     resolver._registered_cameras = []
 
-    with patch.object(resolver, "probe_usb_webcam", return_value=False):
-        with pytest.raises(RuntimeError) as exc_info:
-            resolver.resolve_source(camera_id="CCTV-FAIL", requested_source="auto")
-            assert "Unable to detect camera source" in str(exc_info.value)
+    with patch.object(resolver, "probe_usb_webcam", return_value=False), pytest.raises(RuntimeError) as exc_info:
+        resolver.resolve_source(camera_id="CCTV-FAIL", requested_source="auto")
+        assert "Unable to detect camera source" in str(exc_info.value)
 
 
 def test_gait_service_auto_source_lifecycle():
@@ -78,14 +80,11 @@ def test_gait_service_auto_source_lifecycle():
     mock_cap.isOpened.return_value = True
     mock_cap.read.return_value = (True, _dummy_frame())
 
-    with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap), \
-         patch.object(service.source_resolver, "probe_usb_webcam", return_value=True):
-        info = service.start_camera(
-            camera_id="CCTV-AUTO-1",
-            source="auto",
-            location="Sector A",
-            zone_id="Z01"
-        )
+    with (
+        patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
+        patch.object(service.source_resolver, "probe_usb_webcam", return_value=True),
+    ):
+        info = service.start_camera(camera_id="CCTV-AUTO-1", source="auto", location="Sector A", zone_id="Z01")
         assert info["camera_id"] == "CCTV-AUTO-1"
         assert info["status"] == "ACTIVE"
         assert info["resolved_source_type"] in ["webcam", "usb"]
@@ -104,17 +103,14 @@ def test_api_cameras_start_auto_contract():
     mock_cap.isOpened.return_value = True
     mock_cap.read.return_value = (True, _dummy_frame())
 
-    with TestClient(app) as client, \
-         patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap), \
-         patch("services.camera_source_resolver.CameraSourceResolver.probe_usb_webcam", return_value=True):
+    with (
+        TestClient(app) as client,
+        patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
+        patch("services.camera_source_resolver.CameraSourceResolver.probe_usb_webcam", return_value=True),
+    ):
         resp = client.post(
             "/api/v1/cameras/start",
-            json={
-                "camera_id": "CCTV-API-AUTO",
-                "source": "auto",
-                "location": "North Gate",
-                "zone_id": "Z02"
-            }
+            json={"camera_id": "CCTV-API-AUTO", "source": "auto", "location": "North Gate", "zone_id": "Z02"},
         )
         assert resp.status_code == 200
         data = resp.json()
@@ -132,8 +128,5 @@ def test_api_cameras_start_auto_contract():
         assert matching[0]["resolved_source_label"] is not None
         assert matching[0]["source_type"] in ["webcam", "usb", "rtsp"]
 
-        stop_resp = client.post(
-            "/api/v1/cameras/stop",
-            json={"camera_id": "CCTV-API-AUTO"}
-        )
+        stop_resp = client.post("/api/v1/cameras/stop", json={"camera_id": "CCTV-API-AUTO"})
         assert stop_resp.status_code == 200

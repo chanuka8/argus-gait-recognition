@@ -1,7 +1,8 @@
 import math
+
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
+from torch import nn
 
 
 class BatchHardTripletLoss(nn.Module):
@@ -81,11 +82,7 @@ class BatchHardTripletLoss(nn.Module):
         if not valid.any():
             return embeddings.sum() * 0.0
 
-        loss = F.relu(
-            hardest_positive[valid]
-            - hardest_negative[valid]
-            + self.margin
-        )
+        loss = F.relu(hardest_positive[valid] - hardest_negative[valid] + self.margin)
 
         return loss.mean()
 
@@ -140,9 +137,7 @@ class ArcMarginProduct(nn.Module):
         self.out_features = out_features
         self.s = s
         self.m = m
-        self.weight = nn.Parameter(
-            torch.FloatTensor(out_features, in_features)
-        )
+        self.weight = nn.Parameter(torch.FloatTensor(out_features, in_features))
         nn.init.xavier_uniform_(self.weight)
 
         self.easy_margin = easy_margin
@@ -176,4 +171,4 @@ class ArcMarginProduct(nn.Module):
         one_hot.scatter_(1, label.view(-1, 1).long(), 1)
         output = (one_hot * phi) + ((1.0 - one_hot) * cosine)
         output *= self.s
-        return output, cosine * self.s
+        return output, cosine * self.s

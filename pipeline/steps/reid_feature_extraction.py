@@ -57,11 +57,7 @@ class ReIDFeatureExtractionStep:
         valid_indices = []
 
         for i, crop in enumerate(crops):
-            if (
-                crop is not None
-                and crop.size > 0
-                and len(crop.shape) == 3
-            ):
+            if crop is not None and crop.size > 0 and len(crop.shape) == 3:
                 valid.append(crop)
                 valid_indices.append(i)
 
@@ -72,9 +68,7 @@ class ReIDFeatureExtractionStep:
             valid,
         )
 
-        results: list[np.ndarray | None] = (
-            [None] * len(crops)
-        )
+        results: list[np.ndarray | None] = [None] * len(crops)
 
         for idx, emb in zip(
             valid_indices,

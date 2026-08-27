@@ -6,7 +6,6 @@ and transparent fallback to PyTorch backend.
 """
 
 from pathlib import Path
-from typing import Optional, Union
 
 import numpy as np
 import torch
@@ -19,8 +18,8 @@ class TensorRTBackend(BaseInferenceBackend):
 
     def __init__(
         self,
-        config: Optional[dict] = None,
-        model_path: Optional[str] = None,
+        config: dict | None = None,
+        model_path: str | None = None,
     ) -> None:
         super().__init__(config=config)
         self.backend_name = "tensorrt"
@@ -31,7 +30,7 @@ class TensorRTBackend(BaseInferenceBackend):
         self._initialized = False
         self._init_engine(model_path=model_path)
 
-    def _init_engine(self, model_path: Optional[str] = None) -> None:
+    def _init_engine(self, model_path: str | None = None) -> None:
         """Initialize TensorRT engine lazily."""
         try:
             import tensorrt as trt
@@ -49,7 +48,7 @@ class TensorRTBackend(BaseInferenceBackend):
                     self._fallback_used = False
                     self._fallback_reason = None
                     self.warmup()
-        except Exception as e:
+        except (ImportError, RuntimeError, OSError, ValueError) as e:
             self._initialized = False
             reason = str(e)
             self.fallback_reason = reason
@@ -66,7 +65,7 @@ class TensorRTBackend(BaseInferenceBackend):
         """Check if TensorRT engine initialized successfully."""
         return self._initialized and self.context is not None
 
-    def predict(self, x: Union[np.ndarray, torch.Tensor]) -> np.ndarray:
+    def predict(self, x: np.ndarray | torch.Tensor) -> np.ndarray:
         """
         Execute TensorRT inference and return L2-normalized numpy embedding array.
 
@@ -102,7 +101,7 @@ class TensorRTBackend(BaseInferenceBackend):
 
             embeddings = gpu_output.cpu().numpy()
             return self.normalize_embedding(embeddings)
-        except Exception as e:
+        except (RuntimeError, ValueError, TypeError, OSError) as e:
             if self.allow_fallback:
                 self.logger.warning(f"TensorRT execution failed ({e}). Falling back to PyTorch.")
                 if self._fallback_backend is None:
@@ -110,4 +109,4 @@ class TensorRTBackend(BaseInferenceBackend):
 
                     self._fallback_backend = PyTorchBackend(config=self.config)
                 return self._fallback_backend.predict(x)
-            raise e
+            raise

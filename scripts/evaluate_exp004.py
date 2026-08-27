@@ -3,6 +3,7 @@ EXP-004 Evaluation & Reporting Script.
 Evaluates model checkpoints (EXP-003E, EXP-004F, EXP-004G, EXP-004H) on the strict subject-disjoint split
 and produces complete metrics (Rank-1, Rank-5, NM, BG, CL, ROC-AUC, FAR, FRR, EER, threshold).
 """
+
 import json
 import sys
 import time
@@ -13,9 +14,9 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from evaluation.dataset_split import load_or_create_subject_split
-from evaluation.threshold_calibrator import ThresholdCalibrator
 from evaluation.evaluator import SubjectDisjointEvaluator
 from evaluation.open_set_evaluator import SubjectDisjointOpenSetEvaluator
+from evaluation.threshold_calibrator import ThresholdCalibrator
 
 
 def evaluate_checkpoint(
@@ -75,11 +76,11 @@ def evaluate_checkpoint(
     bg_acc = float(cond_accs.get("BG", {}).get("rank1_accuracy", 0.0))
     cl_acc = float(cond_accs.get("CL", {}).get("rank1_accuracy", 0.0))
 
-    print(f"  -> Rank-1 Accuracy:  {rank1*100:.2f}%")
-    print(f"  -> Rank-5 Accuracy:  {rank5*100:.2f}%")
-    print(f"  -> NM Accuracy:      {nm_acc*100:.2f}%")
-    print(f"  -> BG Accuracy:      {bg_acc*100:.2f}%")
-    print(f"  -> CL Accuracy:      {cl_acc*100:.2f}%")
+    print(f"  -> Rank-1 Accuracy:  {rank1 * 100:.2f}%")
+    print(f"  -> Rank-5 Accuracy:  {rank5 * 100:.2f}%")
+    print(f"  -> NM Accuracy:      {nm_acc * 100:.2f}%")
+    print(f"  -> BG Accuracy:      {bg_acc * 100:.2f}%")
+    print(f"  -> CL Accuracy:      {cl_acc * 100:.2f}%")
 
     open_set_evaluator = SubjectDisjointOpenSetEvaluator(
         gei_root=gei_root,
@@ -105,9 +106,11 @@ def evaluate_checkpoint(
     margin_tar = float(margin_metrics.get("TAR", 0.0))
 
     print(f"  -> ROC-AUC:          {roc_auc:.4f}")
-    print(f"  -> EER:              {eer*100:.2f}%")
-    print(f"  -> [Score-Only] FAR: {far*100:.2f}%  FRR: {frr*100:.2f}%  TAR: {tar*100:.2f}%")
-    print(f"  -> [Margin M>={margin_threshold}] FAR: {margin_far*100:.2f}%  FRR: {margin_frr*100:.2f}%  TAR: {margin_tar*100:.2f}%")
+    print(f"  -> EER:              {eer * 100:.2f}%")
+    print(f"  -> [Score-Only] FAR: {far * 100:.2f}%  FRR: {frr * 100:.2f}%  TAR: {tar * 100:.2f}%")
+    print(
+        f"  -> [Margin M>={margin_threshold}] FAR: {margin_far * 100:.2f}%  FRR: {margin_frr * 100:.2f}%  TAR: {margin_tar * 100:.2f}%"
+    )
 
     summary = {
         "model_path": model_path,
@@ -141,13 +144,15 @@ def evaluate_checkpoint(
 
 if __name__ == "__main__":
     import argparse
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--model-path", required=True)
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--gei-root", default="data/casia_processed/gei")
     parser.add_argument("--split-config", default="configs/subject_split.json")
-    parser.add_argument("--margin-threshold", type=float, default=0.08,
-                        help="Top1/Top2 margin threshold for EXP-004B open-set policy")
+    parser.add_argument(
+        "--margin-threshold", type=float, default=0.08, help="Top1/Top2 margin threshold for EXP-004B open-set policy"
+    )
     args = parser.parse_args()
 
     evaluate_checkpoint(

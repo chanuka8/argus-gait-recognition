@@ -4,12 +4,13 @@ import os
 import shutil
 import tempfile
 import unittest
+
 import numpy as np
 
 from intelligence.cross_camera_tracker import CrossCameraTracker
-from intelligence.reid_cache import ReIDCache
 from intelligence.identity_persistence import IdentityPersistence
 from intelligence.missing_person_workflow import MissingPersonWorkflow
+from intelligence.reid_cache import ReIDCache
 from storage.evidence_manager import EvidenceManager
 
 
@@ -50,6 +51,7 @@ class TestReIDCache(unittest.TestCase):
         cache = ReIDCache(ttl_seconds=0.01, max_entries=5)
         cache.put("key1", [1, 2, 3])
         import time
+
         time.sleep(0.02)
         self.assertIsNone(cache.get("key1"))
 

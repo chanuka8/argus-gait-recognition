@@ -5,18 +5,16 @@ import numpy as np
 import torch
 
 from models.architectures.bygait_light import ByGaitLight
-
-
 from models.inference.backend import get_inference_backend, load_inference_backend_config
 
 
 class FeatureExtractionStep:
     def __init__(
         self,
-        model_path: str = None,
+        model_path: str | None = None,
         image_size: tuple[int, int] = (64, 128),
         binary_threshold: int = 20,
-        backend_config: dict = None,
+        backend_config: dict | None = None,
     ) -> None:
         self.backend_config = backend_config or load_inference_backend_config()
         resolved_path = model_path or self.backend_config.get("model_path") or "runs/exp_001/best_model.pth"
@@ -33,9 +31,7 @@ class FeatureExtractionStep:
         self,
     ) -> ByGaitLight:
         if not self.model_path.exists():
-            raise FileNotFoundError(
-                f"Model checkpoint not found: {self.model_path}"
-            )
+            raise FileNotFoundError(f"Model checkpoint not found: {self.model_path}")
 
         model = ByGaitLight()
 
@@ -69,9 +65,7 @@ class FeatureExtractionStep:
         )
 
         if image is None:
-            raise ValueError(
-                f"Unable to read image: {image_path}"
-            )
+            raise ValueError(f"Unable to read image: {image_path}")
 
         return image
 

@@ -9,9 +9,10 @@ Evaluates:
 """
 
 import json
-from pathlib import Path
 import sys
 import time
+from pathlib import Path
+
 import cv2
 import numpy as np
 import torch
@@ -20,12 +21,13 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from ultralytics import YOLO
+
 from evaluation.dataset_split import load_or_create_subject_split
 from evaluation.gallery_probe_builder import build_gallery_and_probe_sets
-from evaluation.metrics import compute_roc_auc_eer, compute_biometric_rates
+from evaluation.metrics import compute_biometric_rates, compute_roc_auc_eer
 from models.architectures.pose_gait_3d import PoseGait3DNet, PoseLifter3D
 from scripts.evaluate_exp004 import evaluate_checkpoint
-from ultralytics import YOLO
 
 
 def extract_2d_keypoints_sequence(yolo_model: YOLO, img_paths: list[str]) -> np.ndarray:
@@ -93,7 +95,7 @@ def main():
 
     def get_3d_embedding(item_path: str) -> np.ndarray:
         p_dir = Path(item_path).parent
-        frame_paths = sorted(list(p_dir.glob("*.png")))[:5]
+        frame_paths = sorted(p_dir.glob("*.png"))[:5]
         if not frame_paths:
             frame_paths = [item_path]
 
@@ -121,7 +123,9 @@ def main():
     if torch.cuda.is_available():
         vram_mb = torch.cuda.max_memory_allocated() / (1024.0 * 1024.0)
 
-    print(f"Extraction completed in {total_time:.2f}s | FPS: {fps:.1f} | Latency: {latency_ms:.2f}ms/item | VRAM: {vram_mb:.1f}MB")
+    print(
+        f"Extraction completed in {total_time:.2f}s | FPS: {fps:.1f} | Latency: {latency_ms:.2f}ms/item | VRAM: {vram_mb:.1f}MB"
+    )
 
     print("\n--- Evaluating 3D Gait Closed-Set Identification ---")
     sim_matrix = np.dot(prb_embs, gal_embs.T)
@@ -142,22 +146,31 @@ def main():
 
     cond_accs = {}
     for c in ["NM", "BG", "CL"]:
-        mask = (prb_conds == c)
+        mask = prb_conds == c
         if np.sum(mask) > 0:
-            c_hits = sum(any(gal_labels[idx] == prb_labels[i] for idx in np.argsort(sim_matrix[i])[::-1][:1]) for i in np.where(mask)[0])
+            c_hits = sum(
+                any(gal_labels[idx] == prb_labels[i] for idx in np.argsort(sim_matrix[i])[::-1][:1])
+                for i in np.where(mask)[0]
+            )
             cond_accs[c] = c_hits / float(np.sum(mask))
         else:
             cond_accs[c] = 0.0
 
-    print(f"Rank-1 Accuracy: {rank1_acc*100:.2f}%")
-    print(f"Rank-5 Accuracy: {rank5_acc*100:.2f}%")
-    print(f"NM Accuracy:     {cond_accs['NM']*100:.2f}%")
-    print(f"BG Accuracy:     {cond_accs['BG']*100:.2f}%")
-    print(f"CL Accuracy:     {cond_accs['CL']*100:.2f}%")
+    print(f"Rank-1 Accuracy: {rank1_acc * 100:.2f}%")
+    print(f"Rank-5 Accuracy: {rank5_acc * 100:.2f}%")
+    print(f"NM Accuracy:     {cond_accs['NM'] * 100:.2f}%")
+    print(f"BG Accuracy:     {cond_accs['BG'] * 100:.2f}%")
+    print(f"CL Accuracy:     {cond_accs['CL'] * 100:.2f}%")
 
-    known_subs = set(test_subs[:len(test_subs) // 2])
+    known_subs = set(test_subs[: len(test_subs) // 2])
     scores = np.max(sim_matrix, axis=1)
-    is_genuine = np.array([prb_labels[i] in known_subs and gal_labels[np.argmax(sim_matrix[i])] == prb_labels[i] for i in range(len(prb_labels))], dtype=bool)
+    is_genuine = np.array(
+        [
+            prb_labels[i] in known_subs and gal_labels[np.argmax(sim_matrix[i])] == prb_labels[i]
+            for i in range(len(prb_labels))
+        ],
+        dtype=bool,
+    )
 
     roc_res = compute_roc_auc_eer(scores, is_genuine)
     eer_th = roc_res["eer_threshold"]
@@ -213,13 +226,13 @@ def main():
     print("=======================================================")
     print("Metric             | 2D Baseline (EXP-003E/004B) | 3D Pose Gait (EXP-006)")
     print("-------------------------------------------------------------------------")
-    print(f"Rank-1 Accuracy    | {exp004b_eval['rank1']*100:.2f}%                      | {rank1_acc*100:.2f}%")
-    print(f"Rank-5 Accuracy    | {exp004b_eval['rank5']*100:.2f}%                      | {rank5_acc*100:.2f}%")
-    print(f"NM Accuracy        | {exp004b_eval['NM']*100:.2f}%                      | {cond_accs['NM']*100:.2f}%")
-    print(f"BG Accuracy        | {exp004b_eval['BG']*100:.2f}%                      | {cond_accs['BG']*100:.2f}%")
-    print(f"CL Accuracy        | {exp004b_eval['CL']*100:.2f}%                      | {cond_accs['CL']*100:.2f}%")
+    print(f"Rank-1 Accuracy    | {exp004b_eval['rank1'] * 100:.2f}%                      | {rank1_acc * 100:.2f}%")
+    print(f"Rank-5 Accuracy    | {exp004b_eval['rank5'] * 100:.2f}%                      | {rank5_acc * 100:.2f}%")
+    print(f"NM Accuracy        | {exp004b_eval['NM'] * 100:.2f}%                      | {cond_accs['NM'] * 100:.2f}%")
+    print(f"BG Accuracy        | {exp004b_eval['BG'] * 100:.2f}%                      | {cond_accs['BG'] * 100:.2f}%")
+    print(f"CL Accuracy        | {exp004b_eval['CL'] * 100:.2f}%                      | {cond_accs['CL'] * 100:.2f}%")
     print(f"ROC-AUC            | {exp004b_eval['ROC_AUC']:.4f}                      | {roc_res['roc_auc']:.4f}")
-    print(f"EER                | {exp004b_eval['EER']*100:.2f}%                      | {roc_res['eer']*100:.2f}%")
+    print(f"EER                | {exp004b_eval['EER'] * 100:.2f}%                      | {roc_res['eer'] * 100:.2f}%")
     print(f"Throughput (FPS)   | ~45.0                      | {fps:.1f}")
     print(f"Latency (ms)       | ~22.0ms                    | {latency_ms:.2f}ms")
     print(f"Peak VRAM          | ~850MB                     | {vram_mb:.1f}MB")

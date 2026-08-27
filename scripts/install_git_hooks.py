@@ -69,7 +69,7 @@ def install_pre_commit_hook(root_dir: Path) -> bool:
     try:
         st = os.stat(pre_commit_path)
         os.chmod(pre_commit_path, st.st_mode | stat.S_IEXEC)
-    except Exception:
+    except OSError:
         pass
 
     print(f"[SUCCESS] Pre-commit hook installed successfully at {pre_commit_path}")

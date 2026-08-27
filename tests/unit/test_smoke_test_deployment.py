@@ -4,7 +4,9 @@ Unit tests for automated deployment smoke test script and exit codes.
 
 from pathlib import Path
 from unittest.mock import MagicMock
+
 import numpy as np
+
 from scripts.smoke_test_deployment import run_deployment_smoke_test
 
 

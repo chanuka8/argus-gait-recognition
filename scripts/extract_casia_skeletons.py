@@ -7,11 +7,12 @@ data/casia_processed/skeletons/{subject}/{subject}_{condition}_{view}.npy
 Array shape: (T_frames, 17, 3) containing (x, y, confidence).
 """
 
-from collections import defaultdict
-from pathlib import Path
 import sys
 import time
 import zipfile
+from collections import defaultdict
+from pathlib import Path
+
 import cv2
 import numpy as np
 import torch
@@ -22,7 +23,12 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 
-def extract_all_skeletons(zip_path: str = "data/casia_b_raw.zip", out_root: str = "data/casia_processed/skeletons", min_sub: int = 1, max_sub: int = 124):
+def extract_all_skeletons(
+    zip_path: str = "data/casia_b_raw.zip",
+    out_root: str = "data/casia_processed/skeletons",
+    min_sub: int = 1,
+    max_sub: int = 124,
+):
     out_dir = Path(out_root)
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -55,7 +61,7 @@ def extract_all_skeletons(zip_path: str = "data/casia_b_raw.zip", out_root: str 
         extracted_count = 0
         skipped_count = 0
 
-        sorted_seq_keys = sorted(list(seq_map.keys()))
+        sorted_seq_keys = sorted(seq_map.keys())
 
         batch_imgs = []
         batch_size = 16
@@ -113,13 +119,16 @@ def extract_all_skeletons(zip_path: str = "data/casia_b_raw.zip", out_root: str 
 
             if (idx + 1) % 100 == 0 or (idx + 1) == len(sorted_seq_keys):
                 elapsed = time.time() - t0
-                print(f"Processed {idx+1}/{len(sorted_seq_keys)} sequences | Extracted: {extracted_count} | Skipped: {skipped_count} | Elapsed: {elapsed:.1f}s")
+                print(
+                    f"Processed {idx + 1}/{len(sorted_seq_keys)} sequences | Extracted: {extracted_count} | Skipped: {skipped_count} | Elapsed: {elapsed:.1f}s"
+                )
 
     print(f"\n[SUCCESS] Extraction completed. Total sequences in {out_dir}: {extracted_count + skipped_count}")
 
 
 if __name__ == "__main__":
     import argparse
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--min-sub", type=int, default=1)
     parser.add_argument("--max-sub", type=int, default=124)

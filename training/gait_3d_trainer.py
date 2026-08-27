@@ -6,10 +6,11 @@ ArcFace + Triplet loss tuning, and subject-disjoint validation early stopping.
 """
 
 import json
-from pathlib import Path
 import sys
 import time
-from typing import Dict, Any
+from pathlib import Path
+from typing import Any
+
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
@@ -84,7 +85,7 @@ class Gait3DTrainer:
         torch.manual_seed(seed)
         np.random.seed(seed)
 
-    def train(self) -> Dict[str, Any]:
+    def train(self) -> dict[str, Any]:
         self.logger.info(f"Loading subject split from {self.split_config_path}")
         split_manifest = load_or_create_subject_split(
             config_path=self.split_config_path,
@@ -116,11 +117,15 @@ class Gait3DTrainer:
         val_loader = DataLoader(val_ds, batch_size=self.batch_size, shuffle=False)
 
         num_classes = len(train_ds.label_to_index)
-        self.logger.info(f"Encoder: {self.encoder_type.upper()} | Train samples: {len(train_ds)} | Val samples: {len(val_ds)} | Classes: {num_classes}")
+        self.logger.info(
+            f"Encoder: {self.encoder_type.upper()} | Train samples: {len(train_ds)} | Val samples: {len(val_ds)} | Classes: {num_classes}"
+        )
 
         lifter = PoseLifter3D().to(self.device)
         gait_net = get_gait3d_model(encoder_type=self.encoder_type, embedding_dim=256).to(self.device)
-        arcface = ArcMarginProduct(in_features=256, out_features=num_classes, s=self.arcface_scale, m=self.arcface_margin).to(self.device)
+        arcface = ArcMarginProduct(
+            in_features=256, out_features=num_classes, s=self.arcface_scale, m=self.arcface_margin
+        ).to(self.device)
 
         criterion = JointGaitLoss(triplet_margin=self.triplet_margin, triplet_weight=self.triplet_weight)
 
@@ -199,7 +204,9 @@ class Gait3DTrainer:
             }
             metrics_history.append(epoch_record)
 
-            self.logger.info(f"[{self.encoder_type.upper()}] Epoch {epoch:02d}/{self.epochs} | Train Loss: {train_loss:.4f} | Train Acc: {train_acc*100:.2f}% | Val Acc: {val_acc*100:.2f}%")
+            self.logger.info(
+                f"[{self.encoder_type.upper()}] Epoch {epoch:02d}/{self.epochs} | Train Loss: {train_loss:.4f} | Train Acc: {train_acc * 100:.2f}% | Val Acc: {val_acc * 100:.2f}%"
+            )
 
             if val_acc >= best_val_acc or epoch == 1:
                 best_val_acc = val_acc
@@ -235,27 +242,35 @@ class Gait3DTrainer:
             json.dump({"metrics": metrics_history, "best_val_acc": round(best_val_acc, 4)}, f, indent=4)
 
         with open(self.run_dir / "pose_lifter_metadata.json", "w", encoding="utf-8") as f:
-            json.dump({
-                "model_name": "PoseLifter3D",
-                "in_channels": 3,
-                "num_joints": 17,
-                "trained_epochs": self.epochs,
-                "version": "1.1.0",
-                "checksum": "sha256_pose_lifter_v11",
-            }, f, indent=4)
+            json.dump(
+                {
+                    "model_name": "PoseLifter3D",
+                    "in_channels": 3,
+                    "num_joints": 17,
+                    "trained_epochs": self.epochs,
+                    "version": "1.1.0",
+                    "checksum": "sha256_pose_lifter_v11",
+                },
+                f,
+                indent=4,
+            )
 
         with open(self.run_dir / "gait3d_model_metadata.json", "w", encoding="utf-8") as f:
-            json.dump({
-                "model_name": f"{self.encoder_type.upper()}Gait3DNet",
-                "encoder_type": self.encoder_type,
-                "embedding_dim": 256,
-                "sequence_length": self.sequence_length,
-                "arcface_s": self.arcface_scale,
-                "arcface_m": self.arcface_margin,
-                "triplet_weight": self.triplet_weight,
-                "best_val_acc": round(best_val_acc, 4),
-                "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
-            }, f, indent=4)
+            json.dump(
+                {
+                    "model_name": f"{self.encoder_type.upper()}Gait3DNet",
+                    "encoder_type": self.encoder_type,
+                    "embedding_dim": 256,
+                    "sequence_length": self.sequence_length,
+                    "arcface_s": self.arcface_scale,
+                    "arcface_m": self.arcface_margin,
+                    "triplet_weight": self.triplet_weight,
+                    "best_val_acc": round(best_val_acc, 4),
+                    "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+                },
+                f,
+                indent=4,
+            )
 
         with open(self.run_dir / "split_snapshot.json", "w", encoding="utf-8") as f:
             json.dump(split_manifest, f, indent=4)

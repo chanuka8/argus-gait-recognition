@@ -6,7 +6,7 @@ profiling and tuning, and optional GPU batching configurations.
 """
 
 from threading import Lock
-from typing import Any, Dict
+from typing import Any, ClassVar
 
 from monitoring.logging_config import get_logger
 
@@ -14,7 +14,7 @@ from monitoring.logging_config import get_logger
 class PerformanceOptimizer:
     """Adaptive streaming performance optimizer and profiler."""
 
-    PROFILES = {
+    PROFILES: ClassVar[dict[str, dict[str, Any]]] = {
         "low_latency": {
             "target_fps": 30,
             "max_queue_size": 3,
@@ -54,9 +54,7 @@ class PerformanceOptimizer:
         """Determine whether to drop/skip the current frame to maintain target latency."""
         with self._lock:
             threshold = self._config["adaptive_skip_threshold"]
-            if queue_fullness > 0.8 or latency_seconds > threshold:
-                return True
-            return False
+            return queue_fullness > 0.8 or latency_seconds > threshold
 
     def get_optimal_queue_size(self) -> int:
         """Get recommended queue size based on active profile."""
@@ -68,7 +66,7 @@ class PerformanceOptimizer:
         with self._lock:
             return self._config["gpu_batch_size"]
 
-    def get_performance_stats(self) -> Dict[str, Any]:
+    def get_performance_stats(self) -> dict[str, Any]:
         """Get current optimizer configuration and stats."""
         with self._lock:
             return {

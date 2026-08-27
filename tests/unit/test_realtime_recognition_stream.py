@@ -11,20 +11,21 @@ Covers:
 """
 
 import time
-import numpy as np
-import pytest
 from unittest.mock import MagicMock
 
+import numpy as np
+import pytest
+from fastapi.testclient import TestClient
+
+from api.server import app
 from pipeline.steps.feature_extraction import FeatureExtractionStep
+from services.camera_worker import CameraWorker
+from services.gait_service import GaitService
 from services.recognition_worker import (
     RecognitionResult,
     RecognitionResultCache,
     RecognitionWorker,
 )
-from services.camera_worker import CameraWorker
-from services.gait_service import GaitService
-from fastapi.testclient import TestClient
-from api.server import app
 
 
 def test_extract_from_gei_valid_shape():
@@ -340,6 +341,7 @@ async def test_api_stream_yields_mjpeg_frames():
     service.camera_workers["test_stream_cam"] = fake_worker
 
     from api.v1.router import stream_camera
+
     response = await stream_camera(camera_id="test_stream_cam", service=service)
     assert response.status_code == 200
     assert "multipart/x-mixed-replace" in response.media_type
@@ -363,4 +365,3 @@ def test_rtsp_credentials_never_in_stream_telemetry_or_errors():
     assert "super_secret_password_1234" not in sanitized
     assert "admin" not in sanitized
     assert sanitized == "rtsp://***:***@192.168.1.50:554/stream1"
-

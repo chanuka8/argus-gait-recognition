@@ -18,15 +18,9 @@ class SensitiveDataFilter(logging.Filter):
             record.msg = sanitize_rtsp_url(record.msg)
         if record.args:
             if isinstance(record.args, tuple):
-                record.args = tuple(
-                    sanitize_rtsp_url(arg) if isinstance(arg, str) else arg
-                    for arg in record.args
-                )
+                record.args = tuple(sanitize_rtsp_url(arg) if isinstance(arg, str) else arg for arg in record.args)
             elif isinstance(record.args, dict):
-                record.args = {
-                    k: sanitize_rtsp_url(v) if isinstance(v, str) else v
-                    for k, v in record.args.items()
-                }
+                record.args = {k: sanitize_rtsp_url(v) if isinstance(v, str) else v for k, v in record.args.items()}
         return True
 
 

@@ -7,18 +7,18 @@ Supports JSON, CSV, and Markdown exports with atomic file writing and duplicate 
 Excludes secrets, RTSP credentials, and raw biometric embeddings.
 """
 
-from dataclasses import asdict, dataclass, field
-from datetime import datetime
 import csv
 import json
 import os
-from pathlib import Path
 import re
 import tempfile
 import threading
 import time
-from typing import Any, Dict, Optional
 import uuid
+from dataclasses import asdict, dataclass, field
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
 
 import yaml
 
@@ -44,7 +44,7 @@ def load_explainable_reporting_config() -> dict:
     try:
         with open(config_path, encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
-    except Exception:
+    except (yaml.YAMLError, OSError, ValueError, KeyError):
         return defaults
 
     section = data.get("explainable_reporting", {})
@@ -52,7 +52,7 @@ def load_explainable_reporting_config() -> dict:
         return defaults
 
     merged = dict(defaults)
-    for key, val in defaults.items():
+    for key in defaults:
         if key in section:
             merged[key] = section[key]
 
@@ -64,36 +64,36 @@ class RecognitionEvidence:
     """Evidence fields collected during recognition decision."""
 
     event_id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
+    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     camera_id: str = "default"
-    local_track_id: Optional[int] = None
-    global_track_id: Optional[str] = None
+    local_track_id: int | None = None
+    global_track_id: str | None = None
     predicted_identity: str = "UNKNOWN"
     final_identity: str = "UNKNOWN"
     final_decision: str = "UNKNOWN"
     decision_reason: str = "Standard evaluation"
     open_set_state: str = "UNKNOWN"
-    gait_similarity: Optional[float] = None
-    appearance_similarity: Optional[float] = None
-    fusion_score: Optional[float] = None
-    gait_weight: Optional[float] = None
-    appearance_weight: Optional[float] = None
-    quality_score: Optional[float] = None
-    temporal_decision: Optional[str] = None
-    temporal_vote_count: Optional[int] = None
-    track_reliability: Optional[float] = None
-    occlusion_score: Optional[float] = None
-    clean_frame_ratio: Optional[float] = None
-    crowd_density: Optional[str] = None
-    transition_score: Optional[float] = None
-    identity_persistence_score: Optional[float] = None
+    gait_similarity: float | None = None
+    appearance_similarity: float | None = None
+    fusion_score: float | None = None
+    gait_weight: float | None = None
+    appearance_weight: float | None = None
+    quality_score: float | None = None
+    temporal_decision: str | None = None
+    temporal_vote_count: int | None = None
+    track_reliability: float | None = None
+    occlusion_score: float | None = None
+    clean_frame_ratio: float | None = None
+    crowd_density: str | None = None
+    transition_score: float | None = None
+    identity_persistence_score: float | None = None
     watchlist_matched: bool = False
-    watchlist_category: Optional[str] = None
-    watchlist_priority: Optional[str] = None
+    watchlist_category: str | None = None
+    watchlist_priority: str | None = None
     recognition_deferred: bool = False
-    defer_reason: Optional[str] = None
+    defer_reason: str | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert fields to dictionary, ensuring credential sanitization."""
         raw = asdict(self)
         sanitized = {}
@@ -108,7 +108,7 @@ class RecognitionEvidence:
 class ExplainableRecognitionReporter:
     """Thread-safe evidence report generator for recognition decisions."""
 
-    def __init__(self, config: Optional[dict] = None) -> None:
+    def __init__(self, config: dict | None = None) -> None:
         self.config = config or load_explainable_reporting_config()
         self.enabled = bool(self.config.get("enabled", False))
         self.output_dir = Path(self.config.get("output_dir", "outputs/reports/explainable"))
@@ -120,7 +120,7 @@ class ExplainableRecognitionReporter:
         self.report_watchlist = bool(self.config.get("report_watchlist", True))
 
         self._lock = threading.Lock()
-        self._last_report_times: Dict[str, float] = {}
+        self._last_report_times: dict[str, float] = {}
 
     def should_report(
         self,
@@ -141,10 +141,7 @@ class ExplainableRecognitionReporter:
         if evidence.recognition_deferred and self.report_deferred:
             return True
 
-        if self.report_confirmed and evidence.final_decision in ("KNOWN", "CONFIRMED"):
-            return True
-
-        return False
+        return self.report_confirmed and evidence.final_decision in ("KNOWN", "CONFIRMED")
 
     def _is_cooldown_active(self, key: str) -> bool:
         """Check if duplicate report cooldown is active."""
@@ -161,24 +158,26 @@ class ExplainableRecognitionReporter:
         evidence: RecognitionEvidence,
         identity_changed: bool = False,
         force_export: bool = False,
-    ) -> Optional[Dict[str, Path]]:
+    ) -> dict[str, Path] | None:
         """Generate explainable recognition report files atomically."""
         if not self.should_report(evidence, identity_changed=identity_changed, force_export=force_export):
             return None
 
-        cooldown_key = f"{evidence.camera_id}_{evidence.local_track_id}_{evidence.final_identity}_{evidence.final_decision}"
+        cooldown_key = (
+            f"{evidence.camera_id}_{evidence.local_track_id}_{evidence.final_identity}_{evidence.final_decision}"
+        )
         if not force_export and self._is_cooldown_active(cooldown_key):
             return None
 
         self.output_dir.mkdir(parents=True, exist_ok=True)
         evidence_dict = evidence.to_dict()
 
-        safe_ts = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+        safe_ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S_%f")
         track_str = str(evidence.local_track_id if evidence.local_track_id is not None else "0")
         cam_str = re.sub(r"\W+", "_", str(evidence.camera_id))
         base_name = f"recognition_{cam_str}_{track_str}_{safe_ts}"
 
-        generated_files: Dict[str, Path] = {}
+        generated_files: dict[str, Path] = {}
 
         if "json" in self.formats:
             json_path = self.output_dir / f"{base_name}.json"

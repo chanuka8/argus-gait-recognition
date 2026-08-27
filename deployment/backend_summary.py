@@ -6,7 +6,6 @@ Reuses authoritative backend metadata without reinitializing models or exposing 
 """
 
 from pathlib import Path
-from typing import Optional
 
 from monitoring.logging_config import get_logger
 
@@ -20,7 +19,7 @@ class BackendStartupSummary:
         self,
         backend,
         startup_status: str = "READY_FOR_CONTROLLED_GAIT_RECOGNITION_TESTING",
-        model_path: Optional[str] = None,
+        model_path: str | None = None,
     ) -> None:
         self.backend = backend
         self.startup_status = startup_status
@@ -41,7 +40,9 @@ class BackendStartupSummary:
         act = getattr(self.backend, "active_backend", "pytorch")
         prov = getattr(self.backend, "execution_provider", "PyTorch-CPU")
         allow_fb = str(getattr(self.backend, "allow_fallback", True)).lower()
-        fb_used = str(getattr(self.backend, "fallback_used", False) or getattr(self.backend, "selection_fallback_used", False)).lower()
+        fb_used = str(
+            getattr(self.backend, "fallback_used", False) or getattr(self.backend, "selection_fallback_used", False)
+        ).lower()
         fb_reason = getattr(self.backend, "fallback_reason", None) or "None"
         attempted = ", ".join(getattr(self.backend, "attempted_backends", [req]))
 

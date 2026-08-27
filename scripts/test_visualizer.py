@@ -11,9 +11,7 @@ def main():
 
     visualizer = EvaluationVisualizer()
 
-    visualizer.plot_accuracy(
-        0.528
-    )
+    visualizer.plot_accuracy(0.528)
 
     visualizer.plot_correct_vs_incorrect(
         correct=264,

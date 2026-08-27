@@ -68,9 +68,7 @@ class AutoEnrollmentService:
         return sorted(
             folder
             for folder in self.input_dir.iterdir()
-            if folder.is_dir()
-            and not folder.name.startswith("_")
-            and not folder.name.startswith(".")
+            if folder.is_dir() and not folder.name.startswith("_") and not folder.name.startswith(".")
         )
 
     def _input_files(
@@ -87,9 +85,7 @@ class AutoEnrollmentService:
             "*.avi",
             "*.mov",
         ):
-            files.extend(
-                person_folder.glob(pattern)
-            )
+            files.extend(person_folder.glob(pattern))
 
         return sorted(
             files,
@@ -219,15 +215,9 @@ class AutoEnrollmentService:
             self.appearance_store,
         )
 
-        gait_done = (
-            not has_videos
-            or person_id in gait_metadata
-        )
+        gait_done = not has_videos or person_id in gait_metadata
 
-        appearance_done = (
-            not has_photos
-            or person_id in appearance_metadata
-        )
+        appearance_done = not has_photos or person_id in appearance_metadata
 
         return gait_done and appearance_done
 
@@ -261,10 +251,7 @@ class AutoEnrollmentService:
         if marker.get("status") != "enrolled":
             return True
 
-        if marker.get("fingerprint") != fingerprint:
-            return True
-
-        return False
+        return marker.get("fingerprint") != fingerprint
 
     def _target_folder(
         self,
@@ -352,9 +339,7 @@ class AutoEnrollmentService:
         )
 
         if not cap.isOpened():
-            self.logger.warning(
-                f"Unable to open video: {video_path}"
-            )
+            self.logger.warning(f"Unable to open video: {video_path}")
 
             return 0
 
@@ -423,10 +408,7 @@ class AutoEnrollmentService:
                 if gei is None:
                     continue
 
-                output_name = (
-                    f"{video_path.stem}_track{track_id}_"
-                    f"frame{frame_index}.png"
-                )
+                output_name = f"{video_path.stem}_track{track_id}_frame{frame_index}.png"
 
                 output_path = target_folder / output_name
 
@@ -518,9 +500,7 @@ class AutoEnrollmentService:
             person_id = person_folder.name
 
             if image_files and not video_files:
-                print(
-                    f"Skipped photo-only folder. Gait enrollment requires walking video: {person_id}"
-                )
+                print(f"Skipped photo-only folder. Gait enrollment requires walking video: {person_id}")
                 continue
 
             if not video_files:
@@ -533,28 +513,18 @@ class AutoEnrollmentService:
                 has_photos=False,
                 force=force,
             ):
-                print(
-                    f"Skipped already enrolled identity: {person_id}"
-                )
+                print(f"Skipped already enrolled identity: {person_id}")
 
                 continue
 
-            print(
-                f"\nAuto enrollment detected new gait data: {person_id}"
-            )
+            print(f"\nAuto enrollment detected new gait data: {person_id}")
 
-            print(
-                f"  Videos found: {len(video_files)}"
-            )
+            print(f"  Videos found: {len(video_files)}")
 
-            print(
-                f"  Photos found: {len(image_files)}"
-            )
+            print(f"  Photos found: {len(image_files)}")
 
             if image_files:
-                print(
-                    "  Photos ignored for gait-only enrollment."
-                )
+                print("  Photos ignored for gait-only enrollment.")
 
             result = {
                 "success": False,
@@ -588,11 +558,7 @@ class AutoEnrollmentService:
             )
 
             result["success"] = total_embeddings > 0
-            result["message"] = (
-                "Gait enrollment completed"
-                if result["success"]
-                else "No valid embeddings generated"
-            )
+            result["message"] = "Gait enrollment completed" if result["success"] else "No valid embeddings generated"
 
             self._save_marker(
                 person_folder,
@@ -605,14 +571,9 @@ class AutoEnrollmentService:
             )
 
             if result["success"]:
-                print(
-                    f"  Gait enrollment completed: {person_id}"
-                )
+                print(f"  Gait enrollment completed: {person_id}")
             else:
-                print(
-                    f"  Gait enrollment failed: {person_id} | "
-                    f"No valid embeddings generated"
-                )
+                print(f"  Gait enrollment failed: {person_id} | No valid embeddings generated")
 
         return results
 

@@ -5,6 +5,7 @@ Comprehensive Unit Tests for ARGUS AI CCTV Deployment Readiness.
 import importlib.util
 import json
 from pathlib import Path
+
 import numpy as np
 import pytest
 
@@ -21,7 +22,9 @@ def _has_onnx_pkgs() -> bool:
 def test_valid_onnx_export_metadata(tmp_path: Path):
     ckpt_file = tmp_path / "model.pth"
     import torch
+
     from models.architectures.bygait_light import ByGaitLight
+
     torch.save(ByGaitLight().state_dict(), ckpt_file)
 
     target_onnx = tmp_path / "bygait.onnx"
@@ -85,6 +88,7 @@ def test_invalid_onnx_model_handling(tmp_path: Path):
 
 def test_onnx_runtime_unavailable_simulation(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     import sys
+
     monkeypatch.setitem(sys.modules, "onnxruntime", None)
 
     validator = BackendValidator(config={"onnx_path": str(tmp_path / "model.onnx")})
@@ -97,12 +101,13 @@ def test_onnx_runtime_unavailable_simulation(tmp_path: Path, monkeypatch: pytest
 def test_onnx_numerical_parity_pass_and_fail(tmp_path: Path):
     ckpt_file = tmp_path / "model.pth"
     import torch
+
     from models.architectures.bygait_light import ByGaitLight
+
     torch.save(ByGaitLight().state_dict(), ckpt_file)
 
     if not _has_onnx_pkgs():
         pytest.skip("ONNX / ONNX Runtime package not available in test environment")
-
 
     target_onnx = tmp_path / "bygait.onnx"
     json_report = tmp_path / "onnx_report.json"
@@ -146,7 +151,9 @@ def test_pytorch_backend_readiness():
 def test_onnx_backend_readiness(tmp_path: Path):
     ckpt_file = tmp_path / "model.pth"
     import torch
+
     from models.architectures.bygait_light import ByGaitLight
+
     torch.save(ByGaitLight().state_dict(), ckpt_file)
 
     target_onnx = tmp_path / "model.onnx"

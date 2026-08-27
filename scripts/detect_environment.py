@@ -17,7 +17,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
@@ -28,16 +28,17 @@ def setup_torch_dll_path() -> None:
     """Ensure torch/lib is in PATH and DLL search directory for ONNX CUDA provider."""
     try:
         import torch
+
         torch_lib = Path(torch.__file__).parent / "lib"
         if torch_lib.exists():
             os.environ["PATH"] = str(torch_lib) + os.pathsep + os.environ.get("PATH", "")
             if hasattr(os, "add_dll_directory"):
                 os.add_dll_directory(str(torch_lib))
-    except Exception:
+    except (ImportError, AttributeError, OSError):
         pass
 
 
-def get_system_hardware() -> Dict[str, Any]:
+def get_system_hardware() -> dict[str, Any]:
     """Retrieve OS, CPU core count, and total RAM in GB."""
     os_name = f"{platform.system()} {platform.release()}"
     cpu_count = os.cpu_count() or 1
@@ -45,8 +46,9 @@ def get_system_hardware() -> Dict[str, Any]:
 
     try:
         import psutil
-        ram_gb = psutil.virtual_memory().total / (1024 ** 3)
-    except Exception:
+
+        ram_gb = psutil.virtual_memory().total / (1024**3)
+    except (ImportError, AttributeError, OSError):
         pass
 
     return {
@@ -57,7 +59,7 @@ def get_system_hardware() -> Dict[str, Any]:
     }
 
 
-def get_nvidia_smi_info() -> Tuple[bool, Optional[str], Optional[str], Optional[float], Optional[str]]:
+def get_nvidia_smi_info() -> tuple[bool, str | None, str | None, float | None, str | None]:
     """
     Query nvidia-smi for GPU presence, name, driver version, VRAM (MB), and max supported CUDA.
     """
@@ -71,7 +73,7 @@ def get_nvidia_smi_info() -> Tuple[bool, Optional[str], Optional[str], Optional[
             "--query-gpu=name,driver_version,memory.total",
             "--format=csv,noheader,nounits",
         ]
-        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=5)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=5, check=False)
         if result.returncode == 0 and result.stdout.strip():
             line = result.stdout.strip().split("\n")[0]
             parts = [p.strip() for p in line.split(",")]
@@ -82,33 +84,34 @@ def get_nvidia_smi_info() -> Tuple[bool, Optional[str], Optional[str], Optional[
 
                 cuda_driver = "12.x"
                 try:
-                    smi_banner = subprocess.run([smi_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=5)
+                    smi_banner = subprocess.run([smi_path], capture_output=True, text=True, timeout=5, check=False)
                     if "CUDA Version:" in smi_banner.stdout:
                         cuda_driver = smi_banner.stdout.split("CUDA Version:")[1].split()[0]
-                except Exception:
+                except (subprocess.SubprocessError, OSError, ValueError):
                     pass
 
                 return True, name, driver, vram_mb, cuda_driver
-    except Exception:
+    except (subprocess.SubprocessError, OSError, ValueError):
         pass
 
     return False, None, None, None, None
 
 
-def get_onnx_providers() -> Tuple[List[str], str, bool]:
+def get_onnx_providers() -> tuple[list[str], str, bool]:
     """Inspect available ONNX Runtime execution providers."""
     setup_torch_dll_path()
     try:
         import onnxruntime as ort
+
         providers = ort.get_available_providers()
         cuda_avail = "CUDAExecutionProvider" in providers
         selected = "CUDAExecutionProvider" if cuda_avail else "CPUExecutionProvider"
         return providers, selected, cuda_avail
-    except Exception:
+    except (ImportError, RuntimeError, ValueError, TypeError, OSError):
         return [], "CPUExecutionProvider", False
 
 
-def probe_pytorch_cuda() -> Dict[str, Any]:
+def probe_pytorch_cuda() -> dict[str, Any]:
     """Inspect active PyTorch build in the current environment."""
     info = {
         "installed": False,
@@ -139,30 +142,31 @@ def probe_pytorch_cuda() -> Dict[str, Any]:
                 torch.cuda.synchronize()
                 if c.shape == (128, 128):
                     info["tensor_probe_passed"] = True
-            except Exception as probe_err:
+            except (RuntimeError, ValueError, TypeError, OSError) as probe_err:
                 info["error"] = f"Tensor probe failed: {probe_err}"
     except ImportError as imp_err:
         info["error"] = f"PyTorch not imported: {imp_err}"
-    except Exception as general_err:
+    except (RuntimeError, ValueError, TypeError, OSError) as general_err:
         info["error"] = str(general_err)
 
     return info
 
 
-def probe_yolo_runtime_device() -> Tuple[str, str, bool]:
+def probe_yolo_runtime_device() -> tuple[str, str, bool]:
     """Inspect YOLOv8 configured and resolved runtime execution device."""
     try:
         from pipeline.detection.person_detector import PersonDetector
+
         detector = PersonDetector()
         cfg_dev = detector.device
         runtime_dev = detector.runtime_device
         is_cuda = "cuda" in runtime_dev
         return cfg_dev, runtime_dev, is_cuda
-    except Exception:
+    except (ImportError, RuntimeError, ValueError, TypeError, OSError):
         return "auto", "cpu", False
 
 
-def detect_environment() -> Dict[str, Any]:
+def detect_environment() -> dict[str, Any]:
     """Aggregate hardware state, PyTorch, YOLO, and ONNX compute requirements."""
     sys_hw = get_system_hardware()
     has_gpu, gpu_name, driver_ver, vram_mb, cuda_driver = get_nvidia_smi_info()
@@ -280,7 +284,9 @@ def main() -> int:
         print(f"PyTorch Status  : NOT INSTALLED ({pt['error']})")
 
     print(f"YOLO Runtime    : {yolo['runtime_device']} (Config: {yolo['configured_device']})")
-    print(f"ONNX Provider   : {onnx['selected_provider']} (CUDA: {'AVAILABLE' if onnx['cuda_available'] else 'UNAVAILABLE'})")
+    print(
+        f"ONNX Provider   : {onnx['selected_provider']} (CUDA: {'AVAILABLE' if onnx['cuda_available'] else 'UNAVAILABLE'})"
+    )
     print("-" * 60)
     print(f"TARGET COMPUTE  : {asm['target_compute']}")
     print(f"PIPELINE STATUS : {asm['pipeline_status']}")

@@ -42,11 +42,13 @@ class PersonTracker:
 
                 self.last_seen[track_id] = now
 
-                results.append({
-                    "track_id": track_id,
-                    "bbox": bbox,
-                    "timestamp": now,
-                })
+                results.append(
+                    {
+                        "track_id": track_id,
+                        "bbox": bbox,
+                        "timestamp": now,
+                    }
+                )
 
         return results
 

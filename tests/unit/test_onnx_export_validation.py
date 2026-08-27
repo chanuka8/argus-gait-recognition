@@ -5,6 +5,7 @@ Unit tests for ONNX export, structural validation, atomic replacement, and repor
 import hashlib
 import json
 from pathlib import Path
+
 import pytest
 
 from scripts.export_bygait_onnx import export_onnx
@@ -37,7 +38,9 @@ def test_missing_checkpoint_refuses_export(tmp_path: Path):
 def test_onnx_export_atomic_replacement_and_reports(tmp_path: Path):
     ckpt_file = tmp_path / "model.pth"
     import torch
+
     from models.architectures.bygait_light import ByGaitLight
+
     torch.save(ByGaitLight().state_dict(), ckpt_file)
 
     target_onnx = tmp_path / "bygait_light.onnx"
@@ -45,8 +48,8 @@ def test_onnx_export_atomic_replacement_and_reports(tmp_path: Path):
     md_report = tmp_path / "onnx_validation.md"
 
     import importlib.util
-    has_onnx = (importlib.util.find_spec("onnx") is not None) and (importlib.util.find_spec("onnxruntime") is not None)
 
+    has_onnx = (importlib.util.find_spec("onnx") is not None) and (importlib.util.find_spec("onnxruntime") is not None)
 
     success = export_onnx(
         model_path=str(ckpt_file),
@@ -82,7 +85,9 @@ def test_onnx_export_atomic_replacement_and_reports(tmp_path: Path):
 def test_onnx_export_failure_preserves_sha256_bytes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     ckpt_file = tmp_path / "model.pth"
     import torch
+
     from models.architectures.bygait_light import ByGaitLight
+
     torch.save(ByGaitLight().state_dict(), ckpt_file)
 
     target_onnx = tmp_path / "existing.onnx"
@@ -115,4 +120,3 @@ def test_onnx_export_failure_preserves_sha256_bytes(tmp_path: Path, monkeypatch:
 
     tmp_file = target_onnx.with_name(f"{target_onnx.name}.tmp")
     assert not tmp_file.exists()
-

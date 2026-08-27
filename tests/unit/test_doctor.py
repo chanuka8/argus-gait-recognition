@@ -3,7 +3,9 @@ Unit tests for doctor CLI health check script.
 """
 
 from pathlib import Path
+
 import pytest
+
 from scripts.doctor import run_doctor
 
 
@@ -38,6 +40,7 @@ def test_doctor_internal_exception_returns_exit_code_2(tmp_path: Path, monkeypat
         raise RuntimeError("Simulated internal doctor error with rtsp://admin:pass@10.0.0.1/live")
 
     from scripts import doctor
+
     monkeypatch.setattr(doctor, "_execute_doctor_checks", fake_checks)
 
     exit_code, report = run_doctor(
@@ -63,4 +66,3 @@ def test_doctor_non_destructive_guarantee(tmp_path: Path):
 
     mtime_after = {f: f.stat().st_mtime for f in models_dir.rglob("*") if f.is_file()}
     assert mtime_before == mtime_after
-

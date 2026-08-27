@@ -11,8 +11,6 @@ def ensure_directory(path: str) -> None:
 
 
 def save_image(path: str, image) -> bool:
-    ensure_directory(
-        str(Path(path).parent)
-    )
+    ensure_directory(str(Path(path).parent))
 
     return cv2.imwrite(path, image)

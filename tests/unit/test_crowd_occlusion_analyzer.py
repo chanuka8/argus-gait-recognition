@@ -70,8 +70,12 @@ def test_one_bad_frame_does_not_clear_buffer():
 
 def test_state_cleanup_and_camera_isolated_keys():
     analyzer = CrowdOcclusionAnalyzer({"enabled": True})
-    analyzer.analyze_frame([{"track_id": 1, "bbox": [10, 10, 50, 100]}], (1080, 1920), camera_id="cam_A", timestamp=10.0)
-    analyzer.analyze_frame([{"track_id": 1, "bbox": [10, 10, 50, 100]}], (1080, 1920), camera_id="cam_B", timestamp=10.0)
+    analyzer.analyze_frame(
+        [{"track_id": 1, "bbox": [10, 10, 50, 100]}], (1080, 1920), camera_id="cam_A", timestamp=10.0
+    )
+    analyzer.analyze_frame(
+        [{"track_id": 1, "bbox": [10, 10, 50, 100]}], (1080, 1920), camera_id="cam_B", timestamp=10.0
+    )
 
     assert ("cam_A", 1) in analyzer.track_states
     assert ("cam_B", 1) in analyzer.track_states

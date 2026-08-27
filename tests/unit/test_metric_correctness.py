@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+
 import numpy as np
 import pytest
 
@@ -8,17 +9,16 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from evaluation.metrics import (
+    EvaluationMetrics,
+    compute_biometric_rates,
+    compute_cmc_curve,
     compute_cosine_similarity,
     compute_rank_k_accuracies,
-    compute_cmc_curve,
-    compute_biometric_rates,
     compute_roc_auc_eer,
-    EvaluationMetrics,
 )
 
 
 class TestMetricCorrectness:
-
     def test_cosine_similarity_perfect(self):
         v1 = np.array([1.0, 2.0, 3.0])
         v2 = np.array([1.0, 2.0, 3.0])

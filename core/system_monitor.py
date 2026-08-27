@@ -13,7 +13,7 @@ class SystemMonitor:
             "cpu_cores": psutil.cpu_count(logical=True),
             "cpu_percent": psutil.cpu_percent(interval=0.1),
             "memory_total_gb": round(
-                psutil.virtual_memory().total / (1024 ** 3),
+                psutil.virtual_memory().total / (1024**3),
                 2,
             ),
             "memory_percent": psutil.virtual_memory().percent,

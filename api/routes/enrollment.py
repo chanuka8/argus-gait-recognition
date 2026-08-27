@@ -13,8 +13,8 @@ def enroll(request: EnrollRequest):
         result = manager.enroll_person(request.folder_path)
         return result
 
-    except Exception as error:
+    except (ValueError, FileNotFoundError, RuntimeError, OSError) as error:
         raise HTTPException(
             status_code=500,
             detail=str(error),
-        )
+        ) from error

@@ -26,9 +26,7 @@ class ConditionBalancedSampler(Sampler):
             else:
                 self.condition_indices[0].append(idx)
 
-        self.condition_indices = {
-            k: v for k, v in self.condition_indices.items() if len(v) > 0
-        }
+        self.condition_indices = {k: v for k, v in self.condition_indices.items() if len(v) > 0}
 
     def __iter__(self):
         shuffled = {}
@@ -147,5 +145,3 @@ def build_dataloaders(
     )
 
     return train_loader, val_loader, train_dataset
-
-

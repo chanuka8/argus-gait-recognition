@@ -8,12 +8,12 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from evaluation.dataset_split import load_or_create_subject_split
-from evaluation.threshold_calibrator import ThresholdCalibrator
-from evaluation.evaluator import SubjectDisjointEvaluator
 from evaluation.cross_view_evaluator import SubjectDisjointCrossViewEvaluator
-from evaluation.open_set_evaluator import SubjectDisjointOpenSetEvaluator
+from evaluation.dataset_split import load_or_create_subject_split
+from evaluation.evaluator import SubjectDisjointEvaluator
 from evaluation.leakage_validator import assert_no_test_threshold_calibration
+from evaluation.open_set_evaluator import SubjectDisjointOpenSetEvaluator
+from evaluation.threshold_calibrator import ThresholdCalibrator
 
 
 def main() -> None:
@@ -22,7 +22,9 @@ def main() -> None:
     parser.add_argument("--gei-root", type=str, default="data/casia_processed/gei")
     parser.add_argument("--split-config", type=str, default="configs/subject_split.json")
     parser.add_argument("--output-dir", type=str, default="runs/exp_001/evaluation_subject_disjoint")
-    parser.add_argument("--calibration-criterion", type=str, choices=["min_eer", "max_f1", "target_far"], default="min_eer")
+    parser.add_argument(
+        "--calibration-criterion", type=str, choices=["min_eer", "max_f1", "target_far"], default="min_eer"
+    )
 
     args = parser.parse_args()
 
@@ -77,9 +79,9 @@ def main() -> None:
     )
     closed_set_res = evaluator.evaluate()
 
-    print(f"  -> Rank-1 Accuracy:  {closed_set_res['rank1_accuracy']*100:.2f}%")
-    print(f"  -> Rank-5 Accuracy:  {closed_set_res['rank5_accuracy']*100:.2f}%")
-    print(f"  -> Rank-10 Accuracy: {closed_set_res['rank10_accuracy']*100:.2f}%")
+    print(f"  -> Rank-1 Accuracy:  {closed_set_res['rank1_accuracy'] * 100:.2f}%")
+    print(f"  -> Rank-5 Accuracy:  {closed_set_res['rank5_accuracy'] * 100:.2f}%")
+    print(f"  -> Rank-10 Accuracy: {closed_set_res['rank10_accuracy'] * 100:.2f}%")
 
     print("\n[4/6] Running 11 x 11 Cross-View Matrix Evaluation...")
     cv_evaluator = SubjectDisjointCrossViewEvaluator(
@@ -90,9 +92,9 @@ def main() -> None:
         report_dir=str(out_dir),
     )
     cv_res = cv_evaluator.evaluate_cross_view_matrices()
-    print(f"  -> Cross-View Avg (Excl Same View): {cv_res['cross_view_average_rank1']*100:.2f}%")
-    print(f"  -> Same-View Avg:                  {cv_res['same_view_average_rank1']*100:.2f}%")
-    print(f"  -> Overall Matrix Avg:            {cv_res['overall_average_rank1']*100:.2f}%")
+    print(f"  -> Cross-View Avg (Excl Same View): {cv_res['cross_view_average_rank1'] * 100:.2f}%")
+    print(f"  -> Same-View Avg:                  {cv_res['same_view_average_rank1'] * 100:.2f}%")
+    print(f"  -> Overall Matrix Avg:            {cv_res['overall_average_rank1'] * 100:.2f}%")
 
     print("\n[5/6] Running Open-Set Evaluation (Known 075-099 vs Unknown 100-124)...")
     open_set_evaluator = SubjectDisjointOpenSetEvaluator(
@@ -105,12 +107,12 @@ def main() -> None:
     )
     open_set_res = open_set_evaluator.evaluate_open_set_protocol()
     print(f"  -> ROC AUC:        {open_set_res['ROC_AUC']}")
-    print(f"  -> Equal Error Rate (EER): {open_set_res['EER']*100:.2f}%")
-    print(f"  -> FAR at threshold:       {open_set_res['operating_metrics']['FAR']*100:.2f}%")
-    print(f"  -> FRR at threshold:       {open_set_res['operating_metrics']['FRR']*100:.2f}%")
+    print(f"  -> Equal Error Rate (EER): {open_set_res['EER'] * 100:.2f}%")
+    print(f"  -> FAR at threshold:       {open_set_res['operating_metrics']['FAR'] * 100:.2f}%")
+    print(f"  -> FRR at threshold:       {open_set_res['operating_metrics']['FRR'] * 100:.2f}%")
 
     print("\n[6/6] Running Inference Speed Benchmark...")
-    test_sample = list(Path(args.gei_root).glob("*/*.png"))[0]
+    test_sample = next(iter(Path(args.gei_root).glob("*/*.png")))
     latencies = []
     for _ in range(50):
         t0 = time.perf_counter()

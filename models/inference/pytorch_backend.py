@@ -6,7 +6,6 @@ Guarantees L2 normalization semantics and input tensor shape handling.
 """
 
 from pathlib import Path
-from typing import Optional, Union
 
 import numpy as np
 import torch
@@ -20,8 +19,8 @@ class PyTorchBackend(BaseInferenceBackend):
 
     def __init__(
         self,
-        config: Optional[dict] = None,
-        model_path: Optional[str] = None,
+        config: dict | None = None,
+        model_path: str | None = None,
     ) -> None:
         super().__init__(config=config)
         self.backend_name = "pytorch"
@@ -34,6 +33,7 @@ class PyTorchBackend(BaseInferenceBackend):
     def _resolve_device(self, device_str: str) -> torch.device:
         """Resolve target PyTorch execution device via centralized DeviceManager."""
         from automation.device_manager import DeviceManager
+
         resolved = DeviceManager.get_instance().resolve_component_device(device_str)
         return torch.device(resolved)
 
@@ -51,7 +51,7 @@ class PyTorchBackend(BaseInferenceBackend):
                         filtered[key] = value
 
                 model.load_state_dict(filtered, strict=False)
-            except Exception as e:
+            except (RuntimeError, ValueError, OSError, EOFError) as e:
                 self.logger.warning(f"Could not load checkpoint from {self.model_path}: {e}")
 
         model.to(self.device)
@@ -62,7 +62,7 @@ class PyTorchBackend(BaseInferenceBackend):
 
         return model
 
-    def predict(self, x: Union[np.ndarray, torch.Tensor]) -> np.ndarray:
+    def predict(self, x: np.ndarray | torch.Tensor) -> np.ndarray:
         """
         Execute PyTorch forward inference and return L2-normalized numpy embedding array.
 
