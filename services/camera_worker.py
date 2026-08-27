@@ -214,8 +214,8 @@ class CameraWorker:
                         if self._capture is not None:
                             try:
                                 self._capture.release()
-                            except (cv2.error, OSError):
-                                pass
+                            except (RuntimeError, ValueError, TypeError, AttributeError, cv2.error, OSError) as exc:
+                                self._logger.warning(f"Error releasing DirectShow camera capture: {exc}")
                         self._capture = cv2.VideoCapture(dev_idx)
                 else:
                     self._capture = cv2.VideoCapture(dev_idx)
@@ -227,8 +227,8 @@ class CameraWorker:
                 if self._capture is not None:
                     try:
                         self._capture.release()
-                    except (cv2.error, OSError):
-                        pass
+                    except (RuntimeError, ValueError, TypeError, AttributeError, cv2.error, OSError) as exc:
+                        self._logger.warning(f"Error releasing unopened camera capture: {exc}")
                 self._capture = None
                 return False
 
@@ -242,8 +242,8 @@ class CameraWorker:
                 if self._capture is not None:
                     try:
                         self._capture.release()
-                    except (cv2.error, OSError):
-                        pass
+                    except (RuntimeError, ValueError, TypeError, AttributeError, cv2.error, OSError) as exc:
+                        self._logger.warning(f"Error releasing unstarted camera capture: {exc}")
                 self._capture = None
                 return False
 
@@ -255,21 +255,21 @@ class CameraWorker:
             if self._capture is not None:
                 try:
                     self._capture.release()
-                except (cv2.error, OSError):
-                    pass
+                except (RuntimeError, ValueError, TypeError, AttributeError, cv2.error, OSError) as exc:
+                    self._logger.warning(f"Error releasing camera capture on open failure: {exc}")
             self._capture = None
             return False
 
     def _close_capture(self) -> None:
         with self._lock:
-            if self._capture is not None:
-                try:
-                    self._capture.release()
-                except (cv2.error, OSError):
-                    pass
-                self._capture = None
-
+            cap = self._capture
+            self._capture = None
             self.stats["connected"] = False
+            if cap is not None:
+                try:
+                    cap.release()
+                except (RuntimeError, ValueError, TypeError, AttributeError, cv2.error, OSError) as exc:
+                    self._logger.warning(f"Error releasing camera capture: {exc}")
 
     def _render_status_frame(self, message: str = "OFFLINE") -> bytes:
         """Render a clean status placeholder frame when camera is disconnected or reconnecting."""

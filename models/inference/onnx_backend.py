@@ -30,6 +30,7 @@ class ONNXBackend(BaseInferenceBackend):
         self._initialized = False
         self._init_session(model_path=model_path)
 
+    def _init_session(self, model_path: str | None = None) -> None:
         """Initialize ONNX Runtime inference session lazily."""
         try:
             from automation.device_manager import DeviceManager
@@ -51,7 +52,33 @@ class ONNXBackend(BaseInferenceBackend):
                 providers.append("CUDAExecutionProvider")
             providers.append("CPUExecutionProvider")
 
-            self.session = ort.InferenceSession(str(self.onnx_path), providers=providers)
+            ort_state = getattr(ort.capi, "onnxruntime_pybind11_state", None)
+            ort_exceptions = (
+                (
+                    RuntimeError,
+                    OSError,
+                    ValueError,
+                    TypeError,
+                    KeyError,
+                    AttributeError,
+                    ort_state.Fail,
+                    ort_state.InvalidProtobuf,
+                    ort_state.InvalidGraph,
+                    ort_state.EPFail,
+                    ort_state.EngineError,
+                    ort_state.InvalidArgument,
+                    ort_state.NoSuchFile,
+                    ort_state.NoModel,
+                    ort_state.RuntimeException,
+                )
+                if ort_state is not None
+                else (RuntimeError, OSError, ValueError, TypeError, KeyError, AttributeError)
+            )
+
+            try:
+                self.session = ort.InferenceSession(str(self.onnx_path), providers=providers)
+            except ort_exceptions as sess_err:
+                raise RuntimeError(f"Failed to initialize ONNX session: {sess_err}") from sess_err
             self.input_name = self.session.get_inputs()[0].name
             active_providers = self.session.get_providers() if hasattr(self.session, "get_providers") else providers
             self.execution_provider = active_providers[0] if active_providers else "CPUExecutionProvider"

@@ -107,18 +107,30 @@ def export_onnx(
 
     print(f"[INFO] Exporting model atomically to ONNX: {output_file}")
     try:
-        import warnings
-
-        batch_dim = torch.export.Dim("batch_size", min=1)
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=FutureWarning)
+        try:
             torch.onnx.export(
                 model,
-                (dummy_input,),
+                dummy_input,
                 str(temp_output_file),
                 export_params=True,
-                dynamic_shapes=({0: batch_dim},),
-                dynamo=True,
+                opset_version=14,
+                do_constant_folding=True,
+                input_names=["input"],
+                output_names=["output"],
+                dynamic_axes={"input": {0: "batch_size"}, "output": {0: "batch_size"}},
+                dynamo=False,
+            )
+        except TypeError:
+            torch.onnx.export(
+                model,
+                dummy_input,
+                str(temp_output_file),
+                export_params=True,
+                opset_version=14,
+                do_constant_folding=True,
+                input_names=["input"],
+                output_names=["output"],
+                dynamic_axes={"input": {0: "batch_size"}, "output": {0: "batch_size"}},
             )
         report_status["export_succeeded"] = True
         print("[INFO] ONNX export completed successfully.")

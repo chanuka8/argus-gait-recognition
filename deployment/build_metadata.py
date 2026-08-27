@@ -135,13 +135,19 @@ def extract_build_metadata(
     m_ref = model_reference or "runs/exp_001/best_model.pth"
 
     if backend is not None:
-        req_be = getattr(backend, "requested_backend", "pytorch")
-        act_be = getattr(backend, "active_backend", "pytorch")
+        req_val = getattr(backend, "requested_backend", "pytorch")
+        req_be = str(req_val) if isinstance(req_val, str) else "pytorch"
+        act_val = getattr(backend, "active_backend", "pytorch")
+        act_be = str(act_val) if isinstance(act_val, str) else "pytorch"
         if not model_reference:
-            if act_be == "onnxruntime":
-                m_ref = str(getattr(backend, "config", {}).get("onnx_path", "models/engines/bygait_light.onnx"))
+            be_cfg = getattr(backend, "config", {})
+            if isinstance(be_cfg, dict):
+                if act_be == "onnxruntime":
+                    m_ref = str(be_cfg.get("onnx_path", "models/engines/bygait_light.onnx"))
+                else:
+                    m_ref = str(be_cfg.get("model_path", "runs/exp_001/best_model.pth"))
             else:
-                m_ref = str(getattr(backend, "config", {}).get("model_path", "runs/exp_001/best_model.pth"))
+                m_ref = "runs/exp_001/best_model.pth"
 
     m_ref_posix = Path(m_ref).as_posix()
     cfg_fp = compute_configuration_fingerprint(configs_dir=configs_dir)

@@ -124,7 +124,7 @@ class AppearanceEmbeddingExtractor:
                 return None
 
             return vec.astype(np.float32)
-        except (RuntimeError, ValueError, TypeError, AttributeError) as exc:
+        except (RuntimeError, ValueError, TypeError, AttributeError, OSError) as exc:
             self._logger.debug(f"[APPEARANCE] Feature extraction error: {exc}")
             return None
 

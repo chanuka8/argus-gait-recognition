@@ -50,7 +50,7 @@ class TestPersonDetector(unittest.TestCase):
         self.assertEqual(kwargs.get("conf"), 0.4)
         self.assertEqual(kwargs.get("iou"), 0.45)
         self.assertEqual(kwargs.get("classes"), [0])
-        self.assertEqual(kwargs.get("device"), "cpu")
+        self.assertEqual(kwargs.get("device"), detector.runtime_device)
         self.assertEqual(kwargs.get("imgsz"), 640)
 
     def test_tracking_step_config_passthrough(self) -> None:
@@ -75,7 +75,7 @@ class TestPersonDetector(unittest.TestCase):
         self.assertEqual(kwargs.get("conf"), 0.4)
         self.assertEqual(kwargs.get("iou"), 0.45)
         self.assertEqual(kwargs.get("classes"), [0])
-        self.assertEqual(kwargs.get("device"), "cpu")
+        self.assertEqual(kwargs.get("device"), step.runtime_device)
         self.assertEqual(kwargs.get("imgsz"), 640)
 
     def test_tracking_step_empty_frame_safety(self) -> None:

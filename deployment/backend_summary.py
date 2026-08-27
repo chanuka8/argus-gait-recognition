@@ -27,9 +27,19 @@ class BackendStartupSummary:
         if model_path:
             m_path = model_path
         elif getattr(backend, "active_backend", None) == "onnxruntime":
-            m_path = str(backend.config.get("onnx_path", "models/engines/bygait_light.onnx"))
+            cfg = getattr(backend, "config", {})
+            m_path = (
+                str(cfg.get("onnx_path", "models/engines/bygait_light.onnx"))
+                if isinstance(cfg, dict)
+                else "models/engines/bygait_light.onnx"
+            )
         else:
-            m_path = str(backend.config.get("model_path", "runs/exp_001/best_model.pth"))
+            cfg = getattr(backend, "config", {})
+            m_path = (
+                str(cfg.get("model_path", "runs/exp_001/best_model.pth"))
+                if isinstance(cfg, dict)
+                else "runs/exp_001/best_model.pth"
+            )
 
         self.model_path = Path(m_path).as_posix()
         self.logger = get_logger("system")

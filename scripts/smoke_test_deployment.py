@@ -73,7 +73,7 @@ def run_deployment_smoke_test(
         else:
             report["checks"]["backend_initialization"] = "PASSED"
             b_meta = getattr(backend, "metadata", {})
-            report["checks"]["backend_metadata"] = "PASSED" if b_meta else "WARNING"
+            report["checks"]["backend_metadata"] = "PASSED" if (isinstance(b_meta, dict) and b_meta) else "WARNING"
 
             summary_obj = BackendStartupSummary(
                 backend=backend,
