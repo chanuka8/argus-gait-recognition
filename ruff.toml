@@ -3,6 +3,7 @@
 # Exclude common directories
 exclude = [
     ".git",
+    ".venv",
     "venv",
     ".pytest_cache",
     ".qodo"

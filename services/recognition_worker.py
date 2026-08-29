@@ -1,11 +1,3 @@
-"""
-Real-Time Decoupled Recognition Worker and Cache for ARGUS AI.
-
-Orchestrates person detection, tracking, silhouette extraction, GEI generation,
-ByGaitLight CNN feature extraction, and VectorStore gallery matching on an
-asynchronous thread decoupled from camera capture.
-"""
-
 import threading
 import time
 from collections.abc import Callable
@@ -43,6 +35,9 @@ class RecognitionResult:
     timestamp: float
     iso_timestamp: str
     gei_frames: int = 0
+    appearance_identity: str = "UNKNOWN_PERSON"
+    appearance_score: float = 0.0
+    appearance_status: str = "UNKNOWN"
     details: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -105,7 +100,7 @@ class RecognitionWorker:
     """
     Decoupled Asynchronous Recognition Worker.
     Pulls latest frames from bounded queue, executes detection, tracking, GEI accumulation,
-    and ByGaitLight matching, and updates the shared recognition cache.
+    ByGaitLight matching, and parallel Appearance embedding matching, and updates the shared recognition cache.
     """
 
     def __init__(
@@ -122,7 +117,14 @@ class RecognitionWorker:
         open_set_recognizer: OpenSetRecognizer | None = None,
         gallery_features: np.ndarray | None = None,
         gallery_labels: list | None = None,
-        metadata: list | None = None,
+        metadata: list | dict | None = None,
+        appearance_extractor: Any | None = None,
+        appearance_matcher: Any | None = None,
+        appearance_gallery_features: np.ndarray | None = None,
+        appearance_gallery_labels: list | None = None,
+        appearance_metadata: Any | None = None,
+        fusion_engine: Any | None = None,
+        track_aggregator: Any | None = None,
         event_callback: Callable[[dict], None] | None = None,
     ) -> None:
         self.camera_id = camera_id
@@ -144,10 +146,72 @@ class RecognitionWorker:
         self.matcher = matcher or MatchingStep(threshold=self.threshold)
         self.open_set_recognizer = open_set_recognizer or OpenSetRecognizer(known_threshold=self.threshold)
 
-        self.gallery_features = gallery_features
-        self.gallery_labels = gallery_labels or []
-        self.metadata = metadata or []
-        self.event_callback = event_callback
+        # Appearance Branch Components
+        self.appearance_extractor = appearance_extractor
+        if self.appearance_extractor is None:
+            try:
+                from intelligence.appearance_embedding import AppearanceEmbeddingExtractor
+
+                self.appearance_extractor = AppearanceEmbeddingExtractor(
+                    update_interval=int(self.config.get("appearance_update_interval", 8)),
+                )
+            except (ImportError, RuntimeError, ValueError, TypeError, OSError) as exc:
+                self._logger.debug(f"Appearance extractor init skipped: {exc}")
+                self.appearance_extractor = None
+
+        self.appearance_matcher = appearance_matcher
+        if self.appearance_matcher is None:
+            try:
+                from pipeline.steps.appearance_matching_step import AppearanceMatchingStep
+
+                self.appearance_matcher = AppearanceMatchingStep(
+                    threshold=float(self.config.get("appearance_threshold", 0.60)),
+                )
+            except (ImportError, RuntimeError, ValueError, TypeError, OSError) as exc:
+                self._logger.debug(f"Appearance matcher init skipped: {exc}")
+                self.appearance_matcher = None
+
+        self.appearance_gallery_features = appearance_gallery_features
+        self.appearance_gallery_labels = list(appearance_gallery_labels) if appearance_gallery_labels is not None else []
+        if isinstance(appearance_metadata, dict):
+            self.appearance_metadata = appearance_metadata
+        elif isinstance(appearance_metadata, list) and len(appearance_metadata) > 0 and isinstance(appearance_metadata[0], dict):
+            self.appearance_metadata = {str(m.get("person_id", m.get("label", i))): m for i, m in enumerate(appearance_metadata)}
+        else:
+            self.appearance_metadata = {str(lbl): {"status": "ACTIVE", "enabled": True} for lbl in self.appearance_gallery_labels}
+
+        self.fusion_engine = fusion_engine
+        if self.fusion_engine is None:
+            try:
+                from intelligence.dual_modal_fusion import DualModalFusion
+
+                fusion_cfg = self.config.get("dual_modal_fusion", self.config.get("fusion", {}))
+                self.fusion_engine = DualModalFusion.from_config(fusion_cfg)
+            except (ImportError, RuntimeError, ValueError, TypeError, OSError) as exc:
+                self._logger.debug(f"Dual-Modal Fusion init skipped: {exc}")
+                self.fusion_engine = None
+
+        # Temporal Track Aggregation Component
+        self.track_aggregator = track_aggregator
+        if self.track_aggregator is None:
+            try:
+                from intelligence.track_identity_aggregator import TrackIdentityAggregator
+
+                temp_cfg = self.config.get("temporal_aggregation", self.config.get("temporal_verification", {}))
+                if temp_cfg.get("enabled", True):
+                    self.track_aggregator = TrackIdentityAggregator.from_config(self.config)
+            except (ImportError, RuntimeError, ValueError, TypeError, OSError) as exc:
+                self._logger.debug(f"TrackIdentityAggregator init skipped: {exc}")
+                self.track_aggregator = None
+
+        # Operational Observation Collector Component
+        try:
+            from intelligence.operational_embedding_collector import OperationalEmbeddingCollector
+
+            self.operational_collector = OperationalEmbeddingCollector()
+        except (ImportError, RuntimeError, ValueError, TypeError, OSError) as exc:
+            self._logger.debug(f"OperationalEmbeddingCollector init skipped: {exc}")
+            self.operational_collector = None
 
         self._input_queue: Queue[np.ndarray] = Queue(maxsize=2)
         self._stop_event = threading.Event()
@@ -170,6 +234,26 @@ class RecognitionWorker:
         self._frame_count = 0
         self._recognition_count = 0
         self._active_track_count = 0
+
+    def update_appearance_gallery(
+        self,
+        gallery_features: np.ndarray | None,
+        gallery_labels: list[str] | None,
+        metadata: Any | None = None,
+    ) -> None:
+        """Update reference appearance gallery features, labels, and metadata at runtime."""
+        with self._lock:
+            self.appearance_gallery_features = gallery_features
+            self.appearance_gallery_labels = list(gallery_labels) if gallery_labels is not None else []
+            if isinstance(metadata, dict):
+                self.appearance_metadata = metadata
+            elif isinstance(metadata, list) and len(metadata) > 0 and isinstance(metadata[0], dict):
+                self.appearance_metadata = {str(m.get("person_id", m.get("label", i))): m for i, m in enumerate(metadata)}
+            else:
+                self.appearance_metadata = {str(lbl): {"status": "ACTIVE", "enabled": True} for lbl in self.appearance_gallery_labels}
+            self._logger.info(
+                f"Updated live appearance gallery for camera {self.camera_id}: {len(self.appearance_gallery_labels)} identities"
+            )
 
     def update_gallery(
         self,
@@ -286,9 +370,54 @@ class RecognitionWorker:
                     track_id = int(obj["track_id"])
                     bbox = [int(b) for b in obj["bbox"]]
 
+                    # Safely crop person for Branch A (Appearance) and silhouette
+                    h, w = frame.shape[:2]
+                    x1 = max(0, min(w - 1, bbox[0]))
+                    y1 = max(0, min(h - 1, bbox[1]))
+                    x2 = max(0, min(w, bbox[2]))
+                    y2 = max(0, min(h, bbox[3]))
+                    crop = frame[y1:y2, x1:x2] if (x2 > x1 and y2 > y1) else None
+
+                    # Branch B (Gait): Silhouette & GEI accumulation
                     silhouette = self.silhouette_extractor.extract_from_frame(frame, bbox)
                     if silhouette is not None:
                         self.gei_builder.add_silhouette(track_id, silhouette)
+
+                    # Branch A (Appearance): Gated 512D appearance embedding extraction & matching
+                    app_identity = "UNKNOWN_PERSON"
+                    app_score = 0.0
+                    app_status = "UNKNOWN"
+
+                    if self.appearance_extractor is not None and crop is not None and getattr(crop, "size", 0) > 0:
+                        try:
+                            app_emb = self.appearance_extractor.extract(
+                                crop=crop,
+                                track_id=track_id,
+                                frame_index=self._frame_count,
+                                track_reliable=True,
+                                recognition_deferred=False,
+                            )
+                            if (
+                                app_emb is not None
+                                and self.appearance_matcher is not None
+                                and self.appearance_gallery_features is not None
+                                and len(self.appearance_gallery_features) > 0
+                            ):
+                                matched_app_id, matched_app_score = self.appearance_matcher.match(
+                                    query_feature=app_emb,
+                                    gallery_features=self.appearance_gallery_features,
+                                    gallery_labels=self.appearance_gallery_labels,
+                                    metadata=self.appearance_metadata,
+                                    unknown_label="UNKNOWN_PERSON",
+                                )
+                                app_identity = str(matched_app_id)
+                                app_score = float(matched_app_score)
+                                if app_identity != "UNKNOWN_PERSON" and app_score >= self.appearance_matcher.threshold:
+                                    app_status = "MATCH"
+                                else:
+                                    app_status = "UNKNOWN"
+                        except (RuntimeError, ValueError, TypeError, OSError) as app_err:
+                            self._logger.debug(f"Appearance matching error for track {track_id}: {app_err}")
 
                     cached = self.cache.get(self.camera_id, track_id)
                     last_rec_time = self._last_recognition_times.get(track_id, 0.0)
@@ -302,43 +431,126 @@ class RecognitionWorker:
                         cached.timestamp = now
                         cached.iso_timestamp = iso_now
                         cached.gei_frames = gei_count
+                        cached.appearance_identity = app_identity
+                        cached.appearance_score = round(app_score, 4)
+                        cached.appearance_status = app_status
+                        cached.details["appearance"] = {
+                            "identity": app_identity,
+                            "score": round(app_score, 4),
+                            "status": app_status,
+                        }
+                        cached.details["gait"] = {
+                            "identity": cached.identity,
+                            "score": round(cached.similarity, 4),
+                            "status": cached.status,
+                        }
                         self.cache.put(cached)
                         continue
 
                     if gei_ready and time_since_rec >= self.cooldown_seconds:
                         gei = self.gei_builder.build_gei(track_id)
                         if gei is not None:
-                            identity, similarity, decision, status = self._recognize_gei(gei)
+                            gait_identity, gait_similarity, gait_decision, gait_status = self._recognize_gei(gei)
+
+                            final_identity = gait_identity
+                            final_similarity = gait_similarity
+                            final_decision = gait_decision
+                            final_status = gait_status
+                            fusion_details = None
+
+                            if self.fusion_engine is not None and self.fusion_engine.is_enabled():
+                                decision_res = self.fusion_engine.decide_identity(
+                                    gait_identity=gait_identity,
+                                    gait_score=gait_similarity,
+                                    appearance_identity=app_identity,
+                                    appearance_score=app_score,
+                                    gait_threshold=self.threshold,
+                                    appearance_threshold=self.appearance_matcher.threshold if self.appearance_matcher else 0.60,
+                                    crop=crop,
+                                    gei_frame_count=gei_count,
+                                    gei=gei,
+                                    track_reliability=1.0,
+                                )
+                                final_identity = decision_res["final_identity"]
+                                final_similarity = decision_res["final_score"]
+                                final_decision = decision_res["decision"]
+                                final_status = decision_res["status"]
+                                fusion_details = decision_res
+
+                            temporal_details = None
+                            if self.track_aggregator is not None:
+                                agg_res = self.track_aggregator.update(
+                                    track_id=track_id,
+                                    identity=final_identity,
+                                    score=final_similarity,
+                                    modality_state=fusion_details.get("modality_state", final_status) if fusion_details else final_status,
+                                    details=fusion_details,
+                                )
+                                if agg_res.get("is_aggregated", False):
+                                    final_identity = agg_res["identity"]
+                                    final_similarity = agg_res["confidence"]
+                                    final_decision = agg_res["decision"]
+                                    final_status = agg_res["status"]
+                                    temporal_details = agg_res
 
                             res = RecognitionResult(
                                 camera_id=self.camera_id,
                                 track_id=track_id,
-                                identity=identity,
-                                similarity=similarity,
-                                confidence=similarity,
-                                decision=decision,
-                                status=status,
+                                identity=final_identity,
+                                similarity=final_similarity,
+                                confidence=final_similarity,
+                                decision=final_decision,
+                                status=final_status,
                                 bbox=bbox,
                                 timestamp=now,
                                 iso_timestamp=iso_now,
                                 gei_frames=gei_count,
+                                appearance_identity=app_identity,
+                                appearance_score=round(app_score, 4),
+                                appearance_status=app_status,
+                                details={
+                                    "appearance": {
+                                        "identity": app_identity,
+                                        "score": round(app_score, 4),
+                                        "status": app_status,
+                                    },
+                                    "gait": {
+                                        "identity": gait_identity,
+                                        "score": round(gait_similarity, 4),
+                                        "status": gait_status,
+                                    },
+                                    **({"dual_modal": fusion_details} if fusion_details is not None else {}),
+                                    **({"temporal_aggregation": temporal_details} if temporal_details is not None else {}),
+                                },
                             )
                             self.cache.put(res)
                             self._last_recognition_times[track_id] = now
                             self._last_recognition_at = iso_now
                             self._recognition_count += 1
 
-                            if status == "CONFIRMED" and self.event_callback is not None:
+                            if final_status == "CONFIRMED" and self.event_callback is not None:
                                 try:
                                     self.event_callback(
                                         {
                                             "event_id": f"evt_{self.camera_id}_{track_id}_{int(now)}",
                                             "camera_id": self.camera_id,
                                             "track_id": track_id,
-                                            "person_id": identity,
-                                            "similarity": similarity,
+                                            "person_id": final_identity,
+                                            "similarity": final_similarity,
                                             "timestamp": iso_now,
                                             "bbox": bbox,
+                                            "appearance": {
+                                                "identity": app_identity,
+                                                "score": round(app_score, 4),
+                                                "status": app_status,
+                                            },
+                                            "gait": {
+                                                "identity": gait_identity,
+                                                "score": round(gait_similarity, 4),
+                                                "status": gait_status,
+                                            },
+                                            **({"dual_modal": fusion_details} if fusion_details is not None else {}),
+                                            **({"temporal_aggregation": temporal_details} if temporal_details is not None else {}),
                                         }
                                     )
                                 except (RuntimeError, ValueError, TypeError, OSError) as cb_err:
@@ -350,23 +562,98 @@ class RecognitionWorker:
                     provisional_identity = "UNKNOWN" if cached is None else cached.identity
                     provisional_similarity = 0.0 if cached is None else cached.similarity
 
+                    final_prov_identity = provisional_identity
+                    final_prov_similarity = provisional_similarity
+                    final_prov_status = provisional_status
+                    final_prov_decision = provisional_status
+                    fusion_prov_details = None
+
+                    if (
+                        self.fusion_engine is not None
+                        and self.fusion_engine.is_enabled()
+                        and app_status == "MATCH"
+                    ):
+                        decision_res = self.fusion_engine.decide_identity(
+                            gait_identity=provisional_identity,
+                            gait_score=provisional_similarity,
+                            appearance_identity=app_identity,
+                            appearance_score=app_score,
+                            gait_threshold=self.threshold,
+                            appearance_threshold=self.appearance_matcher.threshold if self.appearance_matcher else 0.60,
+                            crop=crop,
+                            gei_frame_count=gei_count,
+                            track_reliability=1.0,
+                        )
+                        if decision_res["modality_state"] == "APPEARANCE_ONLY":
+                            final_prov_identity = decision_res["final_identity"]
+                            final_prov_similarity = decision_res["final_score"]
+                            final_prov_status = decision_res["status"]
+                            final_prov_decision = decision_res["decision"]
+                            fusion_prov_details = decision_res
+
+                    temporal_prov_details = None
+                    if self.track_aggregator is not None and app_status == "MATCH":
+                        agg_res = self.track_aggregator.update(
+                            track_id=track_id,
+                            identity=final_prov_identity,
+                            score=final_prov_similarity,
+                            modality_state=fusion_prov_details.get("modality_state", final_prov_status) if fusion_prov_details else final_prov_status,
+                            details=fusion_prov_details,
+                        )
+                        if agg_res.get("is_aggregated", False) and agg_res["status"] in ("CONFIRMED", "REVIEW_REQUIRED"):
+                            final_prov_identity = agg_res["identity"]
+                            final_prov_similarity = agg_res["confidence"]
+                            final_prov_decision = agg_res["decision"]
+                            final_prov_status = agg_res["status"]
+                            temporal_prov_details = agg_res
+
                     res = RecognitionResult(
                         camera_id=self.camera_id,
                         track_id=track_id,
-                        identity=provisional_identity,
-                        similarity=provisional_similarity,
-                        confidence=provisional_similarity,
-                        decision=provisional_status,
-                        status=provisional_status,
+                        identity=final_prov_identity,
+                        similarity=final_prov_similarity,
+                        confidence=final_prov_similarity,
+                        decision=final_prov_decision,
+                        status=final_prov_status,
                         bbox=bbox,
                         timestamp=now,
                         iso_timestamp=iso_now,
                         gei_frames=gei_count,
+                        appearance_identity=app_identity,
+                        appearance_score=round(app_score, 4),
+                        appearance_status=app_status,
+                        details={
+                            "appearance": {
+                                "identity": app_identity,
+                                "score": round(app_score, 4),
+                                "status": app_status,
+                            },
+                            "gait": {
+                                "identity": provisional_identity,
+                                "score": round(provisional_similarity, 4),
+                                "status": provisional_status,
+                            },
+                            **({"dual_modal": fusion_prov_details} if fusion_prov_details is not None else {}),
+                            **({"temporal_aggregation": temporal_prov_details} if temporal_prov_details is not None else {}),
+                        },
                     )
                     self.cache.put(res)
 
                 if self._frame_count % 150 == 0:
-                    self.tracker.cleanup_inactive(max_idle_seconds=5.0)
+                    evicted = self.tracker.cleanup_inactive(max_idle_seconds=5.0)
+                    if evicted:
+                        if self.appearance_extractor is not None:
+                            for tid in evicted:
+                                try:
+                                    self.appearance_extractor.clear_track(tid)
+                                except (KeyError, ValueError, RuntimeError, TypeError, OSError) as exc:
+                                    self._logger.debug(f"Error clearing appearance track {tid}: {exc}")
+                        if self.track_aggregator is not None:
+                            for tid in evicted:
+                                try:
+                                    self.track_aggregator.on_track_lost(tid)
+                                except (KeyError, ValueError, RuntimeError, TypeError, OSError) as exc:
+                                    self._logger.debug(f"Error notifying track aggregator on lost track {tid}: {exc}")
                     self.gei_builder.cleanup_inactive(max_idle_seconds=6.0)
                     self.cache.cleanup_inactive(self.camera_id, max_idle_seconds=5.0)
 

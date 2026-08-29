@@ -20,5 +20,5 @@ tqdm>=4.65.0
 trackers>=2.6.0
 ultralytics>=8.0.0
 uvicorn>=0.22.0
-httpx2
+httpx>=0.24.0
 python-multipart

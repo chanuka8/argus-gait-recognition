@@ -35,12 +35,6 @@ $RepoRoot = [System.IO.Path]::GetFullPath($RepoRoot)
 Set-Location -LiteralPath $RepoRoot
 
 $VenvDir = Join-Path $RepoRoot '.venv'
-if (-not (Test-Path -LiteralPath $VenvDir -PathType Container)) {
-    $LegacyVenv = Join-Path $RepoRoot 'venv'
-    if (Test-Path -LiteralPath $LegacyVenv -PathType Container) {
-        $VenvDir = $LegacyVenv
-    }
-}
 $ActivateScript = Join-Path $VenvDir 'Scripts\Activate.ps1'
 $PythonExe = Join-Path $VenvDir 'Scripts\python.exe'
 

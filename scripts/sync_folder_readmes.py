@@ -14,6 +14,7 @@ import os
 import re
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 TARGET_FOLDERS = [
@@ -325,8 +326,6 @@ def _get_script_category(name: str) -> str:
         "process_runner.py",
     ):
         return "Environment"
-    if name.startswith("test_") or name in ("system_check.py", "detect_environment.py", "verify_environment.py"):
-        return "Validation"
     if name in ("start_system.bat", "start_system.sh"):
         return "Deployment"
     if name in (
@@ -337,14 +336,41 @@ def _get_script_category(name: str) -> str:
         "remove_numeric_gallery_identities.py",
         "set_gallery_identity_status.py",
         "run_auto_enrollment.py",
+        "extract_casia_skeletons.py",
     ):
         return "Dataset"
     if name in (
         "export_bygait_onnx.py",
+        "export_silhouette_unet_onnx.py",
         "build_tensorrt_engine.py",
         "migrate_output_layout.py",
     ):
         return "Conversion"
+    if (
+        name.startswith(
+            (
+                "test_",
+                "demo_",
+                "run_",
+                "generate_",
+                "validate_",
+                "evaluate_",
+                "verify_",
+                "simulate_",
+                "audit_",
+                "benchmark",
+            )
+        )
+        or name
+        in (
+            "system_check.py",
+            "detect_environment.py",
+            "verify_environment.py",
+            "doctor.py",
+            "smoke_test_deployment.py",
+        )
+    ):
+        return "Validation"
     return "Development"
 
 
@@ -809,51 +835,10 @@ def _sync_script_categories(folder_path: Path, content: str) -> str:
     active_files = get_active_files_for_folder(folder_path)
 
     categories = {
-        "VALIDATION_SCRIPTS": [f for f in active_files if f.startswith("test_") or f == "system_check.py"],
-        "DATASET_SCRIPTS": [
-            f
-            for f in active_files
-            if f
-            in (
-                "preprocess_casia.py",
-                "build_gallery.py",
-                "clean_live_gallery.py",
-                "remove_gallery_identity.py",
-                "remove_numeric_gallery_identities.py",
-                "set_gallery_identity_status.py",
-                "run_auto_enrollment.py",
-            )
-        ],
-        "CONVERSION_SCRIPTS": [
-            f
-            for f in active_files
-            if f
-            in (
-                "export_bygait_onnx.py",
-                "build_tensorrt_engine.py",
-                "migrate_output_layout.py",
-            )
-        ],
-        "DEVELOPMENT_SCRIPTS": [
-            f
-            for f in active_files
-            if f not in ("sync_folder_readmes.py", "install_git_hooks.py", "activate_venv.ps1")
-            and not f.startswith("test_")
-            and f != "system_check.py"
-            and f
-            not in (
-                "preprocess_casia.py",
-                "build_gallery.py",
-                "clean_live_gallery.py",
-                "remove_gallery_identity.py",
-                "remove_numeric_gallery_identities.py",
-                "set_gallery_identity_status.py",
-                "run_auto_enrollment.py",
-                "export_bygait_onnx.py",
-                "build_tensorrt_engine.py",
-                "migrate_output_layout.py",
-            )
-        ],
+        "VALIDATION_SCRIPTS": [f for f in active_files if _get_script_category(f) == "Validation"],
+        "DATASET_SCRIPTS": [f for f in active_files if _get_script_category(f) == "Dataset"],
+        "CONVERSION_SCRIPTS": [f for f in active_files if _get_script_category(f) == "Conversion"],
+        "DEVELOPMENT_SCRIPTS": [f for f in active_files if _get_script_category(f) == "Development"],
     }
 
     for cat_name, cat_files in categories.items():
@@ -947,6 +932,57 @@ def check_readme_index(root_dir: Path) -> tuple[bool, list[str]]:
     return len(issues) == 0, issues
 
 
+
+def _atomic_write_file(target_path: Path, new_content: str, max_retries: int = 5) -> None:
+    """Atomically write new content to target_path with Windows retry and line-ending preservation."""
+    target_path = Path(target_path).resolve()
+
+    # Detect original line ending convention if target file exists
+    newline = "\n"
+    if target_path.exists():
+        try:
+            raw_bytes = target_path.read_bytes()
+            if b"\r\n" in raw_bytes:
+                newline = "\r\n"
+        except OSError:
+            pass
+
+    fd, tmp_path_str = tempfile.mkstemp(
+        dir=str(target_path.parent),
+        prefix=".readme_sync_",
+        suffix=".tmp",
+    )
+    tmp_path = Path(tmp_path_str)
+
+    try:
+        with open(fd, "w", encoding="utf-8", newline=newline) as tmp_f:
+            tmp_f.write(new_content)
+            tmp_f.flush()
+            try:
+                os.fsync(tmp_f.fileno())
+            except OSError:
+                pass
+
+        # Windows-safe atomic replacement with bounded exponential backoff
+        for attempt in range(max_retries):
+            try:
+                os.replace(str(tmp_path), str(target_path))
+                return
+            except (PermissionError, OSError) as exc:
+                if attempt < max_retries - 1:
+                    time.sleep(0.05 * (2**attempt))
+                else:
+                    raise OSError(
+                        f"Failed to atomically update {target_path} after {max_retries} attempts: {exc}"
+                    ) from exc
+    finally:
+        if tmp_path.exists():
+            try:
+                tmp_path.unlink(missing_ok=True)
+            except OSError:
+                pass
+
+
 def update_folder_readme(folder_path: Path, root_dir: Path | None = None) -> bool:
     """Synchronize Key Modules section in folder README if comment markers are present."""
     readme_path = folder_path / "README.md"
@@ -1013,19 +1049,11 @@ def update_folder_readme(folder_path: Path, root_dir: Path | None = None) -> boo
         effective_root = root_dir or folder_path.parent
         new_content = _sync_scripts_extended_sections(folder_path, new_content, effective_root)
 
-    if new_content != content:
-        fd, tmp_path = tempfile.mkstemp(dir=str(readme_path.parent), suffix=".tmp", prefix=".readme_sync_")
-        try:
-            with os.fdopen(fd, "w", encoding="utf-8") as tmp_f:
-                tmp_f.write(new_content)
-                tmp_f.flush()
-            os.replace(tmp_path, str(readme_path))
-        except BaseException:
-            try:
-                os.unlink(tmp_path)
-            except OSError:
-                pass
-            raise
+    norm_content = content.replace("\r\n", "\n")
+    norm_new_content = new_content.replace("\r\n", "\n")
+
+    if norm_new_content != norm_content:
+        _atomic_write_file(readme_path, norm_new_content)
         return True
 
     return False

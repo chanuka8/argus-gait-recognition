@@ -17,16 +17,20 @@ Covers:
  14. Corrupted file safety
 """
 
+import os
 import subprocess
 import sys
 import tempfile
 import textwrap
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from scripts.install_git_hooks import HOOK_CONTENT, install_pre_commit_hook
 from scripts.sync_folder_readmes import (
     TARGET_FOLDERS,
+    _atomic_write_file,
+    _get_script_category,
     check_folder_readme,
     check_readme_index,
     get_active_files_for_folder,
@@ -433,5 +437,234 @@ class TestNoRuntimeSideEffects(unittest.TestCase):
         self.assertEqual(result.returncode, 0, f"Compile failed: {result.stderr}")
 
 
+class TestLineEndingPreservation(unittest.TestCase):
+    """Verify update_folder_readme preserves original line endings (CRLF vs LF)."""
+
+    def _make_readme(self, folder: Path, newline: str) -> None:
+        lines = [
+            "# Test Package",
+            "## Key Modules",
+            "<!-- BEGIN SYNC: KEY_MODULES -->",
+            "| old | old |",
+            "<!-- END SYNC: KEY_MODULES -->",
+            "## Responsibilities",
+            "## Data Flow",
+            "## Configuration",
+            "## Public Interfaces",
+            "## Tests",
+            "## Related Documentation",
+        ]
+        text = newline.join(lines) + newline
+        (folder / "README.md").write_bytes(text.encode("utf-8"))
+
+    def test_preserves_crlf_line_endings(self):
+        with tempfile.TemporaryDirectory() as td:
+            folder = Path(td)
+            (folder / "mod_a.py").write_text("# mod a", encoding="utf-8")
+            self._make_readme(folder, "\r\n")
+
+            updated = update_folder_readme(folder)
+            self.assertTrue(updated)
+
+            raw = (folder / "README.md").read_bytes()
+            self.assertIn(b"\r\n", raw)
+            self.assertIn(b"mod_a.py", raw)
+
+    def test_preserves_lf_line_endings(self):
+        with tempfile.TemporaryDirectory() as td:
+            folder = Path(td)
+            (folder / "mod_b.py").write_text("# mod b", encoding="utf-8")
+            self._make_readme(folder, "\n")
+
+            updated = update_folder_readme(folder)
+            self.assertTrue(updated)
+
+            raw = (folder / "README.md").read_bytes()
+            self.assertNotIn(b"\r\n", raw)
+            self.assertIn(b"mod_b.py", raw)
+
+
+class TestWindowsRetryAndLockHandling(unittest.TestCase):
+    """Verify atomic write retry logic and temporary file cleanup under transient lock conditions."""
+
+    def test_recovers_from_transient_permission_error(self):
+        with tempfile.TemporaryDirectory() as td:
+            target = Path(td) / "README.md"
+            target.write_text("# Initial", encoding="utf-8")
+
+            real_replace = os.replace
+            call_count = 0
+
+            def flaky_replace(src, dst):
+                nonlocal call_count
+                call_count += 1
+                if call_count < 3:
+                    raise PermissionError(13, "Permission denied (simulated Windows lock)")
+                return real_replace(src, dst)
+
+            with patch("os.replace", side_effect=flaky_replace):
+                _atomic_write_file(target, "# Updated Content", max_retries=5)
+
+            self.assertEqual(call_count, 3)
+            self.assertEqual(target.read_text(encoding="utf-8"), "# Updated Content")
+
+            temp_files = [f for f in Path(td).iterdir() if f.name.startswith(".readme_sync_")]
+            self.assertEqual(len(temp_files), 0, f"Leftover temp files: {temp_files}")
+
+    def test_temp_file_cleaned_up_on_permanent_failure(self):
+        with tempfile.TemporaryDirectory() as td:
+            target = Path(td) / "README.md"
+            target.write_text("# Initial", encoding="utf-8")
+
+            def perm_denied(src, dst):
+                raise PermissionError(13, "Simulated permanent lock")
+
+            with patch("os.replace", side_effect=perm_denied), self.assertRaises(OSError):
+                _atomic_write_file(target, "# Broken", max_retries=3)
+
+            temp_files = [f for f in Path(td).iterdir() if f.name.startswith(".readme_sync_")]
+            self.assertEqual(len(temp_files), 0, f"Temp files left after failure: {temp_files}")
+
+
+class TestScriptCategorySynchronization(unittest.TestCase):
+    """Verify category synchronization accurately classifies renamed and active scripts."""
+
+    def test_validation_and_dataset_script_categories(self):
+        self.assertEqual(_get_script_category("demo_confidence_scorer.py"), "Validation")
+        self.assertEqual(_get_script_category("demo_gei.py"), "Validation")
+        self.assertEqual(_get_script_category("run_tracking.py"), "Validation")
+        self.assertEqual(_get_script_category("generate_visualizer_charts.py"), "Validation")
+        self.assertEqual(_get_script_category("build_gallery.py"), "Dataset")
+        self.assertEqual(_get_script_category("export_bygait_onnx.py"), "Conversion")
+        self.assertEqual(_get_script_category("activate_venv.ps1"), "Environment")
+        self.assertEqual(_get_script_category("sync_folder_readmes.py"), "Documentation")
+
+
+class TestDocsCheckImmutabilityAndSafety(unittest.TestCase):
+    """Verify cli docs-check is strictly read-only and leaves the repository byte-for-byte unchanged."""
+
+    def test_docs_check_leaves_docs_tree_and_readmes_byte_for_byte_identical(self):
+        import hashlib
+
+        root_dir = Path(__file__).resolve().parent.parent.parent
+
+        def snapshot_files():
+            snapshot = {}
+            # Snapshot docs directory
+            docs_dir = root_dir / "docs"
+            if docs_dir.exists():
+                for p in docs_dir.rglob("*.md"):
+                    if p.is_file():
+                        rel = str(p.relative_to(root_dir))
+                        snapshot[rel] = hashlib.sha256(p.read_bytes()).hexdigest()
+
+            # Snapshot root and package READMEs
+            root_readme = root_dir / "README.md"
+            if root_readme.is_file():
+                snapshot["README.md"] = hashlib.sha256(root_readme.read_bytes()).hexdigest()
+
+            for folder in TARGET_FOLDERS:
+                f_readme = root_dir / folder / "README.md"
+                if f_readme.is_file():
+                    rel = str(f_readme.relative_to(root_dir))
+                    snapshot[rel] = hashlib.sha256(f_readme.read_bytes()).hexdigest()
+
+            return snapshot
+
+        before_snapshot = snapshot_files()
+
+        result = subprocess.run(
+            [sys.executable, "cli.py", "--mode", "docs-check"],
+            capture_output=True,
+            text=True,
+            cwd=str(root_dir),
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, f"docs-check failed:\n{result.stdout}\n{result.stderr}")
+
+        after_snapshot = snapshot_files()
+
+        self.assertEqual(
+            set(before_snapshot.keys()),
+            set(after_snapshot.keys()),
+            "docs-check added or removed documentation files!",
+        )
+
+        for rel_path, before_hash in before_snapshot.items():
+            after_hash = after_snapshot[rel_path]
+            self.assertEqual(
+                before_hash,
+                after_hash,
+                f"docs-check modified documentation file: {rel_path}",
+            )
+
+    def test_docs_check_does_not_unlink_custom_documentation_files(self):
+        root_dir = Path(__file__).resolve().parent.parent.parent
+        custom_file = root_dir / "docs" / "temp_audit_regression_protection_test.md"
+        custom_file.write_text("# Custom Protected Document\nContent that must not be unlinked.\n", encoding="utf-8")
+
+        try:
+            result = subprocess.run(
+                [sys.executable, "cli.py", "--mode", "docs-check"],
+                capture_output=True,
+                text=True,
+                cwd=str(root_dir),
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0, f"docs-check failed:\n{result.stdout}\n{result.stderr}")
+            self.assertTrue(custom_file.exists(), "docs-check unlinked custom markdown documentation file!")
+            self.assertEqual(
+                custom_file.read_text(encoding="utf-8"),
+                "# Custom Protected Document\nContent that must not be unlinked.\n",
+            )
+        finally:
+            if custom_file.exists():
+                try:
+                    custom_file.unlink()
+                except OSError:
+                    pass
+
+
+class TestSyncIdempotency(unittest.TestCase):
+    """Verify repeated update and check executions are strictly idempotent."""
+
+    def test_repeated_update_produces_zero_further_diff(self):
+        root_dir = Path(__file__).resolve().parent.parent.parent
+
+        # First update
+        res1 = subprocess.run(
+            [sys.executable, "scripts/sync_folder_readmes.py", "--update"],
+            capture_output=True,
+            text=True,
+            cwd=str(root_dir),
+            check=False,
+        )
+        self.assertEqual(res1.returncode, 0)
+
+        # Second update must produce 0 updated
+        res2 = subprocess.run(
+            [sys.executable, "scripts/sync_folder_readmes.py", "--update"],
+            capture_output=True,
+            text=True,
+            cwd=str(root_dir),
+            check=False,
+        )
+        self.assertEqual(res2.returncode, 0)
+        self.assertIn("0 updated", res2.stdout)
+
+        # Follow-up check must be 100% clean
+        res3 = subprocess.run(
+            [sys.executable, "scripts/sync_folder_readmes.py", "--check"],
+            capture_output=True,
+            text=True,
+            cwd=str(root_dir),
+            check=False,
+        )
+        self.assertEqual(res3.returncode, 0)
+        self.assertIn("All package READMEs synchronized cleanly", res3.stdout)
+
+
 if __name__ == "__main__":
     unittest.main()
+
+

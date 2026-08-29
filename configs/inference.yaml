@@ -68,11 +68,11 @@ reporting:
   report_confirmed: true
 
 reid:
-  enabled: false
+  enabled: true
   model_path: "models/weights/osnet_x0_25.pth"
   device: "auto"
   batch_size: 8
-  similarity_threshold: 0.6
+  similarity_threshold: 0.72
 
 gait_3d:
   enabled: false
@@ -83,14 +83,14 @@ gait_3d:
   device: "auto"
 
 fusion:
-  enabled: false
-  gait_weight: 0.7
-  reid_weight: 0.3
+  enabled: true
+  gait_weight: 0.30
+  reid_weight: 0.70
 
 dual_modal_fusion:
-  enabled: false
-  gait_weight: 0.70
-  appearance_weight: 0.30
+  enabled: true
+  gait_weight: 0.30
+  appearance_weight: 0.70
   adaptive_weighting: true
   appearance_update_interval: 8
 
@@ -102,9 +102,17 @@ temporal_verification:
   enabled: true
   window_size: 3
 
+temporal_aggregation:
+  enabled: true
+  window_size: 8
+  consensus_threshold: 0.60
+  confirm_threshold: 0.72
+  near_miss_margin: 0.05
+  min_frames: 3
+
 open_set:
   enabled: true
-  known_threshold: 0.85
+  known_threshold: 0.89
   unknown_threshold: 0.70
   margin_threshold: 0.05
   quality_threshold: 0.60

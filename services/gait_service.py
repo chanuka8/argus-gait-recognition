@@ -49,15 +49,50 @@ class GaitService:
     ByGaitLight feature encoding, VectorStore matching, camera worker state, and event history.
     """
 
-    def __init__(self, gallery_dir: str = "models/live_gallery") -> None:
+    def __init__(
+        self, gallery_dir: str = "models/live_gallery", appearance_gallery_dir: str = "models/appearance_gallery"
+    ) -> None:
         self.logger = setup_logger("ARGUS.GaitService")
         self.gallery_dir = gallery_dir
+        self.appearance_gallery_dir = appearance_gallery_dir
 
         self.store = VectorStore(gallery_dir=gallery_dir)
+        self.appearance_store = VectorStore(gallery_dir=appearance_gallery_dir)
+
+        try:
+            from intelligence.continuous_improvement_engine import ContinuousImprovementEngine
+            from models.model_registry import ModelRegistry
+            from storage.embedding_database import EmbeddingDatabase
+
+            self.embedding_db = EmbeddingDatabase(
+                gait_gallery_dir=gallery_dir, appearance_gallery_dir=appearance_gallery_dir
+            )
+            self.model_registry = ModelRegistry()
+            self.continuous_engine = ContinuousImprovementEngine(
+                registry=self.model_registry,
+                db=self.embedding_db,
+            )
+        except (ImportError, RuntimeError, ValueError, TypeError, OSError) as init_err:
+            self.logger.warning(f"EmbeddingDatabase / ModelRegistry / ContinuousEngine init deferred: {init_err}")
+            self.embedding_db = None
+            self.model_registry = None
+            self.continuous_engine = None
+
         self.extractor = FeatureExtractionStep()
         self.matcher = MatchingStep(threshold=0.85)
         self.silhouette_extractor = SilhouetteExtractor(target_size=(64, 128))
         self.open_set_recognizer = OpenSetRecognizer()
+
+        try:
+            from intelligence.appearance_embedding import AppearanceEmbeddingExtractor
+            from pipeline.steps.appearance_matching_step import AppearanceMatchingStep
+
+            self.appearance_extractor = AppearanceEmbeddingExtractor(update_interval=8)
+            self.appearance_matcher = AppearanceMatchingStep(threshold=0.60)
+        except (ImportError, RuntimeError, ValueError, TypeError, OSError) as app_init_err:
+            self.logger.warning(f"Appearance components init deferred: {app_init_err}")
+            self.appearance_extractor = None
+            self.appearance_matcher = None
 
         self.detector = None
         try:
@@ -77,6 +112,10 @@ class GaitService:
             "total_events": 0,
         }
 
+        self.appearance_gallery_features = np.empty((0, 512), dtype=np.float32)
+        self.appearance_gallery_labels = []
+        self.appearance_metadata = {}
+
         self.reload_gallery()
 
     def reload_gallery(self) -> None:
@@ -85,17 +124,33 @@ class GaitService:
             if gallery is not None:
                 self.gallery_features, labels, self.metadata = gallery
                 self.gallery_labels = list(labels) if labels is not None else []
-                self.logger.info(f"Loaded gallery with {len(self.gallery_labels)} embeddings.")
+                self.logger.info(f"Loaded gait gallery with {len(self.gallery_labels)} embeddings.")
             else:
                 self.gallery_features = np.empty((0, 256), dtype=np.float32)
                 self.gallery_labels = []
                 self.metadata = []
-                self.logger.warning("No gallery found; operating with empty gallery.")
+                self.logger.warning("No gait gallery found; operating with empty gait gallery.")
         except (RuntimeError, ValueError, TypeError, OSError) as err:
-            self.logger.error(f"Failed to load gallery: {err}")
+            self.logger.error(f"Failed to load gait gallery: {err}")
             self.gallery_features = np.empty((0, 256), dtype=np.float32)
             self.gallery_labels = []
             self.metadata = []
+
+        try:
+            app_gallery = self.appearance_store.load()
+            if app_gallery is not None:
+                self.appearance_gallery_features, app_labels, self.appearance_metadata = app_gallery
+                self.appearance_gallery_labels = list(app_labels) if app_labels is not None else []
+                self.logger.info(f"Loaded appearance gallery with {len(self.appearance_gallery_labels)} embeddings.")
+            else:
+                self.appearance_gallery_features = np.empty((0, 512), dtype=np.float32)
+                self.appearance_gallery_labels = []
+                self.appearance_metadata = {}
+        except (RuntimeError, ValueError, TypeError, OSError) as app_err:
+            self.logger.warning(f"Failed to load appearance gallery: {app_err}")
+            self.appearance_gallery_features = np.empty((0, 512), dtype=np.float32)
+            self.appearance_gallery_labels = []
+            self.appearance_metadata = {}
 
         for worker in self.camera_workers.values():
             if worker.recognition_worker is not None:
@@ -103,6 +158,11 @@ class GaitService:
                     gallery_features=self.gallery_features,
                     gallery_labels=self.gallery_labels,
                     metadata=self.metadata,
+                )
+                worker.recognition_worker.update_appearance_gallery(
+                    gallery_features=self.appearance_gallery_features,
+                    gallery_labels=self.appearance_gallery_labels,
+                    metadata=self.appearance_metadata,
                 )
 
     def _handle_recognition_event(self, event_dict: dict) -> None:
@@ -221,11 +281,12 @@ class GaitService:
 
     def enroll_images(self, person_id: str, image_bytes_list: list[bytes]) -> dict:
         """Enrolls a new subject into the gallery from uploaded image byte buffers."""
-        if not person_id or not person_id.isalnum():
-            raise ValueError("Invalid person_id: must be alphanumeric")
+        if not person_id or not person_id.replace("_", "").replace("-", "").isalnum():
+            raise ValueError("Invalid person_id: must be alphanumeric (hyphens/underscores permitted)")
 
         added_embeddings = 0
         embeddings = []
+        app_embeddings = []
 
         for raw_bytes in image_bytes_list:
             array = np.frombuffer(raw_bytes, dtype=np.uint8)
@@ -233,6 +294,7 @@ class GaitService:
             if frame is None or frame.size == 0:
                 continue
 
+            # 1. ByGaitLight Gait Feature Extraction (256D)
             silhouette = self.silhouette_extractor.extract_from_crop(frame)
             if silhouette is None:
                 gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -243,12 +305,25 @@ class GaitService:
             embeddings.append(embedding)
             added_embeddings += 1
 
+            # 2. OSNet Appearance Feature Extraction (512D)
+            if self.appearance_extractor is not None:
+                try:
+                    app_emb = self.appearance_extractor.extract(frame)
+                    if app_emb is not None and len(app_emb) == 512 and np.isfinite(app_emb).all():
+                        app_embeddings.append(app_emb)
+                except Exception as app_err:  # noqa: BLE001
+                    self.logger.debug(f"Appearance extraction notice during enrollment: {app_err}")
+
         if added_embeddings == 0:
             return {
                 "success": False,
                 "person_id": person_id,
                 "message": "No valid images could be processed for enrollment",
                 "embeddings_added": 0,
+                "gait_embeddings_added": 0,
+                "appearance_embeddings_added": 0,
+                "firebase_status": "FAILED",
+                "status": "PROCESSING_FAILED",
             }
 
         new_features = np.vstack(embeddings)
@@ -265,11 +340,48 @@ class GaitService:
 
         self.store.save(self.gallery_features, self.gallery_labels, self.metadata)
 
+        # Save appearance gallery
+        if app_embeddings:
+            new_app_features = np.vstack(app_embeddings)
+            new_app_labels = [person_id] * len(app_embeddings)
+            if len(self.appearance_gallery_features) > 0:
+                self.appearance_gallery_features = np.vstack([self.appearance_gallery_features, new_app_features])
+                if not isinstance(self.appearance_gallery_labels, list):
+                    self.appearance_gallery_labels = list(self.appearance_gallery_labels)
+                self.appearance_gallery_labels.extend(new_app_labels)
+            else:
+                self.appearance_gallery_features = new_app_features
+                self.appearance_gallery_labels = new_app_labels
+            self.appearance_store.save(
+                self.appearance_gallery_features, self.appearance_gallery_labels, self.appearance_metadata
+            )
+
+        # Persistent EmbeddingDatabase Sync
+        db_persist_result = None
+        if self.embedding_db is not None:
+            try:
+                db_persist_result = self.embedding_db.add_embeddings(
+                    person_id=person_id,
+                    gait_embeddings=embeddings,
+                    appearance_embeddings=app_embeddings if app_embeddings else None,
+                )
+            except (RuntimeError, ValueError, TypeError, OSError) as db_err:
+                self.logger.warning(f"EmbeddingDatabase persistence sync warning: {db_err}")
+
+        fb_res = db_persist_result.get("firebase_results", []) if db_persist_result else []
+        fb_status = "CONFIRMED" if fb_res and all(r.get("success", False) for r in fb_res) else (
+            "PENDING" if self.embedding_db and getattr(self.embedding_db, "firebase_store", None) else "LOCAL_ONLY"
+        )
+
         return {
             "success": True,
             "person_id": person_id,
-            "message": f"Successfully enrolled {person_id} with {added_embeddings} embeddings",
+            "message": f"Successfully enrolled {person_id} with {added_embeddings} gait and {len(app_embeddings)} appearance embeddings",
             "embeddings_added": added_embeddings,
+            "gait_embeddings_added": added_embeddings,
+            "appearance_embeddings_added": len(app_embeddings),
+            "firebase_status": fb_status,
+            "status": "EMBEDDING_ONLY",
         }
 
     def _load_camera_config(self) -> dict:
@@ -361,6 +473,11 @@ class GaitService:
                 gallery_features=self.gallery_features,
                 gallery_labels=self.gallery_labels,
                 metadata=self.metadata,
+                appearance_extractor=self.appearance_extractor,
+                appearance_matcher=self.appearance_matcher,
+                appearance_gallery_features=self.appearance_gallery_features,
+                appearance_gallery_labels=self.appearance_gallery_labels,
+                appearance_metadata=self.appearance_metadata,
                 event_callback=self._handle_recognition_event,
             )
         except (ImportError, RuntimeError, ValueError, TypeError, OSError) as rec_err:

@@ -140,6 +140,10 @@ class EnrollResponse(BaseModel):
     person_id: str
     message: str
     embeddings_added: int
+    gait_embeddings_added: int = 0
+    appearance_embeddings_added: int = 0
+    firebase_status: str = "CONFIRMED"
+    status: str = "EMBEDDING_ONLY"
 
 
 class IdentifyRequest(BaseModel):
