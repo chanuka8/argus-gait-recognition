@@ -478,6 +478,7 @@ class GaitService:
                 appearance_gallery_features=self.appearance_gallery_features,
                 appearance_gallery_labels=self.appearance_gallery_labels,
                 appearance_metadata=self.appearance_metadata,
+                operational_collector=self.continuous_engine.collector if self.continuous_engine else None,
                 event_callback=self._handle_recognition_event,
             )
         except (ImportError, RuntimeError, ValueError, TypeError, OSError) as rec_err:

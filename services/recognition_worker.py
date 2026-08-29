@@ -125,6 +125,7 @@ class RecognitionWorker:
         appearance_metadata: Any | None = None,
         fusion_engine: Any | None = None,
         track_aggregator: Any | None = None,
+        operational_collector: Any | None = None,
         event_callback: Callable[[dict], None] | None = None,
     ) -> None:
         self.camera_id = camera_id
@@ -205,13 +206,15 @@ class RecognitionWorker:
                 self.track_aggregator = None
 
         # Operational Observation Collector Component
-        try:
-            from intelligence.operational_embedding_collector import OperationalEmbeddingCollector
+        self.operational_collector = operational_collector
+        if self.operational_collector is None:
+            try:
+                from intelligence.operational_embedding_collector import OperationalEmbeddingCollector
 
-            self.operational_collector = OperationalEmbeddingCollector()
-        except (ImportError, RuntimeError, ValueError, TypeError, OSError) as exc:
-            self._logger.debug(f"OperationalEmbeddingCollector init skipped: {exc}")
-            self.operational_collector = None
+                self.operational_collector = OperationalEmbeddingCollector()
+            except (ImportError, RuntimeError, ValueError, TypeError, OSError) as exc:
+                self._logger.debug(f"OperationalEmbeddingCollector init skipped: {exc}")
+                self.operational_collector = None
 
         self._input_queue: Queue[np.ndarray] = Queue(maxsize=2)
         self._stop_event = threading.Event()
@@ -416,6 +419,29 @@ class RecognitionWorker:
                                     app_status = "MATCH"
                                 else:
                                     app_status = "UNKNOWN"
+
+                            # P0 Target Continual-Learning Hook: Record valid appearance observation
+                            if self.operational_collector is not None and app_emb is not None:
+                                try:
+                                    self.operational_collector.record_observation(
+                                        camera_id=self.camera_id,
+                                        track_id=track_id,
+                                        vector=app_emb,
+                                        predicted_identity=app_identity,
+                                        confidence=float(app_score),
+                                        modality="appearance",
+                                        quality_score=float(app_score) if app_identity != "UNKNOWN_PERSON" else 0.85,
+                                        model_name="OSNet-x0.25",
+                                        model_version="v1.0.0",
+                                        metadata={
+                                            "bbox": bbox,
+                                            "frame_count": self._frame_count,
+                                            "app_status": app_status,
+                                        },
+                                    )
+                                except (RuntimeError, ValueError, TypeError, OSError) as obs_err:
+                                    self._logger.debug(f"Failed to record appearance observation: {obs_err}")
+
                         except (RuntimeError, ValueError, TypeError, OSError) as app_err:
                             self._logger.debug(f"Appearance matching error for track {track_id}: {app_err}")
 
@@ -450,13 +476,37 @@ class RecognitionWorker:
                     if gei_ready and time_since_rec >= self.cooldown_seconds:
                         gei = self.gei_builder.build_gei(track_id)
                         if gei is not None:
-                            gait_identity, gait_similarity, gait_decision, gait_status = self._recognize_gei(gei)
+                            gait_identity, gait_similarity, gait_decision, gait_status, gait_embedding = self._recognize_gei(gei)
 
                             final_identity = gait_identity
                             final_similarity = gait_similarity
                             final_decision = gait_decision
                             final_status = gait_status
                             fusion_details = None
+
+                            # P0 Target Continual-Learning Hook: Record valid gait observation
+                            if self.operational_collector is not None and gait_embedding is not None:
+                                try:
+                                    self.operational_collector.record_observation(
+                                        camera_id=self.camera_id,
+                                        track_id=track_id,
+                                        vector=gait_embedding,
+                                        predicted_identity=gait_identity,
+                                        confidence=float(gait_similarity),
+                                        modality="gait",
+                                        quality_score=float(gait_similarity) if gait_identity != "UNKNOWN" else 0.85,
+                                        model_name="ByGaitLight",
+                                        model_version="v1.0.0",
+                                        metadata={
+                                            "bbox": bbox,
+                                            "gei_frames": gei_count,
+                                            "decision": gait_decision,
+                                            "status": gait_status,
+                                            "frame_count": self._frame_count,
+                                        },
+                                    )
+                                except (RuntimeError, ValueError, TypeError, OSError) as obs_err:
+                                    self._logger.debug(f"Failed to record gait observation: {obs_err}")
 
                             if self.fusion_engine is not None and self.fusion_engine.is_enabled():
                                 decision_res = self.fusion_engine.decide_identity(
@@ -665,7 +715,7 @@ class RecognitionWorker:
             if sleep_time > 0:
                 self._stop_event.wait(sleep_time)
 
-    def _recognize_gei(self, gei: np.ndarray) -> tuple[str, float, str, str]:
+    def _recognize_gei(self, gei: np.ndarray) -> tuple[str, float, str, str, np.ndarray | None]:
         """Run ByGaitLight CNN embedding extraction and gallery matching."""
         try:
             with self._lock:
@@ -673,15 +723,15 @@ class RecognitionWorker:
                 g_labels = self.gallery_labels
                 g_meta = self.metadata
 
+            embedding = self.extractor.extract_from_gei(gei)
+            if embedding is None or len(embedding) == 0:
+                return "UNKNOWN", 0.0, "UNKNOWN_PERSON", "UNKNOWN", None
+
             if g_features is None or len(g_labels) == 0:
-                return "UNKNOWN", 0.0, "UNKNOWN_PERSON", "UNKNOWN"
+                return "UNKNOWN", 0.0, "UNKNOWN_PERSON", "UNKNOWN", embedding
 
             if not isinstance(g_meta, dict):
                 g_meta = {str(lbl): {"status": "ACTIVE", "enabled": True} for lbl in g_labels}
-
-            embedding = self.extractor.extract_from_gei(gei)
-            if embedding is None or len(embedding) == 0:
-                return "UNKNOWN", 0.0, "UNKNOWN_PERSON", "UNKNOWN"
 
             identity, score = self.matcher.match(
                 query_feature=embedding,
@@ -700,12 +750,12 @@ class RecognitionWorker:
             decision_res = self.open_set_recognizer.evaluate_open_set_decision(top_matches)
 
             if decision_res.state.value == "KNOWN" and identity != "UNKNOWN" and score >= self.threshold:
-                return identity, float(score), "CONFIRMED_MATCH", "CONFIRMED"
+                return identity, float(score), "CONFIRMED_MATCH", "CONFIRMED", embedding
             elif decision_res.state.value == "UNCERTAIN":
-                return identity, float(score), "REVIEW_REQUIRED", "UNKNOWN"
+                return identity, float(score), "REVIEW_REQUIRED", "UNKNOWN", embedding
             else:
-                return "UNKNOWN", float(score), "UNKNOWN_PERSON", "UNKNOWN"
+                return "UNKNOWN", float(score), "UNKNOWN_PERSON", "UNKNOWN", embedding
 
         except (RuntimeError, ValueError, TypeError, OSError) as exc:
             self._logger.warning(f"Gait matching failed: {sanitize_rtsp_url(str(exc))}")
-            return "UNKNOWN", 0.0, "UNKNOWN_PERSON", "UNKNOWN"
+            return "UNKNOWN", 0.0, "UNKNOWN_PERSON", "UNKNOWN", None
