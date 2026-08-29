@@ -1,3 +1,36 @@
+# All operational limits are configurable. Do NOT assume development-machine
+# values are universal production defaults.
+
+hardware:
+  # Dynamic system profile: AUTO, LOW_RESOURCE, CPU_ONLY, GPU_SMALL, GPU_STANDARD, GPU_HIGH, SERVER
+  profile: "AUTO"
+  auto_detect: true
+
+deployment:
+  # Deployment profile mode: DEVELOPMENT, SINGLE_CAMERA, SMALL_SURVEILLANCE, MEDIUM_SURVEILLANCE, LARGE_SURVEILLANCE, GPU_SERVER, CPU_ONLY
+  mode: "AUTO"
+  target_environment: "production"
+
+admission_control:
+  # Enable pre-flight capacity gating before starting camera streams
+  enabled: true
+  max_cpu_percent: 85.0
+  max_ram_percent: 85.0
+  max_vram_percent: 90.0
+  min_network_headroom_pct: 10.0
+  allow_degraded_admission: true
+
+network:
+  default_link_speed_mbps: 1000.0
+  default_codec: "h264"
+  default_resolution: "720p"
+  max_ingress_bandwidth_pct: 85.0
+
+vram_guard:
+  warning_threshold_mb: 500.0
+  auto_empty_cache_on_oom: true
+  fallback_to_cpu_on_cuda_failure: true
+
 camera:
   reconnect:
     min_interval_seconds: 1.0

@@ -4,6 +4,27 @@ Streaming module for ARGUS AI multi-stream and Phase 4 optimization.
 
 from streaming.buffer_queue import BufferQueue
 from streaming.camera_scheduler import CameraScheduler
+from streaming.deployment_readiness import (
+    AdaptiveInferencePolicy,
+    AdmissionDecision,
+    AdmissionResult,
+    CameraAdmissionController,
+    DeploymentMode,
+    DeploymentReadinessManager,
+    GPUMemoryGuard,
+    HardwareCapabilityDetector,
+    HardwareCapabilityReport,
+    InferenceQualityMode,
+    ModelProfileRegistry,
+    ModelResourceProfile,
+    NetworkBandwidthEstimator,
+    ProductionCapacityEstimator,
+    RuntimeParameters,
+    SecurityAuditor,
+    StorageSafetyAuditor,
+    SystemProfile,
+    SystemProfileEngine,
+)
 from streaming.frame_dropper import FrameDropper
 from streaming.load_balancer import CameraLoadBalancer
 from streaming.multi_stream_engine import MultiStreamEngine
@@ -27,8 +48,12 @@ from streaming.production_runtime import (
 from streaming.worker_pool import CameraWorkerPool
 
 __all__ = [
+    "AdaptiveInferencePolicy",
     "AdaptiveResourceManager",
+    "AdmissionDecision",
+    "AdmissionResult",
     "BufferQueue",
+    "CameraAdmissionController",
     "CameraLoadBalancer",
     "CameraScheduler",
     "CameraState",
@@ -36,16 +61,31 @@ __all__ = [
     "CameraWorkerPool",
     "CapacityEstimator",
     "DataPoisoningGuard",
+    "DeploymentMode",
+    "DeploymentReadinessManager",
     "FPSGovernor",
     "FPSPolicy",
     "FrameDropper",
     "FrameQualityGate",
+    "GPUMemoryGuard",
     "GracefulShutdownManager",
+    "HardwareCapabilityDetector",
+    "HardwareCapabilityReport",
+    "InferenceQualityMode",
+    "ModelProfileRegistry",
+    "ModelResourceProfile",
     "MultiStreamEngine",
+    "NetworkBandwidthEstimator",
     "PerformanceOptimizer",
+    "ProductionCapacityEstimator",
     "ProductionSurveillanceRuntime",
     "ReconnectEngine",
     "ResilientWorkerPool",
+    "RuntimeParameters",
     "SafeModelSwapper",
+    "SecurityAuditor",
+    "StorageSafetyAuditor",
     "StructuredEventLogger",
+    "SystemProfile",
+    "SystemProfileEngine",
 ]

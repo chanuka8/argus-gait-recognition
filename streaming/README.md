@@ -16,6 +16,7 @@ The `streaming` package provides high-throughput video stream ingestion, thread-
 |---|---|
 | [buffer_queue.py](buffer_queue.py) | Thread-safe bounded ring buffer queue with non-blocking put/get operations |
 | [camera_scheduler.py](camera_scheduler.py) | Round-robin and priority scheduler distributing camera stream frame processing |
+| [deployment_readiness.py](deployment_readiness.py) | Phase 5 production deployment readiness, hardware capability discovery, dynamic system profiling, capacity estimation, and admission control |
 | [frame_dropper.py](frame_dropper.py) | Intelligent frame dropper maintaining target processing FPS under CPU congestion |
 | [load_balancer.py](load_balancer.py) | Balances processing workload across multi-stream worker threads |
 | [multi_stream_engine.py](multi_stream_engine.py) | Multi-stream acquisition engine handling concurrent CCTV streams |
@@ -38,6 +39,9 @@ RTSP / USB / File Stream → `streaming/stream_engine.py` → `streaming/buffer_
 ## Public Interfaces
 
 - `ProductionMultiCameraEngine`: Production multi-camera scalability engine in [streaming/production_multicamera_engine.py](production_multicamera_engine.py).
+- `DeploymentReadinessManager`: Phase 5 deployment readiness manager in [streaming/deployment_readiness.py](deployment_readiness.py).
+- `HardwareCapabilityDetector`: Hardware capability discovery engine in [streaming/deployment_readiness.py](deployment_readiness.py).
+- `CameraAdmissionController`: Pre-flight camera admission controller in [streaming/deployment_readiness.py](deployment_readiness.py).
 - `ProductionSurveillanceRuntime`: Phase 4 production surveillance runtime in [streaming/production_runtime.py](production_runtime.py).
 - `CameraStateMachine`: Camera lifecycle state machine in [streaming/production_runtime.py](production_runtime.py).
 - `ReconnectEngine`: Exponential backoff reconnect engine in [streaming/production_runtime.py](production_runtime.py).

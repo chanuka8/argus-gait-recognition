@@ -192,3 +192,55 @@ def health_system():
         result["events_emitted"] = system_health.get("events_emitted", 0)
 
     return result
+
+
+@health_router.get("/hardware")
+def health_hardware():
+    """Hardware capability discovery report without hardcoded environment assumptions."""
+    from streaming.deployment_readiness import HardwareCapabilityDetector
+
+    detector = HardwareCapabilityDetector()
+    return detector.discover().to_dict()
+
+
+@health_router.get("/models")
+def health_models():
+    """Resource and throughput profiles for pipeline neural network models."""
+    from streaming.deployment_readiness import ModelProfileRegistry
+
+    registry = ModelProfileRegistry()
+    return registry.get_all_profiles()
+
+
+@health_router.get("/capacity")
+def health_capacity():
+    """Comprehensive multi-factorial camera capacity estimation."""
+    from streaming.deployment_readiness import DeploymentReadinessManager
+
+    mgr = DeploymentReadinessManager()
+    summary = mgr.get_deployment_summary()
+    return summary.get("capacity", {})
+
+
+@health_router.get("/admission")
+def health_admission():
+    """Current camera admission status and headroom."""
+    from streaming.deployment_readiness import DeploymentReadinessManager
+
+    mgr = DeploymentReadinessManager()
+    summary = mgr.get_deployment_summary()
+    return {
+        "status": "OPERATIONAL",
+        "system_profile": summary.get("system_profile", "AUTO"),
+        "capacity": summary.get("capacity", {}),
+        "runtime_parameters": summary.get("runtime_parameters", {}),
+    }
+
+
+@health_router.get("/deployment")
+def health_deployment():
+    """Complete deployment readiness diagnostic report."""
+    from streaming.deployment_readiness import DeploymentReadinessManager
+
+    mgr = DeploymentReadinessManager()
+    return mgr.get_deployment_summary()
