@@ -4,8 +4,8 @@ from core.logger import setup_logger
 from enrollment.appearance_gallery_updater import AppearanceGalleryUpdater
 from enrollment.enrollment_validator import EnrollmentValidator
 from enrollment.gallery_updater import GalleryUpdater
-from pipeline.steps.appearance_feature_extraction import AppearanceFeatureExtractionStep
 from pipeline.steps.feature_extraction import FeatureExtractionStep
+from pipeline.steps.reid_feature_extraction import ReIDFeatureExtractionStep
 
 
 class EnrollmentManager:
@@ -15,9 +15,15 @@ class EnrollmentManager:
         self.logger = setup_logger("ARGUS.Enrollment")
         self.validator = EnrollmentValidator()
         self.gait_extractor = FeatureExtractionStep()
-        self.appearance_extractor = AppearanceFeatureExtractionStep()
+        self.appearance_extractor = ReIDFeatureExtractionStep()
         self.gallery_updater = GalleryUpdater()
         self.appearance_gallery_updater = AppearanceGalleryUpdater()
+        try:
+            from storage.embedding_database import EmbeddingDatabase
+
+            self.embedding_db = EmbeddingDatabase()
+        except (ImportError, RuntimeError, ValueError, TypeError, OSError):
+            self.embedding_db = None
 
     def _collect_images(
         self,
@@ -119,6 +125,15 @@ class EnrollmentManager:
             embeddings=embeddings,
         )
 
+        if self.embedding_db is not None:
+            try:
+                self.embedding_db.add_embeddings(
+                    person_id=person_id,
+                    gait_embeddings=embeddings,
+                )
+            except (RuntimeError, ValueError, TypeError, OSError, AttributeError) as db_err:
+                self.logger.warning(f"EmbeddingDatabase sync warning for {person_id}: {db_err}")
+
         self.logger.info(f"Gait enrollment completed for {person_id}. Embeddings added: {len(embeddings)}")
 
         return {
@@ -159,10 +174,10 @@ class EnrollmentManager:
                 embedding = self.appearance_extractor.extract(
                     image_path,
                 )
-
-                embeddings.append(
-                    embedding,
-                )
+                if embedding is not None:
+                    embeddings.append(
+                        embedding,
+                    )
 
             except (RuntimeError, ValueError, TypeError, OSError) as error:
                 self.logger.warning(f"Failed to extract appearance embedding from {image_path.name}: {error}")
@@ -180,6 +195,15 @@ class EnrollmentManager:
             person_id=person_id,
             embeddings=embeddings,
         )
+
+        if self.embedding_db is not None:
+            try:
+                self.embedding_db.add_embeddings(
+                    person_id=person_id,
+                    appearance_embeddings=embeddings,
+                )
+            except (RuntimeError, ValueError, TypeError, OSError, AttributeError) as db_err:
+                self.logger.warning(f"EmbeddingDatabase sync warning for {person_id}: {db_err}")
 
         self.logger.info(f"Appearance enrollment completed for {person_id}. Embeddings added: {len(embeddings)}")
 
@@ -219,13 +243,7 @@ class EnrollmentManager:
             }
 
         if images:
-            return {
-                "success": False,
-                "person_id": person_id,
-                "message": "Skipped photo-only folder. Gait enrollment requires video.",
-                "embeddings_added": 0,
-                "gallery": "none",
-            }
+            return self.enroll_appearance_person(person_folder)
 
         return {
             "success": False,

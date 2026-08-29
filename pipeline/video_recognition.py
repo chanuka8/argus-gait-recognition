@@ -525,14 +525,31 @@ class VideoRecognitionPipeline:
         self.fusion_config = _load_fusion_config()
         self.fusion_engine = None
         self.appearance_extractor = None
+        self.appearance_matcher = None
+        self.appearance_gallery_features = None
+        self.appearance_gallery_labels = None
+        self.appearance_metadata = None
 
-        if self.fusion_config["enabled"]:
+        if self.reid_config.get("enabled", False) or self.fusion_config.get("enabled", False):
             from intelligence.appearance_embedding import AppearanceEmbeddingExtractor
-            from intelligence.dual_modal_fusion import DualModalFusion
+            from pipeline.steps.appearance_matching_step import AppearanceMatchingStep
 
             self.appearance_extractor = AppearanceEmbeddingExtractor(
                 update_interval=self.fusion_config.get("appearance_update_interval", 8),
             )
+            self.appearance_matcher = AppearanceMatchingStep(
+                threshold=float(self.reid_config.get("similarity_threshold", 0.60)),
+            )
+            try:
+                app_gallery = VectorStore(gallery_dir="models/appearance_gallery").load()
+                if app_gallery is not None:
+                    self.appearance_gallery_features, self.appearance_gallery_labels, self.appearance_metadata = app_gallery
+            except (OSError, ValueError, RuntimeError, EOFError):
+                pass
+
+        if self.fusion_config["enabled"]:
+            from intelligence.dual_modal_fusion import DualModalFusion
+
             self.fusion_engine = DualModalFusion(
                 default_gait_weight=self.fusion_config.get("gait_weight", 0.70),
                 default_reid_weight=self.fusion_config.get(
@@ -877,6 +894,58 @@ class VideoRecognitionPipeline:
                         camera_id=self.camera_id,
                     )
 
+        app_identity = "UNKNOWN_PERSON"
+        app_score = 0.0
+        app_status = "UNKNOWN"
+
+        if self.appearance_extractor is not None:
+            reid_crop = self.reid_crops.get(track_id)
+            if reid_crop is not None:
+                track_rel = result.get("track_reliability", 1.0)
+                try:
+                    app_emb = self.appearance_extractor.extract(
+                        crop=reid_crop,
+                        track_id=track_id,
+                        frame_index=frame_index,
+                        track_reliable=(float(track_rel) >= 0.5),
+                        recognition_deferred=False,
+                    )
+                    if (
+                        app_emb is not None
+                        and self.appearance_matcher is not None
+                        and self.appearance_gallery_features is not None
+                        and len(self.appearance_gallery_features) > 0
+                    ):
+                        matched_app_id, matched_app_score = self.appearance_matcher.match(
+                            query_feature=app_emb,
+                            gallery_features=self.appearance_gallery_features,
+                            gallery_labels=self.appearance_gallery_labels,
+                            metadata=self.appearance_metadata,
+                            unknown_label="UNKNOWN_PERSON",
+                        )
+                        app_identity = str(matched_app_id)
+                        app_score = float(matched_app_score)
+                        if app_identity != "UNKNOWN_PERSON" and app_score >= self.appearance_matcher.threshold:
+                            app_status = "MATCH"
+                        else:
+                            app_status = "UNKNOWN"
+                except (OSError, ValueError, RuntimeError, TypeError):
+                    pass
+
+        result["appearance_identity"] = str(app_identity)
+        result["appearance_score"] = round(float(app_score), 4)
+        result["appearance_status"] = str(app_status)
+        result["appearance"] = {
+            "identity": str(app_identity),
+            "score": round(float(app_score), 4),
+            "status": str(app_status),
+        }
+        result["gait"] = {
+            "identity": str(stable_identity),
+            "score": round(float(score), 4),
+            "status": "MATCH" if str(stable_identity) != "UNKNOWN" else "UNKNOWN",
+        }
+
         if self.reid_extractor is not None:
             reid_crop = self.reid_crops.get(track_id)
             if reid_crop is not None:
@@ -887,30 +956,30 @@ class VideoRecognitionPipeline:
                     result["reid_embedding"] = reid_embedding
                     result["reid_score"] = 0.0
 
-        if self.fusion_engine is not None and self.appearance_extractor is not None:
+        if self.fusion_engine is not None and self.fusion_engine.is_enabled():
             reid_crop = self.reid_crops.get(track_id)
             track_rel = result.get("track_reliability", 1.0)
-            app_emb = self.appearance_extractor.extract(
-                crop=reid_crop,
-                track_id=track_id,
-                frame_index=frame_index,
-                track_reliable=(float(track_rel) >= 0.5),
-                recognition_deferred=False,
-            )
             gei_buf = self.buffers.get(track_id)
             gei_count = gei_buf.count if gei_buf is not None else 0
 
-            fusion_res = self.fusion_engine.fuse(
+            decision_res = self.fusion_engine.decide_identity(
+                gait_identity=stable_identity,
                 gait_score=flat_score,
-                reid_embedding=app_emb,
+                appearance_identity=app_identity,
+                appearance_score=app_score,
+                gait_threshold=self.threshold,
+                appearance_threshold=self.appearance_matcher.threshold if self.appearance_matcher else 0.60,
                 crop=reid_crop,
                 gei_frame_count=gei_count,
                 gei=gei,
                 track_reliability=float(track_rel),
             )
-            result["fusion"] = fusion_res
-            if self.fusion_config.get("enabled", False) and "final_score" in fusion_res:
-                result["score"] = round(float(fusion_res["final_score"]), 4)
+            result["fusion"] = decision_res["fusion"]
+            result["dual_modal"] = decision_res
+            result["score"] = decision_res["final_score"]
+            result["identity"] = decision_res["final_identity"]
+            result["status"] = decision_res["status"]
+            result["decision"] = decision_res["decision"]
 
         self.last_results[track_id] = result
 
@@ -1136,7 +1205,7 @@ class VideoRecognitionPipeline:
                                     self.buffers[track_id] = LiveGEI(max_frames=self.gei_frames)
                                 self.buffers[track_id].add(silhouette)
 
-                            if self.reid_extractor is not None:
+                            if self.reid_extractor is not None or self.appearance_extractor is not None:
                                 self.reid_crops[track_id] = crop
 
                     if (
@@ -1217,7 +1286,7 @@ class VideoRecognitionPipeline:
                                     self.buffers[track_id] = LiveGEI(max_frames=self.gei_frames)
                                 self.buffers[track_id].add(silhouette)
 
-                            if self.reid_extractor is not None:
+                            if self.reid_extractor is not None or self.appearance_extractor is not None:
                                 self.reid_crops[track_id] = crop
 
                     if (

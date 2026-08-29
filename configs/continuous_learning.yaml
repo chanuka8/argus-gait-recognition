@@ -1,0 +1,70 @@
+# ARGUS AI Continuous Learning Configuration
+# Date-Aware, Event-Driven Learning Configuration (No 24h blind timer)
+
+continuous_learning:
+  # Global master switch
+  enabled: true
+
+  # Trigger mechanism: Event-date driven
+  trigger:
+    mode: "new_embedding_date"
+    # Minimum verified training-eligible embeddings required for a date to trigger candidate training.
+    # Chosen based on typical surveillance track observation counts (at least 4 valid frames/features).
+    min_training_embeddings: 4
+    # Minimum distinct identities required to compute cross-identity verification metrics (genuine vs impostor).
+    min_identities: 2
+    # Modalities enabled for continuous learning: "gait", "appearance", "dual"
+    modalities:
+      - "gait"
+      - "appearance"
+      - "dual"
+
+  # Date scheduling policies
+  schedule:
+    # Strict event-date enforcement: Train ONLY when new unprocessed observation date exists
+    train_only_when_new_date_exists: true
+    # Directory / file for tracking processed dates and job state
+    jobs_file: "data/learning_jobs.json"
+    # Allow explicit operator force-retrain of a specific date
+    allow_force_retrain: false
+
+  # Background execution isolation & resource bounds
+  execution:
+    background: true
+    # Maximum concurrent training jobs (strictly serialized to protect inference GPU/CPU)
+    max_concurrent_jobs: 1
+    # Bounded queue size for pending date jobs
+    max_queue_size: 10
+    # Timeout in seconds for candidate generation / training before safety abort
+    worker_timeout_seconds: 300
+    # Compute device preference: "cuda", "cpu", "auto"
+    device_preference: "auto"
+    # Maximum GPU memory allocation fraction for training (0.0 to 1.0)
+    max_gpu_memory_fraction: 0.35
+    # Thread priority / nice level (runs at lower priority than inference)
+    low_priority: true
+
+  # Anti-catastrophic forgetting & data preservation
+  anti_forgetting:
+    # Ratio of historical validated baseline embeddings to mix with new date embeddings
+    # 0.50 means 50% historical replay + 50% new date data during candidate calibration
+    replay_historical_ratio: 0.50
+    # Enforce preservation of known baseline enrolled subjects (e.g., Devhan, Isuru, Subject_42)
+    preserve_enrolled_baselines: true
+    # Minimum historical samples per enrolled identity to include in replay buffer
+    min_historical_samples_per_identity: 2
+
+  # Validation gates & safety policies
+  safety:
+    # Never overwrite active production model artifacts in-place
+    preserve_active_model: true
+    # Maximum allowed increase in False Accept Rate (FAR) during candidate validation (0.0 = zero tolerance)
+    max_allowed_far_increase: 0.0
+    # Maximum allowed drop in True Accept Rate (TAR) tolerance
+    max_allowed_tar_drop: 0.50
+    # Zero tolerance for confusion-pair false accepts
+    confusion_pair_zero_tolerance: true
+    # Automatically rollback to previous known-good version if runtime regression is flagged
+    automatic_rollback: true
+    # Number of consecutive failed jobs before pausing auto-trigger
+    max_consecutive_failures: 3

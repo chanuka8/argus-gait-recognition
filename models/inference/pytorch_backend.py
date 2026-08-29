@@ -39,20 +39,27 @@ class PyTorchBackend(BaseInferenceBackend):
 
     def _load_model(self) -> ByGaitLight:
         """Instantiate ByGaitLight model and load weights if checkpoint exists."""
-        model = ByGaitLight()
+        part_bins = 4
+        filtered = {}
         if self.model_path.exists():
             try:
                 checkpoint = torch.load(self.model_path, map_location="cpu", weights_only=True)
-                filtered = {}
                 for key, value in checkpoint.items():
                     if key.startswith("backbone."):
                         filtered[key.replace("backbone.", "")] = value
-                    elif key in model.state_dict():
+                    else:
                         filtered[key] = value
 
-                model.load_state_dict(filtered, strict=False)
+                if "embedding.weight" in filtered:
+                    in_features = filtered["embedding.weight"].shape[1]
+                    part_bins = max(1, in_features // 128)
             except (RuntimeError, ValueError, OSError, EOFError) as e:
                 self.logger.warning(f"Could not load checkpoint from {self.model_path}: {e}")
+
+        model = ByGaitLight(part_bins=part_bins)
+        if filtered:
+            valid_keys = {k: v for k, v in filtered.items() if k in model.state_dict()}
+            model.load_state_dict(valid_keys, strict=False)
 
         model.to(self.device)
         model.eval()

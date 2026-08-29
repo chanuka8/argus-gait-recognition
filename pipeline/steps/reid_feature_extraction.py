@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy as np
 
 from models.reid.osnet_backbone import OSNetBackbone
@@ -24,25 +26,35 @@ class ReIDFeatureExtractionStep:
 
     def extract(
         self,
-        crop: np.ndarray,
+        crop: np.ndarray | str | Path,
     ) -> np.ndarray | None:
         """
         Extract normalized ReID embedding
-        from a BGR person crop.
+        from a BGR person crop or image filepath.
 
         Returns None if crop is invalid.
         """
-
         if crop is None:
             return None
 
-        if crop.size == 0:
+        if isinstance(crop, (str, Path)):
+            import cv2
+
+            img = cv2.imread(str(crop))
+            if img is None or img.size == 0:
+                return None
+            crop = img
+
+        if getattr(crop, "size", 0) == 0:
             return None
 
-        if len(crop.shape) != 3:
+        if len(crop.shape) not in (2, 3):
             return None
 
-        return self.backbone.extract(crop)
+        try:
+            return self.backbone.extract(crop)
+        except (ValueError, RuntimeError, OSError):
+            return None
 
     def extract_batch(
         self,

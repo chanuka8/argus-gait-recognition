@@ -22,14 +22,17 @@ class ReIDMatchingStep:
         metadata: dict | None,
     ) -> bool:
         if metadata is None:
-            return False
+            return True
+
+        if not isinstance(metadata, dict):
+            return True
 
         entry = metadata.get(
             str(label),
         )
 
         if entry is None:
-            return False
+            return True
 
         if isinstance(
             entry,
@@ -38,20 +41,20 @@ class ReIDMatchingStep:
             status = str(
                 entry.get(
                     "status",
-                    "DISABLED",
-                ),
+                    "ACTIVE" if entry.get("enabled", True) else "DISABLED",
+                )
             ).upper()
 
             enabled = bool(
                 entry.get(
                     "enabled",
                     status == "ACTIVE",
-                ),
+                )
             )
 
             return status == "ACTIVE" and enabled
 
-        return False
+        return True
 
     def match(
         self,
@@ -59,6 +62,7 @@ class ReIDMatchingStep:
         gallery_features,
         gallery_labels,
         metadata: dict | None = None,
+        unknown_label: str = "UNKNOWN_PERSON",
     ):
         """
         Match query ReID embedding against
@@ -69,7 +73,7 @@ class ReIDMatchingStep:
         """
 
         if gallery_features is None or gallery_labels is None:
-            return "UNKNOWN", 0.0
+            return unknown_label, 0.0
 
         gallery_features = np.asarray(
             gallery_features,
@@ -81,7 +85,7 @@ class ReIDMatchingStep:
         )
 
         if len(gallery_features) == 0:
-            return "UNKNOWN", 0.0
+            return unknown_label, 0.0
 
         active_mask = np.asarray(
             [
@@ -97,7 +101,7 @@ class ReIDMatchingStep:
         if not np.any(
             active_mask,
         ):
-            return "UNKNOWN", 0.0
+            return unknown_label, 0.0
 
         gallery_features = gallery_features[active_mask]
 
@@ -113,7 +117,7 @@ class ReIDMatchingStep:
         )
 
         if query_norm == 0:
-            return "UNKNOWN", 0.0
+            return unknown_label, 0.0
 
         query_feature = query_feature / (query_norm + 1e-8)
 
@@ -133,7 +137,7 @@ class ReIDMatchingStep:
         best_index = int(
             np.argmax(
                 scores,
-            ),
+            )
         )
 
         best_score = float(
@@ -141,7 +145,7 @@ class ReIDMatchingStep:
         )
 
         if best_score < self.threshold:
-            return "UNKNOWN", best_score
+            return unknown_label, best_score
 
         return str(
             gallery_labels[best_index],

@@ -16,7 +16,7 @@ class ScoreNormalizer:
     def __init__(
         self,
         gait_min_max: tuple[float, float] = (0.0, 1.0),
-        reid_min_max: tuple[float, float] = (-1.0, 1.0),
+        reid_min_max: tuple[float, float] = (0.0, 1.0),
     ) -> None:
         self.gait_min, self.gait_max = gait_min_max
         self.reid_min, self.reid_max = reid_min_max

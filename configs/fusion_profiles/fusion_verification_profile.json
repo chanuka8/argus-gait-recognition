@@ -1,0 +1,28 @@
+{
+  "profile_name": "verification_access_control",
+  "description": "Optimized for 1:1 and 1:N access control verification gates with lowest EER and strict FAR suppression.",
+  "model_type": "auc_learned_fusion",
+  "learned_weights": {
+    "w_gait": 0.6688,
+    "w_app": -0.1353,
+    "w_inter": 0.1959,
+    "bias": 0.0,
+    "profile": "identification",
+    "gait_calibrator": {
+      "A": 3.433122,
+      "B": -4.180074,
+      "is_fitted": true
+    },
+    "app_calibrator": {
+      "A": 4.674137,
+      "B": -3.234895,
+      "is_fitted": true
+    },
+    "is_fitted": true
+  },
+  "operating_threshold": 0.7009,
+  "gated_tar": 75.68,
+  "gated_frr": 18.92,
+  "roc_auc": 0.7646,
+  "eer": 28.46
+}

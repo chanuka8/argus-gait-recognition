@@ -1,0 +1,13 @@
+{
+  "profile_name": "identification_optimized",
+  "description": "Optimized for closed-set multi-camera tracking and watchlist Rank-1 identification.",
+  "model_type": "linear_dual_modal",
+  "gait_weight": 0.95,
+  "appearance_weight": 0.05,
+  "operating_threshold": 0.9757,
+  "rank1_accuracy": 86.49,
+  "rank5_accuracy": 94.59,
+  "map": 73.09,
+  "roc_auc": 0.7709,
+  "eer": 27.61
+}

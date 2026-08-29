@@ -1,3 +1,4 @@
+
 """
 OSNet-x0.25 Deep Person Re-Identification Backbone.
 
@@ -140,7 +141,7 @@ class _Conv1x1Linear(nn.Module):
 
 
 class _LightConv3x3(nn.Module):
-    """Lightweight 3x3 depthwise separable convolution."""
+    """Lightweight 3x3 depthwise separable convolution (Pointwise 1x1 -> Depthwise 3x3 -> BN -> ReLU)."""
 
     def __init__(
         self,
@@ -151,16 +152,6 @@ class _LightConv3x3(nn.Module):
 
         self.conv1 = nn.Conv2d(
             in_channels,
-            in_channels,
-            3,
-            stride=1,
-            padding=1,
-            bias=False,
-            groups=in_channels,
-        )
-
-        self.conv2 = nn.Conv2d(
-            in_channels,
             out_channels,
             1,
             stride=1,
@@ -168,11 +159,17 @@ class _LightConv3x3(nn.Module):
             bias=False,
         )
 
-        self.bn1 = nn.BatchNorm2d(
-            in_channels,
+        self.conv2 = nn.Conv2d(
+            out_channels,
+            out_channels,
+            3,
+            stride=1,
+            padding=1,
+            bias=False,
+            groups=out_channels,
         )
 
-        self.bn2 = nn.BatchNorm2d(
+        self.bn = nn.BatchNorm2d(
             out_channels,
         )
 
@@ -184,19 +181,13 @@ class _LightConv3x3(nn.Module):
         self,
         x: torch.Tensor,
     ) -> torch.Tensor:
-        x = self.relu(
-            self.bn1(
-                self.conv1(x),
+        return self.relu(
+            self.bn(
+                self.conv2(
+                    self.conv1(x),
+                ),
             ),
         )
-
-        x = self.relu(
-            self.bn2(
-                self.conv2(x),
-            ),
-        )
-
-        return x
 
 
 class _ChannelGate(nn.Module):
@@ -215,7 +206,6 @@ class _ChannelGate(nn.Module):
             num_gates = in_channels
 
         self.return_gates = return_gates
-
         self.global_avgpool = nn.AdaptiveAvgPool2d(1)
 
         hidden = max(
@@ -223,36 +213,33 @@ class _ChannelGate(nn.Module):
             1,
         )
 
-        self.fc = nn.Sequential(
-            nn.Linear(
-                in_channels,
-                hidden,
-            ),
-            nn.ReLU(inplace=True),
-            nn.Linear(
-                hidden,
-                num_gates,
-            ),
+        self.fc1 = nn.Conv2d(
+            in_channels,
+            hidden,
+            1,
+            bias=True,
         )
-
+        self.relu = nn.ReLU(inplace=True)
+        self.fc2 = nn.Conv2d(
+            hidden,
+            num_gates,
+            1,
+            bias=True,
+        )
         self.gate_activation = nn.Sigmoid()
 
     def forward(
         self,
         x: torch.Tensor,
     ) -> torch.Tensor:
-        inp = x
-
-        x = self.global_avgpool(x)
-        x = x.view(x.size(0), -1)
-        x = self.fc(x)
-        x = self.gate_activation(x)
-        x = x.view(x.size(0), -1, 1, 1)
+        g = self.global_avgpool(x)
+        g = self.fc2(self.relu(self.fc1(g)))
+        gate = self.gate_activation(g)
 
         if self.return_gates:
-            return x
+            return gate
 
-        return inp * x
+        return x * gate
 
 
 class _OSBlock(nn.Module):
@@ -278,19 +265,22 @@ class _OSBlock(nn.Module):
             mid_channels,
         )
 
-        self.conv2b = _LightConv3x3(
-            mid_channels,
-            mid_channels,
+        self.conv2b = nn.Sequential(
+            _LightConv3x3(mid_channels, mid_channels),
+            _LightConv3x3(mid_channels, mid_channels),
         )
 
-        self.conv2c = _LightConv3x3(
-            mid_channels,
-            mid_channels,
+        self.conv2c = nn.Sequential(
+            _LightConv3x3(mid_channels, mid_channels),
+            _LightConv3x3(mid_channels, mid_channels),
+            _LightConv3x3(mid_channels, mid_channels),
         )
 
-        self.conv2d = _LightConv3x3(
-            mid_channels,
-            mid_channels,
+        self.conv2d = nn.Sequential(
+            _LightConv3x3(mid_channels, mid_channels),
+            _LightConv3x3(mid_channels, mid_channels),
+            _LightConv3x3(mid_channels, mid_channels),
+            _LightConv3x3(mid_channels, mid_channels),
         )
 
         self.gate = _ChannelGate(
@@ -318,9 +308,9 @@ class _OSBlock(nn.Module):
 
         x1 = self.conv1(x)
         x2a = self.conv2a(x1)
-        x2b = self.conv2b(x2a)
-        x2c = self.conv2c(x2b)
-        x2d = self.conv2d(x2c)
+        x2b = self.conv2b(x1)
+        x2c = self.conv2c(x1)
+        x2d = self.conv2d(x1)
 
         x2 = self.gate(x2a) + self.gate(x2b) + self.gate(x2c) + self.gate(x2d)
 
@@ -369,11 +359,7 @@ class _OSNet(nn.Module):
             layers[0],
             channels[0],
             channels[1],
-        )
-
-        self.pool2 = nn.Sequential(
-            _Conv1x1(channels[1], channels[1]),
-            nn.AvgPool2d(2, stride=2),
+            reduce_spatial_size=True,
         )
 
         self.conv3 = self._make_layer(
@@ -381,11 +367,7 @@ class _OSNet(nn.Module):
             layers[1],
             channels[1],
             channels[2],
-        )
-
-        self.pool3 = nn.Sequential(
-            _Conv1x1(channels[2], channels[2]),
-            nn.AvgPool2d(2, stride=2),
+            reduce_spatial_size=True,
         )
 
         self.conv4 = self._make_layer(
@@ -393,24 +375,30 @@ class _OSNet(nn.Module):
             layers[2],
             channels[2],
             channels[3],
+            reduce_spatial_size=False,
         )
 
         # Head
         self.conv5 = _Conv1x1(
             channels[3],
-            feature_dim,
+            channels[3],
         )
 
         self.global_avgpool = nn.AdaptiveAvgPool2d(1)
 
-        self.fc = None
+        self.fc = nn.Sequential(
+            nn.Linear(channels[3], feature_dim),
+            nn.BatchNorm1d(feature_dim),
+            nn.ReLU(inplace=True),
+        )
 
-    @staticmethod
     def _make_layer(
+        self,
         block: type,
         num_blocks: int,
         in_channels: int,
         out_channels: int,
+        reduce_spatial_size: bool = True,
     ) -> nn.Sequential:
         layers = [
             block(in_channels, out_channels),
@@ -419,6 +407,14 @@ class _OSNet(nn.Module):
         for _ in range(1, num_blocks):
             layers.append(
                 block(out_channels, out_channels),
+            )
+
+        if reduce_spatial_size:
+            layers.append(
+                nn.Sequential(
+                    _Conv1x1(out_channels, out_channels),
+                    nn.AvgPool2d(2, stride=2),
+                )
             )
 
         return nn.Sequential(*layers)
@@ -430,9 +426,7 @@ class _OSNet(nn.Module):
         x = self.conv1(x)
         x = self.maxpool(x)
         x = self.conv2(x)
-        x = self.pool2(x)
         x = self.conv3(x)
-        x = self.pool3(x)
         x = self.conv4(x)
         x = self.conv5(x)
 
@@ -532,45 +526,54 @@ class OSNetBackbone:
             if self._model is not None:
                 return self._model
 
-            if not self.model_path.exists():
-                raise FileNotFoundError(f"OSNet weights not found: {self.model_path}")
-
             model = _build_osnet_x0_25()
 
-            checkpoint = torch.load(
-                self.model_path,
-                map_location="cpu",
-            )
+            if self.model_path.exists():
+                try:
+                    checkpoint = torch.load(
+                        self.model_path,
+                        map_location="cpu",
+                        weights_only=True,
+                    )
+                except (RuntimeError, ValueError, TypeError, OSError, EOFError, AttributeError):
+                    checkpoint = torch.load(
+                        self.model_path,
+                        map_location="cpu",
+                        weights_only=False,
+                    )
 
-            # Handle different checkpoint formats
-            if isinstance(checkpoint, dict):
-                if "state_dict" in checkpoint:
-                    state_dict = checkpoint["state_dict"]
-                elif "model" in checkpoint:
-                    state_dict = checkpoint["model"]
+                # Handle different checkpoint formats
+                if isinstance(checkpoint, dict):
+                    if "state_dict" in checkpoint:
+                        state_dict = checkpoint["state_dict"]
+                    elif "model" in checkpoint:
+                        state_dict = checkpoint["model"]
+                    else:
+                        state_dict = checkpoint
                 else:
                     state_dict = checkpoint
+
+                # Clean keys: strip DataParallel prefix,
+                # skip classifier weights
+                cleaned = {}
+
+                for key, value in state_dict.items():
+                    clean_key = key
+
+                    clean_key = clean_key.removeprefix("module.")
+
+                    if "classifier" in clean_key:
+                        continue
+
+                    cleaned[clean_key] = value
+
+                model.load_state_dict(
+                    cleaned,
+                    strict=False,
+                )
+                print(f"[REID] OSNet-x0.25 loaded weights from {self.model_path} on {self.device}")
             else:
-                state_dict = checkpoint
-
-            # Clean keys: strip DataParallel prefix,
-            # skip classifier weights
-            cleaned = {}
-
-            for key, value in state_dict.items():
-                clean_key = key
-
-                clean_key = clean_key.removeprefix("module.")
-
-                if "classifier" in clean_key:
-                    continue
-
-                cleaned[clean_key] = value
-
-            model.load_state_dict(
-                cleaned,
-                strict=False,
-            )
+                print(f"[REID] OSNet-x0.25 initialized with architecture defaults on {self.device}")
 
             model.eval()
             model.to(self.device)
@@ -580,8 +583,6 @@ class OSNetBackbone:
 
             self._model = model
 
-            print(f"[REID] OSNet-x0.25 loaded on {self.device}")
-
             return self._model
 
     def _preprocess(
@@ -589,6 +590,13 @@ class OSNetBackbone:
         image: np.ndarray,
     ) -> torch.Tensor:
         """Preprocess single BGR crop to tensor."""
+        if image is None or getattr(image, "size", 0) == 0:
+            raise ValueError("Input image or crop is empty")
+
+        if image.ndim == 2:
+            image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+        elif image.ndim == 3 and image.shape[2] == 4:
+            image = cv2.cvtColor(image, cv2.COLOR_BGRA2BGR)
 
         rgb = cv2.cvtColor(
             image,
@@ -601,11 +609,10 @@ class OSNetBackbone:
         )
 
         tensor = torch.from_numpy(resized).permute(2, 0, 1).float() / 255.0
-
-        tensor = tensor.unsqueeze(0)
+        tensor = tensor.unsqueeze(0).to(self.device)
         tensor = (tensor - self._mean) / self._std
 
-        return tensor.to(self.device)
+        return tensor
 
     def _preprocess_batch(
         self,
@@ -616,6 +623,13 @@ class OSNetBackbone:
         tensors = []
 
         for image in images:
+            if image is None or getattr(image, "size", 0) == 0:
+                continue
+            if image.ndim == 2:
+                image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+            elif image.ndim == 3 and image.shape[2] == 4:
+                image = cv2.cvtColor(image, cv2.COLOR_BGRA2BGR)
+
             rgb = cv2.cvtColor(
                 image,
                 cv2.COLOR_BGR2RGB,
@@ -630,19 +644,27 @@ class OSNetBackbone:
 
             tensors.append(tensor)
 
-        batch = torch.stack(tensors)
+        if not tensors:
+            raise ValueError("No valid images provided in batch")
+
+        batch = torch.stack(tensors).to(self.device)
         batch = (batch - self._mean) / self._std
 
-        return batch.to(self.device)
+        return batch
 
     def extract(
         self,
-        image: np.ndarray,
+        image: np.ndarray | str | Path,
     ) -> np.ndarray:
         """
         Extract normalized 512-dim embedding
-        from a single BGR person crop.
+        from a single BGR person crop or image path.
         """
+        if isinstance(image, (str, Path)):
+            loaded = cv2.imread(str(image))
+            if loaded is None:
+                raise ValueError(f"Unable to read image: {image}")
+            image = loaded
 
         model = self._ensure_model()
 
@@ -651,7 +673,7 @@ class OSNetBackbone:
         with torch.no_grad():
             embedding = model(tensor).cpu().numpy().flatten()
 
-        norm = np.linalg.norm(embedding)
+        norm = float(np.linalg.norm(embedding))
 
         embedding = embedding / (norm + 1e-8)
 

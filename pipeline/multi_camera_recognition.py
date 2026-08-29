@@ -1299,7 +1299,7 @@ class MultiCameraRecognitionPipeline:
                                     worker.buffers[track_id] = LiveGEI(max_frames=worker.gei_frames)
                                 worker.buffers[track_id].add(silhouette)
 
-                            if self.reid_extractor is not None:
+                            if self.reid_extractor is not None or self.appearance_extractor is not None:
                                 worker.reid_crops[track_id] = crop
 
                     if (

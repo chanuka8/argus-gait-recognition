@@ -1,5 +1,7 @@
 import time
 
+import numpy as np
+
 from storage.vector_store import VectorStore
 
 
@@ -8,6 +10,7 @@ class AppearanceGalleryUpdater:
         self,
         gallery_dir: str = "models/appearance_gallery",
     ) -> None:
+        self.gallery_dir = gallery_dir
         self.store = VectorStore(
             gallery_dir=gallery_dir,
         )
@@ -56,34 +59,58 @@ class AppearanceGalleryUpdater:
         person_id: str,
         embeddings: list,
     ) -> None:
+        """
+        Add one or more 512D appearance embeddings for a subject ID to the appearance gallery.
+
+        Raises:
+            ValueError: If embeddings list is empty or any embedding is not 512-dimensional.
+        """
+        if not person_id or not str(person_id).strip():
+            raise ValueError("person_id cannot be empty")
+
+        if not embeddings or len(embeddings) == 0:
+            raise ValueError(f"No embeddings provided for person {person_id}")
+
+        validated_embeddings = []
+        for i, emb in enumerate(embeddings):
+            vec = np.asarray(emb, dtype=np.float32).ravel()
+            if vec.size != 512:
+                raise ValueError(
+                    f"Appearance embeddings must be 512-dimensional (got shape {vec.shape}, size {vec.size} at index {i}). "
+                    f"Gait vectors (256D) cannot be inserted into the appearance gallery."
+                )
+
+            norm = float(np.linalg.norm(vec))
+            if norm == 0.0 or not np.isfinite(norm):
+                raise ValueError(f"Invalid zero or non-finite norm vector at index {i}")
+
+            vec = (vec / norm).astype(np.float32)
+            validated_embeddings.append(vec)
+
         current = self.store.load()
 
         if current is None:
             features = []
             labels = []
             metadata = {}
-
         else:
             features, labels, metadata = current
             features = features.tolist()
             labels = labels.tolist()
 
-        for embedding in embeddings:
+        for embedding in validated_embeddings:
             features.append(
-                embedding,
+                embedding.tolist(),
             )
-
             labels.append(
-                person_id,
+                str(person_id),
             )
 
-        metadata[person_id] = self._metadata_entry(
+        metadata[str(person_id)] = self._metadata_entry(
             metadata.get(
-                person_id,
+                str(person_id),
             ),
-            len(
-                embeddings,
-            ),
+            len(validated_embeddings),
         )
 
         self.store.save(
@@ -92,4 +119,4 @@ class AppearanceGalleryUpdater:
             metadata,
         )
 
-        print(f"Added appearance identity {person_id} ({len(embeddings)} embeddings)")
+        print(f"Added appearance identity {person_id} ({len(validated_embeddings)} embeddings)")

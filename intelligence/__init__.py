@@ -109,15 +109,93 @@ except ImportError:
     TrackRecoveryManager = None
 
 try:
+    from intelligence.candidate_validator import CandidateValidator, ValidationGateResult
+except ImportError:
+    CandidateValidator = None
+    ValidationGateResult = None
+
+try:
+    from intelligence.drift_detector import DriftDetector, DriftReport
+except ImportError:
+    DriftDetector = None
+    DriftReport = None
+
+try:
+    from intelligence.operational_embedding_collector import (
+        ObservationState,
+        OperationalEmbeddingCollector,
+        OperationalObservation,
+    )
+except ImportError:
+    ObservationState = None
+    OperationalEmbeddingCollector = None
+    OperationalObservation = None
+
+try:
+    from intelligence.date_aware_learning_scheduler import (
+        DateAwareLearningScheduler,
+        LearningJobRecord,
+        LearningJobStatus,
+    )
+except ImportError:
+    DateAwareLearningScheduler = None
+    LearningJobRecord = None
+    LearningJobStatus = None
+
+try:
+    from intelligence.background_learning_worker import BackgroundLearningWorker
+except ImportError:
+    BackgroundLearningWorker = None
+
+try:
+    from intelligence.continuous_improvement_engine import ContinuousImprovementEngine
+except ImportError:
+    ContinuousImprovementEngine = None
+
+try:
     from intelligence.track_reliability_scorer import TrackReliabilityScorer
 except ImportError:
     TrackReliabilityScorer = None
 
+try:
+    from intelligence.track_identity_aggregator import TrackIdentityAggregator
+except ImportError:
+    TrackIdentityAggregator = None
+
+try:
+    from intelligence.score_calibrator import ScoreCalibrator
+except ImportError:
+    ScoreCalibrator = None
+
+try:
+    from intelligence.confusion_detector import ConfusionDetector
+except ImportError:
+    ConfusionDetector = None
+
+try:
+    from intelligence.nn_fine_tuner import NNFineTuner
+except ImportError:
+    NNFineTuner = None
+
+try:
+    from intelligence.learned_fusion import LearnedFusion
+except ImportError:
+    LearnedFusion = None
+
+try:
+    from intelligence.fusion_diagnostics import FusionDiagnostics
+except ImportError:
+    FusionDiagnostics = None
+
 __all__ = [
     "AppearanceEmbeddingExtractor",
+    "BackgroundLearningWorker",
     "CameraTopologyLearner",
     "CameraTransitionModel",
+    "CandidateValidator",
     "ConfidenceScorer",
+    "ConfusionDetector",
+    "ContinuousImprovementEngine",
     "CrossCameraTracker",
     "CrowdDensityEstimator",
     "CrowdDensityLevel",
@@ -126,25 +204,39 @@ __all__ = [
     "CrowdIntelligenceSystem",
     "CrowdOcclusionAnalyzer",
     "CrowdRobustnessManager",
+    "DateAwareLearningScheduler",
     "DeferralResult",
+    "DriftDetector",
+    "DriftReport",
     "DualModalFusion",
     "DynamicFusionWeights",
     "FrameCrowdAnalysis",
+    "FusionDiagnostics",
     "FusionState",
     "LearnedEdgeStats",
+    "LearnedFusion",
+    "LearningJobRecord",
+    "LearningJobStatus",
     "LostTrackRecord",
     "MissingPersonWorkflow",
     "MultiCameraEvidenceFusion",
     "MultiCameraFusionResult",
+    "NNFineTuner",
+    "ObservationState",
     "OpenSetDecisionResult",
     "OpenSetRecognizer",
     "OpenSetState",
+    "OperationalEmbeddingCollector",
+    "OperationalObservation",
     "QualityAssessment",
     "RecognitionDeferralEngine",
     "RecognitionState",
+    "ScoreCalibrator",
     "ScoreNormalizer",
+    "TrackIdentityAggregator",
     "TrackRecoveryManager",
     "TrackReliabilityScorer",
+    "ValidationGateResult",
     "WatchlistEntry",
     "WatchlistManager",
 ]

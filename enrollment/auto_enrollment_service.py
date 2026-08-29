@@ -6,10 +6,13 @@ from pathlib import Path
 import cv2
 
 from core.logger import setup_logger
+from enrollment.enrollment_lifecycle import EnrollmentLifecycleManager, EnrollmentStatus
 from enrollment.enrollment_manager import EnrollmentManager
 from pipeline.steps.live_gei import LiveGEI
 from pipeline.steps.silhouette_step import SilhouetteStep
 from pipeline.steps.tracking import TrackingStep
+from preprocessing.video_quality_gate import DeterministicVideoQualityGate
+from storage.embedding_database import EmbeddingDatabase
 from storage.vector_store import VectorStore
 
 
@@ -25,6 +28,8 @@ class AutoEnrollmentService:
         scan_interval: int = 5,
         live_gallery_dir: str = "models/live_gallery",
         appearance_gallery_dir: str = "models/appearance_gallery",
+        db_dir: str = "data/embedding_db",
+        auto_delete_raw: bool = True,
     ) -> None:
         self.input_dir = Path(input_dir)
         self.processed_dir = Path(processed_dir)
@@ -33,50 +38,37 @@ class AutoEnrollmentService:
         self.gei_frames = gei_frames
         self.video_stride = video_stride
         self.scan_interval = scan_interval
+        self.auto_delete_raw = auto_delete_raw
 
         self.logger = setup_logger("ARGUS.AutoEnrollment")
         self.enrollment_manager = EnrollmentManager()
         self.tracker = TrackingStep()
         self.silhouette_step = SilhouetteStep()
+        self.quality_gate = DeterministicVideoQualityGate()
 
-        self.live_store = VectorStore(
-            gallery_dir=live_gallery_dir,
+        self.embedding_db = EmbeddingDatabase(
+            db_dir=db_dir,
+            gait_gallery_dir=live_gallery_dir,
+            appearance_gallery_dir=appearance_gallery_dir,
         )
+        self.lifecycle_manager = EnrollmentLifecycleManager(db=self.embedding_db)
 
-        self.appearance_store = VectorStore(
-            gallery_dir=appearance_gallery_dir,
-        )
+        self.live_store = VectorStore(gallery_dir=live_gallery_dir)
+        self.appearance_store = VectorStore(gallery_dir=appearance_gallery_dir)
 
-        self.input_dir.mkdir(
-            parents=True,
-            exist_ok=True,
-        )
+        self.input_dir.mkdir(parents=True, exist_ok=True)
+        self.processed_dir.mkdir(parents=True, exist_ok=True)
+        self.photo_processed_dir.mkdir(parents=True, exist_ok=True)
 
-        self.processed_dir.mkdir(
-            parents=True,
-            exist_ok=True,
-        )
-
-        self.photo_processed_dir.mkdir(
-            parents=True,
-            exist_ok=True,
-        )
-
-    def _person_folders(
-        self,
-    ) -> list[Path]:
+    def _person_folders(self) -> list[Path]:
         return sorted(
             folder
             for folder in self.input_dir.iterdir()
             if folder.is_dir() and not folder.name.startswith("_") and not folder.name.startswith(".")
         )
 
-    def _input_files(
-        self,
-        person_folder: Path,
-    ) -> list[Path]:
+    def _input_files(self, person_folder: Path) -> list[Path]:
         files: list[Path] = []
-
         for pattern in (
             "*.png",
             "*.jpg",
@@ -86,45 +78,15 @@ class AutoEnrollmentService:
             "*.mov",
         ):
             files.extend(person_folder.glob(pattern))
+        return sorted(files)
 
-        return sorted(
-            files,
-        )
+    def _image_files(self, files: list[Path]) -> list[Path]:
+        return [file for file in files if file.suffix.lower() in {".png", ".jpg", ".jpeg"}]
 
-    def _image_files(
-        self,
-        files: list[Path],
-    ) -> list[Path]:
-        return [
-            file
-            for file in files
-            if file.suffix.lower()
-            in {
-                ".png",
-                ".jpg",
-                ".jpeg",
-            }
-        ]
+    def _video_files(self, files: list[Path]) -> list[Path]:
+        return [file for file in files if file.suffix.lower() in {".mp4", ".avi", ".mov"}]
 
-    def _video_files(
-        self,
-        files: list[Path],
-    ) -> list[Path]:
-        return [
-            file
-            for file in files
-            if file.suffix.lower()
-            in {
-                ".mp4",
-                ".avi",
-                ".mov",
-            }
-        ]
-
-    def _fingerprint(
-        self,
-        files: list[Path],
-    ) -> dict:
+    def _fingerprint(self, files: list[Path]) -> dict:
         return {
             str(path.name): {
                 "size": path.stat().st_size,
@@ -133,42 +95,20 @@ class AutoEnrollmentService:
             for path in files
         }
 
-    def _marker_path(
-        self,
-        person_folder: Path,
-    ) -> Path:
+    def _marker_path(self, person_folder: Path) -> Path:
         return person_folder / self.marker_name
 
-    def _load_marker(
-        self,
-        person_folder: Path,
-    ) -> dict | None:
-        marker = self._marker_path(
-            person_folder,
-        )
-
+    def _load_marker(self, person_folder: Path) -> dict | None:
+        marker = self._marker_path(person_folder)
         if not marker.exists():
             return None
+        with open(marker, "r", encoding="utf-8") as file:
+            return json.load(file)
 
-        with open(
-            marker,
-            "r",
-            encoding="utf-8",
-        ) as file:
-            return json.load(
-                file,
-            )
-
-    def _save_marker(
-        self,
-        person_folder: Path,
-        fingerprint: dict,
-        result: dict,
-    ) -> None:
-        marker = self._marker_path(
-            person_folder,
-        )
-
+    def _save_marker(self, person_folder: Path, fingerprint: dict, result: dict) -> None:
+        if not person_folder.exists():
+            return
+        marker = self._marker_path(person_folder)
         payload = {
             "person_id": person_folder.name,
             "fingerprint": fingerprint,
@@ -176,226 +116,78 @@ class AutoEnrollmentService:
             "status": "enrolled" if result.get("success") else "failed",
             "updated_at": time.time(),
         }
+        with open(marker, "w", encoding="utf-8") as file:
+            json.dump(payload, file, indent=4)
 
-        with open(
-            marker,
-            "w",
-            encoding="utf-8",
-        ) as file:
-            json.dump(
-                payload,
-                file,
-                indent=4,
-            )
-
-    def _metadata(
-        self,
-        store: VectorStore,
-    ) -> dict:
-        current = store.load()
-
-        if current is None:
-            return {}
-
-        _, _, metadata = current
-
-        return metadata
-
-    def _already_enrolled(
-        self,
-        person_id: str,
-        has_videos: bool,
-        has_photos: bool,
-    ) -> bool:
-        gait_metadata = self._metadata(
-            self.live_store,
-        )
-
-        appearance_metadata = self._metadata(
-            self.appearance_store,
-        )
-
-        gait_done = not has_videos or person_id in gait_metadata
-
-        appearance_done = not has_photos or person_id in appearance_metadata
-
-        return gait_done and appearance_done
-
-    def _needs_enrollment(
-        self,
-        person_folder: Path,
-        fingerprint: dict,
-        has_videos: bool,
-        has_photos: bool,
-        force: bool = False,
-    ) -> bool:
-        if force:
-            return True
-
-        person_id = person_folder.name
-
-        if self._already_enrolled(
-            person_id,
-            has_videos,
-            has_photos,
-        ):
-            return False
-
-        marker = self._load_marker(
-            person_folder,
-        )
-
-        if marker is None:
-            return True
-
-        if marker.get("status") != "enrolled":
-            return True
-
-        return marker.get("fingerprint") != fingerprint
-
-    def _target_folder(
-        self,
-        root: Path,
-        person_id: str,
-    ) -> Path:
+    def _target_folder(self, root: Path, person_id: str) -> Path:
         folder = root / person_id
-
-        folder.mkdir(
-            parents=True,
-            exist_ok=True,
-        )
-
+        folder.mkdir(parents=True, exist_ok=True)
         return folder
 
-    def _clear_target_folder(
-        self,
-        target_folder: Path,
-    ) -> None:
+    def _clear_target_folder(self, target_folder: Path) -> None:
         if target_folder.exists():
-            shutil.rmtree(
-                target_folder,
-            )
+            shutil.rmtree(target_folder)
+        target_folder.mkdir(parents=True, exist_ok=True)
 
-        target_folder.mkdir(
-            parents=True,
-            exist_ok=True,
-        )
-
-    def _copy_image(
-        self,
-        image_path: Path,
-        target_folder: Path,
-    ) -> int:
+    def _copy_image(self, image_path: Path, target_folder: Path) -> int:
         target = target_folder / image_path.name
-
-        shutil.copy2(
-            image_path,
-            target,
-        )
-
+        shutil.copy2(image_path, target)
         return 1
 
-    def _crop_person(
-        self,
-        frame,
-        box,
-    ):
+    def _crop_person(self, frame, box):
         h, w = frame.shape[:2]
-
-        x1, y1, x2, y2 = map(
-            int,
-            box,
-        )
-
-        x1 = max(
-            0,
-            x1,
-        )
-        y1 = max(
-            0,
-            y1,
-        )
-        x2 = min(
-            w,
-            x2,
-        )
-        y2 = min(
-            h,
-            y2,
-        )
-
+        x1, y1, x2, y2 = map(int, box)
+        x1 = max(0, x1)
+        y1 = max(0, y1)
+        x2 = min(w, x2)
+        y2 = min(h, y2)
         if x2 <= x1 or y2 <= y1:
             return None
-
         return frame[y1:y2, x1:x2]
 
-    def _process_video(
-        self,
-        video_path: Path,
-        target_folder: Path,
-    ) -> int:
-        cap = cv2.VideoCapture(
-            str(video_path),
-        )
-
+    def _process_video(self, video_path: Path, target_folder: Path) -> list[Path]:
+        cap = cv2.VideoCapture(str(video_path))
         if not cap.isOpened():
             self.logger.warning(f"Unable to open video: {video_path}")
-
-            return 0
+            return []
 
         buffers: dict[int, LiveGEI] = {}
-        saved = 0
+        crops_per_track: dict[int, list] = {}
+        silhouettes_per_track: dict[int, list] = {}
+        saved_paths: list[Path] = []
         frame_index = 0
 
         while True:
             ret, frame = cap.read()
-
             if not ret:
                 break
 
             frame_index += 1
-
-            detections = self.tracker.track(
-                frame,
-            )
-
+            detections = self.tracker.track(frame)
             xyxy = detections.xyxy
             tracker_ids = detections.tracker_id
 
             if tracker_ids is None:
                 continue
 
-            for box, track_id in zip(
-                xyxy,
-                tracker_ids,
-            ):
-                track_id = int(
-                    track_id,
-                )
-
-                crop = self._crop_person(
-                    frame,
-                    box,
-                )
-
+            for box, track_id in zip(xyxy, tracker_ids):
+                track_id = int(track_id)
+                crop = self._crop_person(frame, box)
                 if crop is None:
                     continue
 
-                silhouette = self.silhouette_step.extract_from_crop(
-                    crop,
-                )
-
+                silhouette = self.silhouette_step.extract_from_crop(crop)
                 if silhouette is None:
                     continue
 
                 if track_id not in buffers:
-                    buffers[track_id] = LiveGEI(
-                        max_frames=self.gei_frames,
-                    )
+                    buffers[track_id] = LiveGEI(max_frames=self.gei_frames)
+                    crops_per_track[track_id] = []
+                    silhouettes_per_track[track_id] = []
 
-                buffers[track_id].add(
-                    silhouette,
-                )
+                crops_per_track[track_id].append(crop)
+                silhouettes_per_track[track_id].append(silhouette)
+                buffers[track_id].add(silhouette)
 
                 if not buffers[track_id].ready():
                     continue
@@ -403,183 +195,118 @@ class AutoEnrollmentService:
                 if frame_index % self.video_stride != 0:
                     continue
 
-                gei = buffers[track_id].build()
+                q_res = self.quality_gate.assess_video_clip(
+                    crops_per_track[track_id][-self.gei_frames :],
+                    silhouettes_per_track[track_id][-self.gei_frames :],
+                )
+
+                if not q_res.passed:
+                    if q_res.salvageable:
+                        enhanced_crops = [
+                            self.quality_gate.enhance_crop_deterministic(c)
+                            for c in crops_per_track[track_id][-self.gei_frames :]
+                        ]
+                        enhanced_silhouettes = [
+                            self.silhouette_step.extract_from_crop(ec) for ec in enhanced_crops if ec is not None
+                        ]
+                        valid_silhouettes = [s for s in enhanced_silhouettes if s is not None]
+                        if len(valid_silhouettes) >= self.gei_frames:
+                            rebuilt_gei = LiveGEI(max_frames=self.gei_frames)
+                            for vs in valid_silhouettes:
+                                rebuilt_gei.add(vs)
+                            gei = rebuilt_gei.build()
+                        else:
+                            continue
+                    else:
+                        continue
+                else:
+                    gei = buffers[track_id].build()
 
                 if gei is None:
                     continue
 
                 output_name = f"{video_path.stem}_track{track_id}_frame{frame_index}.png"
-
                 output_path = target_folder / output_name
-
-                cv2.imwrite(
-                    str(output_path),
-                    gei,
-                )
-
-                saved += 1
+                cv2.imwrite(str(output_path), gei)
+                saved_paths.append(output_path)
 
         cap.release()
+        return saved_paths
 
-        return saved
-
-    def _prepare_photo_folder(
-        self,
-        person_id: str,
-        image_files: list[Path],
-    ) -> tuple[Path, int]:
-        target_folder = self._target_folder(
-            self.photo_processed_dir,
-            person_id,
-        )
-
-        self._clear_target_folder(
-            target_folder,
-        )
-
+    def _prepare_photo_folder(self, person_id: str, image_files: list[Path]) -> tuple[Path, int]:
+        target_folder = self._target_folder(self.photo_processed_dir, person_id)
+        self._clear_target_folder(target_folder)
         prepared = 0
-
         for image_path in image_files:
-            prepared += self._copy_image(
-                image_path,
-                target_folder,
-            )
-
+            prepared += self._copy_image(image_path, target_folder)
         return target_folder, prepared
 
-    def _prepare_gait_folder(
-        self,
-        person_id: str,
-        video_files: list[Path],
-    ) -> tuple[Path, int]:
-        target_folder = self._target_folder(
-            self.processed_dir,
-            person_id,
-        )
-
-        self._clear_target_folder(
-            target_folder,
-        )
-
-        prepared = 0
-
-        for video_path in video_files:
-            prepared += self._process_video(
-                video_path,
-                target_folder,
-            )
-
-        return target_folder, prepared
-
-    def enroll_pending(
-        self,
-        force: bool = False,
-    ) -> list[dict]:
+    def enroll_pending(self, force: bool = False) -> list[dict]:
+        """
+        Scan input directory and enroll pending identities using the safe lifecycle.
+        Only deletes raw files if embedding extraction and persistence verification pass.
+        """
         results: list[dict] = []
 
         for person_folder in self._person_folders():
-            files = self._input_files(
-                person_folder,
-            )
-
+            files = self._input_files(person_folder)
             if not files:
                 continue
 
-            image_files = self._image_files(
-                files,
-            )
-
-            video_files = self._video_files(
-                files,
-            )
-
-            fingerprint = self._fingerprint(
-                files,
-            )
-
+            image_files = self._image_files(files)
+            video_files = self._video_files(files)
+            fingerprint = self._fingerprint(files)
             person_id = person_folder.name
 
-            if image_files and not video_files:
-                print(f"Skipped photo-only folder. Gait enrollment requires walking video: {person_id}")
-                continue
+            self.logger.info(
+                f"Auto enrollment processing '{person_id}': {len(video_files)} videos, {len(image_files)} photos"
+            )
 
-            if not video_files:
-                continue
+            generated_gei_paths: list[Path] = []
+            if video_files:
+                gait_target = self._target_folder(self.processed_dir, person_id)
+                self._clear_target_folder(gait_target)
+                for v_path in video_files:
+                    geis = self._process_video(v_path, gait_target)
+                    generated_gei_paths.extend(geis)
 
-            if not self._needs_enrollment(
-                person_folder=person_folder,
-                fingerprint=fingerprint,
-                has_videos=True,
-                has_photos=False,
-                force=force,
-            ):
-                print(f"Skipped already enrolled identity: {person_id}")
+            # Execute transactional lifecycle enrollment
+            job_result = self.lifecycle_manager.enroll_from_media(
+                person_id=person_id,
+                video_paths=video_files,
+                photo_paths=image_files,
+                gei_paths=generated_gei_paths,
+                auto_delete_raw=self.auto_delete_raw,
+            )
 
-                continue
-
-            print(f"\nAuto enrollment detected new gait data: {person_id}")
-
-            print(f"  Videos found: {len(video_files)}")
-
-            print(f"  Photos found: {len(image_files)}")
-
-            if image_files:
-                print("  Photos ignored for gait-only enrollment.")
-
-            result = {
-                "success": False,
+            res_dict = {
+                "success": job_result.status == EnrollmentStatus.EMBEDDING_ONLY,
                 "person_id": person_id,
-                "message": "No usable enrollment data generated",
-                "gait_embeddings_added": 0,
-                "appearance_embeddings_added": 0,
+                "status": job_result.status.value,
+                "gait_embeddings_added": job_result.gait_embeddings_count,
+                "appearance_embeddings_added": job_result.appearance_embeddings_count,
+                "raw_files_deleted": job_result.raw_files_deleted,
+                "raw_files_retained": job_result.raw_files_retained,
+                "error_message": job_result.error_message,
             }
 
-            gait_folder, gait_prepared = self._prepare_gait_folder(
-                person_id,
-                video_files,
-            )
+            if person_folder.exists():
+                self._save_marker(person_folder, fingerprint, res_dict)
 
-            if gait_prepared > 0:
-                gait_result = self.enrollment_manager.enroll_gait_person(
-                    str(gait_folder),
+            results.append(res_dict)
+
+            if res_dict["success"]:
+                self.logger.info(
+                    f"Enrollment completed for '{person_id}'. Raw files cleaned up. State: EMBEDDING_ONLY."
                 )
-
-                result["gait_result"] = gait_result
-                result["gait_embeddings_added"] = gait_result.get(
-                    "embeddings_added",
-                    0,
-                )
-
-            total_embeddings = int(
-                result.get(
-                    "gait_embeddings_added",
-                    0,
-                )
-            )
-
-            result["success"] = total_embeddings > 0
-            result["message"] = "Gait enrollment completed" if result["success"] else "No valid embeddings generated"
-
-            self._save_marker(
-                person_folder,
-                fingerprint,
-                result,
-            )
-
-            results.append(
-                result,
-            )
-
-            if result["success"]:
-                print(f"  Gait enrollment completed: {person_id}")
             else:
-                print(f"  Gait enrollment failed: {person_id} | No valid embeddings generated")
+                self.logger.warning(
+                    f"Enrollment failed for '{person_id}'. Raw files retained. State: {res_dict['status']}."
+                )
 
         return results
 
-    def watch(
-        self,
-    ) -> None:
+    def watch(self) -> None:
         print("\n=== ARGUS AUTO ENROLLMENT WATCHER ===")
         print(f"Watching: {self.input_dir}")
         print("Press CTRL + C to stop\n")
@@ -587,10 +314,7 @@ class AutoEnrollmentService:
         while True:
             try:
                 self.enroll_pending()
-                time.sleep(
-                    self.scan_interval,
-                )
-
+                time.sleep(self.scan_interval)
             except KeyboardInterrupt:
                 print("\nAuto enrollment watcher stopped.")
                 break
