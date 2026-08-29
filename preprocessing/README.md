@@ -19,8 +19,10 @@ The `preprocessing` package handles video frame preprocessing, silhouette extrac
 | [casia_extractor.py](casia_extractor.py) | Dataset parser extracting silhouettes and metadata from raw CASIA-B structure |
 | [dataset_builder.py](dataset_builder.py) | Builds train/test dataset splits and pre-computes GEI feature caches |
 | [gei_builder.py](gei_builder.py) | Synthesizes Gait Energy Images by temporal averaging over binary silhouette frames |
+| [image_enhancement.py](image_enhancement.py) | Module/resource file image_enhancement.py |
 | [silhouette_extractor.py](silhouette_extractor.py) | Extracts binary human silhouettes using Otsu thresholding, morphological filters, and contour sizing |
 | [skeleton_extractor.py](skeleton_extractor.py) | Experimental skeleton pose estimation helper module |
+| [video_quality_gate.py](video_quality_gate.py) | Module/resource file video_quality_gate.py |
 <!-- END SYNC: KEY_MODULES -->
 
 ## Data Flow

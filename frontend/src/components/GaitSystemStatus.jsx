@@ -1,5 +1,5 @@
 import React from 'react';
-import { useGait } from '../contexts/GaitContext';
+import { useGait } from '../hooks/useGait';
 import './GaitSystemStatus.css';
 
 export const GaitSystemStatus = () => {

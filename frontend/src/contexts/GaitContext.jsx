@@ -1,8 +1,7 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { gaitApi, normalizeRecognitionEvent } from '../services/gaitApi';
 import { getStreamUrl, getSnapshotUrl } from '../config/apiConfig';
-
-const GaitContext = createContext(null);
+import { GaitContext } from './gaitContextDef';
 
 export const GaitProvider = ({ children }) => {
   const [health, setHealth] = useState(null);
@@ -133,12 +132,4 @@ export const GaitProvider = ({ children }) => {
   return <GaitContext.Provider value={value}>{children}</GaitContext.Provider>;
 };
 
-export const useGait = () => {
-  const context = useContext(GaitContext);
-  if (!context) {
-    throw new Error('useGait must be used within a GaitProvider');
-  }
-  return context;
-};
-
-export default GaitContext;
+export default GaitProvider;

@@ -1,14 +1,9 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { db } from '../firebaseConfig';
 import { collection, query, where, getDocs, doc, setDoc, onSnapshot, getDoc, deleteDoc } from 'firebase/firestore';
 import { addLog } from '../utils/logService';
-
-const AuthContext = createContext();
-
-export const useAuth = () => {
-    return useContext(AuthContext);
-};
+import { AuthContext } from './authContextDef';
 
 export const AuthProvider = ({ children }) => {
     const [currentUser, setCurrentUser] = useState(null);
@@ -198,3 +193,5 @@ export const AuthProvider = ({ children }) => {
         </AuthContext.Provider>
     );
 };
+
+export default AuthProvider;

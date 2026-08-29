@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useGait } from '../contexts/GaitContext';
+import { useGait } from '../hooks/useGait';
 import './RecognitionEvents.css';
 
 export const RecognitionEvents = () => {

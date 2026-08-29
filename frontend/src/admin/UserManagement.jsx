@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { UserPlus, Search, ToggleLeft, ToggleRight, Trash2, X, Camera, Eye, EyeOff } from 'lucide-react';
 import AdminHeader from './AdminHeader';
 import { db, storage } from '../firebaseConfig';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { collection, getDocs, doc, getDoc, setDoc, deleteDoc, updateDoc, query, where } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import { addLog } from '../utils/logService';

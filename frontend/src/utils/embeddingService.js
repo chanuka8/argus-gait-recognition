@@ -1,42 +1,106 @@
 
 import { db } from '../firebaseConfig';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { FACE_API_BASE_URL } from '../config/apiConfig';
+import { API_BASE } from '../config/apiConfig';
 
+/**
+ * Send media files (images + videos) to the ARGUS AI unified /api/v1/enroll endpoint
+ * for gait + appearance embedding extraction.
+ *
+ * This replaces the legacy /process-images and /process-video endpoints with
+ * the production enrollment pipeline that uses:
+ *   - ByGaitLight CNN → 256D Gait Embedding
+ *   - OSNet ReID → 512D Appearance Embedding
+ *   - Firebase Durable Embedding Persistence
+ */
+export async function sendMediaToModel(caseId, name, imageFiles, videoFiles) {
+    const errors = [];
+    let enrollResult = null;
+
+    const allFiles = [];
+    if (imageFiles && imageFiles.length > 0) {
+        allFiles.push(...imageFiles);
+    }
+    if (videoFiles && videoFiles.length > 0) {
+        allFiles.push(...videoFiles);
+    }
+
+    if (allFiles.length === 0) {
+        return { success: true, errors: [], status: 'NO_MEDIA' };
+    }
+
+    try {
+        const formData = new FormData();
+        formData.append('person_id', caseId);
+
+        allFiles.forEach((file) => formData.append('files', file));
+
+        const baseUrl = API_BASE || '';
+        const url = `${baseUrl}/api/v1/enroll`;
+
+        const response = await fetch(url, { method: 'POST', body: formData });
+        if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(`Enrollment API error: ${response.status} — ${errText}`);
+        }
+        enrollResult = await response.json();
+        console.log('[ARGUS] Enrollment complete:', enrollResult);
+    } catch (err) {
+        console.error('[ARGUS] Enrollment failed:', err);
+        errors.push(`Enrollment: ${err.message}`);
+    }
+
+    // Save enrollment metadata to Firestore
+    if (enrollResult) {
+        try {
+            await saveEnrollmentResultToFirestore(caseId, enrollResult);
+        } catch (err) {
+            console.error('[ARGUS] Firestore enrollment save failed:', err);
+            errors.push(`Firestore: ${err.message}`);
+        }
+    }
+
+    return { success: errors.length === 0, errors, enrollResult };
+}
+
+/**
+ * Save enrollment results and embedding lineage to Firestore.
+ */
+export async function saveEnrollmentResultToFirestore(caseId, enrollResult) {
+    const resultsRef = doc(db, 'biometric_cases', caseId);
+    await setDoc(resultsRef, {
+        caseId,
+        status: enrollResult?.status || 'ENROLLED',
+        gaitEmbeddingsCount: enrollResult?.gait_embeddings_added || 0,
+        appearanceEmbeddingsCount: enrollResult?.appearance_embeddings_added || 0,
+        firebasePersisted: enrollResult?.firebase_status || 'PENDING',
+        enrolledAt: serverTimestamp(),
+        pipeline: 'ByGaitLight-256D + OSNet-512D',
+    });
+    console.log(`[ARGUS] Enrollment metadata saved to Firestore for case: ${caseId}`);
+}
+
+/**
+ * Legacy: Send images to model (for backward compatibility).
+ * Routes through the unified enrollment endpoint.
+ */
 export async function sendImagesToModel(imageFiles, caseId, name) {
     if (!imageFiles || imageFiles.length === 0) return { results: [], total_files: 0 };
-
-    const formData = new FormData();
-    imageFiles.forEach((file) => formData.append('files', file));
-    formData.append('case_id', caseId);
-    formData.append('name', name);
-
-    const url = FACE_API_BASE_URL ? `${FACE_API_BASE_URL}/process-images` : '/process-images';
-    const response = await fetch(url, { method: 'POST', body: formData });
-    if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`API error (images): ${response.status} — ${errText}`);
-    }
-    return await response.json();
+    return sendMediaToModel(caseId, name, imageFiles, []);
 }
 
+/**
+ * Legacy: Send video to model (for backward compatibility).
+ * Routes through the unified enrollment endpoint.
+ */
 export async function sendVideoToModel(videoFile, caseId, name) {
     if (!videoFile) return null;
-
-    const formData = new FormData();
-    formData.append('file', videoFile);
-    formData.append('case_id', caseId);
-    formData.append('name', name);
-
-    const url = FACE_API_BASE_URL ? `${FACE_API_BASE_URL}/process-video` : '/process-video';
-    const response = await fetch(url, { method: 'POST', body: formData });
-    if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`API error (video "${videoFile.name}"): ${response.status} — ${errText}`);
-    }
-    return await response.json();
+    return sendMediaToModel(caseId, name, [], [videoFile]);
 }
 
+/**
+ * Legacy: Save model results to Firestore (for backward compatibility).
+ */
 export async function saveModelResultsToFirestore(caseId, imageResults, videoResults) {
     const resultsRef = doc(db, 'face_model_results', caseId);
     await setDoc(resultsRef, {
@@ -48,42 +112,4 @@ export async function saveModelResultsToFirestore(caseId, imageResults, videoRes
         processedAt: serverTimestamp()
     });
     console.log(`[ARGUS] ML results saved to Firestore for case: ${caseId}`);
-}
-
-export async function sendMediaToModel(caseId, name, imageFiles, videoFiles) {
-    const errors = [];
-    let imageResults = null;
-    const videoResults = [];
-
-    if (imageFiles && imageFiles.length > 0) {
-        try {
-            imageResults = await sendImagesToModel(imageFiles, caseId, name);
-            console.log('[ARGUS] Images registered:', imageResults);
-        } catch (err) {
-            console.error('[ARGUS] Image send failed:', err);
-            errors.push(`Images: ${err.message}`);
-        }
-    }
-
-    for (const videoFile of (videoFiles || [])) {
-        try {
-            const result = await sendVideoToModel(videoFile, caseId, name);
-            if (result) videoResults.push(result);
-            console.log(`[ARGUS] Video registered: ${videoFile.name}`, result);
-        } catch (err) {
-            console.error('[ARGUS] Video send failed "${videoFile.name}":', err);
-            errors.push(`Video (${videoFile.name}): ${err.message}`);
-        }
-    }
-
-    if (imageResults || videoResults.length > 0) {
-        try {
-            await saveModelResultsToFirestore(caseId, imageResults, videoResults);
-        } catch (err) {
-            console.error('[ARGUS] Firestore save failed:', err);
-            errors.push(`Firestore: ${err.message}`);
-        }
-    }
-
-    return { success: errors.length === 0, errors };
 }

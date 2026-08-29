@@ -16,6 +16,7 @@ The `enrollment` package handles target identity registration, gallery database 
 |---|---|
 | [appearance_gallery_updater.py](appearance_gallery_updater.py) | Updates appearance feature embeddings in the enrollment gallery |
 | [auto_enrollment_service.py](auto_enrollment_service.py) | Automated background service for target identity auto-registration |
+| [enrollment_lifecycle.py](enrollment_lifecycle.py) | Module/resource file enrollment_lifecycle.py |
 | [enrollment_manager.py](enrollment_manager.py) | Main enrollment facade handling target identity addition, deletion, and sync |
 | [enrollment_queue.py](enrollment_queue.py) | Thread-safe asynchronous queue for batch enrollment tasks |
 | [enrollment_validator.py](enrollment_validator.py) | Quality inspector verifying resolution, silhouette suitability, and GEI validity |

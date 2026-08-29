@@ -6,8 +6,8 @@ import Notifications from './Notifications';
 import UserProfileModal from './UserProfileModal';
 import { db } from '../firebaseConfig';
 import { collection, getDocs } from 'firebase/firestore';
-import { useAuth } from '../contexts/AuthContext';
-import { useGait } from '../contexts/GaitContext';
+import { useAuth } from '../hooks/useAuth';
+import { useGait } from '../hooks/useGait';
 import './History.css';
 
 const sortOptions = [

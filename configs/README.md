@@ -17,6 +17,7 @@ The `configs` package contains declarative YAML and JSON configuration manifests
 | [auto_train.yaml](auto_train.yaml) | Automated model re-training trigger rules |
 | [base.yaml](base.yaml) | Base system-wide default settings and path definitions |
 | [cameras.yaml](cameras.yaml) | RTSP and USB camera stream source definitions |
+| [continuous_learning.yaml](continuous_learning.yaml) | Module/resource file continuous_learning.yaml |
 | [detection.yaml](detection.yaml) | YOLO person detector parameters and confidence bounds |
 | [gallery_probe_manifest.json](gallery_probe_manifest.json) | Evaluation gallery and probe set split definitions |
 | [gei.yaml](gei.yaml) | Silhouette extraction and GEI temporal window parameters |

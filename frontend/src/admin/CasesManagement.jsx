@@ -4,7 +4,7 @@ import AdminHeader from './AdminHeader';
 import { db, storage } from '../firebaseConfig';
 import { collection, getDocs, doc, getDoc, deleteDoc, query, where } from 'firebase/firestore';
 import { ref, deleteObject } from 'firebase/storage';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { addLog } from '../utils/logService';
 import './CasesManagement.css';
 

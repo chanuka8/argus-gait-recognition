@@ -6,7 +6,9 @@ The `evaluation` package implements scientific benchmarks, metrics evaluation, s
 
 - Computing scientific biometric metrics: Rank-1/Rank-5 accuracy, EER (Equal Error Rate), ROC-AUC, FAR, and FRR.
 - Enforcing strict subject-disjoint partitioning between training, gallery, and open-set probe identity sets.
-- Generating evaluation report files and visual charts in `outputs/reports/evaluation/`.
+- Housing full-scale biometric benchmarks in `evaluation/benchmarks/`.
+- Housing evaluation diagnostic and audit scripts in `evaluation/scripts/`.
+- Persisting evaluation reports, metric records, and generated charts in `evaluation/results/`.
 - Boundaries: Does not train neural networks or execute real-time RTSP video capture streams.
 
 ## Key Modules

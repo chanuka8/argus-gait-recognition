@@ -7,7 +7,7 @@ import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import logo from '../assets/logo.png';
 import Notifications from './Notifications';
 import UserProfileModal from './UserProfileModal';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { getDeviceGPS, reverseGeocode } from '../utils/geoService';
 import { sendMediaToModel } from '../utils/embeddingService';
 import './ReportCase.css';
@@ -462,13 +462,13 @@ const ReportCase = () => {
                         {processingPhase === 'extracting' ? (
                             <>
                                 <h3 style={{ color: 'var(--ice)', marginTop: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                                    <Brain size={22} color="#5ce1e6" /> Sending to ML Model...
+                                    <Brain size={22} color="#5ce1e6" /> Extracting Biometric Embeddings...
                                 </h3>
                                 <p style={{ marginTop: '1rem', color: 'var(--text-secondary)' }}>
-                                    Transferring photos &amp; videos to the face recognition model.
+                                    Generating ByGaitLight (256D) &amp; OSNet (512D) biometric embeddings.
                                 </p>
                                 <div style={{ marginTop: '0.75rem', padding: '0.5rem 1rem', background: 'rgba(92,225,230,0.08)', borderRadius: '6px', border: '1px solid rgba(92,225,230,0.2)' }}>
-                                    <span style={{ fontSize: '0.78rem', color: '#5ce1e6', fontWeight: '600' }}>🧠 Face Recognition Model Processing</span>
+                                    <span style={{ fontSize: '0.78rem', color: '#5ce1e6', fontWeight: '600' }}>🧠 ByGaitLight + OSNet Biometric Enrollment</span>
                                 </div>
                             </>
                         ) : (

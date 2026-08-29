@@ -18,7 +18,9 @@ The `storage` package manages data persistence, evidence retention policy enforc
 | [cache_manager.py](cache_manager.py) | General-purpose thread-safe key-value cache manager |
 | [data_manager.py](data_manager.py) | Central storage manager coordinating datasets, evidence, and vector stores |
 | [dataset_loader.py](dataset_loader.py) | Loads GEI image datasets and feature matrix caches from disk |
+| [embedding_database.py](embedding_database.py) | Module/resource file embedding_database.py |
 | [evidence_manager.py](evidence_manager.py) | Saves evidence snapshots, GEIs, and JSON metadata with automated retention purging |
+| [firebase_embedding_store.py](firebase_embedding_store.py) | Module/resource file firebase_embedding_store.py |
 | [lineage_tracker.py](lineage_tracker.py) | Tracks data processing operations and writes audit lineage records |
 | [vector_store.py](vector_store.py) | Vector store indexing 256-dim feature embeddings for fast cosine nearest-neighbor retrieval |
 <!-- END SYNC: KEY_MODULES -->

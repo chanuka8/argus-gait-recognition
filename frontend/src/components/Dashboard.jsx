@@ -9,7 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import MapComponent from './Map';
 import Notifications from './Notifications';
 import UserProfileModal from './UserProfileModal';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { db } from '../firebaseConfig';
 import { collection, getDocs, onSnapshot, query } from 'firebase/firestore';
 import GaitSystemStatus from './GaitSystemStatus';

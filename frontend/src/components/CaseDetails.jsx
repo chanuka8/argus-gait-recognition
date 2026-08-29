@@ -6,7 +6,7 @@ import Notifications from './Notifications';
 import UserProfileModal from './UserProfileModal';
 import { db } from '../firebaseConfig';
 import { doc, getDoc, updateDoc, collection, onSnapshot, query, where } from 'firebase/firestore';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { addLog } from '../utils/logService';
 import { MapContainer, TileLayer, Marker, Popup, Circle, Polyline } from 'react-leaflet';
 import L from 'leaflet';

@@ -1,0 +1,504 @@
+{
+  "dataset_summary": {
+    "total_samples": 37,
+    "subjects": {
+      "demo_person_001": 5,
+      "Devhan": 6,
+      "Isuru": 11,
+      "person01": 15
+    },
+    "num_subjects": 4
+  },
+  "phase2_cross_validation": {
+    "per_fold": [
+      {
+        "fold": 1,
+        "n_train": 28,
+        "n_test": 9,
+        "sub_counts": {
+          "Devhan": 2,
+          "Isuru": 3,
+          "demo_person_001": 1,
+          "person01": 3
+        },
+        "small_sample_flags": [
+          "demo_person_001:1"
+        ],
+        "branches": {
+          "gait": {
+            "threshold": 0.9953164587020874,
+            "tar": 33.33333333333333,
+            "frr": 55.55555555555556,
+            "far": 11.11111111111111,
+            "tar_n": 3,
+            "frr_n": 5,
+            "far_n": 1
+          },
+          "appearance": {
+            "threshold": 0.7161651382446289,
+            "tar": 66.66666666666666,
+            "frr": 33.33333333333333,
+            "far": 0.0,
+            "tar_n": 6,
+            "frr_n": 3,
+            "far_n": 0
+          },
+          "linear_optimal": {
+            "threshold": 0.9724133650064468,
+            "tar": 77.77777777777779,
+            "frr": 22.22222222222222,
+            "far": 0.0,
+            "tar_n": 7,
+            "frr_n": 2,
+            "far_n": 0
+          },
+          "auc_learned": {
+            "threshold": 0.6802821875487398,
+            "tar": 77.77777777777779,
+            "frr": 22.22222222222222,
+            "far": 0.0,
+            "tar_n": 7,
+            "frr_n": 2,
+            "far_n": 0
+          }
+        }
+      },
+      {
+        "fold": 2,
+        "n_train": 30,
+        "n_test": 7,
+        "sub_counts": {
+          "Devhan": 1,
+          "Isuru": 2,
+          "demo_person_001": 1,
+          "person01": 3
+        },
+        "small_sample_flags": [
+          "Devhan:1",
+          "demo_person_001:1"
+        ],
+        "branches": {
+          "gait": {
+            "threshold": 0.997889591217041,
+            "tar": 0.0,
+            "frr": 100.0,
+            "far": 0.0,
+            "tar_n": 0,
+            "frr_n": 7,
+            "far_n": 0
+          },
+          "appearance": {
+            "threshold": 0.7161651382446289,
+            "tar": 42.857142857142854,
+            "frr": 57.14285714285714,
+            "far": 0.0,
+            "tar_n": 3,
+            "frr_n": 4,
+            "far_n": 0
+          },
+          "linear_optimal": {
+            "threshold": 0.9756809422969818,
+            "tar": 57.14285714285714,
+            "frr": 42.857142857142854,
+            "far": 0.0,
+            "tar_n": 4,
+            "frr_n": 3,
+            "far_n": 0
+          },
+          "auc_learned": {
+            "threshold": 0.7028011143896155,
+            "tar": 57.14285714285714,
+            "frr": 42.857142857142854,
+            "far": 0.0,
+            "tar_n": 4,
+            "frr_n": 3,
+            "far_n": 0
+          }
+        }
+      },
+      {
+        "fold": 3,
+        "n_train": 30,
+        "n_test": 7,
+        "sub_counts": {
+          "Devhan": 1,
+          "Isuru": 2,
+          "demo_person_001": 1,
+          "person01": 3
+        },
+        "small_sample_flags": [
+          "Devhan:1",
+          "demo_person_001:1"
+        ],
+        "branches": {
+          "gait": {
+            "threshold": 0.9941649565696716,
+            "tar": 42.857142857142854,
+            "frr": 42.857142857142854,
+            "far": 14.285714285714285,
+            "tar_n": 3,
+            "frr_n": 3,
+            "far_n": 1
+          },
+          "appearance": {
+            "threshold": 0.6938723454475403,
+            "tar": 71.42857142857143,
+            "frr": 0.0,
+            "far": 28.57142857142857,
+            "tar_n": 5,
+            "frr_n": 0,
+            "far_n": 2
+          },
+          "linear_optimal": {
+            "threshold": 0.9722988257408142,
+            "tar": 71.42857142857143,
+            "frr": 14.285714285714285,
+            "far": 14.285714285714285,
+            "tar_n": 5,
+            "frr_n": 1,
+            "far_n": 1
+          },
+          "auc_learned": {
+            "threshold": 0.7294424511092105,
+            "tar": 71.42857142857143,
+            "frr": 28.57142857142857,
+            "far": 0.0,
+            "tar_n": 5,
+            "frr_n": 2,
+            "far_n": 0
+          }
+        }
+      },
+      {
+        "fold": 4,
+        "n_train": 30,
+        "n_test": 7,
+        "sub_counts": {
+          "Devhan": 1,
+          "Isuru": 2,
+          "demo_person_001": 1,
+          "person01": 3
+        },
+        "small_sample_flags": [
+          "Devhan:1",
+          "demo_person_001:1"
+        ],
+        "branches": {
+          "gait": {
+            "threshold": 0.997889591217041,
+            "tar": 14.285714285714285,
+            "frr": 85.71428571428571,
+            "far": 0.0,
+            "tar_n": 1,
+            "frr_n": 6,
+            "far_n": 0
+          },
+          "appearance": {
+            "threshold": 0.7161651382446289,
+            "tar": 71.42857142857143,
+            "frr": 28.57142857142857,
+            "far": 0.0,
+            "tar_n": 5,
+            "frr_n": 2,
+            "far_n": 0
+          },
+          "linear_optimal": {
+            "threshold": 0.9756809422969818,
+            "tar": 71.42857142857143,
+            "frr": 28.57142857142857,
+            "far": 0.0,
+            "tar_n": 5,
+            "frr_n": 2,
+            "far_n": 0
+          },
+          "auc_learned": {
+            "threshold": 0.7051598989145458,
+            "tar": 71.42857142857143,
+            "frr": 28.57142857142857,
+            "far": 0.0,
+            "tar_n": 5,
+            "frr_n": 2,
+            "far_n": 0
+          }
+        }
+      },
+      {
+        "fold": 5,
+        "n_train": 30,
+        "n_test": 7,
+        "sub_counts": {
+          "Devhan": 1,
+          "Isuru": 2,
+          "demo_person_001": 1,
+          "person01": 3
+        },
+        "small_sample_flags": [
+          "Devhan:1",
+          "demo_person_001:1"
+        ],
+        "branches": {
+          "gait": {
+            "threshold": 0.997889591217041,
+            "tar": 14.285714285714285,
+            "frr": 85.71428571428571,
+            "far": 0.0,
+            "tar_n": 1,
+            "frr_n": 6,
+            "far_n": 0
+          },
+          "appearance": {
+            "threshold": 0.6938723454475403,
+            "tar": 57.14285714285714,
+            "frr": 28.57142857142857,
+            "far": 14.285714285714285,
+            "tar_n": 4,
+            "frr_n": 2,
+            "far_n": 1
+          },
+          "linear_optimal": {
+            "threshold": 0.9756809422969818,
+            "tar": 57.14285714285714,
+            "frr": 42.857142857142854,
+            "far": 0.0,
+            "tar_n": 4,
+            "frr_n": 3,
+            "far_n": 0
+          },
+          "auc_learned": {
+            "threshold": 0.6992684725915882,
+            "tar": 57.14285714285714,
+            "frr": 42.857142857142854,
+            "far": 0.0,
+            "tar_n": 4,
+            "frr_n": 3,
+            "far_n": 0
+          }
+        }
+      }
+    ],
+    "branch_summary": {
+      "gait": {
+        "name": "Gait Branch Alone",
+        "gate_mean": 0.9966,
+        "gate_std": 0.0018,
+        "tar_mean": 20.95,
+        "tar_std": 17.04,
+        "frr_mean": 73.97,
+        "frr_std": 23.77,
+        "far_mean": 5.08,
+        "far_std": 7.05,
+        "pooled_tar": 21.62,
+        "pooled_frr": 72.97,
+        "pooled_far": 5.41,
+        "pooled_counts": {
+          "tar": 8,
+          "frr": 27,
+          "far": 2
+        }
+      },
+      "appearance": {
+        "name": "Appearance Branch Alone",
+        "gate_mean": 0.7072,
+        "gate_std": 0.0122,
+        "tar_mean": 61.9,
+        "tar_std": 12.14,
+        "frr_mean": 29.52,
+        "frr_std": 20.31,
+        "far_mean": 8.57,
+        "far_std": 12.78,
+        "pooled_tar": 62.16,
+        "pooled_frr": 29.73,
+        "pooled_far": 8.11,
+        "pooled_counts": {
+          "tar": 23,
+          "frr": 11,
+          "far": 3
+        }
+      },
+      "linear_optimal": {
+        "name": "Linear Optimal (0.95/0.05)",
+        "gate_mean": 0.9744,
+        "gate_std": 0.0018,
+        "tar_mean": 66.98,
+        "tar_std": 9.35,
+        "frr_mean": 30.16,
+        "frr_std": 12.65,
+        "far_mean": 2.86,
+        "far_std": 6.39,
+        "pooled_tar": 67.57,
+        "pooled_frr": 29.73,
+        "pooled_far": 2.7,
+        "pooled_counts": {
+          "tar": 25,
+          "frr": 11,
+          "far": 1
+        }
+      },
+      "auc_learned": {
+        "name": "AUC-Learned Logistic Fusion",
+        "gate_mean": 0.7034,
+        "gate_std": 0.0176,
+        "tar_mean": 66.98,
+        "tar_std": 9.35,
+        "frr_mean": 33.02,
+        "frr_std": 9.35,
+        "far_mean": 0.0,
+        "far_std": 0.0,
+        "pooled_tar": 67.57,
+        "pooled_frr": 32.43,
+        "pooled_far": 0.0,
+        "pooled_counts": {
+          "tar": 25,
+          "frr": 12,
+          "far": 0
+        }
+      }
+    }
+  },
+  "phase2_temporal_grid": {
+    "K4_M50": {
+      "window_size": 4,
+      "consensus_threshold": 0.5,
+      "mean_ttfc_frames": 3.01,
+      "clean_tar": 100.0,
+      "clean_frr": 0.0,
+      "clean_impostor_far": 0.0,
+      "degraded_tar": 82.0,
+      "degraded_frr": 18.0,
+      "degraded_far": 0.0,
+      "flip_rate": 6.25
+    },
+    "K4_M60": {
+      "window_size": 4,
+      "consensus_threshold": 0.6,
+      "mean_ttfc_frames": 3.03,
+      "clean_tar": 96.0,
+      "clean_frr": 4.0,
+      "clean_impostor_far": 0.0,
+      "degraded_tar": 49.0,
+      "degraded_frr": 51.0,
+      "degraded_far": 0.0,
+      "flip_rate": 9.25
+    },
+    "K4_M75": {
+      "window_size": 4,
+      "consensus_threshold": 0.75,
+      "mean_ttfc_frames": 3.28,
+      "clean_tar": 96.0,
+      "clean_frr": 4.0,
+      "clean_impostor_far": 0.0,
+      "degraded_tar": 49.0,
+      "degraded_frr": 51.0,
+      "degraded_far": 0.0,
+      "flip_rate": 9.25
+    },
+    "K6_M50": {
+      "window_size": 6,
+      "consensus_threshold": 0.5,
+      "mean_ttfc_frames": 3.01,
+      "clean_tar": 100.0,
+      "clean_frr": 0.0,
+      "clean_impostor_far": 0.0,
+      "degraded_tar": 80.0,
+      "degraded_frr": 20.0,
+      "degraded_far": 0.0,
+      "flip_rate": 6.25
+    },
+    "K6_M60": {
+      "window_size": 6,
+      "consensus_threshold": 0.6,
+      "mean_ttfc_frames": 3.02,
+      "clean_tar": 98.0,
+      "clean_frr": 2.0,
+      "clean_impostor_far": 0.0,
+      "degraded_tar": 53.0,
+      "degraded_frr": 47.0,
+      "degraded_far": 0.0,
+      "flip_rate": 7.5
+    },
+    "K6_M75": {
+      "window_size": 6,
+      "consensus_threshold": 0.75,
+      "mean_ttfc_frames": 3.3,
+      "clean_tar": 91.0,
+      "clean_frr": 9.0,
+      "clean_impostor_far": 0.0,
+      "degraded_tar": 30.0,
+      "degraded_frr": 70.0,
+      "degraded_far": 0.0,
+      "flip_rate": 10.3125
+    },
+    "K8_M50": {
+      "window_size": 8,
+      "consensus_threshold": 0.5,
+      "mean_ttfc_frames": 3.01,
+      "clean_tar": 100.0,
+      "clean_frr": 0.0,
+      "clean_impostor_far": 0.0,
+      "degraded_tar": 81.0,
+      "degraded_frr": 19.0,
+      "degraded_far": 0.0,
+      "flip_rate": 6.25
+    },
+    "K8_M60": {
+      "window_size": 8,
+      "consensus_threshold": 0.6,
+      "mean_ttfc_frames": 3.02,
+      "clean_tar": 100.0,
+      "clean_frr": 0.0,
+      "clean_impostor_far": 0.0,
+      "degraded_tar": 63.0,
+      "degraded_frr": 37.0,
+      "degraded_far": 0.0,
+      "flip_rate": 6.375
+    },
+    "K8_M75": {
+      "window_size": 8,
+      "consensus_threshold": 0.75,
+      "mean_ttfc_frames": 3.3,
+      "clean_tar": 97.0,
+      "clean_frr": 3.0,
+      "clean_impostor_far": 0.0,
+      "degraded_tar": 33.0,
+      "degraded_frr": 67.0,
+      "degraded_far": 0.0,
+      "flip_rate": 8.9375
+    },
+    "K12_M50": {
+      "window_size": 12,
+      "consensus_threshold": 0.5,
+      "mean_ttfc_frames": 3.01,
+      "clean_tar": 100.0,
+      "clean_frr": 0.0,
+      "clean_impostor_far": 0.0,
+      "degraded_tar": 87.0,
+      "degraded_frr": 13.0,
+      "degraded_far": 0.0,
+      "flip_rate": 6.25
+    },
+    "K12_M60": {
+      "window_size": 12,
+      "consensus_threshold": 0.6,
+      "mean_ttfc_frames": 3.02,
+      "clean_tar": 100.0,
+      "clean_frr": 0.0,
+      "clean_impostor_far": 0.0,
+      "degraded_tar": 53.0,
+      "degraded_frr": 47.0,
+      "degraded_far": 0.0,
+      "flip_rate": 6.25
+    },
+    "K12_M75": {
+      "window_size": 12,
+      "consensus_threshold": 0.75,
+      "mean_ttfc_frames": 3.3,
+      "clean_tar": 98.0,
+      "clean_frr": 2.0,
+      "clean_impostor_far": 0.0,
+      "degraded_tar": 28.0,
+      "degraded_frr": 72.0,
+      "degraded_far": 0.0,
+      "flip_rate": 8.75
+    }
+  }
+}

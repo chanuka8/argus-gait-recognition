@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Trash2, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import './Notifications.css';
 
 const Notifications = ({ isOpen, onClose }) => {

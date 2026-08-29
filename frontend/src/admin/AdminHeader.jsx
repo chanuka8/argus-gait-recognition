@@ -4,7 +4,7 @@ import { User, Bell, LayoutDashboard, Users, Video, Shield, FileClock, ShieldAle
 import logo from '../assets/logo.png';
 import Notifications from '../components/Notifications';
 import UserProfileModal from '../components/UserProfileModal';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import './AdminHeader.css';
 
 const AdminHeader = () => {
