@@ -581,6 +581,15 @@ class OSNetBackbone:
             self._mean = self._mean.to(self.device)
             self._std = self._std.to(self.device)
 
+            # CUDA Warmup
+            try:
+                with torch.inference_mode():
+                    dummy = torch.zeros((1, 3, 256, 128), device=self.device, dtype=torch.float32)
+                    _ = model(dummy)
+            except (RuntimeError, ValueError, OSError):
+                self._model = model
+                return self._model
+
             self._model = model
 
             return self._model
@@ -606,10 +615,10 @@ class OSNetBackbone:
         resized = cv2.resize(
             rgb,
             (128, 256),
+            interpolation=cv2.INTER_LINEAR,
         )
 
-        tensor = torch.from_numpy(resized).permute(2, 0, 1).float() / 255.0
-        tensor = tensor.unsqueeze(0).to(self.device)
+        tensor = torch.from_numpy(resized).permute(2, 0, 1).float().unsqueeze(0).to(self.device, non_blocking=True) / 255.0
         tensor = (tensor - self._mean) / self._std
 
         return tensor
@@ -638,6 +647,7 @@ class OSNetBackbone:
             resized = cv2.resize(
                 rgb,
                 (128, 256),
+                interpolation=cv2.INTER_LINEAR,
             )
 
             tensor = torch.from_numpy(resized).permute(2, 0, 1).float() / 255.0
@@ -647,7 +657,7 @@ class OSNetBackbone:
         if not tensors:
             raise ValueError("No valid images provided in batch")
 
-        batch = torch.stack(tensors).to(self.device)
+        batch = torch.stack(tensors).to(self.device, non_blocking=True)
         batch = (batch - self._mean) / self._std
 
         return batch
@@ -670,12 +680,10 @@ class OSNetBackbone:
 
         tensor = self._preprocess(image)
 
-        with torch.no_grad():
-            embedding = model(tensor).cpu().numpy().flatten()
-
-        norm = float(np.linalg.norm(embedding))
-
-        embedding = embedding / (norm + 1e-8)
+        with torch.inference_mode():
+            raw_out = model(tensor)
+            normed = F.normalize(raw_out, p=2, dim=-1)
+            embedding = normed.squeeze(0).cpu().numpy()
 
         return embedding.astype(np.float32)
 
@@ -695,18 +703,9 @@ class OSNetBackbone:
 
         batch = self._preprocess_batch(images)
 
-        with torch.no_grad():
-            embeddings = model(batch).cpu().numpy()
+        with torch.inference_mode():
+            raw_out = model(batch)
+            normed = F.normalize(raw_out, p=2, dim=-1)
+            embeddings = normed.cpu().numpy()
 
-        results = []
-
-        for embedding in embeddings:
-            norm = np.linalg.norm(embedding)
-
-            normalized = embedding / (norm + 1e-8)
-
-            results.append(
-                normalized.astype(np.float32),
-            )
-
-        return results
+        return [e.astype(np.float32) for e in embeddings]

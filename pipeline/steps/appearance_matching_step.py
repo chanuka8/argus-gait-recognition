@@ -12,6 +12,9 @@ class AppearanceMatchingStep:
         threshold: float = 0.60,
     ) -> None:
         self.threshold = float(threshold)
+        self._cache_key = None
+        self._cached_active_features = None
+        self._cached_active_labels = None
 
     def _is_active(
         self,
@@ -62,6 +65,13 @@ class AppearanceMatchingStep:
         if gallery_features is None or gallery_labels is None:
             return None, None
 
+        if len(gallery_features) == 0 or len(gallery_labels) == 0:
+            return None, None
+
+        current_key = (id(gallery_features), len(gallery_features), id(metadata))
+        if self._cache_key == current_key and self._cached_active_features is not None:
+            return self._cached_active_features, self._cached_active_labels
+
         gallery_features = np.asarray(
             gallery_features,
             dtype=np.float32,
@@ -99,7 +109,11 @@ class AppearanceMatchingStep:
             keepdims=True,
         )
 
-        gallery_features = gallery_features / (gallery_norms + 1e-8)
+        gallery_features = np.ascontiguousarray(gallery_features / (gallery_norms + 1e-8), dtype=np.float32)
+
+        self._cache_key = current_key
+        self._cached_active_features = gallery_features
+        self._cached_active_labels = gallery_labels
 
         return gallery_features, gallery_labels
 
@@ -200,17 +214,20 @@ class AppearanceMatchingStep:
             query_vec,
         )
 
+        num_scores = len(scores)
         k = max(
             1,
             min(
                 int(k),
-                len(scores),
+                num_scores,
             ),
         )
 
-        indices = np.argsort(
-            scores,
-        )[::-1][:k]
+        if k >= num_scores:
+            indices = np.argsort(scores)[::-1][:k]
+        else:
+            top_part = np.argpartition(scores, -k)[-k:]
+            indices = top_part[np.argsort(scores[top_part])[::-1]]
 
         return [
             (

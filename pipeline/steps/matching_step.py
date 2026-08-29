@@ -7,6 +7,9 @@ class MatchingStep:
         threshold: float = 0.85,
     ) -> None:
         self.threshold = threshold
+        self._cache_key = None
+        self._cached_active_features = None
+        self._cached_active_labels = None
 
     def _is_active(
         self,
@@ -14,7 +17,7 @@ class MatchingStep:
         metadata: dict | None,
     ) -> bool:
         if metadata is None:
-            return False
+            return True
 
         if not isinstance(metadata, dict):
             return True
@@ -57,6 +60,13 @@ class MatchingStep:
         if gallery_features is None or gallery_labels is None:
             return None, None
 
+        if len(gallery_features) == 0 or len(gallery_labels) == 0:
+            return None, None
+
+        current_key = (id(gallery_features), len(gallery_features), id(metadata))
+        if self._cache_key == current_key and self._cached_active_features is not None:
+            return self._cached_active_features, self._cached_active_labels
+
         gallery_features = np.asarray(
             gallery_features,
             dtype=np.float32,
@@ -86,7 +96,6 @@ class MatchingStep:
             return None, None
 
         gallery_features = gallery_features[active_mask]
-
         gallery_labels = gallery_labels[active_mask]
 
         gallery_norms = np.linalg.norm(
@@ -95,7 +104,11 @@ class MatchingStep:
             keepdims=True,
         )
 
-        gallery_features = gallery_features / (gallery_norms + 1e-8)
+        gallery_features = np.ascontiguousarray(gallery_features / (gallery_norms + 1e-8), dtype=np.float32)
+
+        self._cache_key = current_key
+        self._cached_active_features = gallery_features
+        self._cached_active_labels = gallery_labels
 
         return gallery_features, gallery_labels
 
@@ -106,13 +119,13 @@ class MatchingStep:
         query_feature = np.asarray(
             query_feature,
             dtype=np.float32,
-        )
+        ).ravel()
 
-        query_norm = np.linalg.norm(
+        query_norm = float(np.linalg.norm(
             query_feature,
-        )
+        ))
 
-        if query_norm == 0:
+        if query_norm == 0.0:
             return None
 
         return query_feature / (query_norm + 1e-8)
@@ -137,7 +150,7 @@ class MatchingStep:
             metadata,
         )
 
-        if gallery_features is None or gallery_labels is None:
+        if gallery_features is None or gallery_labels is None or len(gallery_features) == 0:
             return "UNKNOWN", 0.0
 
         scores = np.dot(
@@ -183,7 +196,7 @@ class MatchingStep:
             metadata,
         )
 
-        if gallery_features is None or gallery_labels is None:
+        if gallery_features is None or gallery_labels is None or len(gallery_features) == 0:
             return []
 
         scores = np.dot(
@@ -191,17 +204,20 @@ class MatchingStep:
             query_feature,
         )
 
+        num_scores = len(scores)
         k = max(
             1,
             min(
                 int(k),
-                len(scores),
+                num_scores,
             ),
         )
 
-        indices = np.argsort(
-            scores,
-        )[::-1][:k]
+        if k >= num_scores:
+            indices = np.argsort(scores)[::-1][:k]
+        else:
+            top_part = np.argpartition(scores, -k)[-k:]
+            indices = top_part[np.argsort(scores[top_part])[::-1]]
 
         return [
             (

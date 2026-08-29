@@ -116,6 +116,8 @@ class DateAwareLearningScheduler:
         self.min_identities = max(1, int(min_identities))
         self._logger = get_logger("date_aware_scheduler")
         self._lock = threading.RLock()
+        self._jobs_cache: dict[str, LearningJobRecord] | None = None
+        self._last_mtime: float = 0.0
 
         # Recover any interrupted jobs from previous shutdown/crash
         self.recover_interrupted_jobs()
@@ -123,14 +125,21 @@ class DateAwareLearningScheduler:
     def _load_jobs(self) -> dict[str, LearningJobRecord]:
         with self._lock:
             if not self.jobs_file.exists():
+                self._jobs_cache = {}
                 return {}
             try:
+                mtime = self.jobs_file.stat().st_mtime
+                if self._jobs_cache is not None and mtime == self._last_mtime:
+                    return dict(self._jobs_cache)
+
                 with open(self.jobs_file, "r", encoding="utf-8") as f:
                     data = json.load(f)
                 jobs = {}
                 for k, v in data.get("jobs", {}).items():
                     jobs[k] = LearningJobRecord.from_dict(v)
-                return jobs
+                self._jobs_cache = jobs
+                self._last_mtime = mtime
+                return dict(jobs)
             except (OSError, json.JSONDecodeError, ValueError) as err:
                 self._logger.warning(f"Failed to load learning jobs file: {err}")
                 return {}
@@ -143,6 +152,8 @@ class DateAwareLearningScheduler:
                 with open(tmp, "w", encoding="utf-8") as f:
                     json.dump(data, f, indent=2)
                 tmp.replace(self.jobs_file)
+                self._jobs_cache = dict(jobs)
+                self._last_mtime = self.jobs_file.stat().st_mtime
                 return True
             except (OSError, ValueError) as err:
                 self._logger.error(f"Failed to save learning jobs file: {err}")

@@ -52,13 +52,21 @@ def get_current_user_id(request: Request) -> str:
     return "default_user"
 
 
-def get_gait_service(request: Request) -> GaitService:
-    """Return the initialized application-level gait service."""
+_fallback_service_lock = asyncio.Lock() if hasattr(asyncio, "Lock") else None
+_fallback_gait_service: GaitService | None = None
 
-    if request and hasattr(request.app.state, "gait_service") and request.app.state.gait_service:
+
+def get_gait_service(request: Request = None) -> GaitService:
+    """Return the initialized application-level gait service."""
+    global _fallback_gait_service
+
+    if request is not None and hasattr(request, "app") and hasattr(request.app.state, "gait_service") and request.app.state.gait_service:
         return request.app.state.gait_service
 
-    return GaitService()
+    if _fallback_gait_service is None:
+        _fallback_gait_service = GaitService()
+
+    return _fallback_gait_service
 
 
 v1_router = APIRouter(
