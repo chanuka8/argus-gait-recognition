@@ -1,0 +1,87 @@
+camera:
+  reconnect:
+    min_interval_seconds: 1.0
+    max_interval_seconds: 60.0
+    backoff_multiplier: 2.0
+    jitter_range: 0.5
+    # 0 = unlimited retry attempts
+    max_attempts: 0
+
+processing:
+  # Inference target FPS per camera (independent of capture FPS)
+  target_inference_fps: 10.0
+  # FPS policy: PROCESS_EVERY_FRAME, TARGET_FPS, ADAPTIVE_FPS
+  fps_policy: "TARGET_FPS"
+  # Maximum frame age before stale-frame rejection
+  max_frame_age_ms: 500.0
+  # Per-camera ingestion queue capacity
+  queue_size: 4
+  # Enable duplicate-frame detection via hash comparison
+  enable_duplicate_detection: true
+
+workers:
+  # Number of shared inference workers (0 = auto-detect from CPU cores)
+  count: 0
+  # Inference timeout per frame batch (seconds)
+  inference_timeout_seconds: 30.0
+  # Worker health monitoring interval (seconds)
+  health_check_interval_seconds: 10.0
+
+resources:
+  # Resource utilization thresholds for adaptive backpressure
+  max_cpu_percent: 85.0
+  max_ram_percent: 85.0
+  max_gpu_percent: 90.0
+  max_vram_percent: 90.0
+  # Elevated alert thresholds (before saturation)
+  elevated_cpu_percent: 70.0
+  elevated_gpu_percent: 75.0
+  # Queue depth warning threshold
+  max_queue_depth: 8
+  # Maximum acceptable p95 latency before backpressure
+  max_p95_latency_ms: 200.0
+
+capacity:
+  # Maximum acceptable frame drop rate for capacity estimation
+  max_acceptable_drop_rate: 0.05
+  # Maximum acceptable p95 latency for capacity estimation
+  max_acceptable_p95_latency_ms: 200.0
+
+poisoning_guard:
+  # Minimum confidence for observation acceptance
+  min_confidence: 0.70
+  # Maximum embedding distance from cluster centroid
+  max_embedding_distance: 3.0
+  # Minimum temporal gap between observations (seconds)
+  min_temporal_gap_seconds: 0.5
+
+shutdown:
+  # Timeout per shutdown hook (seconds)
+  hook_timeout_seconds: 5.0
+  # Total shutdown timeout (seconds)
+  total_timeout_seconds: 30.0
+
+observability:
+  # Resource monitoring interval (seconds)
+  metrics_interval_seconds: 5.0
+  # Enable structured event logging
+  structured_logging_enabled: true
+
+# Multi-node scaling readiness (future)
+# Current deployment: single-node
+# Architecture supports distribution of:
+#   - Camera Ingestion Layer
+#   - Inference Layer
+#   - Matching/Fusion Layer
+#   - Observation Storage Layer
+#   - Continual Learning Layer
+#   - API Layer
+#   - Model Registry Layer
+scaling:
+  mode: "single_node"
+  # Camera group assignments for future multi-node distribution
+  # Example:
+  #   groups:
+  #     node_a: ["camera_01", "camera_02", ..., "camera_16"]
+  #     node_b: ["camera_17", ..., "camera_32"]
+  groups: {}

@@ -21,6 +21,7 @@ The `streaming` package provides high-throughput video stream ingestion, thread-
 | [multi_stream_engine.py](multi_stream_engine.py) | Multi-stream acquisition engine handling concurrent CCTV streams |
 | [performance_optimizer.py](performance_optimizer.py) | Dynamic performance optimizer adjusting frame queue sizes and capture rates |
 | [production_multicamera_engine.py](production_multicamera_engine.py) | Production-grade multi-camera scalability and hardware-agnostic inference engine |
+| [production_runtime.py](production_runtime.py) | Phase 4 production surveillance hardening runtime with camera lifecycle, reconnect, failure isolation, adaptive resources, model hot-swap, and graceful shutdown |
 | [stream_engine.py](stream_engine.py) | Core single-stream acquisition engine wrapping OpenCV `VideoCapture` |
 | [worker_pool.py](worker_pool.py) | Thread worker pool executing concurrent stream capture tasks |
 <!-- END SYNC: KEY_MODULES -->
@@ -37,6 +38,10 @@ RTSP / USB / File Stream → `streaming/stream_engine.py` → `streaming/buffer_
 ## Public Interfaces
 
 - `ProductionMultiCameraEngine`: Production multi-camera scalability engine in [streaming/production_multicamera_engine.py](production_multicamera_engine.py).
+- `ProductionSurveillanceRuntime`: Phase 4 production surveillance runtime in [streaming/production_runtime.py](production_runtime.py).
+- `CameraStateMachine`: Camera lifecycle state machine in [streaming/production_runtime.py](production_runtime.py).
+- `ReconnectEngine`: Exponential backoff reconnect engine in [streaming/production_runtime.py](production_runtime.py).
+- `SafeModelSwapper`: Atomic model hot-swap with rollback in [streaming/production_runtime.py](production_runtime.py).
 - `StreamEngine`: Single stream capture engine in [streaming/stream_engine.py](stream_engine.py).
 - `MultiStreamEngine`: Multi-stream engine in [streaming/multi_stream_engine.py](multi_stream_engine.py).
 - `BufferQueue`: Ring buffer queue in [streaming/buffer_queue.py](buffer_queue.py).

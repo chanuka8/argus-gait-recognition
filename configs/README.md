@@ -25,6 +25,7 @@ The `configs` package contains declarative YAML and JSON configuration manifests
 | [inference.yaml](inference.yaml) | Gait and appearance recognition thresholds, ReID, and reporting parameters |
 | [logging.yaml](logging.yaml) | Log output targets and log level rules |
 | [mode_config.yaml](mode_config.yaml) | Mode settings for live, video, and multi-camera execution |
+| [production.yaml](production.yaml) | Module/resource file production.yaml |
 | [subject_split.json](subject_split.json) | Train/test subject-disjoint partition definitions |
 | [system.yaml](system.yaml) | Camera, logging, watchdog, and service configuration |
 | [train.yaml](train.yaml) | CNN training hyper-parameters, learning rates, and loss weights |

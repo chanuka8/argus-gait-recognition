@@ -53,7 +53,10 @@ async def verify_firebase_id_token(request: Request) -> bool:
     return True
 
 
+from api.routes.health import health_router
+
 app.include_router(v1_router)
+app.include_router(health_router)
 
 if (FRONTEND_DIST_DIR / "assets").exists():
     app.mount("/assets", StaticFiles(directory=str(FRONTEND_DIST_DIR / "assets")), name="frontend_assets")
