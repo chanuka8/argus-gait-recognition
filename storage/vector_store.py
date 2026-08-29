@@ -71,14 +71,22 @@ class VectorStore:
             metadata or {},
         )
 
+        feats_arr = np.asarray(features, dtype=np.float32)
+        if feats_arr.size == 0 and feats_arr.ndim != 2:
+            feats_arr = np.empty((0, 0), dtype=np.float32)
+
+        lbls_arr = np.asarray(labels)
+        if lbls_arr.size == 0 and lbls_arr.ndim != 1:
+            lbls_arr = np.empty((0,), dtype=str)
+
         np.save(
             self.features_file,
-            np.asarray(features, dtype=np.float32),
+            feats_arr,
         )
 
         np.save(
             self.labels_file,
-            np.asarray(labels),
+            lbls_arr,
         )
 
         with open(
@@ -135,14 +143,20 @@ class VectorStore:
         if not np.issubdtype(features.dtype, np.number):
             raise ValueError(f"Gallery features array must be numeric, got {features.dtype}.")
 
-        if features.ndim != 2:
-            raise ValueError(f"Gallery features array must be 2-dimensional (N, D), got shape {features.shape}.")
+        if features.size == 0 and labels.size == 0:
+            if features.ndim != 2:
+                features = features.reshape((0, 0))
+            if labels.ndim != 1:
+                labels = labels.reshape((0,))
+        else:
+            if features.ndim != 2:
+                raise ValueError(f"Gallery features array must be 2-dimensional (N, D), got shape {features.shape}.")
 
-        if labels.ndim != 1:
-            raise ValueError(f"Gallery labels array must be 1-dimensional (N,), got shape {labels.shape}.")
+            if labels.ndim != 1:
+                raise ValueError(f"Gallery labels array must be 1-dimensional (N,), got shape {labels.shape}.")
 
-        if len(features) != len(labels):
-            raise ValueError(f"Mismatch between features length ({len(features)}) and labels length ({len(labels)}).")
+            if len(features) != len(labels):
+                raise ValueError(f"Mismatch between features length ({len(features)}) and labels length ({len(labels)}).")
 
         if self.metadata_file.exists():
             with open(
