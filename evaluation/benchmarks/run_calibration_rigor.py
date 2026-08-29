@@ -78,7 +78,7 @@ def run_phase2_calibration_rigor():
     N = len(query_labels)
     unique_subjects = sorted(set(query_labels))
     label_to_idx = {s: i for i, s in enumerate(unique_subjects)}
-    y_indices = np.array([label_to_idx[l] for l in query_labels])
+    y_indices = np.array([label_to_idx[label] for label in query_labels])
 
     print(f"\n[DATASET SUMMARY] Total Multimodal Samples: N={N} across {len(unique_subjects)} subjects", flush=True)
     for s in unique_subjects:

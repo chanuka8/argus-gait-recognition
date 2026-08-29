@@ -161,7 +161,7 @@ def run_runtime_validation():
         "all_512d": bool(features.shape[1] == 512),
         "all_float32": bool(features.dtype == np.float32),
         "all_l2_normalized": bool(np.allclose(np.linalg.norm(features, axis=1), 1.0, atol=1e-4)),
-        "passed": bool(features.shape == (len(devhan_embeddings), 512) and all(l == "Devhan" for l in labels)),
+        "passed": bool(features.shape == (len(devhan_embeddings), 512) and all(label == "Devhan" for label in labels)),
     }
     results["test_3_multiple_photos_enrollment"] = test3_info
     print(json.dumps(test3_info, indent=2))

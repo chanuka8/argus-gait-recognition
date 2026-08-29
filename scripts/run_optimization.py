@@ -648,7 +648,7 @@ def run_step_5g():
             best_lbl = gal_lbl[best_idx]
             best_score = float(f_sims[best_idx])
 
-            same_indices = [i for i, l in enumerate(gal_lbl) if l == query_name]
+            same_indices = [i for i, label in enumerate(gal_lbl) if label == query_name]
             best_same_score = float(np.max(f_sims[same_indices])) if same_indices else 0.0
 
             if best_lbl != query_name:
