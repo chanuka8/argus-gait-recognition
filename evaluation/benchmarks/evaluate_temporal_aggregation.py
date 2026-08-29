@@ -1,6 +1,7 @@
 from typing import Any
+
 import numpy as np
-from intelligence.dual_modal_fusion import DualModalFusion
+
 from intelligence.track_identity_aggregator import TrackIdentityAggregator
 
 

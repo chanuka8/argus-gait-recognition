@@ -14,29 +14,28 @@ Evaluates and explicitly separates:
 """
 
 import json
-import os
 import sys
 import time
-from pathlib import Path
 from collections import defaultdict
+from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 import cv2
-import numpy as np
 import matplotlib
-matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+import numpy as np
 import torch
 
-from pipeline.steps.feature_extraction import FeatureExtractionStep
-from pipeline.steps.reid_feature_extraction import ReIDFeatureExtractionStep
-from pipeline.detection.person_detector import PersonDetector
+matplotlib.use("Agg")
+
+from intelligence.dual_modal_fusion import DualModalFusion
 from models.architectures.bygait_light import ByGaitLight
 from models.reid.osnet_backbone import OSNetBackbone
-from intelligence.dual_modal_fusion import DualModalFusion
+from pipeline.detection.person_detector import PersonDetector
+from pipeline.steps.feature_extraction import FeatureExtractionStep
 
 # -----------------------------------------------------------------------------
 # Metric Definitions & Algorithms
@@ -98,7 +97,7 @@ def compute_roc_eer_tar_at_far(same_scores: list[float] | np.ndarray, diff_score
     order = np.argsort(y_scores)
     ranks = np.empty_like(order, dtype=float)
     ranks[order] = np.arange(1, len(y_scores) + 1)
-    unique_scores, inverse_indices, counts = np.unique(y_scores, return_inverse=True, return_counts=True)
+    _unique_scores, inverse_indices, counts = np.unique(y_scores, return_inverse=True, return_counts=True)
     tied_ranks = np.bincount(inverse_indices, weights=ranks) / counts
     ranks = tied_ranks[inverse_indices]
     rank_sum_pos = np.sum(ranks[:n_pos])
@@ -217,8 +216,8 @@ def main():
     total_multimodal_pairs = 0
 
     for s in subjects:
-        g_files = sorted(list((base_gei / s).glob("*.*")))
-        p_files = sorted(list((base_photos / s).glob("*.*")))
+        g_files = sorted((base_gei / s).glob("*.*"))
+        p_files = sorted((base_photos / s).glob("*.*"))
         g_embs = [gait_extractor.extract(f) for f in g_files]
         p_embs = []
         for f in p_files:
@@ -262,7 +261,7 @@ def main():
     loo_gallery_labels = []
 
     for i in range(N):
-        q_s, q_idx = query_meta[i]
+        _q_s, _q_idx = query_meta[i]
         q_g = query_gait[i]
         q_a = query_app[i]
 
@@ -312,7 +311,6 @@ def main():
         q_lbl = query_labels[i]
         best_g_idx = int(np.argmax(sim_matrix_gait[i]))
         best_a_idx = int(np.argmax(sim_matrix_app[i]))
-        best_f_idx = int(np.argmax(sim_matrix_fused[i]))
 
         g_score = float(sim_matrix_gait[i, best_g_idx])
         g_id = loo_gallery_labels[best_g_idx]
@@ -444,7 +442,7 @@ def main():
         cv_test_recalls.append(test_correct / len(test_idx))
         cv_test_frr_scores.append(test_unknown / len(test_idx))
 
-    print(f"5-Fold Nested Cross-Validation (Out-of-Sample Results):")
+    print("5-Fold Nested Cross-Validation (Out-of-Sample Results):")
     print(f"  Mean Calibrated Threshold : {np.mean(calibrated_thresholds):.4f} (Fold Range: [{np.min(calibrated_thresholds):.4f}, {np.max(calibrated_thresholds):.4f}])")
     print(f"  Out-of-Sample Gated TAR   : {np.mean(cv_test_recalls)*100:.2f}% (Std: {np.std(cv_test_recalls)*100:.2f}%)")
     print(f"  Out-of-Sample Gated FRR   : {np.mean(cv_test_frr_scores)*100:.2f}% (Std: {np.std(cv_test_frr_scores)*100:.2f}%)")
@@ -480,7 +478,7 @@ def main():
 
         sweep_sim_matrix = w_g * sim_matrix_gait + w_a * sim_matrix_app
         _, sw_rank = compute_cmc(sweep_sim_matrix, query_labels, loo_gallery_labels, max_k=5)
-        sw_map, sw_minp = compute_map_minp(sweep_sim_matrix, query_labels, loo_gallery_labels)
+        sw_map, _sw_minp = compute_map_minp(sweep_sim_matrix, query_labels, loo_gallery_labels)
 
         # Pairwise ROC
         sw_same = [w_g * sg + w_a * sa for sg, sa in zip(same_g, same_a)]
@@ -834,12 +832,12 @@ def main():
     print("Saved: evaluation/results/fusion_weight_sweep.png")
 
     # 4. Confusion Matrices Heatmap
-    fig, axes = plt.subplots(1, 3, figsize=(16, 5), dpi=300)
+    _fig, axes = plt.subplots(1, 3, figsize=(16, 5), dpi=300)
     titles = ["Gait-Only", "Appearance-Only", "Dual-Modal Fused"]
     matrices = [cls_gait["confusion_matrix"], cls_app["confusion_matrix"], cls_fused["confusion_matrix"]]
 
     for ax, t, m in zip(axes, titles, matrices):
-        im = ax.imshow(m, interpolation="nearest", cmap="Blues")
+        ax.imshow(m, interpolation="nearest", cmap="Blues")
         ax.set_title(t, fontsize=13, fontweight="bold")
         ax.set_xticks(range(len(subjects)))
         ax.set_yticks(range(len(subjects)))

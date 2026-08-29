@@ -1,20 +1,20 @@
 import sys
-import json
-from pathlib import Path
 from collections import defaultdict
+from pathlib import Path
+
 ROOT_DIR = Path(__file__).resolve().parents[2]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-import numpy as np
 import cv2
+import numpy as np
 import torch
 
-from pipeline.steps.feature_extraction import FeatureExtractionStep
-from pipeline.detection.person_detector import PersonDetector
-from models.reid.osnet_backbone import OSNetBackbone
 from intelligence.dual_modal_fusion import DualModalFusion
 from intelligence.track_identity_aggregator import TrackIdentityAggregator
+from models.reid.osnet_backbone import OSNetBackbone
+from pipeline.detection.person_detector import PersonDetector
+from pipeline.steps.feature_extraction import FeatureExtractionStep
 
 
 def run_unified_degradation_benchmark():
@@ -40,8 +40,8 @@ def run_unified_degradation_benchmark():
     temp_dir.mkdir(parents=True, exist_ok=True)
 
     for s in subjects:
-        g_files = sorted(list((base_gei / s).glob("*.*")))
-        p_files = sorted(list((base_photos / s).glob("*.*")))
+        g_files = sorted((base_gei / s).glob("*.*"))
+        p_files = sorted((base_photos / s).glob("*.*"))
         n = min(len(g_files), len(p_files))
         per_subject_counts[s] = n
 

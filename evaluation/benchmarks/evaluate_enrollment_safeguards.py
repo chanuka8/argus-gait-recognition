@@ -1,10 +1,9 @@
-
-from typing import Any
 import numpy as np
-import cv2
-from preprocessing.video_quality_gate import DeterministicVideoQualityGate, VideoQualityAssessmentResult
-from intelligence.dual_modal_fusion import DualModalFusion
-from intelligence.track_identity_aggregator import TrackIdentityAggregator
+
+from preprocessing.video_quality_gate import (
+    DeterministicVideoQualityGate,
+    VideoQualityAssessmentResult,
+)
 
 
 class EnrollmentSafeguardEvaluator:

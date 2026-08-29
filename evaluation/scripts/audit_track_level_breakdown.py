@@ -5,21 +5,21 @@ Cross-Matching FAR Audit, and Retroactive Confusion Gate Verification.
 
 import sys
 from pathlib import Path
-from collections import defaultdict
+
 ROOT_DIR = Path(__file__).resolve().parents[2]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-import numpy as np
 import cv2
+import numpy as np
 import torch
 
-from pipeline.steps.feature_extraction import FeatureExtractionStep
-from pipeline.detection.person_detector import PersonDetector
-from models.reid.osnet_backbone import OSNetBackbone
+from intelligence.confusion_detector import RuntimeConfusionDetector
 from intelligence.dual_modal_fusion import DualModalFusion
 from intelligence.track_identity_aggregator import TrackIdentityAggregator
-from intelligence.confusion_detector import RuntimeConfusionDetector
+from models.reid.osnet_backbone import OSNetBackbone
+from pipeline.detection.person_detector import PersonDetector
+from pipeline.steps.feature_extraction import FeatureExtractionStep
 
 
 def audit_track_clarifications():
@@ -41,8 +41,8 @@ def audit_track_clarifications():
     query_gait, query_app, query_labels = [], [], []
     per_subject_counts = {}
     for s in subjects:
-        g_files = sorted(list((base_gei / s).glob("*.*")))
-        p_files = sorted(list((base_photos / s).glob("*.*")))
+        g_files = sorted((base_gei / s).glob("*.*"))
+        p_files = sorted((base_photos / s).glob("*.*"))
         g_embs = [gait_extractor.extract(f) for f in g_files]
         p_embs = []
         for f in p_files:

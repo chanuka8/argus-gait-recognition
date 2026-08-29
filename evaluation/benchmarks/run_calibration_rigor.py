@@ -1,21 +1,21 @@
 import json
 import sys
-from pathlib import Path
 from collections import defaultdict
+from pathlib import Path
+
 ROOT_DIR = Path(__file__).resolve().parents[2]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-import numpy as np
 import cv2
+import numpy as np
 import torch
 
-from pipeline.steps.feature_extraction import FeatureExtractionStep
-from pipeline.detection.person_detector import PersonDetector
-from models.reid.osnet_backbone import OSNetBackbone
-from intelligence.dual_modal_fusion import DualModalFusion
-from intelligence.track_identity_aggregator import TrackIdentityAggregator
 from intelligence.learned_fusion import LearnedLogisticFusion
+from intelligence.track_identity_aggregator import TrackIdentityAggregator
+from models.reid.osnet_backbone import OSNetBackbone
+from pipeline.detection.person_detector import PersonDetector
+from pipeline.steps.feature_extraction import FeatureExtractionStep
 
 
 def stratified_kfold_split(y_indices: np.ndarray, n_splits: int = 5, seed: int = 42):
@@ -54,8 +54,8 @@ def run_phase2_calibration_rigor():
     query_gait, query_app, query_labels = [], [], []
     per_subject_samples = defaultdict(int)
     for s in subjects:
-        g_files = sorted(list((base_gei / s).glob("*.*")))
-        p_files = sorted(list((base_photos / s).glob("*.*")))
+        g_files = sorted((base_gei / s).glob("*.*"))
+        p_files = sorted((base_photos / s).glob("*.*"))
         g_embs = [gait_extractor.extract(f) for f in g_files]
         p_embs = []
         for f in p_files:
@@ -76,7 +76,7 @@ def run_phase2_calibration_rigor():
             query_labels.append(s)
 
     N = len(query_labels)
-    unique_subjects = sorted(list(set(query_labels)))
+    unique_subjects = sorted(set(query_labels))
     label_to_idx = {s: i for i, s in enumerate(unique_subjects)}
     y_indices = np.array([label_to_idx[l] for l in query_labels])
 
@@ -179,12 +179,12 @@ def run_phase2_calibration_rigor():
             sims_opt = [0.95 * g + 0.05 * a for g, a in zip(sims_g, sims_a)]
             sims_learned = [fold_learned.predict_probability(g, a) for g, a in zip(sims_g, sims_a)]
 
-            def eval_sample(sims, th):
+            def eval_sample(sims, th, gal_labels=gal_lbl, query_label=q_lbl):
                 best_idx = int(np.argmax(sims))
                 score = sims[best_idx]
-                pred = gal_lbl[best_idx]
+                pred = gal_labels[best_idx]
                 if score >= th:
-                    return ("tar", 1) if pred == q_lbl else ("far", 1)
+                    return ("tar", 1) if pred == query_label else ("far", 1)
                 else:
                     return ("frr", 1)
 
@@ -313,7 +313,6 @@ def run_phase2_calibration_rigor():
             deg_confirmed = 0
             deg_rejected = 0
             deg_wrong_confirm = 0
-            deg_review = 0
 
             for t_idx in range(num_genuine_tracks):
                 s_true = subjects[t_idx % len(subjects)]

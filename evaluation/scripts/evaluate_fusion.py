@@ -1,7 +1,5 @@
-import json
 import sys
 from pathlib import Path
-from collections import defaultdict
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 if str(ROOT_DIR) not in sys.path:
@@ -11,12 +9,16 @@ import cv2
 import numpy as np
 import torch
 
-from pipeline.steps.feature_extraction import FeatureExtractionStep
-from pipeline.detection.person_detector import PersonDetector
-from models.reid.osnet_backbone import OSNetBackbone
+from evaluation.benchmarks.execute_phase_b_master import (
+    compute_cmc,
+    compute_map_minp,
+    compute_roc_eer_tar_at_far,
+)
 from intelligence.learned_fusion import LearnedLogisticFusion
 from intelligence.score_calibrator import PlattScoreCalibrator
-from evaluation.benchmarks.execute_phase_b_master import compute_cmc, compute_map_minp, compute_roc_eer_tar_at_far
+from models.reid.osnet_backbone import OSNetBackbone
+from pipeline.detection.person_detector import PersonDetector
+from pipeline.steps.feature_extraction import FeatureExtractionStep
 
 
 def evaluate_all_fusion_strategies(output_dir: str = "configs/fusion_profiles"):
@@ -32,8 +34,8 @@ def evaluate_all_fusion_strategies(output_dir: str = "configs/fusion_profiles"):
     # Load multimodal query samples
     query_gait, query_app, query_labels = [], [], []
     for s in subjects:
-        g_files = sorted(list((base_gei / s).glob("*.*")))
-        p_files = sorted(list((base_photos / s).glob("*.*")))
+        g_files = sorted((base_gei / s).glob("*.*"))
+        p_files = sorted((base_photos / s).glob("*.*"))
         g_embs = [gait_extractor.extract(f) for f in g_files]
         p_embs = []
         for f in p_files:
@@ -76,7 +78,7 @@ def evaluate_all_fusion_strategies(output_dir: str = "configs/fusion_profiles"):
     loo_gallery_labels = []
 
     for i in range(N):
-        q_g, q_a, q_lbl = query_gait[i], query_app[i], query_labels[i]
+        q_g, q_a = query_gait[i], query_app[i]
         gal_g, gal_a, gal_lbl = [], [], []
         for j in range(N):
             if i == j:
@@ -126,10 +128,10 @@ def evaluate_all_fusion_strategies(output_dir: str = "configs/fusion_profiles"):
     _, r_calib = compute_cmc(sim_matrix_calib, query_labels, loo_gallery_labels)
     _, r_learned_auc = compute_cmc(sim_matrix_learned_auc, query_labels, loo_gallery_labels)
 
-    map_base, minp_base = compute_map_minp(sim_matrix_base, query_labels, loo_gallery_labels)
-    map_opt_linear, minp_opt_linear = compute_map_minp(sim_matrix_opt_linear, query_labels, loo_gallery_labels)
-    map_calib, minp_calib = compute_map_minp(sim_matrix_calib, query_labels, loo_gallery_labels)
-    map_learned_auc, minp_learned_auc = compute_map_minp(sim_matrix_learned_auc, query_labels, loo_gallery_labels)
+    map_base, _minp_base = compute_map_minp(sim_matrix_base, query_labels, loo_gallery_labels)
+    map_opt_linear, _minp_opt_linear = compute_map_minp(sim_matrix_opt_linear, query_labels, loo_gallery_labels)
+    map_calib, _minp_calib = compute_map_minp(sim_matrix_calib, query_labels, loo_gallery_labels)
+    map_learned_auc, _minp_learned_auc = compute_map_minp(sim_matrix_learned_auc, query_labels, loo_gallery_labels)
 
     # Pairwise verification ROC-AUC & EER
     global_learned_auc = LearnedLogisticFusion().fit(pairwise_gait, pairwise_app, pairwise_labels, loss_type="ranking_auc")
@@ -173,10 +175,10 @@ def evaluate_all_fusion_strategies(output_dir: str = "configs/fusion_profiles"):
         unknown = sum(1 for i in range(N) if sim_matrix[i, int(np.argmax(sim_matrix[i]))] < th)
         return (correct / N * 100), (unknown / N * 100), th
 
-    tar_base, frr_base, th_base = compute_gated_metrics(sim_matrix_base, same_base, diff_base)
-    tar_opt, frr_opt, th_opt = compute_gated_metrics(sim_matrix_opt_linear, same_opt, diff_opt)
-    tar_calib, frr_calib, th_calib = compute_gated_metrics(sim_matrix_calib, same_calib, diff_calib)
-    tar_learned_auc, frr_learned_auc, th_learned_auc = compute_gated_metrics(sim_matrix_learned_auc, same_learned_auc, diff_learned_auc)
+    tar_base, frr_base, _th_base = compute_gated_metrics(sim_matrix_base, same_base, diff_base)
+    tar_opt, frr_opt, _th_opt = compute_gated_metrics(sim_matrix_opt_linear, same_opt, diff_opt)
+    tar_calib, frr_calib, _th_calib = compute_gated_metrics(sim_matrix_calib, same_calib, diff_calib)
+    tar_learned_auc, frr_learned_auc, _th_learned_auc = compute_gated_metrics(sim_matrix_learned_auc, same_learned_auc, diff_learned_auc)
 
     return {
         "baseline": {"rank1": r_base[1], "rank5": r_base[5], "map": map_base, "auc": roc_base["auc"], "eer": roc_base["eer"], "tar": tar_base, "frr": frr_base},
