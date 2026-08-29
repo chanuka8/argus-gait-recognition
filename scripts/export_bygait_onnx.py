@@ -85,7 +85,10 @@ def export_onnx(
     print("[INFO] Initializing ByGaitLight model...")
     model = ByGaitLight()
     try:
-        checkpoint = torch.load(model_file, map_location="cpu")
+        try:
+            checkpoint = torch.load(model_file, map_location="cpu", weights_only=True)
+        except (RuntimeError, ValueError, TypeError, OSError, EOFError, AttributeError):
+            checkpoint = torch.load(model_file, map_location="cpu", weights_only=False)
         filtered = {}
         for key, value in checkpoint.items():
             if key.startswith("backbone."):

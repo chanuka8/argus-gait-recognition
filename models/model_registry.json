@@ -1,0 +1,72 @@
+{
+  "models": [
+    {
+      "model_version": "v1.0.0",
+      "model_type": "bygait_light",
+      "architecture": "ByGaitLight-CNN-256D",
+      "embedding_dim": 256,
+      "artifact_path": "runs/exp_001/best_model.pth",
+      "checksum_sha256": "1c3a8253d4f10809f1f8a0a88f98e3293fec694f5e0b0d9fac301424a3abfe2c",
+      "parent_version": null,
+      "created_at": 1787836098.0552576,
+      "promotion_timestamp": 1787836098.0552576,
+      "deployment_status": "ACTIVE",
+      "previous_production_version": null,
+      "validation_metrics": {
+        "out_of_fold_tar": 21.62,
+        "out_of_fold_frr": 72.97,
+        "out_of_fold_far": 5.41
+      },
+      "rejection_reason": null,
+      "metadata": {
+        "note": "Baseline ByGaitLight CNN gait extraction model"
+      }
+    },
+    {
+      "model_version": "v1.0.0",
+      "model_type": "osnet_reid",
+      "architecture": "OSNet-x0.25-ReID-512D",
+      "embedding_dim": 512,
+      "artifact_path": "models/weights/osnet_x0_25.pth",
+      "checksum_sha256": "6f57607fed9f502b9efed546108132ee715df5a5b6e6932c6269bacb47f59f99",
+      "parent_version": null,
+      "created_at": 1787836098.0552576,
+      "promotion_timestamp": 1787836098.0552576,
+      "deployment_status": "ACTIVE",
+      "previous_production_version": null,
+      "validation_metrics": {
+        "rank1": 84.1,
+        "mAP": 72.8
+      },
+      "rejection_reason": null,
+      "metadata": {
+        "note": "Baseline OSNet-x0.25 ReID appearance feature extraction model"
+      }
+    },
+    {
+      "model_version": "v1.0.0",
+      "model_type": "dual_modal_fusion",
+      "architecture": "LinearOptimal-DualModal-0.95G-0.05A",
+      "embedding_dim": 256,
+      "artifact_path": "configs/fusion_profiles/fusion_identification_profile.json",
+      "checksum_sha256": "41650eb9aafd52fbcc4adf42a290a21cf802154f56e370495501bd9561a29576",
+      "parent_version": null,
+      "created_at": 1787836098.0552576,
+      "promotion_timestamp": 1787836098.0552576,
+      "deployment_status": "ACTIVE",
+      "previous_production_version": null,
+      "validation_metrics": {
+        "top1_rank1": 86.49,
+        "mAP": 73.09,
+        "roc_auc": 0.7709,
+        "eer": 27.61,
+        "out_of_fold_tar": 67.57,
+        "out_of_fold_far": 2.7
+      },
+      "rejection_reason": null,
+      "metadata": {
+        "note": "Baseline Linear Optimal 0.95/0.05 Dual-Modal Fusion Profile"
+      }
+    }
+  ]
+}
