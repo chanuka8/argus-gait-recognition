@@ -31,21 +31,21 @@ Tests are skipped when:
 3. **Hardware camera not available:** Tests requiring USB camera (OpenCV capture) are skipped without hardware
 4. **RTSP stream not available:** Multi-camera integration tests skip without network cameras
 
-## 9.3 Script-Level Tests
+## 9.3 Manual Developer & Validation Scripts
 
-| Script | File | Tests |
+| Script | Category | Purpose |
 |---|---|---|
-| `scripts/test_gallery_match.py` | Manual test | Gallery matching with loaded model |
-| `scripts/test_enrollment.py` | Manual test | Enrollment workflow |
-| `scripts/test_gei.py` | Manual test | GEI generation |
-| `scripts/test_silhouette.py` | Manual test | Silhouette extraction |
-| `scripts/test_tracking.py` | Manual test | ByteTrack tracking |
-| `scripts/test_live_gei.py` | Manual test | Live GEI pipeline |
-| `scripts/test_inference_pipeline.py` | Manual test | Full inference pipeline |
-| `scripts/test_security_layer.py` | Manual test | Security engine |
-| `scripts/test_events.py` | Manual test | Event system |
-| `scripts/test_confidence_scorer.py` | Manual test | Confidence scoring |
-| `scripts/test_streaming_optimization.py` | Manual test | Streaming performance |
+| `scripts/run_gallery_match.py` | Manual utility | Gallery matching with loaded model |
+| `scripts/demo_enrollment.py` | Manual demo | Enrollment workflow |
+| `scripts/demo_gei.py` | Manual demo | GEI generation |
+| `scripts/demo_silhouette.py` | Manual visualizer | Silhouette extraction |
+| `scripts/run_tracking.py` | Manual visualizer | ByteTrack tracking |
+| `scripts/run_live_gei.py` | Manual visualizer | Live GEI pipeline |
+| `scripts/run_inference_pipeline.py` | Manual utility | Full inference pipeline |
+| `scripts/demo_security_layer.py` | Manual demo | Security engine |
+| `scripts/demo_events.py` | Manual demo | Event system |
+| `scripts/demo_confidence_scorer.py` | Manual demo | Confidence scoring |
+| `scripts/demo_streaming_optimization.py` | Manual demo | Streaming performance |
 
 ## 9.4 CI/CD Pipeline
 
