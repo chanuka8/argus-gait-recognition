@@ -20,6 +20,7 @@ The `streaming` package provides high-throughput video stream ingestion, thread-
 | [load_balancer.py](load_balancer.py) | Balances processing workload across multi-stream worker threads |
 | [multi_stream_engine.py](multi_stream_engine.py) | Multi-stream acquisition engine handling concurrent CCTV streams |
 | [performance_optimizer.py](performance_optimizer.py) | Dynamic performance optimizer adjusting frame queue sizes and capture rates |
+| [production_multicamera_engine.py](production_multicamera_engine.py) | Production-grade multi-camera scalability and hardware-agnostic inference engine |
 | [stream_engine.py](stream_engine.py) | Core single-stream acquisition engine wrapping OpenCV `VideoCapture` |
 | [worker_pool.py](worker_pool.py) | Thread worker pool executing concurrent stream capture tasks |
 <!-- END SYNC: KEY_MODULES -->
@@ -35,6 +36,7 @@ RTSP / USB / File Stream → `streaming/stream_engine.py` → `streaming/buffer_
 
 ## Public Interfaces
 
+- `ProductionMultiCameraEngine`: Production multi-camera scalability engine in [streaming/production_multicamera_engine.py](production_multicamera_engine.py).
 - `StreamEngine`: Single stream capture engine in [streaming/stream_engine.py](stream_engine.py).
 - `MultiStreamEngine`: Multi-stream engine in [streaming/multi_stream_engine.py](multi_stream_engine.py).
 - `BufferQueue`: Ring buffer queue in [streaming/buffer_queue.py](buffer_queue.py).
