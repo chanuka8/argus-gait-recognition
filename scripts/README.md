@@ -14,6 +14,7 @@ This folder contains project maintenance, automation, development, validation, e
 | [activate_venv.ps1](activate_venv.ps1) | ARGUS AI - Automatic Python virtual environment activation. | `powershell -ExecutionPolicy Bypass -File scripts/activate_venv.ps1` |
 | [analyze_cl_part_similarity.py](analyze_cl_part_similarity.py) | EXP-004B CL Root Cause Analysis: HPP Part-Level Similarity Investigation. | `python scripts/analyze_cl_part_similarity.py` |
 | [analyze_open_set_and_cl.py](analyze_open_set_and_cl.py) | Utility script for analyze open set and cl. | `python scripts/analyze_open_set_and_cl.py` |
+| [audit_continual_learning_effectiveness.py](audit_continual_learning_effectiveness.py) | Comprehensive Forensic Continual Learning Effectiveness & Real-World Accuracy Metrics Audit. | `python scripts/audit_continual_learning_effectiveness.py` |
 | [benchmark.py](benchmark.py) | Performance benchmark script for benchmark. | `python scripts/benchmark.py` |
 | [benchmark_crowd_performance.py](benchmark_crowd_performance.py) | Performance Measurement Benchmark for Crowd Intelligence Features. | `python scripts/benchmark_crowd_performance.py` |
 | [benchmark_inference_backends.py](benchmark_inference_backends.py) | Inference Backend Performance and Parity Benchmark Script for ARGUS AI. | `python scripts/benchmark_inference_backends.py` |
@@ -30,6 +31,7 @@ This folder contains project maintenance, automation, development, validation, e
 | [demo_silhouette.py](demo_silhouette.py) | Utility script for demo silhouette. | `python scripts/demo_silhouette.py` |
 | [demo_streaming_optimization.py](demo_streaming_optimization.py) | Utility script for demo streaming optimization. | `python scripts/demo_streaming_optimization.py` |
 | [detect_environment.py](detect_environment.py) | ARGUS AI Hardware & Compute Environment Detector CLI. | `python scripts/detect_environment.py` |
+| [diagnose_f1_score.py](diagnose_f1_score.py) | Targeted F1 Score Forensic Diagnostic Script for ARGUS AI. | `python scripts/diagnose_f1_score.py` |
 | [doctor.py](doctor.py) | ARGUS AI Non-Destructive Deployment Health Checker CLI (doctor.py). | `python scripts/doctor.py` |
 | [download_gdrive_osnet.py](download_gdrive_osnet.py) | Test downloading Google Drive weights with session cookies and confirmation tokens. | `python scripts/download_gdrive_osnet.py` |
 | [download_osnet_weights.py](download_osnet_weights.py) | Add project root to sys.path | `python scripts/download_osnet_weights.py` |
@@ -76,6 +78,7 @@ This folder contains project maintenance, automation, development, validation, e
 | [smoke_test_deployment.py](smoke_test_deployment.py) | Automated Native Deployment Smoke Test for ARGUS AI. | `python scripts/smoke_test_deployment.py` |
 | [start_system.bat](start_system.bat) | System startup launcher script. | `scripts/start_system.bat` |
 | [start_system.sh](start_system.sh) | System startup launcher script. | `scripts/start_system.sh` |
+| [sweep_fine_thresholds.py](sweep_fine_thresholds.py) | Ensure repo root in sys.path | `python scripts/sweep_fine_thresholds.py` |
 | [sync_folder_readmes.py](sync_folder_readmes.py) | Automated README synchronization script for ARGUS AI package folders. | `python scripts/sync_folder_readmes.py` |
 | [system_check.py](system_check.py) | Environment and dependency verification script. | `python scripts/system_check.py` |
 | [train_model.py](train_model.py) | Train ARGUS ByGaitLight model with metric learning (HPP + ArcFace + Triplet). | `python scripts/train_model.py` |
@@ -95,6 +98,7 @@ This folder contains project maintenance, automation, development, validation, e
 | [activate_venv.ps1](activate_venv.ps1) | Environment | No | Yes | No | No | ARGUS AI - Automatic Python virtual environment activation. |
 | [analyze_cl_part_similarity.py](analyze_cl_part_similarity.py) | Development | No | No | No | No | EXP-004B CL Root Cause Analysis: HPP Part-Level Similarit... |
 | [analyze_open_set_and_cl.py](analyze_open_set_and_cl.py) | Development | No | No | No | No | Utility script for analyze open set and cl. |
+| [audit_continual_learning_effectiveness.py](audit_continual_learning_effectiveness.py) | Validation | No | No | No | No | Comprehensive Forensic Continual Learning Effectiveness &... |
 | [benchmark.py](benchmark.py) | Validation | No | No | No | No | Performance benchmark script for benchmark. |
 | [benchmark_crowd_performance.py](benchmark_crowd_performance.py) | Validation | No | No | No | No | Performance Measurement Benchmark for Crowd Intelligence ... |
 | [benchmark_inference_backends.py](benchmark_inference_backends.py) | Validation | Yes | No | No | No | Inference Backend Performance and Parity Benchmark Script... |
@@ -111,6 +115,7 @@ This folder contains project maintenance, automation, development, validation, e
 | [demo_silhouette.py](demo_silhouette.py) | Validation | No | No | No | No | Utility script for demo silhouette. |
 | [demo_streaming_optimization.py](demo_streaming_optimization.py) | Validation | No | No | No | No | Utility script for demo streaming optimization. |
 | [detect_environment.py](detect_environment.py) | Validation | Yes | No | No | No | ARGUS AI Hardware & Compute Environment Detector CLI. |
+| [diagnose_f1_score.py](diagnose_f1_score.py) | Development | No | No | No | No | Targeted F1 Score Forensic Diagnostic Script for ARGUS AI. |
 | [doctor.py](doctor.py) | Validation | No | No | No | No | ARGUS AI Non-Destructive Deployment Health Checker CLI (d... |
 | [download_gdrive_osnet.py](download_gdrive_osnet.py) | Development | No | No | No | No | Test downloading Google Drive weights with session cookie... |
 | [download_osnet_weights.py](download_osnet_weights.py) | Development | No | No | No | No | Add project root to sys.path |
@@ -157,6 +162,7 @@ This folder contains project maintenance, automation, development, validation, e
 | [smoke_test_deployment.py](smoke_test_deployment.py) | Validation | No | No | No | No | Automated Native Deployment Smoke Test for ARGUS AI. |
 | [start_system.bat](start_system.bat) | Deployment | No | No | No | No | System startup launcher script. |
 | [start_system.sh](start_system.sh) | Deployment | No | No | No | No | System startup launcher script. |
+| [sweep_fine_thresholds.py](sweep_fine_thresholds.py) | Development | No | No | No | No | Ensure repo root in sys.path |
 | [sync_folder_readmes.py](sync_folder_readmes.py) | Documentation | Yes | Yes | Yes | Yes | Automated README synchronization script for ARGUS AI pack... |
 | [system_check.py](system_check.py) | Validation | No | No | No | No | Environment and dependency verification script. |
 | [train_model.py](train_model.py) | Development | Yes | No | No | No | Train ARGUS ByGaitLight model with metric learning (HPP +... |
@@ -763,6 +769,7 @@ python scripts/train_model.py --epochs 25 --batch-size 16
 Validation scripts perform environment health verification and component sanity tests:
 
 <!-- BEGIN SYNC: VALIDATION_SCRIPTS -->
+- **[audit_continual_learning_effectiveness.py](audit_continual_learning_effectiveness.py)**: Comprehensive Forensic Continual Learning Effectiveness & Real-World Accuracy Metrics Audit. (`python scripts/audit_continual_learning_effectiveness.py`)
 - **[benchmark.py](benchmark.py)**: Performance benchmark script for benchmark. (`python scripts/benchmark.py`)
 - **[benchmark_crowd_performance.py](benchmark_crowd_performance.py)**: Performance Measurement Benchmark for Crowd Intelligence Features. (`python scripts/benchmark_crowd_performance.py`)
 - **[benchmark_inference_backends.py](benchmark_inference_backends.py)**: Inference Backend Performance and Parity Benchmark Script for ARGUS AI. (`python scripts/benchmark_inference_backends.py`)
@@ -845,9 +852,11 @@ Development helper scripts run benchmarks, evaluations, training pipelines, and 
 <!-- BEGIN SYNC: DEVELOPMENT_SCRIPTS -->
 - **[analyze_cl_part_similarity.py](analyze_cl_part_similarity.py)**: EXP-004B CL Root Cause Analysis: HPP Part-Level Similarity Investigation. (`python scripts/analyze_cl_part_similarity.py`)
 - **[analyze_open_set_and_cl.py](analyze_open_set_and_cl.py)**: Utility script for analyze open set and cl. (`python scripts/analyze_open_set_and_cl.py`)
+- **[diagnose_f1_score.py](diagnose_f1_score.py)**: Targeted F1 Score Forensic Diagnostic Script for ARGUS AI. (`python scripts/diagnose_f1_score.py`)
 - **[download_gdrive_osnet.py](download_gdrive_osnet.py)**: Test downloading Google Drive weights with session cookies and confirmation tokens. (`python scripts/download_gdrive_osnet.py`)
 - **[download_osnet_weights.py](download_osnet_weights.py)**: Add project root to sys.path (`python scripts/download_osnet_weights.py`)
 - **[setup_silhouette_model.py](setup_silhouette_model.py)**: Silhouette Model Setup and Asset Verification Helper for ARGUS AI. (`python scripts/setup_silhouette_model.py`)
+- **[sweep_fine_thresholds.py](sweep_fine_thresholds.py)**: Ensure repo root in sys.path (`python scripts/sweep_fine_thresholds.py`)
 - **[train_model.py](train_model.py)**: Train ARGUS ByGaitLight model with metric learning (HPP + ArcFace + Triplet). (`python scripts/train_model.py`)
 <!-- END SYNC: DEVELOPMENT_SCRIPTS -->
 
@@ -859,6 +868,7 @@ Development helper scripts run benchmarks, evaluations, training pipelines, and 
 | `powershell -ExecutionPolicy Bypass -File scripts/activate_venv.ps1` | ARGUS AI - Automatic Python virtual environment activation. |
 | `python scripts/analyze_cl_part_similarity.py` | EXP-004B CL Root Cause Analysis: HPP Part-Level Similarity Investig... |
 | `python scripts/analyze_open_set_and_cl.py` | Utility script for analyze open set and cl. |
+| `python scripts/audit_continual_learning_effectiveness.py` | Comprehensive Forensic Continual Learning Effectiveness & Real-Worl... |
 | `python scripts/benchmark.py` | Performance benchmark script for benchmark. |
 | `python scripts/benchmark_crowd_performance.py` | Performance Measurement Benchmark for Crowd Intelligence Features. |
 | `python scripts/benchmark_inference_backends.py` | Inference Backend Performance and Parity Benchmark Script for ARGUS... |
@@ -875,6 +885,7 @@ Development helper scripts run benchmarks, evaluations, training pipelines, and 
 | `python scripts/demo_silhouette.py` | Utility script for demo silhouette. |
 | `python scripts/demo_streaming_optimization.py` | Utility script for demo streaming optimization. |
 | `python scripts/detect_environment.py` | ARGUS AI Hardware & Compute Environment Detector CLI. |
+| `python scripts/diagnose_f1_score.py` | Targeted F1 Score Forensic Diagnostic Script for ARGUS AI. |
 | `python scripts/doctor.py` | ARGUS AI Non-Destructive Deployment Health Checker CLI (doctor.py). |
 | `python scripts/download_gdrive_osnet.py` | Test downloading Google Drive weights with session cookies and conf... |
 | `python scripts/download_osnet_weights.py` | Add project root to sys.path |
@@ -921,6 +932,7 @@ Development helper scripts run benchmarks, evaluations, training pipelines, and 
 | `python scripts/smoke_test_deployment.py` | Automated Native Deployment Smoke Test for ARGUS AI. |
 | `scripts/start_system.bat` | System startup launcher script. |
 | `scripts/start_system.sh` | System startup launcher script. |
+| `python scripts/sweep_fine_thresholds.py` | Ensure repo root in sys.path |
 | `python scripts/sync_folder_readmes.py` | Automated README synchronization script for ARGUS AI package folders. |
 | `python scripts/system_check.py` | Environment and dependency verification script. |
 | `python scripts/train_model.py` | Train ARGUS ByGaitLight model with metric learning (HPP + ArcFace +... |
@@ -967,7 +979,7 @@ flowchart TD
 ```mermaid
 flowchart TD
     step1["1. Environment (5 scripts)"]
-    step2["2. Validation (47 scripts)"]
+    step2["2. Validation (48 scripts)"]
     step1 --> step2
     step3["3. Documentation"]
     step2 --> step3
@@ -977,7 +989,7 @@ flowchart TD
     step4 --> step5
     step6["6. Conversion (4 scripts)"]
     step5 --> step6
-    step7["7. Development (6 scripts)"]
+    step7["7. Development (8 scripts)"]
     step6 --> step7
     step8["8. Deployment (2 scripts)"]
     step7 --> step8
@@ -992,6 +1004,7 @@ flowchart TD
 | [activate_venv.ps1](activate_venv.ps1) | `No file modifications` |
 | [analyze_cl_part_similarity.py](analyze_cl_part_similarity.py) | `No file modifications` |
 | [analyze_open_set_and_cl.py](analyze_open_set_and_cl.py) | `No file modifications` |
+| [audit_continual_learning_effectiveness.py](audit_continual_learning_effectiveness.py) | `outputs` |
 | [benchmark.py](benchmark.py) | `outputs/reports/benchmark` |
 | [benchmark_crowd_performance.py](benchmark_crowd_performance.py) | `No file modifications` |
 | [benchmark_inference_backends.py](benchmark_inference_backends.py) | `outputs/reports/benchmark` |
@@ -1008,6 +1021,7 @@ flowchart TD
 | [demo_silhouette.py](demo_silhouette.py) | `No file modifications` |
 | [demo_streaming_optimization.py](demo_streaming_optimization.py) | `No file modifications` |
 | [detect_environment.py](detect_environment.py) | `No file modifications` |
+| [diagnose_f1_score.py](diagnose_f1_score.py) | `outputs` |
 | [doctor.py](doctor.py) | `Runtime-determined paths` |
 | [download_gdrive_osnet.py](download_gdrive_osnet.py) | `Runtime-determined paths` |
 | [download_osnet_weights.py](download_osnet_weights.py) | `Runtime-determined paths` |
@@ -1054,6 +1068,7 @@ flowchart TD
 | [smoke_test_deployment.py](smoke_test_deployment.py) | `Runtime-determined paths` |
 | [start_system.bat](start_system.bat) | `No file modifications` |
 | [start_system.sh](start_system.sh) | `No file modifications` |
+| [sweep_fine_thresholds.py](sweep_fine_thresholds.py) | `Runtime-determined paths` |
 | [sync_folder_readmes.py](sync_folder_readmes.py) | `*/README.md`, `docs/README_INDEX.md` |
 | [system_check.py](system_check.py) | `No file modifications` |
 | [train_model.py](train_model.py) | `No file modifications` |
@@ -1075,7 +1090,7 @@ flowchart TD
 | **Environment** | [activate_venv.ps1](activate_venv.ps1), [bootstrap_env.ps1](bootstrap_env.ps1), [download_package.py](download_package.py), [manage_venv.ps1](manage_venv.ps1), [process_runner.py](process_runner.py) |
 | **Git** | [install_git_hooks.py](install_git_hooks.py) |
 | **Read-Only** | [analyze_cl_part_similarity.py](analyze_cl_part_similarity.py), [analyze_open_set_and_cl.py](analyze_open_set_and_cl.py), [benchmark_crowd_performance.py](benchmark_crowd_performance.py), [benchmark_silhouette_segmenters.py](benchmark_silhouette_segmenters.py), [demo_confidence_scorer.py](demo_confidence_scorer.py), [demo_events.py](demo_events.py), [demo_gei.py](demo_gei.py), [demo_security_layer.py](demo_security_layer.py), [demo_silhouette.py](demo_silhouette.py), [demo_streaming_optimization.py](demo_streaming_optimization.py), [detect_environment.py](detect_environment.py), [evaluate_cross_view.py](evaluate_cross_view.py), [evaluate_open_set.py](evaluate_open_set.py), [generate_visualizer_charts.py](generate_visualizer_charts.py), [preprocess_casia.py](preprocess_casia.py), [run_auto_enrollment.py](run_auto_enrollment.py), [run_folder_recognition.py](run_folder_recognition.py), [run_folder_watcher.py](run_folder_watcher.py), [run_gallery_match.py](run_gallery_match.py), [run_inference_pipeline.py](run_inference_pipeline.py), [run_live_gei.py](run_live_gei.py), [run_live_recognition.py](run_live_recognition.py), [run_tracking.py](run_tracking.py), [run_video_recognition.py](run_video_recognition.py), [run_webcam_detection.py](run_webcam_detection.py), [setup_silhouette_model.py](setup_silhouette_model.py), [system_check.py](system_check.py), [train_model.py](train_model.py), [verify_firebase_persistence.py](verify_firebase_persistence.py) |
-| **Repository Modification** | [benchmark.py](benchmark.py), [benchmark_inference_backends.py](benchmark_inference_backends.py), [build_gallery.py](build_gallery.py), [build_tensorrt_engine.py](build_tensorrt_engine.py), [clean_live_gallery.py](clean_live_gallery.py), [demo_enrollment.py](demo_enrollment.py), [doctor.py](doctor.py), [download_gdrive_osnet.py](download_gdrive_osnet.py), [download_osnet_weights.py](download_osnet_weights.py), [evaluate_appearance_recognition.py](evaluate_appearance_recognition.py), [evaluate_dual_modal_recognition.py](evaluate_dual_modal_recognition.py), [evaluate_exp004.py](evaluate_exp004.py), [evaluate_model.py](evaluate_model.py), [evaluate_open_set_threshold_sweep.py](evaluate_open_set_threshold_sweep.py), [evaluate_subject_disjoint.py](evaluate_subject_disjoint.py), [evaluate_threshold_sweep.py](evaluate_threshold_sweep.py), [export_bygait_onnx.py](export_bygait_onnx.py), [export_silhouette_unet_onnx.py](export_silhouette_unet_onnx.py), [extract_casia_skeletons.py](extract_casia_skeletons.py), [migrate_output_layout.py](migrate_output_layout.py), [remove_gallery_identity.py](remove_gallery_identity.py), [remove_numeric_gallery_identities.py](remove_numeric_gallery_identities.py), [run_ablation_study.py](run_ablation_study.py), [run_exp004_ablations.py](run_exp004_ablations.py), [run_exp006_3d.py](run_exp006_3d.py), [run_exp006_full.py](run_exp006_full.py), [run_exp007_ablations.py](run_exp007_ablations.py), [run_optimization.py](run_optimization.py), [set_gallery_identity_status.py](set_gallery_identity_status.py), [simulate_date_aware_learning.py](simulate_date_aware_learning.py), [smoke_test_deployment.py](smoke_test_deployment.py), [validate_appearance_runtime.py](validate_appearance_runtime.py), [validate_continuous_improvement_lifecycle.py](validate_continuous_improvement_lifecycle.py), [validate_live_surveillance.py](validate_live_surveillance.py), [verify_real_nn_learning.py](verify_real_nn_learning.py) |
+| **Repository Modification** | [audit_continual_learning_effectiveness.py](audit_continual_learning_effectiveness.py), [benchmark.py](benchmark.py), [benchmark_inference_backends.py](benchmark_inference_backends.py), [build_gallery.py](build_gallery.py), [build_tensorrt_engine.py](build_tensorrt_engine.py), [clean_live_gallery.py](clean_live_gallery.py), [demo_enrollment.py](demo_enrollment.py), [diagnose_f1_score.py](diagnose_f1_score.py), [doctor.py](doctor.py), [download_gdrive_osnet.py](download_gdrive_osnet.py), [download_osnet_weights.py](download_osnet_weights.py), [evaluate_appearance_recognition.py](evaluate_appearance_recognition.py), [evaluate_dual_modal_recognition.py](evaluate_dual_modal_recognition.py), [evaluate_exp004.py](evaluate_exp004.py), [evaluate_model.py](evaluate_model.py), [evaluate_open_set_threshold_sweep.py](evaluate_open_set_threshold_sweep.py), [evaluate_subject_disjoint.py](evaluate_subject_disjoint.py), [evaluate_threshold_sweep.py](evaluate_threshold_sweep.py), [export_bygait_onnx.py](export_bygait_onnx.py), [export_silhouette_unet_onnx.py](export_silhouette_unet_onnx.py), [extract_casia_skeletons.py](extract_casia_skeletons.py), [migrate_output_layout.py](migrate_output_layout.py), [remove_gallery_identity.py](remove_gallery_identity.py), [remove_numeric_gallery_identities.py](remove_numeric_gallery_identities.py), [run_ablation_study.py](run_ablation_study.py), [run_exp004_ablations.py](run_exp004_ablations.py), [run_exp006_3d.py](run_exp006_3d.py), [run_exp006_full.py](run_exp006_full.py), [run_exp007_ablations.py](run_exp007_ablations.py), [run_optimization.py](run_optimization.py), [set_gallery_identity_status.py](set_gallery_identity_status.py), [simulate_date_aware_learning.py](simulate_date_aware_learning.py), [smoke_test_deployment.py](smoke_test_deployment.py), [sweep_fine_thresholds.py](sweep_fine_thresholds.py), [validate_appearance_runtime.py](validate_appearance_runtime.py), [validate_continuous_improvement_lifecycle.py](validate_continuous_improvement_lifecycle.py), [validate_live_surveillance.py](validate_live_surveillance.py), [verify_real_nn_learning.py](verify_real_nn_learning.py) |
 | **Validation** | [verify_environment.py](verify_environment.py) |
 <!-- END SYNC: SAFETY_CLASSIFICATION -->
 
