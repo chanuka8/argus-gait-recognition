@@ -31,22 +31,13 @@ import psutil
 import torch
 
 from intelligence.appearance_embedding import AppearanceEmbeddingExtractor
-from intelligence.concurrent_track_manager import (
-    ConcurrentTrackManager,
-    MobilityState,
-    PersonAssessmentState,
-)
+from intelligence.concurrent_track_manager import ConcurrentTrackManager
 from pipeline.detection.detection_validator import DetectionValidator
 from pipeline.detection.person_detector import PersonDetector
 from pipeline.gei.stream_gei_builder import StreamGEIBuilder
 from pipeline.tracking.tracker import PersonTracker
 from services.camera_source_resolver import CameraSourceResolver
-from utils.display_renderer import (
-    COLOR_GREEN_BGR,
-    COLOR_RED_BGR,
-    COLOR_YELLOW_BGR,
-    DetectionDisplayRenderer,
-)
+from utils.display_renderer import DetectionDisplayRenderer
 
 
 def run_live_validation(num_frames: int = 45) -> dict[str, Any]:
@@ -122,7 +113,6 @@ def run_live_validation(num_frames: int = 45) -> dict[str, Any]:
     print(f"\n[LIVE RUNTIME] Capturing and processing {num_frames} live physical webcam frames...")
     
     for frame_idx in range(num_frames):
-        f_start = time.monotonic()
         ret, frame = cap.read()
         if not ret or frame is None:
             print(f"[FRAME {frame_idx}] Read returned empty frame.")
@@ -162,7 +152,7 @@ def run_live_validation(num_frames: int = 45) -> dict[str, Any]:
             )
 
             # Stage 3 & 4: Assessment & Eligibility
-            is_val, mob_state, gait_elig, app_elig, val_reason = validator.assess_detection(
+            _is_val, mob_state, gait_elig, app_elig, val_reason = validator.assess_detection(
                 bbox=bbox,
                 confidence=conf,
                 frame_shape=frame.shape,
@@ -359,7 +349,7 @@ def run_multi_person_scenarios() -> dict[str, Any]:
                 frame_index=1,
             )
 
-            is_val, mob_state, gait_elig, app_elig, reason = validator.assess_detection(
+            _is_val, mob_state, gait_elig, _app_elig, _reason = validator.assess_detection(
                 bbox=bbox,
                 confidence=conf,
                 frame_shape=frame.shape,
@@ -406,4 +396,3 @@ def run_multi_person_scenarios() -> dict[str, Any]:
 if __name__ == "__main__":
     live_metrics = run_live_validation(num_frames=45)
     scenario_metrics = run_multi_person_scenarios()
-
