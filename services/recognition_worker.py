@@ -65,7 +65,33 @@ class RecognitionResultCache:
                 return None
             return res
 
-    def put(self, result: RecognitionResult) -> None:
+    def put(self, result: RecognitionResult | None = None, **kwargs: Any) -> None:
+        if result is None:
+            if not kwargs:
+                return
+            cid = str(kwargs.get("camera_id", ""))
+            tid = int(kwargs.get("track_id", 0))
+            now = float(kwargs.get("timestamp", time.monotonic()))
+            iso_now = str(kwargs.get("iso_timestamp", datetime.now(timezone.utc).isoformat()))
+            sim = float(kwargs.get("similarity", 0.0))
+            conf = float(kwargs.get("confidence", sim))
+            result = RecognitionResult(
+                camera_id=cid,
+                track_id=tid,
+                identity=str(kwargs.get("identity", "UNKNOWN_PERSON")),
+                similarity=sim,
+                confidence=conf,
+                decision=str(kwargs.get("decision", "UNKNOWN")),
+                status=str(kwargs.get("status", "UNKNOWN")),
+                bbox=list(kwargs.get("bbox", [0, 0, 0, 0])),
+                timestamp=now,
+                iso_timestamp=iso_now,
+                gei_frames=int(kwargs.get("gei_frames", 0)),
+                appearance_identity=str(kwargs.get("appearance_identity", "UNKNOWN_PERSON")),
+                appearance_score=float(kwargs.get("appearance_score", 0.0)),
+                appearance_status=str(kwargs.get("appearance_status", "UNKNOWN")),
+                details=dict(kwargs.get("details", {})),
+            )
         key = (result.camera_id, result.track_id)
         with self._lock:
             self._cache[key] = result

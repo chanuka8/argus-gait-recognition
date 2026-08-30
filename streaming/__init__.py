@@ -29,6 +29,14 @@ from streaming.frame_dropper import FrameDropper
 from streaming.load_balancer import CameraLoadBalancer
 from streaming.multi_stream_engine import MultiStreamEngine
 from streaming.performance_optimizer import PerformanceOptimizer
+from streaming.production_multicamera_engine import (
+    CentralStreamScheduler,
+    FramePacket,
+    HardwareProfile,
+    ProductionMultiCameraEngine,
+    StreamIngestionQueue,
+    detect_hardware_profile,
+)
 from streaming.production_runtime import (
     AdaptiveResourceManager,
     CameraState,
@@ -60,17 +68,20 @@ __all__ = [
     "CameraStateMachine",
     "CameraWorkerPool",
     "CapacityEstimator",
+    "CentralStreamScheduler",
     "DataPoisoningGuard",
     "DeploymentMode",
     "DeploymentReadinessManager",
     "FPSGovernor",
     "FPSPolicy",
     "FrameDropper",
+    "FramePacket",
     "FrameQualityGate",
     "GPUMemoryGuard",
     "GracefulShutdownManager",
     "HardwareCapabilityDetector",
     "HardwareCapabilityReport",
+    "HardwareProfile",
     "InferenceQualityMode",
     "ModelProfileRegistry",
     "ModelResourceProfile",
@@ -78,6 +89,7 @@ __all__ = [
     "NetworkBandwidthEstimator",
     "PerformanceOptimizer",
     "ProductionCapacityEstimator",
+    "ProductionMultiCameraEngine",
     "ProductionSurveillanceRuntime",
     "ReconnectEngine",
     "ResilientWorkerPool",
@@ -85,7 +97,9 @@ __all__ = [
     "SafeModelSwapper",
     "SecurityAuditor",
     "StorageSafetyAuditor",
+    "StreamIngestionQueue",
     "StructuredEventLogger",
     "SystemProfile",
     "SystemProfileEngine",
+    "detect_hardware_profile",
 ]

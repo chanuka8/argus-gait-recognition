@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 ARGUS AI — Production-Grade Multi-Camera Scalability & Hardware-Agnostic Inference Engine.
 
@@ -26,7 +28,7 @@ import torch
 
 from monitoring.logging_config import get_logger
 from pipeline.gei.stream_gei_builder import StreamGEIBuilder
-from services.recognition_worker import RecognitionResultCache
+from services.recognition_worker import RecognitionResult, RecognitionResultCache
 
 
 @dataclass
@@ -644,15 +646,22 @@ class ProductionMultiCameraEngine:
                     self.logger.debug(f"Fusion decision error: {fuse_err}")
 
             # Cache recognition result for live UI/preview
-            self.cache.put(
+            rec_result = RecognitionResult(
                 camera_id=cid,
                 track_id=track_id,
                 identity=final_identity,
-                similarity=final_score,
+                similarity=float(final_score),
+                confidence=float(final_score),
                 decision=decision,
                 status=status,
                 bbox=bbox,
+                timestamp=time.monotonic(),
+                iso_timestamp=iso_now,
+                appearance_identity=app_id,
+                appearance_score=float(app_score),
+                appearance_status="MATCH" if app_id != "UNKNOWN_PERSON" else "UNKNOWN",
             )
+            self.cache.put(rec_result)
 
             with self._lock:
                 if cid in self._camera_metrics:

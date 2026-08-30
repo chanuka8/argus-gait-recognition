@@ -163,3 +163,42 @@ def test_continual_learning_observation_integration():
     engine._process_single_frame(pkt)
     telemetry = engine.get_telemetry()
     assert telemetry["cameras"]["cam_live_01"]["processed_frames"] == 1
+
+
+def test_process_single_frame_tracking_and_caching():
+    """Verify tracked detections populate recognition cache without type errors."""
+    class MockDetector:
+        def detect(self, frame):
+            return [{"bbox": [10, 10, 50, 50], "confidence": 0.95}]
+
+    class MockTracker:
+        def update(self, detections, shape):
+            return [{"track_id": 42, "bbox": [10, 10, 50, 50]}]
+
+    received_events = []
+    engine = ProductionMultiCameraEngine(
+        detector=MockDetector(),
+        event_callback=lambda evt: received_events.append(evt),
+    )
+    engine.register_camera("cam_cache_test")
+    engine._camera_trackers["cam_cache_test"] = MockTracker()
+
+    dummy_frame = np.zeros((100, 100, 3), dtype=np.uint8)
+    pkt = FramePacket(
+        camera_id="cam_cache_test",
+        frame_id=10,
+        capture_time=time.monotonic(),
+        frame=dummy_frame,
+    )
+
+    # Process frame
+    engine._process_single_frame(pkt)
+
+    # Verify cache entry exists and is properly populated
+    res = engine.cache.get("cam_cache_test", 42)
+    assert res is not None
+    assert res.track_id == 42
+    assert res.camera_id == "cam_cache_test"
+    assert res.bbox == [10, 10, 50, 50]
+    assert res.identity == "UNKNOWN_PERSON"
+
