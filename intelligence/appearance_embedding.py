@@ -128,6 +128,65 @@ class AppearanceEmbeddingExtractor:
             self._logger.debug(f"[APPEARANCE] Feature extraction error: {exc}")
             return None
 
+    def extract_batch(
+        self,
+        crops: list[np.ndarray | None],
+        track_ids: list[int] | None = None,
+        frame_index: int = 0,
+    ) -> list[np.ndarray | None]:
+        """
+        Extract normalized 512D embeddings for a batch of person crops using OSNet backbone.
+
+        Automatically updates per-track cache when track_ids are provided.
+        """
+        if not self.is_available() or not crops:
+            return [None] * len(crops)
+
+        valid_crops = []
+        valid_indices = []
+        for i, crop in enumerate(crops):
+            if crop is not None and getattr(crop, "size", 0) > 0 and len(crop.shape) == 3:
+                valid_crops.append(crop)
+                valid_indices.append(i)
+
+        results: list[np.ndarray | None] = [None] * len(crops)
+        if not valid_crops:
+            return results
+
+        try:
+            if hasattr(self.backbone, "extract_batch"):
+                raw_embeddings = self.backbone.extract_batch(valid_crops)
+            else:
+                raw_embeddings = [self.backbone.extract(c) for c in valid_crops]
+
+            for idx, raw_emb in zip(valid_indices, raw_embeddings):
+                if raw_emb is None:
+                    continue
+                vec = np.asarray(raw_emb, dtype=np.float32).ravel()
+                if vec.size == 0:
+                    continue
+                if vec.size != 512:
+                    if vec.size < 512:
+                        padded = np.zeros((512,), dtype=np.float32)
+                        padded[: vec.size] = vec
+                        vec = padded
+                    else:
+                        vec = vec[:512]
+                norm = float(np.linalg.norm(vec))
+                if norm > 1e-8:
+                    normalized = (vec / norm).astype(np.float32)
+                    results[idx] = normalized
+                    if track_ids is not None and idx < len(track_ids):
+                        tid = track_ids[idx]
+                        self._cache[tid] = {
+                            "embedding": normalized,
+                            "last_updated_frame": frame_index,
+                        }
+        except (RuntimeError, ValueError, TypeError, AttributeError, OSError) as exc:
+            self._logger.debug(f"[APPEARANCE] Batch feature extraction error: {exc}")
+
+        return results
+
     def get_cached(self, track_id: int) -> np.ndarray | None:
         """Retrieve cached embedding for a track ID."""
         entry = self._cache.get(track_id)

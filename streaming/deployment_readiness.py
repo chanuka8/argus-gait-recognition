@@ -685,6 +685,54 @@ class ProductionCapacityEstimator:
             "constraints_met": limiting_factor == "none",
         }
 
+    def estimate_multi_person_capacity(
+        self,
+        camera_count: int,
+        persons_per_camera: int,
+        detector_throughput_fps: float = 30.0,
+        osnet_throughput_fps: float = 60.0,
+        bygaitlight_throughput_fps: float = 50.0,
+        cpu_percent: float = 50.0,
+        vram_allocated_mb: float = 1000.0,
+        vram_total_mb: float = 4000.0,
+        p95_latency_ms: float = 30.0,
+    ) -> dict[str, Any]:
+        """
+        Calculates dynamic multi-person capacity, throughput, and recommended load tier
+        across multiple cameras without artificial software person limits.
+        """
+        total_active_persons = max(1, camera_count * persons_per_camera)
+
+        # Estimate memory per track in KB (context + features + sliding window)
+        kb_per_track = 128.0
+        total_track_memory_mb = (total_active_persons * kb_per_track) / 1024.0
+
+        # Determine capacity state
+        if cpu_percent > 88.0 or (vram_total_mb > 0 and (vram_allocated_mb / vram_total_mb) > 0.90) or p95_latency_ms > 100.0:
+            capacity_state = "CAPACITY_REACHED"
+            recommended_tier = "DEGRADED_MODE"
+            max_sustainable_persons = int(total_active_persons * 0.70)
+        elif cpu_percent > 75.0 or (vram_total_mb > 0 and (vram_allocated_mb / vram_total_mb) > 0.80) or p95_latency_ms > 50.0:
+            capacity_state = "SUPPORTED_DEGRADED"
+            recommended_tier = "MICRO_BATCHING"
+            max_sustainable_persons = int(total_active_persons * 0.90)
+        else:
+            capacity_state = "SUPPORTED"
+            recommended_tier = "FULL_QUALITY"
+            max_sustainable_persons = total_active_persons * 2
+
+        return {
+            "camera_count": camera_count,
+            "target_persons_per_camera": persons_per_camera,
+            "total_concurrent_persons": total_active_persons,
+            "max_sustainable_concurrent_persons": max_sustainable_persons,
+            "capacity_state": capacity_state,
+            "recommended_policy_tier": recommended_tier,
+            "estimated_track_memory_mb": round(total_track_memory_mb, 2),
+            "is_unbounded_supported": True,
+            "limiting_factor": "cpu" if cpu_percent > 80 else ("vram" if (vram_total_mb > 0 and vram_allocated_mb / vram_total_mb > 0.85) else "none"),
+        }
+
 
 # ---------------------------------------------------------------------------
 # Task 4 — Camera Admission Controller
@@ -1072,3 +1120,41 @@ class DeploymentReadinessManager:
             "security": security,
             "models": self.model_registry.get_all_profiles(),
         }
+
+    def request_camera_admission(
+        self,
+        camera_id: str,
+        current_active_cameras: int,
+        target_fps: float = 15.0,
+    ) -> AdmissionResult:
+        """Evaluate pre-flight camera admission dynamically using current system resources."""
+        cpu_pct = 0.0
+        ram_pct = 0.0
+        try:
+            cpu_pct = psutil.cpu_percent(interval=None)
+            ram_pct = psutil.virtual_memory().percent
+        except (ImportError, OSError):
+            pass
+
+        vram = self.gpu_guard.get_vram_state()
+        cap = self.capacity_estimator.estimate_capacity(
+            measured_throughput_fps=self.runtime_params.max_processing_fps * 15.0,
+            current_active_cameras=current_active_cameras,
+            cpu_percent=cpu_pct,
+            vram_allocated_mb=vram["allocated_mb"],
+            vram_total_mb=vram["total_mb"],
+            p95_latency_ms=10.0,
+            drop_rate=0.0,
+        )
+
+        return self.admission_controller.evaluate_admission(
+            camera_id=camera_id,
+            current_active_cameras=current_active_cameras,
+            sustainable_capacity=cap.get("sustainable_camera_count", 4),
+            cpu_percent=cpu_pct,
+            ram_percent=ram_pct,
+            vram_allocated_mb=vram["allocated_mb"],
+            vram_total_mb=vram["total_mb"],
+            network_headroom_pct=80.0,
+            target_fps=target_fps,
+        )

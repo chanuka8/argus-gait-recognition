@@ -21,6 +21,7 @@ The `streaming` package provides high-throughput video stream ingestion, thread-
 | [load_balancer.py](load_balancer.py) | Balances processing workload across multi-stream worker threads |
 | [multi_stream_engine.py](multi_stream_engine.py) | Multi-stream acquisition engine handling concurrent CCTV streams |
 | [performance_optimizer.py](performance_optimizer.py) | Dynamic performance optimizer adjusting frame queue sizes and capture rates |
+| [person_track_scheduler.py](person_track_scheduler.py) | Module/resource file person_track_scheduler.py |
 | [production_multicamera_engine.py](production_multicamera_engine.py) | Production-grade multi-camera scalability and hardware-agnostic inference engine |
 | [production_runtime.py](production_runtime.py) | Phase 4 production surveillance hardening runtime with camera lifecycle, reconnect, failure isolation, adaptive resources, model hot-swap, and graceful shutdown |
 | [stream_engine.py](stream_engine.py) | Core single-stream acquisition engine wrapping OpenCV `VideoCapture` |

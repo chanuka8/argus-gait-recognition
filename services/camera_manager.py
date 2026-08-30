@@ -108,11 +108,28 @@ class CameraManager:
                 self._logger.warning(f"Camera {camera_id} already exists")
                 return False
 
+            # Dynamic admission check if configured
+            if camera_config.get("enforce_admission", False):
+                try:
+                    from streaming.deployment_readiness import DeploymentReadinessManager
+
+                    dm = DeploymentReadinessManager()
+                    adm_res = dm.request_camera_admission(
+                        camera_id=camera_id,
+                        current_active_cameras=len(self._workers),
+                    )
+                    if not adm_res.admitted:
+                        self._logger.warning(f"Camera {camera_id} admission rejected: {adm_res.reason}")
+                        return False
+                except (ImportError, Exception) as adm_err:  # noqa: BLE001
+                    self._logger.debug(f"Camera admission evaluation notice: {adm_err}")
+
             worker = self._create_worker(camera_id, camera_config)
 
             if worker is None:
                 return False
 
+            self.cameras_config[camera_id] = camera_config
             self._workers[camera_id] = worker
             self._logger.info(f"Added camera: {camera_id}")
             return True
@@ -128,10 +145,30 @@ class CameraManager:
             success = worker.stop(timeout=5.0)
 
             if success:
+                self.cameras_config.pop(camera_id, None)
                 del self._workers[camera_id]
                 self._logger.info(f"Removed camera: {camera_id}")
 
             return success
+
+    def save_config(self, output_path: str | Path | None = None) -> bool:
+        """Persist current camera configuration safely to YAML."""
+        target_path = Path(output_path) if output_path is not None else self.config_path
+        with self._lock:
+            try:
+                target_path.parent.mkdir(parents=True, exist_ok=True)
+                data = {
+                    "defaults": self.defaults,
+                    "cameras": self.cameras_config,
+                    "multi_camera": self.multi_camera_config,
+                }
+                with open(target_path, "w", encoding="utf-8") as f:
+                    yaml.safe_dump(data, f, default_flow_style=False)
+                self._logger.info(f"Saved camera configuration to {target_path}")
+                return True
+            except (yaml.YAMLError, OSError, ValueError) as err:
+                self._logger.error(f"Failed to save camera config: {err}")
+                return False
 
     def start_all(self) -> int:
         """Start all enabled cameras."""

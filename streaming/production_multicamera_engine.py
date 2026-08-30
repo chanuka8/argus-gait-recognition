@@ -26,9 +26,18 @@ from typing import Any
 import numpy as np
 import torch
 
+from intelligence.concurrent_track_manager import (
+    ConcurrentTrackManager,
+    PersonTrackContext,
+)
 from monitoring.logging_config import get_logger
+from pipeline.detection.detection_validator import DetectionValidator
 from pipeline.gei.stream_gei_builder import StreamGEIBuilder
 from services.recognition_worker import RecognitionResult, RecognitionResultCache
+from streaming.person_track_scheduler import (
+    BatchCandidateItem,
+    PersonTrackScheduler,
+)
 
 
 @dataclass
@@ -299,11 +308,14 @@ class ProductionMultiCameraEngine:
         appearance_extractor=None,
         appearance_matcher=None,
         fusion_engine=None,
+        track_aggregator=None,
         operational_collector=None,
         gallery_features: np.ndarray | None = None,
         gallery_labels: list[str] | None = None,
         appearance_gallery_features: np.ndarray | None = None,
         appearance_gallery_labels: list[str] | None = None,
+        concurrent_track_manager: ConcurrentTrackManager | None = None,
+        person_scheduler: PersonTrackScheduler | None = None,
         event_callback: Callable[[dict], None] | None = None,
     ) -> None:
         self.profile = hardware_profile or detect_hardware_profile()
@@ -319,7 +331,13 @@ class ProductionMultiCameraEngine:
         self.appearance_extractor = appearance_extractor
         self.appearance_matcher = appearance_matcher
         self.fusion_engine = fusion_engine
+        self.track_aggregator = track_aggregator
         self.operational_collector = operational_collector
+        self.track_manager = concurrent_track_manager or ConcurrentTrackManager()
+        self.person_scheduler = person_scheduler or PersonTrackScheduler()
+        self.detection_validator = DetectionValidator()
+        self._last_gc_time = time.monotonic()
+        self._gc_interval = 2.0
 
         self.gallery_features = gallery_features
         self.gallery_labels = list(gallery_labels) if gallery_labels is not None else []
@@ -493,91 +511,179 @@ class ProductionMultiCameraEngine:
         with self._lock:
             if cid in self._camera_metrics:
                 self._camera_metrics[cid]["processed_frames"] += 1
+            frame_idx = self._camera_metrics[cid]["processed_frames"] if cid in self._camera_metrics else 0
 
         # 1. Detection
         detections = []
         if self.detector is not None:
-            detections = self.detector.detect(frame)
+            try:
+                detections = self.detector.detect(frame)
+            except (RuntimeError, ValueError, TypeError, KeyError, AttributeError, OSError) as det_err:
+                self.logger.debug(f"Detector error for {cid}: {det_err}")
 
         # 2. Tracking
         tracker = self._camera_trackers.get(cid)
         tracked_objects = []
         if tracker is not None and detections:
-            tracked_objects = tracker.update(detections, frame.shape)
+            try:
+                tracked_objects = tracker.update(detections, frame.shape)
+            except (RuntimeError, ValueError, TypeError, KeyError, AttributeError, OSError) as trk_err:
+                self.logger.debug(f"Tracker error for {cid}: {trk_err}")
+
+        # 3. Concurrent Track Contexts (Unbounded Dynamic Allocation)
+        active_tids: set[int] = set()
+        track_contexts: list[tuple[dict[str, Any], PersonTrackContext]] = []
+        h, w = frame.shape[:2]
+
+        for obj in tracked_objects:
+            try:
+                track_id = int(obj["track_id"])
+                bbox = [int(b) for b in obj["bbox"]]
+                conf = float(obj.get("confidence", 1.0))
+                ctx = self.track_manager.update_or_create_track(
+                    camera_id=cid,
+                    track_id=track_id,
+                    bbox=bbox,
+                    confidence=conf,
+                    frame_index=frame_idx,
+                )
+
+                # Assess per-person mobility & biometric eligibility
+                _is_val, mob_state, gait_elig, app_elig, val_reason = self.detection_validator.assess_detection(
+                    bbox=bbox,
+                    confidence=conf,
+                    frame_shape=frame.shape,
+                )
+                ctx.mobility_state = mob_state
+                ctx.gait_eligible = gait_elig
+                ctx.appearance_eligible = app_elig
+                ctx.gait_usability_reason = val_reason
+
+                active_tids.add(track_id)
+                track_contexts.append((obj, ctx))
+            except (RuntimeError, ValueError, TypeError, KeyError, AttributeError, OSError) as ctx_err:
+                self.logger.debug(f"Track context error: {ctx_err}")
+
+        self.track_manager.mark_missing_tracks(cid, active_tids)
 
         with self._lock:
             if cid in self._camera_metrics:
-                self._camera_metrics[cid]["active_tracks"] = len(
-                    tracked_objects
-                )
+                self._camera_metrics[cid]["active_tracks"] = len(tracked_objects)
 
-        # Process each tracked person crop
-        for obj in tracked_objects:
-            track_id = int(obj["track_id"])
-            bbox = [int(b) for b in obj["bbox"]]
+        # 4. Adaptive Policy Evaluation
+        sched_stats = self.scheduler.get_stats()
+        q_depth = sched_stats.get("streams", {}).get(cid, {}).get("queue_depth", 0)
+        policy_params = self.person_scheduler.policy_engine.evaluate_policy(
+            queue_depth=q_depth,
+            active_tracks_count=len(self.track_manager.get_active_tracks()),
+        )
 
-            h, w = frame.shape[:2]
+        # 5. Branch B: Gait silhouette & GEI accumulation (gated on gait_eligible)
+        for _, ctx in track_contexts:
+            if not ctx.gait_eligible:
+                continue
+
+            track_id = ctx.track_id
+            bbox = ctx.bbox
             x1 = max(0, min(w - 1, bbox[0]))
             y1 = max(0, min(h - 1, bbox[1]))
             x2 = max(0, min(w, bbox[2]))
             y2 = max(0, min(h, bbox[3]))
             crop = frame[y1:y2, x1:x2] if (x2 > x1 and y2 > y1) else None
 
-            # Branch B: Gait silhouette & GEI accumulation
             if self.silhouette_extractor is not None and crop is not None:
-                sil = self.silhouette_extractor.extract_from_frame(frame, bbox)
-                if sil is not None:
-                    self.gei_builder.add_silhouette(track_id, sil)
-
-            # Branch A: Appearance ReID extraction (512D)
-            app_id = "UNKNOWN_PERSON"
-            app_score = 0.0
-            app_emb = None
-            if (
-                self.appearance_extractor is not None
-                and crop is not None
-                and crop.size > 0
-            ):
-                app_emb = self.appearance_extractor.extract(
-                    crop=crop,
-                    track_id=track_id,
-                )
-                if (
-                    app_emb is not None
-                    and self.appearance_matcher is not None
-                    and self.appearance_gallery_features is not None
-                    and len(self.appearance_gallery_features) > 0
-                ):
-                    app_id, app_score = self.appearance_matcher.match(
-                        query_feature=app_emb,
-                        gallery_features=self.appearance_gallery_features,
-                        gallery_labels=self.appearance_gallery_labels,
-                    )
-
-            # Record appearance observation for continual learning (P0)
-            if self.operational_collector is not None and app_emb is not None:
                 try:
-                    self.operational_collector.record_observation(
+                    sil = self.silhouette_extractor.extract_from_frame(frame, bbox)
+                    if sil is not None:
+                        self.gei_builder.add_silhouette(track_id, sil)
+                except (RuntimeError, ValueError, TypeError, KeyError, AttributeError, OSError) as sil_err:
+                    self.logger.debug(f"Silhouette error for track {track_id}: {sil_err}")
+
+        # 6. Branch A: Batched OSNet Appearance Feature Extraction (512D)
+        candidate_items = []
+        for _, ctx in track_contexts:
+            if not ctx.appearance_eligible:
+                continue
+
+            track_id = ctx.track_id
+            bbox = ctx.bbox
+            x1 = max(0, min(w - 1, bbox[0]))
+            y1 = max(0, min(h - 1, bbox[1]))
+            x2 = max(0, min(w, bbox[2]))
+            y2 = max(0, min(h, bbox[3]))
+            crop = frame[y1:y2, x1:x2] if (x2 > x1 and y2 > y1) else None
+
+            if crop is not None and getattr(crop, "size", 0) > 0:
+                candidate_items.append(
+                    BatchCandidateItem(
                         camera_id=cid,
                         track_id=track_id,
-                        vector=app_emb,
-                        predicted_identity=app_id,
-                        confidence=float(app_score),
-                        modality="appearance",
-                        model_name="OSNet-x0.25",
-                        model_version="v1.0.0",
-                        metadata={"bbox": bbox},
+                        crop=crop,
+                        bbox=bbox,
+                        context=ctx,
                     )
-                except (RuntimeError, ValueError, TypeError, KeyError, OSError) as obs_err:
-                    self.logger.debug(f"Collector observation error: {obs_err}")
+                )
 
-            # Gait recognition when GEI is ready
-            gait_id = "UNKNOWN_PERSON"
-            gait_score = 0.0
-            gait_emb = None
-            if self.gei_builder.get_frame_count(track_id) >= getattr(
-                self.gei_builder, "min_frames", 10
-            ):
+        selected_batch = self.person_scheduler.select_reid_candidates(
+            candidate_items=candidate_items,
+            policy_params=policy_params,
+            frame_index=frame_idx,
+        )
+
+        if selected_batch and self.appearance_extractor is not None:
+            batch_crops = [item.crop for item in selected_batch]
+            batch_tids = [item.track_id for item in selected_batch]
+            try:
+                if hasattr(self.appearance_extractor, "extract_batch"):
+                    batch_embs = self.appearance_extractor.extract_batch(
+                        batch_crops,
+                        track_ids=batch_tids,
+                        frame_index=frame_idx,
+                    )
+                else:
+                    batch_embs = [
+                        self.appearance_extractor.extract(c, tid)
+                        for c, tid in zip(batch_crops, batch_tids)
+                    ]
+
+                # Match each extracted embedding against appearance gallery
+                for item, emb in zip(selected_batch, batch_embs):
+                    if emb is not None and self.appearance_matcher is not None:
+                        app_id, app_score = self.appearance_matcher.match(
+                            query_feature=emb,
+                            gallery_features=self.appearance_gallery_features,
+                            gallery_labels=self.appearance_gallery_labels,
+                        )
+                        item.context.update_appearance(
+                            embedding=emb,
+                            identity=str(app_id),
+                            score=float(app_score),
+                            frame_index=frame_idx,
+                        )
+                        # Record continual learning observation (P0)
+                        if self.operational_collector is not None:
+                            try:
+                                self.operational_collector.record_observation(
+                                    camera_id=cid,
+                                    track_id=item.track_id,
+                                    vector=emb,
+                                    predicted_identity=str(app_id),
+                                    confidence=float(app_score),
+                                    modality="appearance",
+                                    model_name="OSNet-x0.25",
+                                    model_version="v1.0.0",
+                                    metadata={"bbox": item.bbox},
+                                )
+                            except (RuntimeError, ValueError, TypeError, KeyError, OSError) as obs_err:
+                                self.logger.debug(f"Collector observation error: {obs_err}")
+            except (RuntimeError, ValueError, TypeError, KeyError, AttributeError, OSError) as app_batch_err:
+                self.logger.debug(f"Appearance batch extraction error: {app_batch_err}")
+
+        # 7. Gait Extraction & Matching for ready GEIs
+        for _, ctx in track_contexts:
+            track_id = ctx.track_id
+            bbox = ctx.bbox
+            if self.gei_builder.get_frame_count(track_id) >= getattr(self.gei_builder, "min_frames", 10):
                 gei = self.gei_builder.build_gei(track_id)
                 if gei is not None and self.extractor is not None:
                     try:
@@ -593,59 +699,113 @@ class ProductionMultiCameraEngine:
                                 gallery_features=self.gallery_features,
                                 gallery_labels=self.gallery_labels,
                             )
+                            ctx.update_gait(
+                                embedding=gait_emb,
+                                identity=str(gait_id),
+                                score=float(gait_score),
+                                frame_index=frame_idx,
+                            )
+                            if self.operational_collector is not None:
+                                try:
+                                    self.operational_collector.record_observation(
+                                        camera_id=cid,
+                                        track_id=track_id,
+                                        vector=gait_emb,
+                                        predicted_identity=str(gait_id),
+                                        confidence=float(gait_score),
+                                        modality="gait",
+                                        model_name="ByGaitLight",
+                                        model_version="v1.0.0",
+                                        metadata={"bbox": bbox},
+                                    )
+                                except (RuntimeError, ValueError, TypeError, KeyError, OSError) as gait_obs_err:
+                                    self.logger.debug(f"Gait collector error: {gait_obs_err}")
                     except (RuntimeError, ValueError, TypeError, OSError) as gait_err:
-                        self.logger.debug(f"Gait extraction error: {gait_err}")
+                        self.logger.debug(f"Gait extraction error for {track_id}: {gait_err}")
 
-                # Record gait observation for continual learning (P0)
-                if (
-                    self.operational_collector is not None
-                    and gait_emb is not None
-                ):
-                    try:
-                        self.operational_collector.record_observation(
-                            camera_id=cid,
-                            track_id=track_id,
-                            vector=gait_emb,
-                            predicted_identity=gait_id,
-                            confidence=float(gait_score),
-                            modality="gait",
-                            model_name="ByGaitLight",
-                            model_version="v1.0.0",
-                            metadata={"bbox": bbox},
-                        )
-                    except (RuntimeError, ValueError, TypeError, KeyError, OSError) as gait_obs_err:
-                        self.logger.debug(f"Gait collector error: {gait_obs_err}")
+        # 8. DualModalFusion, Temporal Aggregation & Result Publishing per track
+        for _, ctx in track_contexts:
+            track_id = ctx.track_id
+            bbox = ctx.bbox
+            x1 = max(0, min(w - 1, bbox[0]))
+            y1 = max(0, min(h - 1, bbox[1]))
+            x2 = max(0, min(w, bbox[2]))
+            y2 = max(0, min(h, bbox[3]))
+            crop = frame[y1:y2, x1:x2] if (x2 > x1 and y2 > y1) else None
 
-            # Fusion decision
+            app_id = ctx.appearance_identity
+            app_score = ctx.appearance_score
+            app_emb = ctx.appearance_embedding
+            gait_id = ctx.gait_identity
+            gait_score = ctx.gait_score
+            gait_emb = ctx.gait_embedding
+
             final_identity = app_id if app_id != "UNKNOWN_PERSON" else gait_id
             final_score = max(app_score, gait_score)
-            status = (
-                "CONFIRMED" if final_identity != "UNKNOWN_PERSON" else "UNKNOWN"
-            )
-            decision = (
-                "CONFIRMED" if final_identity != "UNKNOWN_PERSON" else "UNKNOWN"
-            )
+            status = "CONFIRMED" if final_identity != "UNKNOWN_PERSON" else "UNKNOWN"
+            decision = "CONFIRMED" if final_identity != "UNKNOWN_PERSON" else "UNKNOWN"
 
-            if self.fusion_engine is not None and (
-                app_emb is not None or gait_emb is not None
-            ):
+            fusion_details = None
+            if self.fusion_engine is not None and (app_emb is not None or gait_emb is not None):
                 try:
                     f_res = self.fusion_engine.decide_identity(
                         gait_identity=gait_id,
                         gait_score=gait_score,
                         appearance_identity=app_id,
                         appearance_score=app_score,
+                        crop=crop,
+                        gei=self.gei_builder.build_gei(track_id) if self.gei_builder.is_ready(track_id) else None,
+                        gei_frame_count=self.gei_builder.get_frame_count(track_id),
+                        gait_threshold=getattr(self.matcher, "threshold", 0.85),
+                        appearance_threshold=getattr(self.appearance_matcher, "threshold", 0.60),
+                        track_reliability=ctx.quality_score,
                     )
-                    final_identity = f_res.get(
-                        "final_identity", final_identity
-                    )
+                    final_identity = f_res.get("final_identity", final_identity)
                     final_score = float(f_res.get("final_score", final_score))
                     status = f_res.get("status", status)
                     decision = f_res.get("decision", decision)
+                    fusion_details = f_res
                 except (RuntimeError, ValueError, TypeError, KeyError, OSError) as fuse_err:
-                    self.logger.debug(f"Fusion decision error: {fuse_err}")
+                    self.logger.debug(f"Fusion error for track {track_id}: {fuse_err}")
 
-            # Cache recognition result for live UI/preview
+            temporal_details = None
+            if self.track_aggregator is not None:
+                try:
+                    agg_res = self.track_aggregator.update(
+                        track_id=track_id,
+                        identity=final_identity,
+                        score=final_score,
+                        modality_state=fusion_details.get("modality_state", status) if fusion_details else status,
+                        details=fusion_details,
+                    )
+                    if agg_res.get("is_aggregated", False):
+                        final_identity = agg_res.get("identity", final_identity)
+                        final_score = float(agg_res.get("confidence", final_score))
+                        status = agg_res.get("status", status)
+                        decision = agg_res.get("decision", decision)
+                        temporal_details = agg_res
+                except (RuntimeError, ValueError, TypeError, KeyError, OSError) as agg_err:
+                    self.logger.debug(f"Aggregator error for track {track_id}: {agg_err}")
+
+            ctx.update_fusion(final_identity, final_score, decision, status, fusion_details)
+
+            # Derive 3-state visual assessment for tracked context
+            if status == "CONFIRMED" and final_identity not in ("UNKNOWN_PERSON", "UNKNOWN", ""):
+                display_state = "CONFIRMED"
+            elif not ctx.gait_eligible and ctx.mobility_state in ("WHEELCHAIR", "CRUTCHES_AID", "STATIONARY_SEATED", "NON_STANDARD_GAIT") and app_id == "UNKNOWN_PERSON":
+                display_state = "BIOMETRIC_INAPPLICABLE"
+            else:
+                display_state = "ASSESSING"
+
+            track_conf = ctx.detection_confidence if ctx.detection_confidence > 0 else (
+                ctx.track_confidence if ctx.track_confidence > 0 else (final_score if final_score > 0 else 0.85)
+            )
+            is_valid, val_reason = self.detection_validator.validate_detection(
+                bbox=bbox,
+                confidence=track_conf,
+                frame_shape=frame.shape,
+            )
+
             rec_result = RecognitionResult(
                 camera_id=cid,
                 track_id=track_id,
@@ -660,6 +820,28 @@ class ProductionMultiCameraEngine:
                 appearance_identity=app_id,
                 appearance_score=float(app_score),
                 appearance_status="MATCH" if app_id != "UNKNOWN_PERSON" else "UNKNOWN",
+                is_valid=is_valid,
+                display_state=display_state,
+                mobility_state=ctx.mobility_state,
+                gait_eligible=ctx.gait_eligible,
+                appearance_eligible=ctx.appearance_eligible,
+                details={
+                    "display_state": display_state,
+                    "mobility_state": ctx.mobility_state,
+                    "validity": {"is_valid": is_valid, "reason": val_reason},
+                    "appearance": {
+                        "identity": app_id,
+                        "score": round(app_score, 4),
+                        "status": "MATCH" if app_id != "UNKNOWN_PERSON" else "UNKNOWN",
+                    },
+                    "gait": {
+                        "identity": gait_id,
+                        "score": round(gait_score, 4),
+                        "status": "CONFIRMED" if gait_id != "UNKNOWN_PERSON" else "UNKNOWN",
+                    },
+                    **({"dual_modal": fusion_details} if fusion_details is not None else {}),
+                    **({"temporal_aggregation": temporal_details} if temporal_details is not None else {}),
+                },
             )
             self.cache.put(rec_result)
 
@@ -667,7 +849,6 @@ class ProductionMultiCameraEngine:
                 if cid in self._camera_metrics:
                     self._camera_metrics[cid]["recognitions_performed"] += 1
 
-            # Trigger event callback if confirmed
             if self.event_callback is not None and status == "CONFIRMED":
                 try:
                     self.event_callback(
@@ -682,6 +863,65 @@ class ProductionMultiCameraEngine:
                     )
                 except (RuntimeError, ValueError, TypeError, OSError) as cb_err:
                     self.logger.debug(f"Event callback error: {cb_err}")
+
+        # 8b. Retain and publish all untracked/tentative/non-valid detections for visual overlay
+        tracked_boxes = [obj["bbox"] for obj in tracked_objects]
+        untracked_idx = 0
+        for det in detections:
+            det_box = det.get("bbox", [0, 0, 0, 0])
+            # Check if this detection was associated with an active track
+            is_associated = any(
+                abs(det_box[0] - tb[0]) <= 5 and abs(det_box[1] - tb[1]) <= 5
+                for tb in tracked_boxes
+            )
+            if not is_associated:
+                untracked_idx += 1
+                det_conf = float(det.get("confidence", 0.0))
+                det_valid, det_mob, det_gait_elig, det_app_elig, det_reason = self.detection_validator.assess_detection(
+                    bbox=det_box,
+                    confidence=det_conf,
+                    frame_shape=frame.shape,
+                )
+                det_display = "BIOMETRIC_INAPPLICABLE" if (not det_valid or det_mob == "WHEELCHAIR" or not det_gait_elig) else "ASSESSING"
+
+                untracked_result = RecognitionResult(
+                    camera_id=cid,
+                    track_id=-100 - untracked_idx,
+                    identity="UNKNOWN_PERSON",
+                    similarity=det_conf,
+                    confidence=det_conf,
+                    decision=det_display,
+                    status=det_display,
+                    bbox=det_box,
+                    timestamp=time.monotonic(),
+                    iso_timestamp=iso_now,
+                    appearance_identity="UNKNOWN_PERSON",
+                    appearance_score=0.0,
+                    appearance_status="UNKNOWN",
+                    is_valid=det_valid,
+                    display_state=det_display,
+                    mobility_state=det_mob,
+                    gait_eligible=det_gait_elig,
+                    appearance_eligible=det_app_elig,
+                    details={"validity_reason": det_reason, "untracked": True, "display_state": det_display},
+                )
+                self.cache.put(untracked_result)
+
+        # 9. Periodic Non-Blocking Garbage Collection for Expired Tracks
+        now_mono = time.monotonic()
+        if (now_mono - self._last_gc_time) >= self._gc_interval:
+            self._last_gc_time = now_mono
+            callbacks = []
+            if hasattr(self.gei_builder, "clear_track"):
+                callbacks.append(lambda c, t: self.gei_builder.clear_track(t))
+            if self.appearance_extractor is not None and hasattr(self.appearance_extractor, "clear_track"):
+                callbacks.append(lambda c, t: self.appearance_extractor.clear_track(t))
+            if self.track_aggregator is not None and hasattr(self.track_aggregator, "clear_track"):
+                callbacks.append(lambda c, t: self.track_aggregator.clear_track(t))
+            self.track_manager.cleanup_expired_tracks(
+                max_idle_seconds=5.0,
+                cleanup_callbacks=callbacks,
+            )
 
     def get_telemetry(self) -> dict[str, Any]:
         """Return system-wide and per-camera live observability telemetry."""
@@ -752,4 +992,6 @@ class ProductionMultiCameraEngine:
                     "total_processed_frames": total_proc_frames,
                 },
                 "cameras": camera_summaries,
+                "track_manager": self.track_manager.get_stats(),
+                "person_scheduler": self.person_scheduler.get_scheduler_telemetry(),
             }

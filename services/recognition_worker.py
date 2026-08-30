@@ -11,6 +11,7 @@ import numpy as np
 
 from intelligence.open_set_recognizer import OpenSetRecognizer
 from monitoring.logging_config import get_logger
+from pipeline.detection.detection_validator import DetectionValidator
 from pipeline.detection.person_detector import PersonDetector
 from pipeline.gei.stream_gei_builder import StreamGEIBuilder
 from pipeline.silhouette.extractor import SilhouetteExtractor
@@ -38,6 +39,11 @@ class RecognitionResult:
     appearance_identity: str = "UNKNOWN_PERSON"
     appearance_score: float = 0.0
     appearance_status: str = "UNKNOWN"
+    is_valid: bool = True
+    display_state: str = "ASSESSING"
+    mobility_state: str = "STANDARD_WALKING"
+    gait_eligible: bool = True
+    appearance_eligible: bool = True
     details: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -90,6 +96,11 @@ class RecognitionResultCache:
                 appearance_identity=str(kwargs.get("appearance_identity", "UNKNOWN_PERSON")),
                 appearance_score=float(kwargs.get("appearance_score", 0.0)),
                 appearance_status=str(kwargs.get("appearance_status", "UNKNOWN")),
+                is_valid=bool(kwargs.get("is_valid", True)),
+                display_state=str(kwargs.get("display_state", "ASSESSING")),
+                mobility_state=str(kwargs.get("mobility_state", "STANDARD_WALKING")),
+                gait_eligible=bool(kwargs.get("gait_eligible", True)),
+                appearance_eligible=bool(kwargs.get("appearance_eligible", True)),
                 details=dict(kwargs.get("details", {})),
             )
         key = (result.camera_id, result.track_id)
@@ -242,6 +253,7 @@ class RecognitionWorker:
                 self._logger.debug(f"OperationalEmbeddingCollector init skipped: {exc}")
                 self.operational_collector = None
 
+        self.detection_validator = DetectionValidator()
         self._input_queue: Queue[np.ndarray] = Queue(maxsize=2)
         self._stop_event = threading.Event()
         self._thread: threading.Thread | None = None
@@ -398,6 +410,14 @@ class RecognitionWorker:
                 for obj in tracked_objects:
                     track_id = int(obj["track_id"])
                     bbox = [int(b) for b in obj["bbox"]]
+                    obj_conf = float(obj.get("confidence", 0.85))
+
+                    # 3. Assess per-person mobility & biometric eligibility
+                    is_val, mob_state, gait_elig, app_elig, val_reason = self.detection_validator.assess_detection(
+                        bbox=bbox,
+                        confidence=obj_conf,
+                        frame_shape=frame.shape,
+                    )
 
                     # Safely crop person for Branch A (Appearance) and silhouette
                     h, w = frame.shape[:2]
@@ -407,17 +427,18 @@ class RecognitionWorker:
                     y2 = max(0, min(h, bbox[3]))
                     crop = frame[y1:y2, x1:x2] if (x2 > x1 and y2 > y1) else None
 
-                    # Branch B (Gait): Silhouette & GEI accumulation
-                    silhouette = self.silhouette_extractor.extract_from_frame(frame, bbox)
-                    if silhouette is not None:
-                        self.gei_builder.add_silhouette(track_id, silhouette)
+                    # Branch B (Gait): Silhouette & GEI accumulation (only when gait is eligible)
+                    if gait_elig:
+                        silhouette = self.silhouette_extractor.extract_from_frame(frame, bbox)
+                        if silhouette is not None:
+                            self.gei_builder.add_silhouette(track_id, silhouette)
 
                     # Branch A (Appearance): Gated 512D appearance embedding extraction & matching
                     app_identity = "UNKNOWN_PERSON"
                     app_score = 0.0
                     app_status = "UNKNOWN"
 
-                    if self.appearance_extractor is not None and crop is not None and getattr(crop, "size", 0) > 0:
+                    if app_elig and self.appearance_extractor is not None and crop is not None and getattr(crop, "size", 0) > 0:
                         try:
                             app_emb = self.appearance_extractor.extract(
                                 crop=crop,
@@ -438,10 +459,11 @@ class RecognitionWorker:
                                     gallery_labels=self.appearance_gallery_labels,
                                     metadata=self.appearance_metadata,
                                     unknown_label="UNKNOWN_PERSON",
+                                    unknown_threshold=self.appearance_matcher.threshold if hasattr(self.appearance_matcher, "threshold") else 0.60,
                                 )
                                 app_identity = str(matched_app_id)
                                 app_score = float(matched_app_score)
-                                if app_identity != "UNKNOWN_PERSON" and app_score >= self.appearance_matcher.threshold:
+                                if app_identity not in ("UNKNOWN_PERSON", "UNKNOWN") and app_score >= getattr(self.appearance_matcher, "threshold", 0.60):
                                     app_status = "MATCH"
                                 else:
                                     app_status = "UNKNOWN"
@@ -486,6 +508,10 @@ class RecognitionWorker:
                         cached.appearance_identity = app_identity
                         cached.appearance_score = round(app_score, 4)
                         cached.appearance_status = app_status
+                        cached.display_state = "CONFIRMED"
+                        cached.mobility_state = mob_state
+                        cached.gait_eligible = gait_elig
+                        cached.appearance_eligible = app_elig
                         cached.details["appearance"] = {
                             "identity": app_identity,
                             "score": round(app_score, 4),
@@ -569,6 +595,14 @@ class RecognitionWorker:
                                     final_status = agg_res["status"]
                                     temporal_details = agg_res
 
+                            # Derive 3-state display classification
+                            if final_status == "CONFIRMED" and final_identity not in ("UNKNOWN_PERSON", "UNKNOWN", ""):
+                                display_state = "CONFIRMED"
+                            elif not gait_elig and mob_state in ("WHEELCHAIR", "CRUTCHES_AID", "STATIONARY_SEATED", "NON_STANDARD_GAIT") and app_status != "MATCH":
+                                display_state = "BIOMETRIC_INAPPLICABLE"
+                            else:
+                                display_state = "ASSESSING"
+
                             res = RecognitionResult(
                                 camera_id=self.camera_id,
                                 track_id=track_id,
@@ -584,7 +618,15 @@ class RecognitionWorker:
                                 appearance_identity=app_identity,
                                 appearance_score=round(app_score, 4),
                                 appearance_status=app_status,
+                                is_valid=is_val,
+                                display_state=display_state,
+                                mobility_state=mob_state,
+                                gait_eligible=gait_elig,
+                                appearance_eligible=app_elig,
                                 details={
+                                    "display_state": display_state,
+                                    "mobility_state": mob_state,
+                                    "validity": {"is_valid": is_val, "reason": val_reason},
                                     "appearance": {
                                         "identity": app_identity,
                                         "score": round(app_score, 4),
@@ -683,6 +725,14 @@ class RecognitionWorker:
                             final_prov_status = agg_res["status"]
                             temporal_prov_details = agg_res
 
+                    # Derive 3-state display classification for provisional tracking result
+                    if final_prov_status == "CONFIRMED" and final_prov_identity not in ("UNKNOWN_PERSON", "UNKNOWN", ""):
+                        prov_display_state = "CONFIRMED"
+                    elif not gait_elig and mob_state in ("WHEELCHAIR", "CRUTCHES_AID", "STATIONARY_SEATED", "NON_STANDARD_GAIT") and app_status != "MATCH":
+                        prov_display_state = "BIOMETRIC_INAPPLICABLE"
+                    else:
+                        prov_display_state = "ASSESSING"
+
                     res = RecognitionResult(
                         camera_id=self.camera_id,
                         track_id=track_id,
@@ -698,7 +748,15 @@ class RecognitionWorker:
                         appearance_identity=app_identity,
                         appearance_score=round(app_score, 4),
                         appearance_status=app_status,
+                        is_valid=is_val,
+                        display_state=prov_display_state,
+                        mobility_state=mob_state,
+                        gait_eligible=gait_elig,
+                        appearance_eligible=app_elig,
                         details={
+                            "display_state": prov_display_state,
+                            "mobility_state": mob_state,
+                            "validity": {"is_valid": is_val, "reason": val_reason},
                             "appearance": {
                                 "identity": app_identity,
                                 "score": round(app_score, 4),
@@ -714,6 +772,48 @@ class RecognitionWorker:
                         },
                     )
                     self.cache.put(res)
+
+                # Publish all untracked/tentative/non-valid detections for visual overlay
+                tracked_boxes = [obj["bbox"] for obj in tracked_objects]
+                untracked_idx = 0
+                for det in raw_detections:
+                    det_box = det.get("bbox", [0, 0, 0, 0])
+                    is_associated = any(
+                        abs(det_box[0] - tb[0]) <= 5 and abs(det_box[1] - tb[1]) <= 5
+                        for tb in tracked_boxes
+                    )
+                    if not is_associated:
+                        untracked_idx += 1
+                        det_conf = float(det.get("confidence", 0.0))
+                        det_valid, det_mob, det_gait_elig, det_app_elig, det_reason = self.detection_validator.assess_detection(
+                            bbox=det_box,
+                            confidence=det_conf,
+                            frame_shape=frame.shape,
+                        )
+                        det_display = "BIOMETRIC_INAPPLICABLE" if (not det_valid or det_mob == "WHEELCHAIR" or not det_gait_elig) else "ASSESSING"
+
+                        untracked_result = RecognitionResult(
+                            camera_id=self.camera_id,
+                            track_id=-100 - untracked_idx,
+                            identity="UNKNOWN_PERSON",
+                            similarity=det_conf,
+                            confidence=det_conf,
+                            decision=det_display,
+                            status=det_display,
+                            bbox=det_box,
+                            timestamp=now,
+                            iso_timestamp=iso_now,
+                            appearance_identity="UNKNOWN_PERSON",
+                            appearance_score=0.0,
+                            appearance_status="UNKNOWN",
+                            is_valid=det_valid,
+                            display_state=det_display,
+                            mobility_state=det_mob,
+                            gait_eligible=det_gait_elig,
+                            appearance_eligible=det_app_elig,
+                            details={"validity_reason": det_reason, "untracked": True, "display_state": det_display},
+                        )
+                        self.cache.put(untracked_result)
 
                 if self._frame_count % 150 == 0:
                     evicted = self.tracker.cleanup_inactive(max_idle_seconds=5.0)

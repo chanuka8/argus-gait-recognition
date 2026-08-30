@@ -458,6 +458,31 @@ class GaitService:
             "device_index": int(resolved_source) if source_type == "webcam" and str(resolved_source).isdigit() else 0,
         }
 
+        # Pre-flight camera admission check (dynamic capacity & resource safety)
+        enforce_admission = bool(worker_cfg.get("enforce_admission", False))
+        try:
+            from streaming.deployment_readiness import AdmissionDecision, DeploymentReadinessManager
+
+            if not hasattr(self, "_deployment_manager") or self._deployment_manager is None:
+                self._deployment_manager = DeploymentReadinessManager()
+
+            adm_res = self._deployment_manager.request_camera_admission(
+                camera_id=camera_id,
+                current_active_cameras=len(self.active_cameras),
+            )
+            if not adm_res.admitted:
+                self.logger.warning(f"Camera admission notice for '{camera_id}': {adm_res.reason}")
+                if enforce_admission:
+                    self.source_resolver.release_source_by_camera_id(camera_id)
+                    raise RuntimeError(f"Camera admission rejected for '{camera_id}': {adm_res.reason}")
+            elif adm_res.decision == AdmissionDecision.ADMITTED_DEGRADED:
+                self.logger.info(f"Camera '{camera_id}' admitted with degraded FPS ({adm_res.effective_fps:.1f})")
+                worker_cfg["target_fps"] = max(1, int(adm_res.effective_fps))
+        except RuntimeError:
+            raise
+        except (ImportError, Exception) as adm_err:  # noqa: BLE001
+            self.logger.debug(f"Admission check note: {adm_err}")
+
         recognition_worker = None
         try:
             from services.recognition_worker import RecognitionWorker

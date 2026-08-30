@@ -159,18 +159,42 @@ class ModelRegistry:
             return ""
 
     def _load_registry(self) -> dict[str, Any]:
-        try:
-            with open(self.registry_file, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except (OSError, json.JSONDecodeError):
+        if not self.registry_file.exists():
             return {"models": []}
+        for attempt in range(5):
+            try:
+                with open(self.registry_file, "r", encoding="utf-8") as f:
+                    content = f.read()
+                    if content.strip():
+                        return json.loads(content)
+            except (OSError, json.JSONDecodeError):
+                if attempt < 4:
+                    time.sleep(0.01 * (attempt + 1))
+        return {"models": []}
 
     def _save_registry(self, data: dict[str, Any]) -> bool:
         tmp = self.registry_file.with_suffix(".tmp")
         try:
             with open(tmp, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2)
-            tmp.replace(self.registry_file)
+                f.flush()
+            for attempt in range(5):
+                try:
+                    tmp.replace(self.registry_file)
+                    return True
+                except PermissionError:
+                    if attempt < 4:
+                        time.sleep(0.02 * (attempt + 1))
+                    else:
+                        with open(self.registry_file, "w", encoding="utf-8") as f:
+                            json.dump(data, f, indent=2)
+                            f.flush()
+                        try:
+                            if tmp.exists():
+                                tmp.unlink()
+                        except OSError:
+                            pass
+                        return True
             return True
         except (OSError, ValueError) as err:
             self._logger.error(f"Failed to write model registry: {err}")

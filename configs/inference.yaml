@@ -47,11 +47,15 @@ display:
   line_thickness: 2
   font_scale: 0.6
   colors:
-    detection: [0, 0, 255]
-    tracking: [0, 165, 255]
-    unknown: [0, 0, 255]
-    uncertain: [0, 215, 255]
-    confirmed: [0, 255, 0]
+    confirmed: [0, 0, 255]
+    unconfirmed: [0, 255, 0]
+    special_attention: [0, 255, 255]
+    assessing: [0, 255, 0]
+    inapplicable: [0, 255, 0]
+    tracking: [0, 255, 0]
+    unknown: [0, 255, 0]
+    uncertain: [0, 255, 0]
+    detection: [0, 255, 0]
 
 reporting:
   enabled: true

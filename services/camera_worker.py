@@ -3,6 +3,7 @@ import threading
 import time
 from datetime import datetime, timezone
 from queue import Full, Queue
+from typing import Any
 
 import cv2
 import numpy as np
@@ -43,12 +44,14 @@ class CameraWorker:
         inference_pipeline=None,
         detection_processor=None,
         recognition_worker: RecognitionWorker | None = None,
+        inference_engine: Any | None = None,
     ) -> None:
         self.camera_id = camera_id
         self.config = camera_config
         self.inference_pipeline = inference_pipeline
         self.detection_processor = detection_processor
         self.recognition_worker = recognition_worker
+        self.inference_engine = inference_engine
 
         self._logger = get_logger(f"camera.{camera_id}")
         self._renderer = DetectionDisplayRenderer(load_display_config())
@@ -314,13 +317,36 @@ class CameraWorker:
                     self._renderer.draw(
                         frame=annotated,
                         box=res.bbox,
-                        track_id=res.track_id,
+                        track_id=res.track_id if res.track_id >= 0 else None,
                         identity=res.identity,
                         score=res.similarity,
                         decision=res.decision,
                         camera_id=self.camera_id,
+                        display_state=getattr(res, "display_state", None),
+                        is_valid=getattr(res, "is_valid", True),
+                        mobility_state=getattr(res, "mobility_state", "STANDARD_WALKING"),
+                        gait_eligible=getattr(res, "gait_eligible", True),
                     )
-                    if res.status == "CONFIRMED" and res.identity != "UNKNOWN":
+                    if res.status == "CONFIRMED" and res.identity not in ("UNKNOWN", "UNKNOWN_PERSON", ""):
+                        confirmed_ids.append(res.identity)
+            elif self.inference_engine is not None and hasattr(self.inference_engine, "cache"):
+                rec_active = getattr(self.inference_engine, "is_running", lambda: True)()
+                active_tracks = self.inference_engine.cache.get_active_tracks(self.camera_id)
+                for res in active_tracks:
+                    self._renderer.draw(
+                        frame=annotated,
+                        box=res.bbox,
+                        track_id=res.track_id if res.track_id >= 0 else None,
+                        identity=res.identity,
+                        score=res.similarity,
+                        decision=res.decision,
+                        camera_id=self.camera_id,
+                        display_state=getattr(res, "display_state", None),
+                        is_valid=getattr(res, "is_valid", True),
+                        mobility_state=getattr(res, "mobility_state", "STANDARD_WALKING"),
+                        gait_eligible=getattr(res, "gait_eligible", True),
+                    )
+                    if res.status == "CONFIRMED" and res.identity not in ("UNKNOWN", "UNKNOWN_PERSON", ""):
                         confirmed_ids.append(res.identity)
 
             with self._lock:
@@ -409,6 +435,14 @@ class CameraWorker:
 
                 if self.recognition_worker is not None:
                     self.recognition_worker.put_frame(frame)
+
+                if self.inference_engine is not None and hasattr(self.inference_engine, "put_frame"):
+                    self.inference_engine.put_frame(
+                        camera_id=self.camera_id,
+                        frame=frame,
+                        frame_id=self._frame_count,
+                        source_type=self._source_type,
+                    )
 
                 if now - self._last_jpeg_encode_time >= self._min_jpeg_interval:
                     try:

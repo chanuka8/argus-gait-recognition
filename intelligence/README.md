@@ -21,6 +21,7 @@ The `intelligence` package contains advanced biometric decision logic, open-set 
 | [camera_topology_learner.py](camera_topology_learner.py) | Learns directed topology graphs and travel-time bounds across cameras |
 | [camera_transition_model.py](camera_transition_model.py) | Evaluates cross-camera travel times against learned probability bounds |
 | [candidate_validator.py](candidate_validator.py) | Module/resource file candidate_validator.py |
+| [concurrent_track_manager.py](concurrent_track_manager.py) | Module/resource file concurrent_track_manager.py |
 | [confidence_scorer.py](confidence_scorer.py) | Multi-factor confidence scoring combining similarity, quality, and track length |
 | [confusion_detector.py](confusion_detector.py) | Module/resource file confusion_detector.py |
 | [continuous_improvement_engine.py](continuous_improvement_engine.py) | Module/resource file continuous_improvement_engine.py |
