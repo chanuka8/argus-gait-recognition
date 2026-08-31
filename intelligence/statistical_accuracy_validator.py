@@ -142,8 +142,8 @@ class StatisticalAccuracyValidator:
         # Discordant pairs:
         # b: baseline correct, candidate incorrect (regression)
         # c: baseline incorrect, candidate correct (improvement)
-        b = int(np.sum((b_arr == True) & (c_arr == False)))
-        c = int(np.sum((b_arr == False) & (c_arr == True)))
+        b = int(np.sum(b_arr & ~c_arr))
+        c = int(np.sum(~b_arr & c_arr))
 
         if b + c == 0:
             return (0.0, 1.0, False)
