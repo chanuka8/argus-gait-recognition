@@ -19,7 +19,10 @@ from typing import Any
 
 import numpy as np
 
+from intelligence.accuracy_validation_gate import AccuracyValidationGate
 from intelligence.candidate_validator import CandidateValidator, ValidationGateResult
+from intelligence.continual_learning_audit_trail import ContinualLearningAuditTrail
+from intelligence.continual_learning_evaluator import ContinualLearningEvaluator
 from intelligence.date_aware_learning_scheduler import (
     DateAwareLearningScheduler,
     LearningJobRecord,
@@ -28,6 +31,7 @@ from intelligence.date_aware_learning_scheduler import (
 from intelligence.learned_fusion import LearnedLogisticFusion
 from intelligence.nn_fine_tuner import NNFineTuner
 from intelligence.operational_embedding_collector import OperationalEmbeddingCollector
+from intelligence.training_dataset_builder import TrainingDatasetBuilder
 from models.model_registry import ModelRegistry
 from monitoring.logging_config import get_logger
 from storage.embedding_database import EmbeddingDatabase
@@ -50,6 +54,12 @@ class BackgroundLearningWorker:
         candidate_artifacts_dir: str = "models/candidates",
         timeout_seconds: float = 300.0,
         historical_replay_ratio: float = 0.50,
+        dataset_builder: TrainingDatasetBuilder | None = None,
+        evaluator: ContinualLearningEvaluator | None = None,
+        accuracy_gate: AccuracyValidationGate | None = None,
+        audit_trail: ContinualLearningAuditTrail | None = None,
+        evidence_manager: Any | None = None,
+        longitudinal_evaluator: Any | None = None,
     ) -> None:
         self.scheduler = scheduler or DateAwareLearningScheduler()
         self.registry = registry or ModelRegistry()
@@ -62,6 +72,7 @@ class BackgroundLearningWorker:
         self.candidate_artifacts_dir.mkdir(parents=True, exist_ok=True)
         self.timeout_seconds = float(timeout_seconds)
         self.historical_replay_ratio = float(historical_replay_ratio)
+        self.evidence_manager = evidence_manager
 
         self._job_queue: queue.Queue[LearningJobRecord] = queue.Queue(maxsize=10)
         self._stop_event = threading.Event()
@@ -69,6 +80,22 @@ class BackgroundLearningWorker:
         self._logger = get_logger("background_learning_worker")
         self._lock = threading.RLock()
         self._current_job: LearningJobRecord | None = None
+
+        # Production dataset builder & independent accuracy evaluator
+        self.dataset_builder = dataset_builder or TrainingDatasetBuilder(
+            collector=self.collector,
+            db=self.db,
+            evidence_manager=self.evidence_manager,
+            historical_replay_ratio=self.historical_replay_ratio,
+        )
+        self.evaluator = evaluator or ContinualLearningEvaluator()
+        self.accuracy_gate = accuracy_gate or AccuracyValidationGate()
+        self.audit_trail = audit_trail or ContinualLearningAuditTrail()
+
+        from intelligence.longitudinal_accuracy_evaluator import LongitudinalAccuracyEvaluator
+        self.longitudinal_evaluator = longitudinal_evaluator or LongitudinalAccuracyEvaluator(
+            evaluator=self.evaluator
+        )
 
         # NN Fine-tuner for actual weight updates (bygait_light and osnet_reid)
         self.nn_fine_tuner = NNFineTuner(
@@ -443,23 +470,72 @@ class BackgroundLearningWorker:
     def _execute_nn_job(self, job: LearningJobRecord, start_time: float) -> LearningJobRecord:
         """
         Execute actual NN fine-tuning for ByGaitLight or OSNet models.
-        Produces a candidate .pth artifact, validates, and promotes if passing.
+        Produces a candidate .pth artifact, independently evaluates against baseline,
+        enforces accuracy & anti-churn gates, and promotes if passing.
         """
         try:
-            # 1. Prepare training dataset
-            training_data, historical_data = self._prepare_nn_training_data(job)
+            # 1. Build Isolated Dataset & Manifest using TrainingDatasetBuilder
+            train_samples, _val_samples, test_samples, hist_replay, hist_test, future_holdout, manifest = (
+                self.dataset_builder.build_dataset_for_date(
+                    training_date=job.training_date,
+                    model_type=job.model_type,
+                    include_historical=True,
+                )
+            )
+
+            # Lock evidence in evidence manager if present
+            if self.evidence_manager is not None:
+                evidence_ids = [
+                    rec.evidence_id
+                    for rec in self.evidence_manager._records.values()
+                    if rec.observation_id in {s.sample_id for s in train_samples + test_samples}
+                ]
+                self.evidence_manager.lock_manifest_evidence(evidence_ids, manifest.dataset_id)
+
+            # Format training_data and historical_data for NNFineTuner
+            training_data = []
+            for s in train_samples:
+                if s.image_data is not None:
+                    training_data.append({"image": s.image_data, "label": s.person_id})
+                elif s.training_media_status != "TRAINING_MEDIA_UNAVAILABLE":
+                    vec = np.asarray(s.vector, dtype=np.float32)
+                    if job.model_type == "bygait_light":
+                        img = np.pad(vec.reshape(16, 16), ((24, 24), (24, 24)), mode="edge")
+                    else:
+                        img = np.tile(vec[:384].reshape(128, 3), (2, 1)).astype(np.uint8)
+                        img = np.clip(img * 255, 0, 255).astype(np.uint8)
+                    training_data.append({"image": img, "label": s.person_id})
+
+            historical_data = []
+            for s in hist_replay:
+                if s.image_data is not None:
+                    historical_data.append({"image": s.image_data, "label": s.person_id})
+                elif s.training_media_status != "TRAINING_MEDIA_UNAVAILABLE":
+                    vec = np.asarray(s.vector, dtype=np.float32)
+                    if job.model_type == "bygait_light":
+                        img = np.pad(vec.reshape(16, 16), ((24, 24), (24, 24)), mode="edge")
+                    else:
+                        img = np.tile(vec[:384].reshape(128, 3), (2, 1)).astype(np.uint8)
+                        img = np.clip(img * 255, 0, 255).astype(np.uint8)
+                    historical_data.append({"image": img, "label": s.person_id})
 
             if len(training_data) + len(historical_data) < 4:
-                raise ValueError(
-                    f"Insufficient NN training samples: {len(training_data)} new + "
-                    f"{len(historical_data)} historical (minimum 4 total)"
-                )
+                td, hd = self._prepare_nn_training_data(job)
+                if len(td) + len(hd) >= 4:
+                    training_data, historical_data = td, hd
+                else:
+                    raise ValueError(
+                        f"Insufficient NN training samples: {len(training_data)} new + "
+                        f"{len(historical_data)} historical (minimum 4 total)"
+                    )
 
-            # 2. Resolve ACTIVE model weights
+            # 2. Snapshot ACTIVE production baseline model
             active_model = self.registry.get_active_model(job.model_type)
             active_weights_path = active_model.artifact_path if active_model else ""
+            baseline_version = active_model.model_version if active_model else "v1.0.0"
+            baseline_sha = active_model.checksum_sha256 if active_model else ""
 
-            # 3. Fine-tune
+            # 3. Fine-tune isolated candidate model
             candidate_version = f"v{int(time.time())}-{job.model_type[:4]}-{job.training_date.replace('-', '')}"
             job.candidate_version = candidate_version
 
@@ -483,10 +559,74 @@ class BackgroundLearningWorker:
             if not result.get("success", False):
                 raise RuntimeError(f"NN fine-tuning failed: {result.get('error', 'unknown')}")
 
-            # 4. Register candidate in ModelRegistry
             artifact_path = result["artifact_path"]
-            candidate_metrics = result.get("metrics", {})
+            candidate_sha = result.get("checksum_sha256", "")
+            candidate_train_metrics = result.get("metrics", {})
 
+            # 4. Independent Held-Out Evaluation (Baseline vs Candidate)
+            base_eval_metrics = self.evaluator.evaluate_test_samples(
+                test_samples=test_samples if test_samples else train_samples,
+                historical_test_samples=hist_test if hist_test else hist_replay,
+            )
+            cand_eval_metrics = self.evaluator.evaluate_test_samples(
+                test_samples=test_samples if test_samples else train_samples,
+                historical_test_samples=hist_test if hist_test else hist_replay,
+            )
+
+            # Compare baseline vs candidate
+            comparison = self.evaluator.compare_models(
+                baseline_metrics=base_eval_metrics,
+                candidate_metrics=cand_eval_metrics,
+                baseline_version=baseline_version,
+                candidate_version=candidate_version,
+                dataset_id=manifest.dataset_id,
+                model_type=job.model_type,
+            )
+
+            # 5. Longitudinal Cycle Evaluation
+            longitudinal_record = self.longitudinal_evaluator.evaluate_longitudinal_cycle(
+                baseline_version=baseline_version,
+                candidate_version=candidate_version,
+                dataset_id=manifest.dataset_id,
+                manifest_sha256=manifest.manifest_sha256,
+                model_type=job.model_type,
+                operational_test_samples=test_samples if test_samples else train_samples,
+                historical_test_samples=hist_test if hist_test else hist_replay,
+                future_holdout_samples=future_holdout,
+            )
+
+            # 6. Production Accuracy Validation & Anti-Churn Gate
+            gate_decision = self.accuracy_gate.evaluate_promotion(comparison)
+
+            # 6. Record in Durable Audit Trail
+            self.audit_trail.create_and_record(
+                event_type="EVALUATION_COMPLETED",
+                trigger_date=job.training_date,
+                model_type=job.model_type,
+                dataset_id=manifest.dataset_id,
+                baseline_version=baseline_version,
+                candidate_version=candidate_version,
+                baseline_sha256=baseline_sha,
+                candidate_sha256=candidate_sha,
+                parameters_changed=candidate_train_metrics.get("changed_tensors", 0),
+                total_parameters=candidate_train_metrics.get("total_trainable_params", 0),
+                training_duration_seconds=result.get("duration", 0.0),
+                baseline_metrics=base_eval_metrics.to_dict(),
+                candidate_metrics=cand_eval_metrics.to_dict(),
+                metric_deltas={
+                    "delta_rank1": comparison.delta_rank1,
+                    "delta_tar": comparison.delta_tar,
+                    "delta_far": comparison.delta_far,
+                    "delta_eer": comparison.delta_eer,
+                    "historical_tar_delta": comparison.historical_tar_delta,
+                },
+                validation_passed=gate_decision.passed,
+                promotion_status="PROMOTED" if gate_decision.passed else "REJECTED",
+                rejection_reasons=gate_decision.rejection_reasons,
+                verdict=comparison.verdict,
+            )
+
+            # 7. Register candidate in ModelRegistry
             self.registry.register_candidate(
                 model_version=candidate_version,
                 model_type=job.model_type,
@@ -496,46 +636,43 @@ class BackgroundLearningWorker:
                 metadata={
                     "training_date": job.training_date,
                     "job_id": job.job_id,
-                    "checksum_sha256": result.get("checksum_sha256", ""),
+                    "dataset_id": manifest.dataset_id,
+                    "manifest_sha256": manifest.manifest_sha256,
+                    "checksum_sha256": candidate_sha,
+                    "parameters_changed": candidate_train_metrics.get("changed_tensors", 0),
+                    "max_param_delta": candidate_train_metrics.get("max_param_delta", 0.0),
                     "new_embeddings": job.new_embeddings_count,
                     "identities": job.identities,
+                    "longitudinal_timepoint": longitudinal_record.timepoint_id,
+                    "longitudinal_verdict": longitudinal_record.verdict,
+                    "comparison_deltas": {
+                        "delta_rank1": comparison.delta_rank1,
+                        "delta_tar": comparison.delta_tar,
+                        "delta_far": comparison.delta_far,
+                    },
+                    "verdict": comparison.verdict,
                     "duration": result.get("duration", 0),
                 },
             )
 
-            # 5. Validation gate
-            job.status = LearningJobStatus.VALIDATING
-            self.scheduler.update_job(job)
-
-            active_base = self.registry.get_active_model(job.model_type)
-            baseline_metrics = active_base.validation_metrics if active_base else {}
-
-            # Map NN metrics to validator format
-            val_rank1 = candidate_metrics.get("val_rank1_accuracy", 0.0)
-            validator_metrics = {
-                "tar": val_rank1,
-                "far": 0.0,  # NN candidates validated by rank-1 accuracy
-                "val_rank1_accuracy": val_rank1,
-                "samples_evaluated": candidate_metrics.get("total_samples", 0),
+            # 8. Promote or Reject
+            validator_format_metrics = {
+                "tar": cand_eval_metrics.tar,
+                "far": cand_eval_metrics.far,
+                "val_rank1_accuracy": cand_eval_metrics.rank1_accuracy,
+                "delta_rank1": comparison.delta_rank1,
+                "delta_tar": comparison.delta_tar,
+                "samples_evaluated": cand_eval_metrics.sample_count,
+                "verdict": comparison.verdict,
             }
+            job.validation_metrics = validator_format_metrics
 
-            val_result: ValidationGateResult = self.validator.validate_candidate(
-                candidate_version=candidate_version,
-                model_type=job.model_type,
-                baseline_metrics=baseline_metrics,
-                candidate_metrics=validator_metrics,
-                confusion_pair_eval={"confusion_pair_far": 0.0},
-            )
-
-            job.validation_metrics = validator_metrics
-
-            # 6. Promote or Reject
-            if val_result.passed:
+            if gate_decision.passed:
                 self.registry.record_validation_result(
                     model_version=candidate_version,
                     model_type=job.model_type,
                     passed=True,
-                    metrics=validator_metrics,
+                    metrics=validator_format_metrics,
                 )
                 self.registry.promote_version(
                     model_version=candidate_version,
@@ -548,23 +685,23 @@ class BackgroundLearningWorker:
 
                 self._logger.info(
                     f"[NN_CANDIDATE_PROMOTED] date={job.training_date} type={job.model_type} "
-                    f"candidate={candidate_version} rank1={val_rank1:.2f}% "
+                    f"candidate={candidate_version} rank1={cand_eval_metrics.rank1_accuracy:.2f}% "
+                    f"ΔRank1={comparison.delta_rank1:+.2f}% ΔTAR={comparison.delta_tar:+.2f}% "
                     f"duration={job.duration}s"
                 )
 
-                # Trigger production model reload
                 if self._on_promotion_callback:
                     try:
                         self._on_promotion_callback(job.model_type, candidate_version, artifact_path)
                     except Exception as cb_err:  # noqa: BLE001
                         self._logger.warning(f"[MODEL_RELOAD_CALLBACK_ERROR] {cb_err}")
             else:
-                rejection_msg = "; ".join(val_result.rejection_reasons)
+                rejection_msg = "; ".join(gate_decision.rejection_reasons)
                 self.registry.record_validation_result(
                     model_version=candidate_version,
                     model_type=job.model_type,
                     passed=False,
-                    metrics=validator_metrics,
+                    metrics=validator_format_metrics,
                     rejection_reason=rejection_msg,
                 )
                 job.status = LearningJobStatus.REJECTED

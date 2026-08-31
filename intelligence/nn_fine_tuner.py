@@ -142,7 +142,8 @@ class NNFineTuner:
 
             train_ds = TensorDataset(X[train_idx], y[train_idx])
             val_ds = TensorDataset(X[val_idx], y[val_idx])
-            train_loader = DataLoader(train_ds, batch_size=self.batch_size, shuffle=True)
+            drop_last = len(train_ds) > self.batch_size and len(train_ds) % self.batch_size == 1
+            train_loader = DataLoader(train_ds, batch_size=self.batch_size, shuffle=True, drop_last=drop_last)
             val_loader = DataLoader(val_ds, batch_size=self.batch_size, shuffle=False)
 
             # 2. Build model with transfer learning
@@ -172,6 +173,14 @@ class NNFineTuner:
                             f"[TRANSFER_LEARNING] Could not load active weights: {load_err}. "
                             f"Training from scratch."
                         )
+
+            # Record initial parameter state
+            initial_params = {
+                name: param.clone().detach()
+                for name, param in backbone.named_parameters()
+                if param.requires_grad
+            }
+            total_trainable_params = sum(p.numel() for p in backbone.parameters() if p.requires_grad)
 
             # Classification head for fine-tuning
             classifier = nn.Linear(256, num_classes)
@@ -259,12 +268,22 @@ class NNFineTuner:
 
                 best_val_acc = max(best_val_acc, val_acc)
 
-            # 4. Save candidate artifact (backbone only — no classifier head)
+            # 4. Measure parameter mutation
+            changed_tensors = 0
+            max_delta = 0.0
+            for name, param in backbone.named_parameters():
+                if param.requires_grad and name in initial_params:
+                    diff = (param.detach().cpu() - initial_params[name].cpu()).abs().max().item()
+                    if diff > 1e-7:
+                        changed_tensors += 1
+                        max_delta = max(max_delta, diff)
+
+            # 5. Save candidate artifact (backbone only — no classifier head)
             candidate_path = self.candidate_dir / f"bygait_candidate_{candidate_version}.pth"
             torch.save(backbone.state_dict(), str(candidate_path))
             checksum = self._calculate_checksum(candidate_path)
 
-            # 5. Compute final validation metrics
+            # 6. Compute final validation metrics
             metrics = {
                 "val_rank1_accuracy": round(best_val_acc * 100, 2),
                 "train_samples": len(training_gei_data),
@@ -275,6 +294,10 @@ class NNFineTuner:
                 "device": self.device,
                 "learning_rate": self.learning_rate,
                 "part_bins": part_bins,
+                "total_trainable_params": total_trainable_params,
+                "changed_tensors": changed_tensors,
+                "total_tensors": len(initial_params),
+                "max_param_delta": max_delta,
                 "training_history": training_history,
             }
 
@@ -388,7 +411,8 @@ class NNFineTuner:
 
             train_ds = TensorDataset(X[train_idx], y[train_idx])
             val_ds = TensorDataset(X[val_idx], y[val_idx])
-            train_loader = DataLoader(train_ds, batch_size=self.batch_size, shuffle=True)
+            drop_last = len(train_ds) > self.batch_size and len(train_ds) % self.batch_size == 1
+            train_loader = DataLoader(train_ds, batch_size=self.batch_size, shuffle=True, drop_last=drop_last)
             val_loader = DataLoader(val_ds, batch_size=self.batch_size, shuffle=False)
 
             # 2. Build OSNet model with transfer learning
@@ -410,6 +434,14 @@ class NNFineTuner:
                         self._logger.warning(
                             f"[TRANSFER_LEARNING] Could not load active OSNet weights: {load_err}."
                         )
+
+            # Record initial parameter state
+            initial_params = {
+                name: param.clone().detach()
+                for name, param in osnet_backbone.named_parameters()
+                if param.requires_grad
+            }
+            total_trainable_params = sum(p.numel() for p in osnet_backbone.parameters() if p.requires_grad)
 
             osnet_backbone = osnet_backbone.to(self.device)
 
@@ -501,7 +533,17 @@ class NNFineTuner:
 
                 best_val_acc = max(best_val_acc, val_acc)
 
-            # 4. Save candidate artifact (backbone only)
+            # 4. Measure parameter mutation
+            changed_tensors = 0
+            max_delta = 0.0
+            for name, param in osnet_backbone.named_parameters():
+                if param.requires_grad and name in initial_params:
+                    diff = (param.detach().cpu() - initial_params[name].cpu()).abs().max().item()
+                    if diff > 1e-7:
+                        changed_tensors += 1
+                        max_delta = max(max_delta, diff)
+
+            # 5. Save candidate artifact (backbone only)
             candidate_path = self.candidate_dir / f"osnet_candidate_{candidate_version}.pth"
             torch.save(osnet_backbone.state_dict(), str(candidate_path))
             checksum = self._calculate_checksum(candidate_path)
@@ -514,6 +556,10 @@ class NNFineTuner:
                 "num_classes": num_classes,
                 "epochs_completed": len(training_history),
                 "device": self.device,
+                "total_trainable_params": total_trainable_params,
+                "changed_tensors": changed_tensors,
+                "total_tensors": len(initial_params),
+                "max_param_delta": max_delta,
                 "training_history": training_history,
             }
 

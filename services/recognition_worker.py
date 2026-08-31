@@ -481,6 +481,7 @@ class RecognitionWorker:
                                         quality_score=float(app_score) if app_identity != "UNKNOWN_PERSON" else 0.85,
                                         model_name="OSNet-x0.25",
                                         model_version="v1.0.0",
+                                        media_array=crop,
                                         metadata={
                                             "bbox": bbox,
                                             "frame_count": self._frame_count,
@@ -549,6 +550,7 @@ class RecognitionWorker:
                                         quality_score=float(gait_similarity) if gait_identity != "UNKNOWN" else 0.85,
                                         model_name="ByGaitLight",
                                         model_version="v1.0.0",
+                                        media_array=gei,
                                         metadata={
                                             "bbox": bbox,
                                             "gei_frames": gei_count,

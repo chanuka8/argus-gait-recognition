@@ -91,12 +91,14 @@ class OperationalEmbeddingCollector:
         max_buffer_size: int = 1000,
         dedup_window_seconds: float = 1.0,
         dedup_similarity_threshold: float = 0.98,
+        evidence_manager: Any | None = None,
     ) -> None:
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.max_buffer_size = max_buffer_size
         self.dedup_window_seconds = float(dedup_window_seconds)
         self.dedup_similarity_threshold = float(dedup_similarity_threshold)
+        self.evidence_manager = evidence_manager
         self._buffer: list[OperationalObservation] = []
         self._logger = get_logger("operational_collector")
         self._lock = threading.RLock()
@@ -137,6 +139,7 @@ class OperationalEmbeddingCollector:
         model_name: str = "",
         model_version: str = "v1.0.0",
         metadata: dict[str, Any] | None = None,
+        media_array: np.ndarray | None = None,
     ) -> OperationalObservation:
         """
         Record a new observation from live inference. Always enters in PREDICTED state.
@@ -198,6 +201,21 @@ class OperationalEmbeddingCollector:
                 observation_date=obs_date,
                 metadata=metadata or {},
             )
+
+            if media_array is not None and self.evidence_manager is not None:
+                try:
+                    self.evidence_manager.store_evidence(
+                        observation_id=obs.observation_id,
+                        camera_id=camera_id,
+                        track_id=track_id,
+                        person_id=predicted_identity,
+                        modality=modality,
+                        media_array=media_array,
+                        session_id=str(metadata.get("session_id", "") if metadata else ""),
+                        condition_metadata=metadata or {},
+                    )
+                except (RuntimeError, ValueError, TypeError, OSError) as ev_err:
+                    self._logger.debug(f"Failed to store evidence array: {ev_err}")
 
             self._buffer.append(obs)
             if len(self._buffer) > self.max_buffer_size:
