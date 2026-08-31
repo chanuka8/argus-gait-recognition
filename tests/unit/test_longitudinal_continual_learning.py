@@ -296,7 +296,17 @@ class TestEndToEndWorkerLongitudinalAccuracy:
                 embedding_dim=256,
                 artifact_path=str(baseline_path),
             )
-            registry.promote_version("v1.0.0", reason="Initial production baseline")
+            registry.record_validation_result(
+                model_version="v1.0.0",
+                model_type="bygait_light",
+                passed=True,
+                metrics={},
+            )
+            registry.promote_version(
+                model_version="v1.0.0",
+                model_type="bygait_light",
+                reason="Initial production baseline",
+            )
 
         # Record operational observations
         for p in ["Person_A", "Person_B"]:

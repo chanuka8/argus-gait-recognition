@@ -459,7 +459,6 @@ class RecognitionWorker:
                                     gallery_labels=self.appearance_gallery_labels,
                                     metadata=self.appearance_metadata,
                                     unknown_label="UNKNOWN_PERSON",
-                                    unknown_threshold=self.appearance_matcher.threshold if hasattr(self.appearance_matcher, "threshold") else 0.60,
                                 )
                                 app_identity = str(matched_app_id)
                                 app_score = float(matched_app_score)

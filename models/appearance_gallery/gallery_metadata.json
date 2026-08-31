@@ -1,14 +1,14 @@
 {
     "subject999": {
-        "embeddings": 31,
+        "embeddings": 56,
         "status": "ACTIVE",
         "enabled": true,
-        "updated_at": 1788015881.116139
+        "updated_at": 1788130621.6822734
     },
     "Subject_42": {
-        "embeddings": 80,
+        "embeddings": 134,
         "status": "ACTIVE",
         "enabled": true,
-        "updated_at": 1788015892.286489
+        "updated_at": 1788133971.448059
     }
 }

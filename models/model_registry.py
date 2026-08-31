@@ -288,7 +288,12 @@ class ModelRegistry:
         )
         return updated
 
-    def promote_version(self, model_version: str, model_type: str) -> ModelVersionRecord:
+    def promote_version(
+        self,
+        model_version: str,
+        model_type: str | None = None,
+        reason: str | None = None,
+    ) -> ModelVersionRecord:
         """
         Atomically promote a VALIDATED candidate to ACTIVE production status,
         archiving the currently active production version and recording the rollback pointer.
@@ -296,6 +301,15 @@ class ModelRegistry:
         data = self._load_registry()
         current_active_idx = None
         target_idx = None
+
+        if model_type is None:
+            for i, m in enumerate(data.get("models", [])):
+                if m["model_version"] == model_version:
+                    model_type = m["model_type"]
+                    target_idx = i
+                    break
+            if target_idx is None:
+                raise ValueError(f"Target candidate version '{model_version}' not found")
 
         for i, m in enumerate(data.get("models", [])):
             if m["model_type"] == model_type:
@@ -326,11 +340,14 @@ class ModelRegistry:
         target["deployment_status"] = ModelDeploymentStatus.ACTIVE.value
         target["promotion_timestamp"] = now
         target["previous_production_version"] = prev_active_version
+        if reason:
+            target.setdefault("metadata", {})["promotion_reason"] = reason
 
         self._save_registry(data)
+        reason_str = f" Reason: '{reason}'." if reason else ""
         self._logger.info(
             f"[PROMOTION SUCCESS] Model '{model_version}' ({model_type}) is now ACTIVE production model. "
-            f"Previous active was '{prev_active_version}'."
+            f"Previous active was '{prev_active_version}'.{reason_str}"
         )
         return ModelVersionRecord.from_dict(target)
 
