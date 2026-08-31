@@ -316,7 +316,7 @@ def score_distribution_stats(scores: np.ndarray) -> dict:
     if len(scores) == 0:
         return {}
     return {
-        "count": int(len(scores)),
+        "count": len(scores),
         "min": round(float(np.min(scores)), 6),
         "max": round(float(np.max(scores)), 6),
         "mean": round(float(np.mean(scores)), 6),
@@ -422,7 +422,7 @@ def main():
     # ── Step 5: Build independent test data ─────────────────────
     print("\n[STEP 5] Building INDEPENDENT TEST gallery & probes...")
     ind_gallery, ind_probes = build_gallery_and_probes(model, INDEPENDENT_TEST_SUBJECTS)
-    ind_genuine, ind_impostor, ind_all_scores = compute_score_pairs(model, ind_gallery, ind_probes)
+    ind_genuine, ind_impostor, _ = compute_score_pairs(model, ind_gallery, ind_probes)
     ind_gen_arr = np.array(ind_genuine)
     ind_imp_arr = np.array(ind_impostor)
     print(f"  Independent gallery:  {len(ind_gallery)} subjects")
@@ -431,7 +431,7 @@ def main():
     print(f"  Impostor trials:      {len(ind_impostor)}")
 
     # ── Step 6: Head-to-head on INDEPENDENT test set ────────────
-    print(f"\n[STEP 6] Head-to-head on INDEPENDENT TEST SET:")
+    print("\n[STEP 6] Head-to-head on INDEPENDENT TEST SET:")
     print(f"  Baseline threshold:    {BASELINE_THRESHOLD}")
     print(f"  Calibrated threshold:  {frozen_threshold}")
 
@@ -697,8 +697,8 @@ def generate_markdown_report(data: dict) -> str:
     # ── Section 1: Partition Verification ──
     lines.append("## 1. Subject-Disjoint Partition Verification")
     lines.append("")
-    lines.append(f"| Property | Value |")
-    lines.append(f"|---|---|")
+    lines.append("| Property | Value |")
+    lines.append("|---|---|")
     lines.append(f"| Calibration Subjects | {', '.join(pv['calibration_subjects'])} |")
     lines.append(f"| Independent Test Subjects | {', '.join(pv['independent_test_subjects'])} |")
     lines.append(f"| Subject Overlap | **{pv['subject_overlap_count']}** |")
@@ -708,8 +708,8 @@ def generate_markdown_report(data: dict) -> str:
     # ── Section 2: Calibration Data Summary ──
     lines.append("## 2. Calibration Data Summary")
     lines.append("")
-    lines.append(f"| Metric | Count |")
-    lines.append(f"|---|---|")
+    lines.append("| Metric | Count |")
+    lines.append("|---|---|")
     lines.append(f"| Gallery Subjects | {cal_sum['gallery_subjects']} |")
     lines.append(f"| Probe Images | {cal_sum['probe_images']} |")
     lines.append(f"| Genuine Trials | {cal_sum['genuine_trials']} |")
@@ -736,8 +736,8 @@ def generate_markdown_report(data: dict) -> str:
     # ── Section 4: Independent Test Data Summary ──
     lines.append("## 4. Independent Test Data Summary")
     lines.append("")
-    lines.append(f"| Metric | Count |")
-    lines.append(f"|---|---|")
+    lines.append("| Metric | Count |")
+    lines.append("|---|---|")
     lines.append(f"| Gallery Subjects | {ind_sum['gallery_subjects']} |")
     lines.append(f"| Probe Images | {ind_sum['probe_images']} |")
     lines.append(f"| Genuine Trials | {ind_sum['genuine_trials']} |")
@@ -755,7 +755,7 @@ def generate_markdown_report(data: dict) -> str:
     cm = ind["calibrated_metrics"]
     dt = ind["deltas"]
     lines.append(f"| Metric | Baseline ({ind['baseline_threshold']}) | Calibrated ({ind['calibrated_threshold']}) | Δ |")
-    lines.append(f"|---|---|---|---|")
+    lines.append("|---|---|---|---|")
     for metric in ["precision", "recall", "f1", "tar", "far", "frr", "balanced_acc"]:
         lines.append(f"| {metric.upper()} | {bm[metric]}% | {cm[metric]}% | {dt[metric]:+.2f}% |")
     lines.append("")
@@ -763,8 +763,8 @@ def generate_markdown_report(data: dict) -> str:
     # ── Section 6: EER ──
     lines.append("## 6. Equal Error Rate (Independent Test Set)")
     lines.append("")
-    lines.append(f"| Metric | Value |")
-    lines.append(f"|---|---|")
+    lines.append("| Metric | Value |")
+    lines.append("|---|---|")
     lines.append(f"| EER | {eer_data['eer_percent']}% |")
     lines.append(f"| EER Threshold | {eer_data['eer_threshold']} |")
     lines.append("")
