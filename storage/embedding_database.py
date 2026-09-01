@@ -10,7 +10,6 @@ import numpy as np
 from monitoring.logging_config import get_logger
 from storage.vector_store import VectorStore
 
-
 _FirebaseEmbeddingStore = None
 _FirebaseEmbeddingDocument = None
 
@@ -453,6 +452,14 @@ class EmbeddingDatabase:
                     status=emb.status,
                     source_session_id=source_session_id or emb.source_session_id,
                     production_model_version=model_version,
+                    identity_type="USER_REFERENCE",
+                    source="user_reference_enrollment",
+                    source_type="user_reference",
+                    operational_state="REFERENCE",
+                    verification_state="VERIFIED",
+                    training_eligibility="NOT_ELIGIBLE",
+                    training_state="NOT_ELIGIBLE",
+                    created_by="argus_enrollment",
                 )
                 result = self.firebase_store.persist_embedding(fb_doc)
                 results.append(result)

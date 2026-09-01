@@ -767,3 +767,240 @@ def test_u_disaster_recovery_rebuild(tmp_env):
     assert person is not None
     assert len(person.gait_embeddings) == 1
     assert len(person.appearance_embeddings) == 1
+
+
+def test_v_schema_validation_boundaries(tmp_env):
+    from storage.firebase_embedding_store import FirebaseEmbeddingDocument
+
+    # 1. Valid gait doc (256D)
+    valid_gait = FirebaseEmbeddingDocument(
+        embedding_id="gait-valid-1",
+        person_id="P001",
+        modality="gait",
+        embedding_dim=256,
+        vector=list(np.random.randn(256).astype(float)),
+    )
+    is_valid, _msg = valid_gait.validate_schema()
+    assert is_valid is True
+    assert valid_gait.identity_id == "P001"
+    assert valid_gait.embedding_type == "gait"
+    assert valid_gait.embedding_dimension == 256
+
+    # 2. Valid appearance doc (512D)
+    valid_app = FirebaseEmbeddingDocument(
+        embedding_id="app-valid-1",
+        person_id="P001",
+        modality="appearance",
+        embedding_dim=512,
+        vector=list(np.random.randn(512).astype(float)),
+    )
+    is_valid_app, _ = valid_app.validate_schema()
+    assert is_valid_app is True
+
+    # 3. Invalid: Empty embedding_id
+    bad_id = FirebaseEmbeddingDocument(
+        embedding_id="",
+        person_id="P001",
+        modality="gait",
+        embedding_dim=256,
+        vector=list(np.random.randn(256).astype(float)),
+    )
+    assert bad_id.validate_schema()[0] is False
+
+    # 4. Invalid: Empty person_id
+    bad_pid = FirebaseEmbeddingDocument(
+        embedding_id="emb-1",
+        person_id="",
+        modality="gait",
+        embedding_dim=256,
+        vector=list(np.random.randn(256).astype(float)),
+    )
+    assert bad_pid.validate_schema()[0] is False
+
+    # 5. Invalid: Dimension mismatch (512D vector with 256 declared)
+    dim_mismatch = FirebaseEmbeddingDocument(
+        embedding_id="emb-1",
+        person_id="P001",
+        modality="gait",
+        embedding_dim=256,
+        vector=list(np.random.randn(512).astype(float)),
+    )
+    assert dim_mismatch.validate_schema()[0] is False
+
+    # 6. Invalid: Non-finite vector
+    non_finite_vec = [float("nan")] + list(np.random.randn(255).astype(float))
+    bad_finite = FirebaseEmbeddingDocument(
+        embedding_id="emb-1",
+        person_id="P001",
+        modality="gait",
+        embedding_dim=256,
+        vector=non_finite_vec,
+    )
+    assert bad_finite.validate_schema()[0] is False
+
+    # 7. Invalid: Zero vector
+    zero_vec = [0.0] * 256
+    bad_zero = FirebaseEmbeddingDocument(
+        embedding_id="emb-1",
+        person_id="P001",
+        modality="gait",
+        embedding_dim=256,
+        vector=zero_vec,
+    )
+    assert bad_zero.validate_schema()[0] is False
+
+
+def test_w_missing_person_reference_flow_not_training_eligible(tmp_env):
+    from intelligence.missing_person_workflow import MissingPersonWorkflow
+    from storage.embedding_database import EmbeddingDatabase
+    from storage.firebase_embedding_store import FirebaseEmbeddingStore
+
+    fb_store = FirebaseEmbeddingStore(
+        mode="offline",
+        offline_store_path=tmp_env["offline_fb_store"],
+    )
+    db = EmbeddingDatabase(
+        db_dir=tmp_env["db_dir"],
+        gait_gallery_dir=tmp_env["gait_gal"],
+        appearance_gallery_dir=tmp_env["app_gal"],
+        firebase_store=fb_store,
+    )
+
+    # 1. Register Missing Person in watchlist
+    workflow = MissingPersonWorkflow(output_dir=str(Path(tmp_env["root"]) / "watchlist"))
+    entry = workflow.register_target(identity="Missing_Person_101", notes="Urgent case")
+    assert entry.identity_id == "Missing_Person_101"
+    assert entry.category == "MISSING_PERSON"
+
+    # 2. Add reference embeddings for missing person
+    ref_gait = np.random.randn(256).astype(np.float32)
+    ref_app = np.random.randn(512).astype(np.float32)
+    persist_res = db.add_embeddings(
+        person_id="Missing_Person_101",
+        gait_embeddings=[ref_gait],
+        appearance_embeddings=[ref_app],
+        observation_date="2026-08-28",
+    )
+    assert persist_res["success"] is True
+
+    # 3. Verify local VectorStore queryability
+    g_data = db.gait_store.load()
+    assert "Missing_Person_101" in list(g_data[1])
+
+    # 4. Verify Firebase document contains USER_REFERENCE provenance & NOT_ELIGIBLE training state
+    fb_docs = fb_store.get_embeddings_by_person("Missing_Person_101")
+    assert len(fb_docs) == 2
+    for doc in fb_docs:
+        assert doc.identity_type == "USER_REFERENCE"
+        assert doc.source_type == "user_reference"
+        assert doc.training_eligibility == "NOT_ELIGIBLE"
+        assert doc.training_eligible is False
+
+    # 5. Verify OperationalEmbeddingCollector and Scheduler do NOT treat reference data as training candidates
+    collector = OperationalEmbeddingCollector(output_dir=tmp_env["obs_dir"])
+    assert len(collector.get_training_eligible()) == 0
+
+
+def test_x_state_machine_transitions_and_consumption(tmp_env):
+    from intelligence.operational_embedding_collector import ObservationState, OperationalEmbeddingCollector
+
+    collector = OperationalEmbeddingCollector(output_dir=tmp_env["obs_dir"])
+    vec = list(np.random.randn(256).astype(float))
+
+    # 1. New observation starts as PREDICTED
+    obs = collector.record_observation(
+        camera_id="cam-01",
+        track_id=12,
+        vector=vec,
+        predicted_identity="Subject_Alpha",
+        confidence=0.92,
+        modality="gait",
+        quality_score=0.85,
+        observation_date="2026-08-28",
+    )
+    assert obs.state == ObservationState.PREDICTED
+    assert obs.identity_type == "LIVE_OPERATIONAL"
+
+    # 2. Transition: Verify observation with operator confirmation
+    verified = collector.verify_observation(
+        observation_id=obs.observation_id,
+        verified_identity="Subject_Alpha",
+        verification_source="operator_ui",
+    )
+    assert verified is True
+
+    # 3. Because quality >= 0.70 and vector is valid, state automatically becomes TRAINING_ELIGIBLE
+    eligible_list = collector.get_eligible_by_date("2026-08-28")
+    assert len(eligible_list) == 1
+    assert eligible_list[0].state == ObservationState.TRAINING_ELIGIBLE
+    assert eligible_list[0].training_consumed is False
+
+    # 4. Transition: Mark training consumed
+    marked = collector.mark_training_consumed(
+        observation_ids=[obs.observation_id],
+        training_job_id="job-cl-001",
+        candidate_version="v100-20260828",
+    )
+    assert marked == 1
+
+    # 5. Verify observation is now TRAINING_CONSUMED and excluded from eligible list
+    assert collector.get_recent_observations()[0].state == ObservationState.TRAINING_CONSUMED
+    assert len(collector.get_eligible_by_date("2026-08-28")) == 0
+
+    # 6. Invalid transition: Cannot re-verify or retrain consumed observation
+    re_verify = collector.verify_observation(
+        observation_id=obs.observation_id,
+        verified_identity="Subject_Alpha",
+    )
+    assert re_verify is False
+
+
+def test_y_future_date_contamination_rejection(tmp_env):
+    scheduler = DateAwareLearningScheduler(
+        jobs_file=tmp_env["jobs_file"],
+        min_training_embeddings=1,
+        min_identities=1,
+    )
+    # Future date: 2099-12-31
+    job = scheduler.create_learning_job(
+        training_date="2099-12-31",
+        model_type="dual_modal_fusion",
+        force=False,
+    )
+    assert job is not None
+    assert job.status == LearningJobStatus.REJECTED
+    assert "future date contamination" in job.rejection_reason.lower()
+
+
+def test_z_deterministic_id_and_connection_health(tmp_env):
+    from storage.firebase_embedding_store import (
+        FirebaseEmbeddingStore,
+        generate_deterministic_id,
+    )
+
+    id1 = generate_deterministic_id(
+        person_id="Subject_A",
+        modality="gait",
+        capture_timestamp=1700000000,
+        track_id=5,
+        camera_id="cam-north",
+    )
+    id2 = generate_deterministic_id(
+        person_id="Subject_A",
+        modality="gait",
+        capture_timestamp=1700000000,
+        track_id=5,
+        camera_id="cam-north",
+    )
+    assert id1 == id2
+    assert "gait" in id1
+    assert "Subject_A" in id1
+
+    fb_store = FirebaseEmbeddingStore(
+        mode="offline",
+        offline_store_path=tmp_env["offline_fb_store"],
+    )
+    healthy, health_info = fb_store.check_connection_health()
+    assert healthy is True
+    assert health_info["mode"] == "offline"
+    assert health_info["status"] == "HEALTHY"

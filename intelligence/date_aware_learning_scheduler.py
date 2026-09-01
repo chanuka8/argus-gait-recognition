@@ -292,6 +292,25 @@ class DateAwareLearningScheduler:
                         return j
 
 
+            today_str = time.strftime("%Y-%m-%d", time.gmtime())
+            if training_date > today_str and not force:
+                skip_id = f"CL-FUTURE-{training_date.replace('-', '')}-{model_type[:4]}-{uuid.uuid4().hex[:4]}"
+                skip_job = LearningJobRecord(
+                    job_id=skip_id,
+                    training_date=training_date,
+                    status=LearningJobStatus.REJECTED,
+                    model_type=model_type,
+                    rejection_reason=f"Future date contamination prevented: training_date '{training_date}' > today '{today_str}'",
+                    completed_at=time.time(),
+                    metadata=metadata or {},
+                )
+                jobs[skip_id] = skip_job
+                self._save_jobs(jobs)
+                self._logger.warning(
+                    f"[FUTURE_DATE_REJECTED] Training date '{training_date}' is in the future (today: '{today_str}'). Contamination rejected."
+                )
+                return skip_job
+
             all_dates = self.scan_for_eligible_data()
             date_info = all_dates.get(training_date)
             if not date_info and not force:

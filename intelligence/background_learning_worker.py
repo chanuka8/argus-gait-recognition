@@ -224,6 +224,10 @@ class BackgroundLearningWorker:
                     model_version=candidate_version,
                     model_type=job.model_type,
                 )
+                consumed_ids = [obs.observation_id for obs in self.collector.get_eligible_by_date(job.training_date)]
+                if consumed_ids:
+                    self.collector.mark_training_consumed(consumed_ids, job.job_id, candidate_version)
+
                 job.status = LearningJobStatus.PROMOTED
                 job.completed_at = time.time()
                 job.duration = round(job.completed_at - start_time, 2)
@@ -620,6 +624,10 @@ class BackgroundLearningWorker:
                     model_version=candidate_version,
                     model_type=job.model_type,
                 )
+                consumed_ids = [s.sample_id for s in train_samples]
+                if consumed_ids:
+                    self.collector.mark_training_consumed(consumed_ids, job.job_id, candidate_version)
+
                 job.status = LearningJobStatus.PROMOTED
                 job.completed_at = time.time()
                 job.duration = round(job.completed_at - start_time, 2)

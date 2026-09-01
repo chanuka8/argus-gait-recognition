@@ -17,6 +17,8 @@ class ObservationState(str, Enum):
     PREDICTED = "PREDICTED"
     VERIFIED = "VERIFIED"
     TRAINING_ELIGIBLE = "TRAINING_ELIGIBLE"
+    TRAINING_CONSUMED = "TRAINING_CONSUMED"
+    REJECTED = "REJECTED"
 
 
 @dataclass
@@ -35,6 +37,11 @@ class OperationalObservation:
     quality_score: float = 1.0
     model_name: str = ""
     model_version: str = "v1.0.0"
+    identity_type: str = "LIVE_OPERATIONAL"
+    source_type: str = "live_surveillance"
+    training_consumed: bool = False
+    consumed_in_job: str = ""
+    consumed_by_model: str = ""
     created_at: float = field(default_factory=time.time)
     observation_date: str = ""
     metadata: dict[str, Any] = field(default_factory=dict)
@@ -69,12 +76,17 @@ class OperationalObservation:
             vector=[float(v) for v in data.get("vector", [])],
             predicted_identity=str(data.get("predicted_identity", "UNKNOWN")),
             confidence=float(data.get("confidence", 0.0)),
-            state=ObservationState(st) if isinstance(st, str) else ObservationState.PREDICTED,
+            state=ObservationState(st) if isinstance(st, str) and st in [e.value for e in ObservationState] else ObservationState.PREDICTED,
             verified_identity=data.get("verified_identity"),
             verification_source=data.get("verification_source"),
             quality_score=float(data.get("quality_score", 1.0)),
             model_name=str(data.get("model_name", "")),
             model_version=str(data.get("model_version", "v1.0.0")),
+            identity_type=str(data.get("identity_type", "LIVE_OPERATIONAL")),
+            source_type=str(data.get("source_type", "live_surveillance")),
+            training_consumed=bool(data.get("training_consumed", False)),
+            consumed_in_job=str(data.get("consumed_in_job", "")),
+            consumed_by_model=str(data.get("consumed_by_model", "")),
             created_at=c_at,
             observation_date=obs_date,
             metadata=dict(data.get("metadata", {})),
@@ -148,7 +160,6 @@ class OperationalEmbeddingCollector:
     ) -> OperationalObservation:
         vec_arr = np.asarray(vector, dtype=np.float32).ravel() if vector is not None else np.array([], dtype=np.float32)
 
-
         is_finite = bool(np.isfinite(vec_arr).all()) if vec_arr.size > 0 else False
         is_valid_dim = bool(vec_arr.size in (256, 512))
         norm = float(np.linalg.norm(vec_arr)) if is_finite and vec_arr.size > 0 else 0.0
@@ -162,7 +173,6 @@ class OperationalEmbeddingCollector:
         obs_date = observation_date or time.strftime("%Y-%m-%d", time.gmtime(now))
 
         with self._lock:
-
             if quality_score > 0.0 and vec_arr.size > 0:
                 for past_obs in reversed(self._buffer[-50:]):
                     if (
@@ -179,7 +189,6 @@ class OperationalEmbeddingCollector:
                                 if metadata:
                                     past_obs.metadata.update(metadata)
                                 return past_obs
-
 
             meta_dict = dict(metadata or {})
             if "bbox" in meta_dict and isinstance(meta_dict["bbox"], (list, tuple)) and len(meta_dict["bbox"]) >= 4:
@@ -215,6 +224,8 @@ class OperationalEmbeddingCollector:
                 quality_score=quality_score,
                 model_name=model_name,
                 model_version=model_version,
+                identity_type="LIVE_OPERATIONAL",
+                source_type="live_surveillance",
                 created_at=now,
                 observation_date=obs_date,
                 metadata=meta_dict,
@@ -241,7 +252,6 @@ class OperationalEmbeddingCollector:
             if len(self._buffer) > self.max_buffer_size:
                 self._buffer.pop(0)
 
-
             if len(self._buffer) % 10 == 0 or len(self._buffer) <= 5:
                 self._flush()
 
@@ -252,13 +262,22 @@ class OperationalEmbeddingCollector:
         observation_id: str,
         verified_identity: str,
         verification_source: str = "operator_confirmation",
+        verification_metadata: dict[str, Any] | None = None,
     ) -> bool:
         with self._lock:
             for obs in self._buffer:
                 if obs.observation_id == observation_id:
+                    if obs.state == ObservationState.TRAINING_CONSUMED:
+                        self._logger.warning(
+                            f"[INVALID_STATE_TRANSITION] Cannot re-verify already consumed observation '{observation_id}'"
+                        )
+                        return False
+
                     obs.verified_identity = verified_identity
                     obs.verification_source = verification_source
                     obs.state = ObservationState.VERIFIED
+                    if verification_metadata:
+                        obs.metadata.update(verification_metadata)
 
                     vec_arr = np.asarray(obs.vector, dtype=np.float32)
                     is_valid = (
@@ -266,20 +285,52 @@ class OperationalEmbeddingCollector:
                         and np.isfinite(vec_arr).all()
                         and vec_arr.size in (256, 512)
                         and float(np.linalg.norm(vec_arr)) > 0.0
+                        and obs.identity_type != "USER_REFERENCE"
                     )
                     if is_valid:
                         obs.state = ObservationState.TRAINING_ELIGIBLE
 
                     self._flush()
                     self._logger.info(
-                        f"Observation '{observation_id}' marked as {obs.state.value} (ID: {verified_identity}, Date: {obs.observation_date})"
+                        f"Observation '{observation_id}' transitioned to {obs.state.value} "
+                        f"(ID: {verified_identity}, Date: {obs.observation_date})"
                     )
                     return True
             return False
 
+    def mark_training_consumed(
+        self,
+        observation_ids: list[str] | set[str],
+        training_job_id: str,
+        candidate_version: str,
+    ) -> int:
+        consumed_count = 0
+        with self._lock:
+            id_set = set(observation_ids)
+            for obs in self._buffer:
+                if obs.observation_id in id_set:
+                    obs.state = ObservationState.TRAINING_CONSUMED
+                    obs.training_consumed = True
+                    obs.consumed_in_job = training_job_id
+                    obs.consumed_by_model = candidate_version
+                    consumed_count += 1
+            if consumed_count > 0:
+                self._flush()
+                self._logger.info(
+                    f"[TRAINING_CONSUMPTION] Marked {consumed_count} observations as TRAINING_CONSUMED "
+                    f"by job '{training_job_id}' (candidate: {candidate_version})"
+                )
+        return consumed_count
+
     def get_training_eligible(self, modality: str | None = None) -> list[OperationalObservation]:
         with self._lock:
-            eligible = [o for o in self._buffer if o.state == ObservationState.TRAINING_ELIGIBLE]
+            eligible = [
+                o
+                for o in self._buffer
+                if o.state == ObservationState.TRAINING_ELIGIBLE
+                and not o.training_consumed
+                and o.identity_type != "USER_REFERENCE"
+            ]
             if modality:
                 eligible = [o for o in eligible if o.modality == modality]
             return eligible
@@ -289,12 +340,17 @@ class OperationalEmbeddingCollector:
             dates = {o.observation_date for o in self.get_training_eligible() if o.observation_date}
             return sorted(dates)
 
-    def get_eligible_by_date(self, observation_date: str, modality: str | None = None) -> list[OperationalObservation]:
+    def get_eligible_by_date(
+        self, observation_date: str, modality: str | None = None
+    ) -> list[OperationalObservation]:
         with self._lock:
             eligible = [
                 o
                 for o in self._buffer
-                if o.state == ObservationState.TRAINING_ELIGIBLE and o.observation_date == observation_date
+                if o.state == ObservationState.TRAINING_ELIGIBLE
+                and not o.training_consumed
+                and o.identity_type != "USER_REFERENCE"
+                and o.observation_date == observation_date
             ]
             if modality:
                 eligible = [o for o in eligible if o.modality == modality]

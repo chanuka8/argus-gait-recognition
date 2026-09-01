@@ -1,9 +1,11 @@
+import hashlib
 import json
 import os
 import threading
 import time
 from collections import deque
 from dataclasses import asdict, dataclass, field
+from enum import Enum
 from pathlib import Path
 from typing import Any
 
@@ -12,55 +14,229 @@ import numpy as np
 from monitoring.logging_config import get_logger
 
 
+class PersistenceErrorCategory(str, Enum):
+    NONE = "NONE"
+    SCHEMA_VALIDATION_ERROR = "SCHEMA_VALIDATION_ERROR"
+    AUTHENTICATION_FAILURE = "AUTHENTICATION_FAILURE"
+    NETWORK_TIMEOUT = "NETWORK_TIMEOUT"
+    PERMISSION_DENIED = "PERMISSION_DENIED"
+    RESOURCE_EXHAUSTED = "RESOURCE_EXHAUSTED"
+    DUPLICATE_REJECTED = "DUPLICATE_REJECTED"
+    UNKNOWN_ERROR = "UNKNOWN_ERROR"
+
+
+def generate_deterministic_id(
+    person_id: str,
+    modality: str,
+    capture_timestamp: float,
+    track_id: int | str = 0,
+    camera_id: str = "cctv-01",
+) -> str:
+    raw_key = f"{person_id}:{modality}:{int(capture_timestamp)}:{track_id}:{camera_id}"
+    digest = hashlib.sha256(raw_key.encode("utf-8")).hexdigest()[:12]
+    return f"emb_{modality[:4]}_{person_id}_{int(capture_timestamp)}_{digest}"
+
+
 @dataclass
 class FirebaseEmbeddingDocument:
     embedding_id: str
     person_id: str
-    modality: str
-    embedding_dim: int
-    vector: list[float]
-    model_version: str
+    modality: str = "gait"
+    embedding_dim: int = 256
+    vector: list[float] = field(default_factory=list)
+    model_version: str = "v1.0.0"
+    model_name: str = ""
+    model_architecture: str = ""
+    identity_type: str = "LIVE_OPERATIONAL"
+    source: str = "cctv_live"
+    source_type: str = "live_surveillance"
+    feature_version: int = 1
     embedding_version: int = 1
     observation_date: str = ""
-    created_at: float = field(default_factory=time.time)
+    event_date: str = ""
+    capture_timestamp: float = 0.0
+    camera_id: str = ""
+    track_id: int = 0
+    confidence: float = 1.0
     quality_score: float = 1.0
-    verification_status: str = "ACTIVE"
+    verification_state: str = "PREDICTED"
+    operational_state: str = "PREDICTED"
+    training_state: str = "NOT_ELIGIBLE"
     training_eligibility: str = "NOT_ELIGIBLE"
+    dataset_split: str = "UNASSIGNED"
+    training_consumed: bool = False
+    consumed_by_model_version: str = ""
+    consumed_in_training_job: str = ""
+    lineage_id: str = ""
+    parent_embedding_id: str = ""
+    provenance: dict[str, Any] = field(default_factory=dict)
+    verification_metadata: dict[str, Any] = field(default_factory=dict)
+    case_id: str = ""
+    created_by: str = "argus_system"
+    verification_status: str = "ACTIVE"
+    status: str = "ACTIVE"
     source_session_id: str = ""
     source_camera_id: str = ""
     candidate_training_job_id: str = ""
     production_model_version: str = ""
-    status: str = "ACTIVE"
-    case_id: str = ""
-    created_by: str = "argus_enrollment"
+    created_at: float = field(default_factory=time.time)
+    updated_at: float = field(default_factory=time.time)
+
+    def __post_init__(self) -> None:
+        if not self.observation_date:
+            ts = self.capture_timestamp if self.capture_timestamp > 0 else self.created_at
+            self.observation_date = time.strftime("%Y-%m-%d", time.gmtime(ts))
+        if not self.event_date:
+            self.event_date = self.observation_date
+        if self.capture_timestamp == 0.0:
+            self.capture_timestamp = self.created_at
+        if not self.source_camera_id and self.camera_id:
+            self.source_camera_id = self.camera_id
+        if not self.camera_id and self.source_camera_id:
+            self.camera_id = self.source_camera_id
+
+    @property
+    def identity_id(self) -> str:
+        return self.person_id
+
+    @identity_id.setter
+    def identity_id(self, val: str) -> None:
+        self.person_id = str(val)
+
+    @property
+    def embedding_type(self) -> str:
+        return self.modality
+
+    @embedding_type.setter
+    def embedding_type(self, val: str) -> None:
+        self.modality = str(val)
+
+    @property
+    def embedding_dimension(self) -> int:
+        return self.embedding_dim
+
+    @embedding_dimension.setter
+    def embedding_dimension(self, val: int) -> None:
+        self.embedding_dim = int(val)
+
+    @property
+    def embedding(self) -> list[float]:
+        return self.vector
+
+    @embedding.setter
+    def embedding(self, val: list[float]) -> None:
+        self.vector = [float(v) for v in val]
+
+    @property
+    def capture_date(self) -> str:
+        return self.observation_date
+
+    @capture_date.setter
+    def capture_date(self, val: str) -> None:
+        self.observation_date = str(val)
+        self.event_date = str(val)
+
+    @property
+    def training_eligible(self) -> bool:
+        return self.training_eligibility == "ELIGIBLE" or self.operational_state == "TRAINING_ELIGIBLE"
+
+    def validate_schema(self) -> tuple[bool, str]:
+        if not self.embedding_id or not str(self.embedding_id).strip():
+            return False, "Missing or empty embedding_id"
+        if not self.person_id or not str(self.person_id).strip():
+            return False, "Missing or empty person_id"
+        if self.modality not in ("gait", "appearance"):
+            return False, f"Invalid modality '{self.modality}'; must be 'gait' or 'appearance'"
+        if self.modality == "gait" and self.embedding_dim != 256:
+            return False, f"Gait embedding dimension mismatch: expected 256, got {self.embedding_dim}"
+        if self.modality == "appearance" and self.embedding_dim != 512:
+            return False, f"Appearance embedding dimension mismatch: expected 512, got {self.embedding_dim}"
+        if len(self.vector) != self.embedding_dim:
+            return False, f"Vector length {len(self.vector)} != declared embedding_dim {self.embedding_dim}"
+
+        vec_arr = np.asarray(self.vector, dtype=np.float32)
+        if not np.isfinite(vec_arr).all():
+            return False, "Vector contains non-finite values (NaN or Inf)"
+        norm = float(np.linalg.norm(vec_arr))
+        if norm <= 0.0:
+            return False, "Vector norm must be positive (zero vector invalid)"
+
+        valid_states = (
+            "PREDICTED",
+            "VERIFIED",
+            "TRAINING_ELIGIBLE",
+            "TRAINING_CONSUMED",
+            "REFERENCE",
+            "REJECTED",
+        )
+        if self.operational_state not in valid_states:
+            return False, f"Invalid operational_state '{self.operational_state}'"
+
+        return True, "Schema valid"
 
     def to_dict(self) -> dict[str, Any]:
         d = asdict(self)
+        d["identity_id"] = self.person_id
+        d["embedding_type"] = self.modality
+        d["embedding_dimension"] = self.embedding_dim
         d["observation_date"] = self.observation_date
+        d["event_date"] = self.event_date
+        d["capture_date"] = self.observation_date
         return d
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "FirebaseEmbeddingDocument":
+        person_id = str(data.get("person_id") or data.get("identity_id") or "")
+        modality = str(data.get("modality") or data.get("embedding_type") or "gait")
+        embedding_dim = int(data.get("embedding_dim") or data.get("embedding_dimension") or len(data.get("vector") or data.get("embedding") or []))
+        vector = [float(v) for v in (data.get("vector") or data.get("embedding") or [])]
+        c_at = float(data.get("created_at", time.time()))
+        cap_ts = float(data.get("capture_timestamp", c_at))
+        obs_date = str(data.get("observation_date") or data.get("capture_date") or data.get("event_date") or "")
+
         return cls(
             embedding_id=str(data.get("embedding_id", "")),
-            person_id=str(data.get("person_id", "")),
-            modality=str(data.get("modality", "gait")),
-            embedding_dim=int(data.get("embedding_dim", 0)),
-            vector=[float(v) for v in data.get("vector", [])],
+            person_id=person_id,
+            modality=modality,
+            embedding_dim=embedding_dim,
+            vector=vector,
             model_version=str(data.get("model_version", "v1.0.0")),
+            model_name=str(data.get("model_name", "")),
+            model_architecture=str(data.get("model_architecture", "")),
+            identity_type=str(data.get("identity_type", "LIVE_OPERATIONAL")),
+            source=str(data.get("source", "cctv_live")),
+            source_type=str(data.get("source_type", "live_surveillance")),
+            feature_version=int(data.get("feature_version", 1)),
             embedding_version=int(data.get("embedding_version", 1)),
-            observation_date=str(data.get("observation_date", "")),
-            created_at=float(data.get("created_at", time.time())),
+            observation_date=obs_date,
+            event_date=str(data.get("event_date", obs_date)),
+            capture_timestamp=cap_ts,
+            camera_id=str(data.get("camera_id") or data.get("source_camera_id") or ""),
+            track_id=int(data.get("track_id", 0)),
+            confidence=float(data.get("confidence", 1.0)),
             quality_score=float(data.get("quality_score", 1.0)),
-            verification_status=str(data.get("verification_status", "ACTIVE")),
+            verification_state=str(data.get("verification_state", "PREDICTED")),
+            operational_state=str(data.get("operational_state", data.get("status", "PREDICTED"))),
+            training_state=str(data.get("training_state", "NOT_ELIGIBLE")),
             training_eligibility=str(data.get("training_eligibility", "NOT_ELIGIBLE")),
+            dataset_split=str(data.get("dataset_split", "UNASSIGNED")),
+            training_consumed=bool(data.get("training_consumed", False)),
+            consumed_by_model_version=str(data.get("consumed_by_model_version", "")),
+            consumed_in_training_job=str(data.get("consumed_in_training_job", "")),
+            lineage_id=str(data.get("lineage_id", "")),
+            parent_embedding_id=str(data.get("parent_embedding_id", "")),
+            provenance=dict(data.get("provenance", {})),
+            verification_metadata=dict(data.get("verification_metadata", {})),
+            case_id=str(data.get("case_id", "")),
+            created_by=str(data.get("created_by", "argus_system")),
+            verification_status=str(data.get("verification_status", "ACTIVE")),
+            status=str(data.get("status", "ACTIVE")),
             source_session_id=str(data.get("source_session_id", "")),
-            source_camera_id=str(data.get("source_camera_id", "")),
+            source_camera_id=str(data.get("source_camera_id") or data.get("camera_id") or ""),
             candidate_training_job_id=str(data.get("candidate_training_job_id", "")),
             production_model_version=str(data.get("production_model_version", "")),
-            status=str(data.get("status", "ACTIVE")),
-            case_id=str(data.get("case_id", "")),
-            created_by=str(data.get("created_by", "argus_enrollment")),
+            created_at=c_at,
+            updated_at=float(data.get("updated_at", c_at)),
         )
 
 
@@ -70,10 +246,13 @@ class PersistenceResult:
     embedding_id: str
     firebase_verified: bool = False
     error_message: str | None = None
+    error_category: PersistenceErrorCategory = PersistenceErrorCategory.NONE
     retry_queued: bool = False
 
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        d = asdict(self)
+        d["error_category"] = self.error_category.value
+        return d
 
 
 class FirebaseEmbeddingStore:
@@ -97,7 +276,6 @@ class FirebaseEmbeddingStore:
         self._retry_queue: deque[dict[str, Any]] = deque(maxlen=max_retry_queue_size)
         self._lock = threading.RLock()
         self._offline_data: dict[str, Any] = {}
-
 
         if mode == "auto":
             self.mode = self._detect_mode()
@@ -153,6 +331,34 @@ class FirebaseEmbeddingStore:
             self.mode = "offline"
             self._load_offline_store()
 
+    def check_connection_health(self) -> tuple[bool, dict[str, Any]]:
+        if self.mode == "offline":
+            with self._lock:
+                return True, {
+                    "mode": "offline",
+                    "status": "HEALTHY",
+                    "offline_store_exists": self.offline_store_path.exists(),
+                    "total_embeddings": len(self._offline_data.get("embeddings", {})),
+                    "total_persons": len(self._offline_data.get("persons", {})),
+                    "retry_queue_size": len(self._retry_queue),
+                }
+
+        try:
+            t0 = time.time()
+            if self._firestore_client is None:
+                return False, {"mode": "live", "status": "UNINITIALIZED", "error": "Firestore client is None"}
+            # Lightweight health query
+            _ = list(self._firestore_client.collection(self.COLLECTION_NAME).limit(1).stream())
+            latency_ms = round((time.time() - t0) * 1000, 2)
+            return True, {
+                "mode": "live",
+                "status": "HEALTHY",
+                "latency_ms": latency_ms,
+                "retry_queue_size": len(self._retry_queue),
+            }
+        except Exception as err:  # noqa: BLE001
+            return False, {"mode": "live", "status": "UNHEALTHY", "error": str(err)}
+
     def _load_offline_store(self) -> None:
         with self._lock:
             if self.offline_store_path.exists():
@@ -177,39 +383,15 @@ class FirebaseEmbeddingStore:
                 self._logger.error(f"Failed to save offline store: {err}")
                 return False
 
-
-
-
-
     def persist_embedding(self, doc: FirebaseEmbeddingDocument) -> PersistenceResult:
-        if doc.modality == "gait" and doc.embedding_dim != 256:
+        is_valid, validation_err = doc.validate_schema()
+        if not is_valid:
+            self._logger.warning(f"[PERSISTENCE_REJECTED] {doc.embedding_id}: {validation_err}")
             return PersistenceResult(
                 success=False,
                 embedding_id=doc.embedding_id,
-                error_message=f"Gait embedding dimension mismatch: expected 256, got {doc.embedding_dim}",
-            )
-        if doc.modality == "appearance" and doc.embedding_dim != 512:
-            return PersistenceResult(
-                success=False,
-                embedding_id=doc.embedding_id,
-                error_message=f"Appearance embedding dimension mismatch: expected 512, got {doc.embedding_dim}",
-            )
-
-
-        if len(doc.vector) != doc.embedding_dim:
-            return PersistenceResult(
-                success=False,
-                embedding_id=doc.embedding_id,
-                error_message=f"Vector length {len(doc.vector)} != declared dim {doc.embedding_dim}",
-            )
-
-
-        vec_arr = np.asarray(doc.vector, dtype=np.float32)
-        if not np.isfinite(vec_arr).all():
-            return PersistenceResult(
-                success=False,
-                embedding_id=doc.embedding_id,
-                error_message="Vector contains non-finite values (NaN/Inf)",
+                error_message=validation_err,
+                error_category=PersistenceErrorCategory.SCHEMA_VALIDATION_ERROR,
             )
 
         if self.mode == "live":
@@ -229,16 +411,27 @@ class FirebaseEmbeddingStore:
                 success=True,
                 embedding_id=doc.embedding_id,
                 firebase_verified=False,
+                error_category=PersistenceErrorCategory.NONE,
             )
         except Exception as err:  # noqa: BLE001
+            err_str = str(err)
+            category = PersistenceErrorCategory.UNKNOWN_ERROR
+            if "deadline" in err_str.lower() or "timeout" in err_str.lower():
+                category = PersistenceErrorCategory.NETWORK_TIMEOUT
+            elif "permission" in err_str.lower() or "denied" in err_str.lower():
+                category = PersistenceErrorCategory.PERMISSION_DENIED
+            elif "unauthenticated" in err_str.lower() or "auth" in err_str.lower():
+                category = PersistenceErrorCategory.AUTHENTICATION_FAILURE
+
             self._logger.warning(
-                f"[FIREBASE_WRITE_FAILED] {doc.embedding_id}: {err}. Queuing for retry."
+                f"[FIREBASE_WRITE_FAILED] {doc.embedding_id} ({category.value}): {err}. Queuing for retry."
             )
             self._enqueue_retry(doc)
             return PersistenceResult(
                 success=False,
                 embedding_id=doc.embedding_id,
-                error_message=str(err),
+                error_message=err_str,
+                error_category=category,
                 retry_queued=True,
             )
 
@@ -256,14 +449,11 @@ class FirebaseEmbeddingStore:
             embedding_id=doc.embedding_id,
             firebase_verified=saved,
             error_message=None if saved else "Offline store write failed",
+            error_category=PersistenceErrorCategory.NONE if saved else PersistenceErrorCategory.UNKNOWN_ERROR,
         )
 
     def persist_embeddings(self, docs: list[FirebaseEmbeddingDocument]) -> list[PersistenceResult]:
         return [self.persist_embedding(doc) for doc in docs]
-
-
-
-
 
     def verify_persistence(self, embedding_id: str) -> tuple[bool, str]:
         if self.mode == "live":
@@ -301,10 +491,6 @@ class FirebaseEmbeddingStore:
         if not np.isfinite(vec_arr).all():
             return False, "Stored vector contains non-finite values"
         return True, "Persistence verified"
-
-
-
-
 
     def get_embeddings_by_person(
         self, person_id: str, modality: str | None = None
@@ -398,10 +584,6 @@ class FirebaseEmbeddingStore:
                     for d in self._offline_data.get("embeddings", {}).values()
                 ]
 
-
-
-
-
     def _enqueue_retry(self, doc: FirebaseEmbeddingDocument) -> None:
         with self._lock:
             self._retry_queue.append(
@@ -425,6 +607,7 @@ class FirebaseEmbeddingStore:
                         success=False,
                         embedding_id=item["doc"]["embedding_id"],
                         error_message=f"Max retries ({self.max_retries}) exhausted",
+                        error_category=PersistenceErrorCategory.RESOURCE_EXHAUSTED,
                     )
                 )
                 continue
@@ -432,7 +615,6 @@ class FirebaseEmbeddingStore:
             doc = FirebaseEmbeddingDocument.from_dict(item["doc"])
             result = self.persist_embedding(doc)
             if not result.success and result.retry_queued:
-
                 with self._lock:
                     if self._retry_queue:
                         last = self._retry_queue[-1]
@@ -444,10 +626,6 @@ class FirebaseEmbeddingStore:
     def get_retry_queue_size(self) -> int:
         with self._lock:
             return len(self._retry_queue)
-
-
-
-
 
     def delete_temporary_media(self, case_id: str) -> tuple[bool, str]:
         if self.mode != "live" or self._storage_bucket is None:
@@ -469,10 +647,6 @@ class FirebaseEmbeddingStore:
         except Exception as err:  # noqa: BLE001
             self._logger.warning(f"[FIREBASE_STORAGE_CLEANUP_FAILED] case={case_id}: {err}")
             return False, str(err)
-
-
-
-
 
     def rebuild_local_from_firebase(self) -> dict[str, Any]:
         all_docs = self.get_all_embeddings()
@@ -501,6 +675,9 @@ class FirebaseEmbeddingStore:
                 "quality_score": doc.quality_score,
                 "status": doc.status,
                 "source_session_id": doc.source_session_id,
+                "identity_type": doc.identity_type,
+                "operational_state": doc.operational_state,
+                "training_eligibility": doc.training_eligibility,
             }
 
             if doc.modality == "gait":
@@ -513,10 +690,6 @@ class FirebaseEmbeddingStore:
             f"{len(persons)} persons from Firebase."
         )
         return persons
-
-
-
-
 
     def get_persisted_embedding_ids(self) -> set[str]:
         if self.mode == "live":
