@@ -1,5 +1,7 @@
 .dashboard-container {
-    width: 100vw;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
     min-height: 100vh;
     background: #0B0E13;
     background: radial-gradient(circle at 15% 20%, #111B28 0%, #0B0E13 60%), radial-gradient(circle at 85% 80%, #0F1D2A 0%, #0B0E13 60%);
@@ -11,7 +13,8 @@
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
-.dashboard-header {
+.dashboard-header,
+.command-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -24,12 +27,28 @@
     top: 0;
     z-index: 100;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    flex-wrap: wrap;
+    gap: 0.75rem;
 }
 
-.header-left {
+.header-left,
+.header-brand-group {
     display: flex;
     align-items: center;
     gap: 1rem;
+}
+
+.brand-titles {
+    display: flex;
+    flex-direction: column;
+}
+
+.system-code {
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    color: var(--sky, #5ce1e6);
+    text-shadow: 0 0 10px rgba(92, 225, 230, 0.3);
 }
 
 .header-logo {
@@ -48,13 +67,15 @@
     -webkit-text-fill-color: transparent;
 }
 
-.header-right {
+.header-right,
+.header-controls-group {
     display: flex;
     align-items: center;
     gap: 1.2rem;
 }
 
-.user-profile {
+.user-profile,
+.user-profile-widget {
     display: flex;
     align-items: center;
     gap: 0.6rem;
@@ -69,11 +90,38 @@
     transition: all 0.2s ease;
 }
 
-.user-profile:hover {
+.user-profile:hover,
+.user-profile-widget:hover {
     background: rgba(92, 225, 230, 0.15);
     border-color: #00E5FF;
     box-shadow: 0 0 12px rgba(0, 229, 255, 0.25);
     transform: translateY(-1px);
+}
+
+.avatar-circle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--sky, #5ce1e6);
+}
+
+.user-text-info {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+}
+
+.user-name {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #e8ecf1;
+}
+
+.user-role {
+    font-size: 0.62rem;
+    font-weight: 800;
+    color: var(--sky, #5ce1e6);
+    letter-spacing: 0.5px;
 }
 
 .notification-wrapper {
@@ -84,6 +132,33 @@
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.1);
     transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.icon-btn.notification-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-primary, #e8ecf1);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.notification-badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: #FF5252;
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 800;
+    border-radius: 99px;
+    padding: 1px 5px;
+    box-shadow: 0 0 8px #FF5252;
 }
 
 .notification-wrapper:hover {
@@ -109,10 +184,13 @@
 
 .command-workspace {
     display: flex;
-    gap: 1.5rem;
+    gap: 1.25rem;
     padding: 1.5rem 2rem;
     flex: 1;
     align-items: stretch;
+    min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .tactical-map-pane {
@@ -282,6 +360,7 @@
 .operations-dock {
     width: 420px;
     flex-shrink: 0;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
@@ -577,28 +656,64 @@
     }
 
     .operations-dock {
-        width: 100%;
+        width: 100% !important;
+    }
+
+    .dashboard-dock-resizer {
+        display: none !important;
     }
 
     .map-hud-ribbon {
-        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
     }
 }
 
-@media (max-width: 650px) {
-    .dashboard-header {
+@media (max-width: 768px) {
+    .dashboard-header,
+    .command-header {
         padding: 0.75rem 1rem;
     }
 
-    .header-badge {
-        display: none;
+    .header-title {
+        font-size: 1.05rem;
+        letter-spacing: 1px;
     }
 
-    .map-hud-ribbon {
-        grid-template-columns: repeat(2, 1fr);
+    .header-logo {
+        height: 30px;
     }
 
     .tactical-map-viewport {
-        min-height: 380px;
+        min-height: 400px;
+    }
+}
+
+@media (max-width: 520px) {
+    .map-hud-ribbon {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
+    }
+
+    .hud-metric-pill.cold {
+        grid-column: span 2;
+    }
+
+    .hud-metric-pill {
+        padding: 0.65rem 0.8rem;
+    }
+
+    .hud-value {
+        font-size: 1.4rem;
+    }
+
+    .tactical-map-viewport {
+        min-height: 320px;
+    }
+
+    .zone-status-bar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.35rem;
+        font-size: 0.72rem;
     }
 }

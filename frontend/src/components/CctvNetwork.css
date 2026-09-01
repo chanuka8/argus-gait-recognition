@@ -257,7 +257,7 @@
 
 .cameras-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
   gap: 1.75rem;
 }
 
@@ -269,6 +269,7 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  min-width: 0;
   transition:
     transform 0.25s ease,
     border-color 0.25s ease,
@@ -352,7 +353,8 @@
 .simulated-feed-box {
   position: relative;
   width: 100%;
-  height: 170px;
+  aspect-ratio: 16 / 9;
+  min-height: 160px;
   background: #0a0e12;
   border: 1px solid rgba(0, 229, 255, 0.25);
   border-radius: 8px;
@@ -473,8 +475,8 @@
   position: fixed;
   top: 0;
   left: 0;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
   background: rgba(0, 0, 0, 0.82);
 
   -webkit-backdrop-filter: blur(8px);
@@ -485,6 +487,7 @@
   align-items: center;
   justify-content: center;
   padding: 1.5rem;
+  box-sizing: border-box;
 }
 
 .cctv-modal-card {
@@ -492,16 +495,19 @@
   border: 1px solid rgba(0, 229, 255, 0.4);
   border-radius: var(--radius-lg);
   width: 100%;
-  max-width: 540px;
-  padding: 2rem;
+  max-width: min(680px, calc(100vw - 2rem));
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 1.75rem 2rem;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.25rem;
+  box-sizing: border-box;
 }
 
 .cctv-modal-card h3 {
-  font-size: 1.4rem;
+  font-size: 1.3rem;
   font-weight: 800;
   color: #fff;
   margin: 0;
@@ -529,6 +535,8 @@
   padding: 0.75rem 1rem;
   color: #fff;
   font-size: 0.92rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .form-group-cctv input:focus,
@@ -548,6 +556,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .btn-auto-gps {
@@ -574,6 +584,7 @@
   justify-content: flex-end;
   gap: 1rem;
   margin-top: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .btn-cancel-cctv {
@@ -601,10 +612,57 @@
   .zone-summary-card {
     flex-direction: column;
     align-items: flex-start;
+    padding: 1.25rem;
+  }
+
+  .zone-summary-right {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 1.25rem;
+  }
+
+  .zone-metric-box {
+    align-items: flex-start;
   }
 
   .cctv-body,
   .cctv-nav-header {
     padding: 1rem 1.25rem;
+  }
+
+  .cctv-nav-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .cameras-grid {
+    gap: 1rem;
+  }
+
+  .zone-tabs-section {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .deploy-cam-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .coords-row-cctv {
+    grid-template-columns: 1fr;
+  }
+
+  .cctv-modal-card {
+    padding: 1.25rem;
+  }
+
+  .modal-actions-cctv button {
+    width: 100%;
+    justify-content: center;
   }
 }

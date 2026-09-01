@@ -1,0 +1,75 @@
+/* Global state during resizing */
+body.argus-panel-resizing {
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    cursor: col-resize !important;
+}
+
+body.argus-panel-resizing * {
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    cursor: col-resize !important;
+}
+
+/* Base Resize Handle */
+.argus-resize-handle {
+    width: 12px;
+    margin: 0 -4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: col-resize;
+    position: relative;
+    z-index: 20;
+    touch-action: none;
+    flex-shrink: 0;
+    transition: background-color var(--ease-fast);
+    border-radius: 4px;
+    outline: none;
+}
+
+.argus-resize-handle:hover,
+.argus-resize-handle:focus-visible,
+.argus-resize-handle.resizing {
+    background: rgba(92, 225, 230, 0.08);
+}
+
+.argus-resize-handle:focus-visible {
+    box-shadow: 0 0 0 2px var(--sky);
+}
+
+/* Central handle indicator bar */
+.argus-resize-handle-bar {
+    width: 3px;
+    height: 48px;
+    background: rgba(92, 225, 230, 0.25);
+    border-radius: 3px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-evenly;
+    padding: 3px 0;
+    transition: all var(--ease-fast);
+}
+
+.argus-resize-handle:hover .argus-resize-handle-bar,
+.argus-resize-handle:focus-visible .argus-resize-handle-bar,
+.argus-resize-handle.resizing .argus-resize-handle-bar {
+    width: 4px;
+    height: 72px;
+    background: var(--sky);
+    box-shadow: 0 0 10px rgba(92, 225, 230, 0.6);
+}
+
+.resize-handle-dot {
+    width: 2px;
+    height: 2px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.6);
+    transition: opacity var(--ease-fast);
+}
+
+.argus-resize-handle:hover .resize-handle-dot,
+.argus-resize-handle.resizing .resize-handle-dot {
+    background: #0B0E13;
+}

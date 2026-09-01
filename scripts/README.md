@@ -55,6 +55,8 @@ This folder contains project maintenance, automation, development, validation, e
 | [migrate_output_layout.py](migrate_output_layout.py) | One-time runtime output layout migration script. | `python scripts/migrate_output_layout.py` |
 | [preprocess_casia.py](preprocess_casia.py) | Build GEI images from CASIA-B ZIP dataset | `python scripts/preprocess_casia.py` |
 | [process_runner.py](process_runner.py) | ARGUS AI Real-Time Subprocess Execution & Streamer. | `python scripts/process_runner.py` |
+| [profile_live_stream_latency.py](profile_live_stream_latency.py) | Forensic Profiler for ARGUS AI Live Camera Stream Startup Latency. | `python scripts/profile_live_stream_latency.py` |
+| [profile_startup_forensics.py](profile_startup_forensics.py) | Forensic Startup Profiling for ARGUS AI Backend Server. | `python scripts/profile_startup_forensics.py` |
 | [remove_gallery_identity.py](remove_gallery_identity.py) | Remove an identity from ARGUS gallery | `python scripts/remove_gallery_identity.py` |
 | [remove_numeric_gallery_identities.py](remove_numeric_gallery_identities.py) | Remove numeric CASIA-B identities from ARGUS gallery | `python scripts/remove_numeric_gallery_identities.py` |
 | [run_ablation_study.py](run_ablation_study.py) | Run Full ARGUS Gait Ablation Study (EXP-003A..E) | `python scripts/run_ablation_study.py` |
@@ -82,6 +84,7 @@ This folder contains project maintenance, automation, development, validation, e
 | [sweep_fine_thresholds.py](sweep_fine_thresholds.py) | Ensure repo root in sys.path | `python scripts/sweep_fine_thresholds.py` |
 | [sync_folder_readmes.py](sync_folder_readmes.py) | Automated README synchronization script for ARGUS AI package folders. | `python scripts/sync_folder_readmes.py` |
 | [system_check.py](system_check.py) | Environment and dependency verification script. | `python scripts/system_check.py` |
+| [test_server_functional_parity.py](test_server_functional_parity.py) | End-to-End Functional Parity and Regression Test for Optimized ARGUS AI Server. | `pytest scripts/test_server_functional_parity.py` |
 | [train_model.py](train_model.py) | Train ARGUS ByGaitLight model with metric learning (HPP + ArcFace + Triplet). | `python scripts/train_model.py` |
 | [validate_appearance_runtime.py](validate_appearance_runtime.py) | Full Real-Runtime Appearance Model Validation Script for ARGUS AI. | `python scripts/validate_appearance_runtime.py` |
 | [validate_continuous_improvement_lifecycle.py](validate_continuous_improvement_lifecycle.py) | End-to-End Demonstration and Validation Script for ARGUS AI Continuous Improvement Architecture, | `python scripts/validate_continuous_improvement_lifecycle.py` |
@@ -140,6 +143,8 @@ This folder contains project maintenance, automation, development, validation, e
 | [migrate_output_layout.py](migrate_output_layout.py) | Conversion | Yes | No | No | No | One-time runtime output layout migration script. |
 | [preprocess_casia.py](preprocess_casia.py) | Dataset | Yes | No | No | No | Build GEI images from CASIA-B ZIP dataset |
 | [process_runner.py](process_runner.py) | Environment | Yes | No | No | No | ARGUS AI Real-Time Subprocess Execution & Streamer. |
+| [profile_live_stream_latency.py](profile_live_stream_latency.py) | Development | No | No | No | No | Forensic Profiler for ARGUS AI Live Camera Stream Startup... |
+| [profile_startup_forensics.py](profile_startup_forensics.py) | Development | No | No | No | No | Forensic Startup Profiling for ARGUS AI Backend Server. |
 | [remove_gallery_identity.py](remove_gallery_identity.py) | Dataset | Yes | No | No | No | Remove an identity from ARGUS gallery |
 | [remove_numeric_gallery_identities.py](remove_numeric_gallery_identities.py) | Dataset | Yes | No | No | No | Remove numeric CASIA-B identities from ARGUS gallery |
 | [run_ablation_study.py](run_ablation_study.py) | Validation | Yes | No | No | No | Run Full ARGUS Gait Ablation Study (EXP-003A..E) |
@@ -167,6 +172,7 @@ This folder contains project maintenance, automation, development, validation, e
 | [sweep_fine_thresholds.py](sweep_fine_thresholds.py) | Development | No | No | No | No | Ensure repo root in sys.path |
 | [sync_folder_readmes.py](sync_folder_readmes.py) | Documentation | Yes | Yes | Yes | Yes | Automated README synchronization script for ARGUS AI pack... |
 | [system_check.py](system_check.py) | Validation | No | No | No | No | Environment and dependency verification script. |
+| [test_server_functional_parity.py](test_server_functional_parity.py) | Validation | No | No | No | No | End-to-End Functional Parity and Regression Test for Opti... |
 | [train_model.py](train_model.py) | Development | Yes | No | No | No | Train ARGUS ByGaitLight model with metric learning (HPP +... |
 | [validate_appearance_runtime.py](validate_appearance_runtime.py) | Validation | No | No | No | No | Full Real-Runtime Appearance Model Validation Script for ... |
 | [validate_continuous_improvement_lifecycle.py](validate_continuous_improvement_lifecycle.py) | Validation | No | No | No | No | End-to-End Demonstration and Validation Script for ARGUS ... |
@@ -813,6 +819,7 @@ Validation scripts perform environment health verification and component sanity 
 - **[simulate_date_aware_learning.py](simulate_date_aware_learning.py)**: Real Integration Simulation Script for ARGUS AI Date-Aware Continuous Embedding Learning. (`python scripts/simulate_date_aware_learning.py`)
 - **[smoke_test_deployment.py](smoke_test_deployment.py)**: Automated Native Deployment Smoke Test for ARGUS AI. (`python scripts/smoke_test_deployment.py`)
 - **[system_check.py](system_check.py)**: Environment and dependency verification script. (`python scripts/system_check.py`)
+- **[test_server_functional_parity.py](test_server_functional_parity.py)**: End-to-End Functional Parity and Regression Test for Optimized ARGUS AI Server. (`pytest scripts/test_server_functional_parity.py`)
 - **[validate_appearance_runtime.py](validate_appearance_runtime.py)**: Full Real-Runtime Appearance Model Validation Script for ARGUS AI. (`python scripts/validate_appearance_runtime.py`)
 - **[validate_continuous_improvement_lifecycle.py](validate_continuous_improvement_lifecycle.py)**: End-to-End Demonstration and Validation Script for ARGUS AI Continuous Improvement Architecture, (`python scripts/validate_continuous_improvement_lifecycle.py`)
 - **[validate_live_surveillance.py](validate_live_surveillance.py)**: ARGUS AI — Live End-to-End Multi-Person Surveillance Validation Script. (`python scripts/validate_live_surveillance.py`)
@@ -858,6 +865,8 @@ Development helper scripts run benchmarks, evaluations, training pipelines, and 
 - **[download_gdrive_osnet.py](download_gdrive_osnet.py)**: Test downloading Google Drive weights with session cookies and confirmation tokens. (`python scripts/download_gdrive_osnet.py`)
 - **[download_osnet_weights.py](download_osnet_weights.py)**: Add project root to sys.path (`python scripts/download_osnet_weights.py`)
 - **[f1_threshold_calibration_independent_validation.py](f1_threshold_calibration_independent_validation.py)**: ARGUS AI — F1 Threshold Calibration & Independent Validation (`python scripts/f1_threshold_calibration_independent_validation.py`)
+- **[profile_live_stream_latency.py](profile_live_stream_latency.py)**: Forensic Profiler for ARGUS AI Live Camera Stream Startup Latency. (`python scripts/profile_live_stream_latency.py`)
+- **[profile_startup_forensics.py](profile_startup_forensics.py)**: Forensic Startup Profiling for ARGUS AI Backend Server. (`python scripts/profile_startup_forensics.py`)
 - **[setup_silhouette_model.py](setup_silhouette_model.py)**: Silhouette Model Setup and Asset Verification Helper for ARGUS AI. (`python scripts/setup_silhouette_model.py`)
 - **[sweep_fine_thresholds.py](sweep_fine_thresholds.py)**: Ensure repo root in sys.path (`python scripts/sweep_fine_thresholds.py`)
 - **[train_model.py](train_model.py)**: Train ARGUS ByGaitLight model with metric learning (HPP + ArcFace + Triplet). (`python scripts/train_model.py`)
@@ -912,6 +921,8 @@ Development helper scripts run benchmarks, evaluations, training pipelines, and 
 | `python scripts/migrate_output_layout.py` | One-time runtime output layout migration script. |
 | `python scripts/preprocess_casia.py` | Build GEI images from CASIA-B ZIP dataset |
 | `python scripts/process_runner.py` | ARGUS AI Real-Time Subprocess Execution & Streamer. |
+| `python scripts/profile_live_stream_latency.py` | Forensic Profiler for ARGUS AI Live Camera Stream Startup Latency. |
+| `python scripts/profile_startup_forensics.py` | Forensic Startup Profiling for ARGUS AI Backend Server. |
 | `python scripts/remove_gallery_identity.py` | Remove an identity from ARGUS gallery |
 | `python scripts/remove_numeric_gallery_identities.py` | Remove numeric CASIA-B identities from ARGUS gallery |
 | `python scripts/run_ablation_study.py` | Run Full ARGUS Gait Ablation Study (EXP-003A..E) |
@@ -939,6 +950,7 @@ Development helper scripts run benchmarks, evaluations, training pipelines, and 
 | `python scripts/sweep_fine_thresholds.py` | Ensure repo root in sys.path |
 | `python scripts/sync_folder_readmes.py` | Automated README synchronization script for ARGUS AI package folders. |
 | `python scripts/system_check.py` | Environment and dependency verification script. |
+| `pytest scripts/test_server_functional_parity.py` | End-to-End Functional Parity and Regression Test for Optimized ARGU... |
 | `python scripts/train_model.py` | Train ARGUS ByGaitLight model with metric learning (HPP + ArcFace +... |
 | `python scripts/validate_appearance_runtime.py` | Full Real-Runtime Appearance Model Validation Script for ARGUS AI. |
 | `python scripts/validate_continuous_improvement_lifecycle.py` | End-to-End Demonstration and Validation Script for ARGUS AI Continu... |
@@ -983,7 +995,7 @@ flowchart TD
 ```mermaid
 flowchart TD
     step1["1. Environment (5 scripts)"]
-    step2["2. Validation (48 scripts)"]
+    step2["2. Validation (49 scripts)"]
     step1 --> step2
     step3["3. Documentation"]
     step2 --> step3
@@ -993,7 +1005,7 @@ flowchart TD
     step4 --> step5
     step6["6. Conversion (4 scripts)"]
     step5 --> step6
-    step7["7. Development (9 scripts)"]
+    step7["7. Development (11 scripts)"]
     step6 --> step7
     step8["8. Deployment (2 scripts)"]
     step7 --> step8
@@ -1049,6 +1061,8 @@ flowchart TD
 | [migrate_output_layout.py](migrate_output_layout.py) | `Runtime-determined paths` |
 | [preprocess_casia.py](preprocess_casia.py) | `data/casia_processed/gei` |
 | [process_runner.py](process_runner.py) | `No file modifications` |
+| [profile_live_stream_latency.py](profile_live_stream_latency.py) | `Runtime-determined paths` |
+| [profile_startup_forensics.py](profile_startup_forensics.py) | `Runtime-determined paths` |
 | [remove_gallery_identity.py](remove_gallery_identity.py) | `models/appearance_gallery`, `models/live_gallery` |
 | [remove_numeric_gallery_identities.py](remove_numeric_gallery_identities.py) | `Runtime-determined paths` |
 | [run_ablation_study.py](run_ablation_study.py) | `runs` |
@@ -1076,6 +1090,7 @@ flowchart TD
 | [sweep_fine_thresholds.py](sweep_fine_thresholds.py) | `Runtime-determined paths` |
 | [sync_folder_readmes.py](sync_folder_readmes.py) | `*/README.md`, `docs/README_INDEX.md` |
 | [system_check.py](system_check.py) | `No file modifications` |
+| [test_server_functional_parity.py](test_server_functional_parity.py) | `No file modifications` |
 | [train_model.py](train_model.py) | `No file modifications` |
 | [validate_appearance_runtime.py](validate_appearance_runtime.py) | `outputs/test_runtime_appearance_gallery`, `outputs/test_runtime_appearance_multi_gallery` |
 | [validate_continuous_improvement_lifecycle.py](validate_continuous_improvement_lifecycle.py) | `Runtime-determined paths` |
@@ -1095,8 +1110,8 @@ flowchart TD
 | **Environment** | [activate_venv.ps1](activate_venv.ps1), [bootstrap_env.ps1](bootstrap_env.ps1), [download_package.py](download_package.py), [manage_venv.ps1](manage_venv.ps1), [process_runner.py](process_runner.py) |
 | **Git** | [install_git_hooks.py](install_git_hooks.py) |
 | **Read-Only** | [analyze_cl_part_similarity.py](analyze_cl_part_similarity.py), [analyze_open_set_and_cl.py](analyze_open_set_and_cl.py), [benchmark_crowd_performance.py](benchmark_crowd_performance.py), [benchmark_silhouette_segmenters.py](benchmark_silhouette_segmenters.py), [demo_confidence_scorer.py](demo_confidence_scorer.py), [demo_events.py](demo_events.py), [demo_gei.py](demo_gei.py), [demo_security_layer.py](demo_security_layer.py), [demo_silhouette.py](demo_silhouette.py), [demo_streaming_optimization.py](demo_streaming_optimization.py), [detect_environment.py](detect_environment.py), [evaluate_cross_view.py](evaluate_cross_view.py), [evaluate_open_set.py](evaluate_open_set.py), [generate_visualizer_charts.py](generate_visualizer_charts.py), [preprocess_casia.py](preprocess_casia.py), [run_auto_enrollment.py](run_auto_enrollment.py), [run_folder_recognition.py](run_folder_recognition.py), [run_folder_watcher.py](run_folder_watcher.py), [run_gallery_match.py](run_gallery_match.py), [run_inference_pipeline.py](run_inference_pipeline.py), [run_live_gei.py](run_live_gei.py), [run_live_recognition.py](run_live_recognition.py), [run_tracking.py](run_tracking.py), [run_video_recognition.py](run_video_recognition.py), [run_webcam_detection.py](run_webcam_detection.py), [setup_silhouette_model.py](setup_silhouette_model.py), [system_check.py](system_check.py), [train_model.py](train_model.py), [verify_firebase_persistence.py](verify_firebase_persistence.py) |
-| **Repository Modification** | [audit_continual_learning_effectiveness.py](audit_continual_learning_effectiveness.py), [benchmark.py](benchmark.py), [benchmark_inference_backends.py](benchmark_inference_backends.py), [build_gallery.py](build_gallery.py), [build_tensorrt_engine.py](build_tensorrt_engine.py), [clean_live_gallery.py](clean_live_gallery.py), [demo_enrollment.py](demo_enrollment.py), [diagnose_f1_score.py](diagnose_f1_score.py), [doctor.py](doctor.py), [download_gdrive_osnet.py](download_gdrive_osnet.py), [download_osnet_weights.py](download_osnet_weights.py), [evaluate_appearance_recognition.py](evaluate_appearance_recognition.py), [evaluate_dual_modal_recognition.py](evaluate_dual_modal_recognition.py), [evaluate_exp004.py](evaluate_exp004.py), [evaluate_model.py](evaluate_model.py), [evaluate_open_set_threshold_sweep.py](evaluate_open_set_threshold_sweep.py), [evaluate_subject_disjoint.py](evaluate_subject_disjoint.py), [evaluate_threshold_sweep.py](evaluate_threshold_sweep.py), [export_bygait_onnx.py](export_bygait_onnx.py), [export_silhouette_unet_onnx.py](export_silhouette_unet_onnx.py), [extract_casia_skeletons.py](extract_casia_skeletons.py), [f1_threshold_calibration_independent_validation.py](f1_threshold_calibration_independent_validation.py), [migrate_output_layout.py](migrate_output_layout.py), [remove_gallery_identity.py](remove_gallery_identity.py), [remove_numeric_gallery_identities.py](remove_numeric_gallery_identities.py), [run_ablation_study.py](run_ablation_study.py), [run_exp004_ablations.py](run_exp004_ablations.py), [run_exp006_3d.py](run_exp006_3d.py), [run_exp006_full.py](run_exp006_full.py), [run_exp007_ablations.py](run_exp007_ablations.py), [run_optimization.py](run_optimization.py), [set_gallery_identity_status.py](set_gallery_identity_status.py), [simulate_date_aware_learning.py](simulate_date_aware_learning.py), [smoke_test_deployment.py](smoke_test_deployment.py), [sweep_fine_thresholds.py](sweep_fine_thresholds.py), [validate_appearance_runtime.py](validate_appearance_runtime.py), [validate_continuous_improvement_lifecycle.py](validate_continuous_improvement_lifecycle.py), [validate_live_surveillance.py](validate_live_surveillance.py), [verify_real_nn_learning.py](verify_real_nn_learning.py) |
-| **Validation** | [verify_environment.py](verify_environment.py) |
+| **Repository Modification** | [audit_continual_learning_effectiveness.py](audit_continual_learning_effectiveness.py), [benchmark.py](benchmark.py), [benchmark_inference_backends.py](benchmark_inference_backends.py), [build_gallery.py](build_gallery.py), [build_tensorrt_engine.py](build_tensorrt_engine.py), [clean_live_gallery.py](clean_live_gallery.py), [demo_enrollment.py](demo_enrollment.py), [diagnose_f1_score.py](diagnose_f1_score.py), [doctor.py](doctor.py), [download_gdrive_osnet.py](download_gdrive_osnet.py), [download_osnet_weights.py](download_osnet_weights.py), [evaluate_appearance_recognition.py](evaluate_appearance_recognition.py), [evaluate_dual_modal_recognition.py](evaluate_dual_modal_recognition.py), [evaluate_exp004.py](evaluate_exp004.py), [evaluate_model.py](evaluate_model.py), [evaluate_open_set_threshold_sweep.py](evaluate_open_set_threshold_sweep.py), [evaluate_subject_disjoint.py](evaluate_subject_disjoint.py), [evaluate_threshold_sweep.py](evaluate_threshold_sweep.py), [export_bygait_onnx.py](export_bygait_onnx.py), [export_silhouette_unet_onnx.py](export_silhouette_unet_onnx.py), [extract_casia_skeletons.py](extract_casia_skeletons.py), [f1_threshold_calibration_independent_validation.py](f1_threshold_calibration_independent_validation.py), [migrate_output_layout.py](migrate_output_layout.py), [profile_live_stream_latency.py](profile_live_stream_latency.py), [profile_startup_forensics.py](profile_startup_forensics.py), [remove_gallery_identity.py](remove_gallery_identity.py), [remove_numeric_gallery_identities.py](remove_numeric_gallery_identities.py), [run_ablation_study.py](run_ablation_study.py), [run_exp004_ablations.py](run_exp004_ablations.py), [run_exp006_3d.py](run_exp006_3d.py), [run_exp006_full.py](run_exp006_full.py), [run_exp007_ablations.py](run_exp007_ablations.py), [run_optimization.py](run_optimization.py), [set_gallery_identity_status.py](set_gallery_identity_status.py), [simulate_date_aware_learning.py](simulate_date_aware_learning.py), [smoke_test_deployment.py](smoke_test_deployment.py), [sweep_fine_thresholds.py](sweep_fine_thresholds.py), [validate_appearance_runtime.py](validate_appearance_runtime.py), [validate_continuous_improvement_lifecycle.py](validate_continuous_improvement_lifecycle.py), [validate_live_surveillance.py](validate_live_surveillance.py), [verify_real_nn_learning.py](verify_real_nn_learning.py) |
+| **Validation** | [test_server_functional_parity.py](test_server_functional_parity.py), [verify_environment.py](verify_environment.py) |
 <!-- END SYNC: SAFETY_CLASSIFICATION -->
 
 ## Script Execution Flow

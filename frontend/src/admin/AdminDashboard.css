@@ -147,9 +147,11 @@
 }
 
 .admin-panels-layout {
-    display: grid;
-    grid-template-columns: 1.2fr 0.8fr;
-    gap: 2rem;
+    display: flex;
+    gap: 1.25rem;
+    align-items: stretch;
+    min-width: 0;
+    width: 100%;
 }
 
 .quick-access-panel, .audit-preview-panel {
@@ -159,6 +161,8 @@
     padding: 1.75rem;
     display: flex;
     flex-direction: column;
+    min-width: 0;
+    box-sizing: border-box;
 }
 
 .panel-header-row {
@@ -345,7 +349,14 @@
 
 @media (max-width: 992px) {
     .admin-panels-layout {
-        grid-template-columns: 1fr;
+        flex-direction: column;
+    }
+    .quick-access-panel {
+        flex: none !important;
+        width: 100% !important;
+    }
+    .admin-panels-resizer {
+        display: none !important;
     }
 }
 
@@ -355,6 +366,21 @@
     }
     .admin-stats-grid {
         grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .admin-stats-grid {
+        grid-template-columns: 1fr;
+    }
+    .control-cards-grid {
+        grid-template-columns: 1fr;
+    }
+    .welcome-banner {
+        padding: 1.25rem;
+    }
+    .welcome-banner h1 {
+        font-size: 1.5rem;
     }
 }
 

@@ -1,11 +1,14 @@
 .log-viewer-page {
     width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
     min-height: 100vh;
     background: var(--grad-bg);
     background-attachment: fixed;
     color: var(--text-primary);
     display: flex;
     flex-direction: column;
+    overflow-x: hidden;
     animation: fadeInUp 0.4s ease both;
 }
 
@@ -18,6 +21,7 @@
     max-width: 1400px;
     width: 100%;
     margin: 0 auto;
+    box-sizing: border-box;
 }
 
 .log-header-row {
@@ -354,12 +358,13 @@
     border-radius: var(--radius-lg);
     box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5), 0 0 40px rgba(92, 225, 230, 0.06);
     width: 100%;
-    max-width: 620px;
-    max-height: 80vh;
+    max-width: min(620px, calc(100vw - 2rem));
+    max-height: 85vh;
     overflow-y: auto;
     animation: slideUpModal 0.25s ease both;
     display: flex;
     flex-direction: column;
+    box-sizing: border-box;
 }
 
 .log-detail-header {
@@ -374,6 +379,7 @@
     display: flex;
     align-items: center;
     gap: 0.75rem;
+    flex-wrap: wrap;
 }
 
 .log-detail-level-badge {
@@ -526,5 +532,19 @@
     }
     .log-detail-meta-grid {
         grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 550px) {
+    .log-actions {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    .log-action-btn {
+        flex: 1 1 calc(50% - 0.5rem);
+        justify-content: center;
+    }
+    .filters-row {
+        flex-direction: column;
     }
 }

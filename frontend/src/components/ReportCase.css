@@ -1,12 +1,14 @@
 .report-page {
-    width: 100vw;
-    height: 100vh;
-    overflow: hidden;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    min-height: 100vh;
     background: var(--grad-bg);
     background-attachment: fixed;
     color: var(--text-primary);
     display: flex;
     flex-direction: column;
+    overflow-x: hidden;
     animation: fadeInUp 0.4s ease both;
 }
 
@@ -16,8 +18,9 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    overflow: hidden;
     min-height: 0;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .report-container {
@@ -32,7 +35,7 @@
     display: flex;
     flex-direction: column;
     max-height: 100%;
-    overflow: hidden;
+    box-sizing: border-box;
 }
 
 .report-container-header {
@@ -323,6 +326,7 @@
 @media (max-width: 768px) {
     .report-page {
         height: auto;
+        min-height: 100vh;
         overflow-y: auto;
     }
 
@@ -341,6 +345,29 @@
         padding: 1rem 1.25rem;
         overflow: visible;
     }
+
+    .form-group {
+        flex-direction: column !important;
+        align-items: flex-start;
+        gap: 0.35rem;
+    }
+
+    .form-group label {
+        width: 100%;
+        max-width: none;
+    }
+
+    .form-group input,
+    .form-group select {
+        max-width: 100%;
+        width: 100%;
+    }
+
+    .upload-box,
+    .selected-images,
+    .submit-btn {
+        max-width: 100%;
+    }
 }
 
 .modal-overlay {
@@ -353,17 +380,22 @@
     align-items: center;
     z-index: 200;
     animation: fadeIn 0.2s ease-out;
+    padding: 1rem;
+    box-sizing: border-box;
 }
 
 .success-modal {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius-xl);
-    padding: 3rem 3.5rem;
+    padding: 2.25rem 2rem;
     position: relative;
     box-shadow: var(--shadow-lg), var(--glow-sky);
     animation: scaleIn 0.25s ease-out;
     text-align: center;
+    width: 100%;
+    max-width: min(460px, calc(100vw - 2rem));
+    box-sizing: border-box;
 }
 
 .modal-close-btn {

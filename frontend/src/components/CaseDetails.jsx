@@ -11,6 +11,8 @@ import { addLog } from '../utils/logService';
 import { MapContainer, TileLayer, Marker, Popup, Circle, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { useResizablePanel } from '../hooks/useResizablePanel';
+import ResizeHandle from './common/ResizeHandle';
 import './CaseDetails.css';
 
 const createCaseDetectionIcon = () => {
@@ -86,6 +88,22 @@ const CaseDetails = () => {
     const [isSavingStatus, setIsSavingStatus] = useState(false);
     const [searchRadius, setSearchRadius] = useState(5000);
     const [caseDetections, setCaseDetections] = useState([]);
+
+    const {
+        size: infoPanelWidth,
+        isResizing: isInfoResizing,
+        onPointerDown: onInfoPointerDown,
+        onKeyDown: onInfoKeyDown,
+        resetSize: resetInfoSize,
+        minSize: minInfoSize,
+        maxSize: maxInfoSize,
+    } = useResizablePanel({
+        storageKey: 'caseDetailsPanelWidth',
+        defaultSize: 300,
+        minSize: 240,
+        maxSize: 480,
+        direction: 'right',
+    });
 
     const displayId = id && id !== 'undefined' ? id : '_______________';
 
@@ -273,7 +291,7 @@ const CaseDetails = () => {
                             <h2 className="case-id-header">Case ID : {displayId}</h2>
 
                             <div className="case-layout">
-                                <div className="case-info-panel">
+                                <div className="case-info-panel" style={{ width: `${infoPanelWidth}px` }}>
                                     <div className="case-icon-wrapper">
                                         <UserIcon size={140} color="#a0e4e8" fill="#4ab8bd" />
                                     </div>
@@ -320,6 +338,18 @@ const CaseDetails = () => {
                                         </div>
                                     </div>
                                 </div>
+
+                                <ResizeHandle
+                                    className="case-panel-resizer"
+                                    isResizing={isInfoResizing}
+                                    onPointerDown={onInfoPointerDown}
+                                    onKeyDown={onInfoKeyDown}
+                                    onDoubleClick={resetInfoSize}
+                                    currentSize={infoPanelWidth}
+                                    minSize={minInfoSize}
+                                    maxSize={maxInfoSize}
+                                    label="Resize case info panel"
+                                />
 
                                 <div className="case-visuals-panel">
                                     <div className="case-map-box">

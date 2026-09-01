@@ -5,6 +5,8 @@ import AdminHeader from './AdminHeader';
 import { getLogs } from '../utils/logService';
 import { db } from '../firebaseConfig';
 import { collection, getDocs } from 'firebase/firestore';
+import { useResizablePanel } from '../hooks/useResizablePanel';
+import ResizeHandle from '../components/common/ResizeHandle';
 import './AdminDashboard.css';
 
 const formatTimeAgo = (timestamp) => {
@@ -23,6 +25,23 @@ const formatTimeAgo = (timestamp) => {
 
 const AdminDashboard = () => {
     const navigate = useNavigate();
+
+    const {
+        size: splitRatio,
+        isResizing: isSplitResizing,
+        onPointerDown: onSplitPointerDown,
+        onKeyDown: onSplitKeyDown,
+        resetSize: resetSplitSize,
+        minSize: minSplitSize,
+        maxSize: maxSplitSize,
+    } = useResizablePanel({
+        storageKey: 'adminSplitRatio',
+        defaultSize: 60,
+        minSize: 35,
+        maxSize: 75,
+        direction: 'right',
+        step: 2,
+    });
 
     const [recentLogs, setRecentLogs] = useState([]);
 
@@ -183,7 +202,7 @@ const AdminDashboard = () => {
                 </div>
 
                 <div className="admin-panels-layout">
-                    <div className="quick-access-panel">
+                    <div className="quick-access-panel" style={{ flex: `0 0 ${splitRatio}%` }}>
                         <h2>Administrative Controls</h2>
                         <p className="panel-desc">Quickly configure, review, or authorize system components.</p>
 
@@ -234,7 +253,19 @@ const AdminDashboard = () => {
                         </div>
                     </div>
 
-                    <div className="audit-preview-panel">
+                    <ResizeHandle
+                        className="admin-panels-resizer"
+                        isResizing={isSplitResizing}
+                        onPointerDown={onSplitPointerDown}
+                        onKeyDown={onSplitKeyDown}
+                        onDoubleClick={resetSplitSize}
+                        currentSize={splitRatio}
+                        minSize={minSplitSize}
+                        maxSize={maxSplitSize}
+                        label="Resize administrative and audit panels"
+                    />
+
+                    <div className="audit-preview-panel" style={{ flex: 1 }}>
                         <div className="panel-header-row">
                             <h2>Live Audit Stream</h2>
                             <button className="view-all-logs-btn" onClick={() => navigate('/admin/logs')}>

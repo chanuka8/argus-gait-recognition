@@ -107,3 +107,17 @@
     border: 1px solid #4CAF50;
     margin-bottom: 6px;
 }
+
+@media (max-width: 500px) {
+    .layer-toggles-panel {
+        top: 8px;
+        left: 8px;
+        right: 8px;
+        padding: 0.35rem 0.5rem;
+        gap: 0.35rem;
+    }
+    .layer-toggle-btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.72rem;
+    }
+}

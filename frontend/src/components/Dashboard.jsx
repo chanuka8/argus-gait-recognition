@@ -14,6 +14,8 @@ import { db } from '../firebaseConfig';
 import { collection, getDocs, onSnapshot, query } from 'firebase/firestore';
 import GaitSystemStatus from './GaitSystemStatus';
 import RecognitionEvents from './RecognitionEvents';
+import { useResizablePanel } from '../hooks/useResizablePanel';
+import ResizeHandle from './common/ResizeHandle';
 
 const CountUp = ({ end, duration }) => {
     const [count, setCount] = useState(0);
@@ -55,6 +57,22 @@ const Dashboard = () => {
     const [showProfile, setShowProfile] = useState(false);
     const [cases, setCases] = useState([]);
     const [detections, setDetections] = useState([]);
+
+    const {
+        size: dockWidth,
+        isResizing: isDockResizing,
+        onPointerDown: onDockPointerDown,
+        onKeyDown: onDockKeyDown,
+        resetSize: resetDockSize,
+        minSize: minDockSize,
+        maxSize: maxDockSize,
+    } = useResizablePanel({
+        storageKey: 'dashboardDockWidth',
+        defaultSize: 420,
+        minSize: 300,
+        maxSize: 640,
+        direction: 'left',
+    });
 
     useEffect(() => {
         const fetchCases = async () => {
@@ -174,7 +192,19 @@ const Dashboard = () => {
                     </div>
                 </section>
 
-                <aside className="operations-dock">
+                <ResizeHandle
+                    className="dashboard-dock-resizer"
+                    isResizing={isDockResizing}
+                    onPointerDown={onDockPointerDown}
+                    onKeyDown={onDockKeyDown}
+                    onDoubleClick={resetDockSize}
+                    currentSize={dockWidth}
+                    minSize={minDockSize}
+                    maxSize={maxDockSize}
+                    label="Resize operations dock"
+                />
+
+                <aside className="operations-dock" style={{ width: `${dockWidth}px` }}>
                     <GaitSystemStatus />
 
                     <div className="quick-command-section">

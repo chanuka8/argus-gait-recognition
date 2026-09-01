@@ -1,11 +1,14 @@
 .policy-manager-page {
     width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
     min-height: 100vh;
     background: var(--grad-bg);
     background-attachment: fixed;
     color: var(--text-primary);
     display: flex;
     flex-direction: column;
+    overflow-x: hidden;
     animation: fadeInUp 0.4s ease both;
 }
 
@@ -18,12 +21,15 @@
     max-width: 1400px;
     width: 100%;
     margin: 0 auto;
+    box-sizing: border-box;
 }
 
 .policy-header-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
 }
 
 .policy-header-row h1 {
@@ -41,6 +47,7 @@
     display: grid;
     grid-template-columns: 1.3fr 0.7fr;
     gap: 2rem;
+    min-width: 0;
 }
 
 .policy-form {
@@ -370,6 +377,23 @@
     }
     .policy-form-actions button {
         width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .policy-control-item.toggle-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+    .slider-control-row {
+        flex-wrap: wrap;
+    }
+    .policy-success-toast {
+        bottom: 1rem;
+        right: 1rem;
+        left: 1rem;
         justify-content: center;
     }
 }
