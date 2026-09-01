@@ -4,8 +4,8 @@
     align-items: center;
     padding: 0.85rem 2.5rem;
     background: rgba(30, 32, 35, 0.88);
-    backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
     border-bottom: 1px solid var(--border);
     position: sticky;
     top: 0;
@@ -35,8 +35,8 @@
     letter-spacing: 2px;
     background: var(--grad-primary);
     -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
     background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 .admin-badge {
@@ -172,8 +172,6 @@
         justify-content: flex-start;
         overflow-x: auto;
         padding-bottom: 0.35rem;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: thin;
         gap: 0.35rem;
     }
     .admin-nav-btn {

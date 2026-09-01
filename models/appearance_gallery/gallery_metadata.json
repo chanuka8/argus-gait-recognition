@@ -1,9 +1,9 @@
 {
     "subject999": {
-        "embeddings": 58,
+        "embeddings": 59,
         "status": "ACTIVE",
         "enabled": true,
-        "updated_at": 1788160251.9929423
+        "updated_at": 1788245322.9993093
     },
     "Subject_42": {
         "embeddings": 142,

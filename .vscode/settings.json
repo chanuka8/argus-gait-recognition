@@ -87,7 +87,21 @@
     "multi-camera",
     "spatio-temporal",
     "watchlist",
-    "PyTorch"
+    "PyTorch",
+    "firestore",
+    "firebaseapp",
+    "firebasestorage",
+    "mgmt",
+    "notif",
+    "Notifs",
+    "checkmark",
+    "unsub",
+    "bbox",
+    "Nominatim",
+    "Pettah",
+    "Peradeniya",
+    "MJPEG",
+    "lucide"
   ],
   "cSpell.ignorePaths": [
     "**/venv/**",

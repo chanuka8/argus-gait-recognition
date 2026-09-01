@@ -59,8 +59,8 @@
     letter-spacing: 1px;
     margin-bottom: 0.35rem;
     background: linear-gradient(135deg, #d6e4ea 0%, #5ce1e6 100%);
-    background-clip: text;
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
@@ -388,8 +388,8 @@
     position: fixed;
     inset: 0;
     background: rgba(20, 22, 25, 0.82);
-    backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
     z-index: 1000;
     display: flex;
     align-items: center;

@@ -83,7 +83,6 @@
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
     width: 100%;
     box-shadow: var(--shadow-sm);
 }
@@ -238,6 +237,7 @@
     right: 0;
     bottom: 0;
     background: rgba(10, 11, 13, 0.85);
+    -webkit-backdrop-filter: blur(8px);
     backdrop-filter: blur(8px);
     display: flex;
     align-items: center;

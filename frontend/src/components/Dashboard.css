@@ -20,8 +20,8 @@
     align-items: center;
     padding: 0.75rem 2rem;
     background: rgba(16, 20, 27, 0.85);
-    backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
     border-bottom: 1px solid rgba(92, 225, 230, 0.18);
     position: sticky;
     top: 0;
@@ -209,6 +209,7 @@
 
 .hud-metric-pill {
     background: rgba(22, 27, 36, 0.8);
+    -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 12px;
@@ -225,15 +226,6 @@
 .hud-metric-pill:hover {
     transform: translateY(-3px);
     border-color: rgba(92, 225, 230, 0.35);
-}
-
-.hud-metric-pill::top-border {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
 }
 
 .hud-metric-pill.total {
@@ -313,6 +305,7 @@
 
 .zone-status-bar {
     background: rgba(14, 18, 25, 0.95);
+    -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     padding: 0.6rem 1.25rem;

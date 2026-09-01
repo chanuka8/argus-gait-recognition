@@ -18,8 +18,8 @@
     align-items: center;
     padding: 0.85rem 2.5rem;
     background: rgba(30, 32, 35, 0.88);
-    backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
     flex-wrap: wrap;
@@ -65,8 +65,8 @@
     letter-spacing: 3px;
     background: var(--grad-primary);
     -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
     background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 .history-header-right {
@@ -119,6 +119,7 @@
 
 .custom-dropdown-container {
     position: relative;
+    -webkit-user-select: none;
     user-select: none;
 }
 

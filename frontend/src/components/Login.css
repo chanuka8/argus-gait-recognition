@@ -72,8 +72,8 @@
     background: linear-gradient(135deg, #d6e4ea 0%, #a0e4e8 50%, #5ce1e6 100%);
     background-size: 200% auto;
     -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
     background-clip: text;
+    -webkit-text-fill-color: transparent;
     animation: shimmer 5s linear infinite;
 }
 
@@ -113,8 +113,8 @@
     font-weight: 800;
     background: var(--grad-primary);
     -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
     background-clip: text;
+    -webkit-text-fill-color: transparent;
     margin-bottom: 0.35rem;
     text-align: center;
 }
