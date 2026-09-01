@@ -1,7 +1,3 @@
-"""
-Unit tests for TrackReliabilityScorer and Pipeline Integration.
-"""
-
 from intelligence.track_reliability_scorer import TrackReliabilityScorer
 
 

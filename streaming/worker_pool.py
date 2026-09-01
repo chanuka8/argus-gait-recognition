@@ -1,10 +1,3 @@
-"""
-Camera Worker Pool for Phase 4 multi-camera processing.
-
-Manages a pool of camera worker instances with dynamic scaling, thread safety,
-automatic recovery on failure, graceful shutdown, and health reporting.
-"""
-
 from threading import Lock
 from typing import Any
 
@@ -13,8 +6,6 @@ from services.camera_worker import CameraWorker
 
 
 class CameraWorkerPool:
-    """Thread-safe worker pool for scaling camera ingestion & processing."""
-
     def __init__(
         self,
         min_workers: int = 1,
@@ -34,7 +25,6 @@ class CameraWorkerPool:
         self._worker_health: dict[str, bool] = {}
 
     def add_worker_for_camera(self, camera_id: str, camera_config: dict) -> CameraWorker | None:
-        """Create and register a new camera worker in the pool."""
         with self._lock:
             if len(self._workers) >= self.max_workers:
                 self._logger.warning(f"Worker pool max limit ({self.max_workers}) reached!")
@@ -59,7 +49,6 @@ class CameraWorkerPool:
             return worker
 
     def remove_worker(self, camera_id: str, timeout: float = 5.0) -> bool:
-        """Remove and gracefully stop a worker."""
         with self._lock:
             if camera_id not in self._workers:
                 return False
@@ -72,7 +61,6 @@ class CameraWorkerPool:
         return stopped
 
     def start_worker(self, camera_id: str) -> bool:
-        """Start a specific camera worker in the pool."""
         with self._lock:
             worker = self._workers.get(camera_id)
             if not worker:
@@ -80,7 +68,6 @@ class CameraWorkerPool:
             return worker.start()
 
     def start_all(self) -> int:
-        """Start all registered workers."""
         started = 0
         with self._lock:
             workers = list(self._workers.values())
@@ -91,7 +78,6 @@ class CameraWorkerPool:
         return started
 
     def stop_all(self, timeout: float = 5.0) -> int:
-        """Gracefully stop all workers in the pool."""
         stopped = 0
         with self._lock:
             workers = list(self._workers.values())
@@ -102,7 +88,6 @@ class CameraWorkerPool:
         return stopped
 
     def auto_recover_failed_workers(self) -> list[str]:
-        """Perform health checks and automatically restart crashed workers."""
         recovered = []
         with self._lock:
             workers = list(self._workers.items())
@@ -121,7 +106,6 @@ class CameraWorkerPool:
         return recovered
 
     def get_pool_health(self) -> dict[str, Any]:
-        """Get pool health status and statistics."""
         with self._lock:
             active_count = sum(1 for w in self._workers.values() if w.is_running())
             return {
@@ -133,6 +117,5 @@ class CameraWorkerPool:
             }
 
     def get_worker(self, camera_id: str) -> CameraWorker | None:
-        """Retrieve worker for a camera."""
         with self._lock:
             return self._workers.get(camera_id)

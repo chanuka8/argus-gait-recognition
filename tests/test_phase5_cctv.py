@@ -1,5 +1,3 @@
-"""Unit tests for Phase 5 enterprise CCTV integration."""
-
 import unittest
 
 from services.camera_discovery import CameraDiscoveryService, DiscoveredCamera
@@ -17,8 +15,6 @@ from services.vendor_adapters import (
 
 
 class TestONVIFClient(unittest.TestCase):
-    """Test ONVIF XML parsing and URL building."""
-
     def test_soap_envelope_with_auth(self):
         client = ONVIFClient("192.168.1.100", username="admin", password="pass")
         env = client.build_soap_envelope("<GetCapabilities/>")
@@ -96,8 +92,6 @@ class TestONVIFClient(unittest.TestCase):
 
 
 class TestVendorAdapters(unittest.TestCase):
-    """Test vendor-specific RTSP URL adapters."""
-
     def test_hikvision_url(self):
         adapter = HikvisionAdapter("10.0.0.1", username="admin", password="pass")
         url = adapter.get_rtsp_url(channel=1, subtype=0)
@@ -156,8 +150,6 @@ class TestVendorAdapters(unittest.TestCase):
 
 
 class TestCameraDiscovery(unittest.TestCase):
-    """Test camera discovery and health validation."""
-
     def test_discover_from_config(self):
         service = CameraDiscoveryService()
         config = {

@@ -1,19 +1,3 @@
-"""
-Unit & Forensic Negative-Path Tests for Continual Learning Data Eligibility & Safety.
-
-Verifies strict rejection of:
-1. PREDICTED observation -> training split
-2. Unverified identity -> training split
-3. Duplicate observation -> deduplicated/rejected
-4. Outlier observation -> quality score gate rejection
-5. Invalid embedding -> rejection
-6. Wrong embedding dimension -> rejection
-7. NaN embedding -> rejection
-8. Infinite embedding -> rejection
-9. Corrupted persisted embedding -> rejection
-10. Missing identity label -> rejection
-"""
-
 import shutil
 import tempfile
 from pathlib import Path

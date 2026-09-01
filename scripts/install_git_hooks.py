@@ -1,9 +1,3 @@
-"""Installs Git pre-commit hooks for automated ARGUS AI README synchronization.
-
-Usage:
-    python scripts/install_git_hooks.py
-"""
-
 import os
 import stat
 import sys

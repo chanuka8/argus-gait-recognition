@@ -1,10 +1,3 @@
-"""
-Dynamic Person Track Scheduler & Resource-Aware Adaptive Policy Module.
-
-Provides fair-share track scheduling, dynamic batching for neural network inference (OSNet 512D
-and ByGaitLight 256D), starvation prevention across multi-camera streams, and graceful load degradation.
-"""
-
 from __future__ import annotations
 
 import enum
@@ -23,8 +16,6 @@ from monitoring.logging_config import get_logger
 
 
 class AdaptivePersonLoadTier(str, enum.Enum):
-    """Adaptive load tiers based on measured runtime hardware pressure."""
-
     FULL_QUALITY = "FULL_QUALITY"
     REDUCED_PROCESSING_FPS = "REDUCED_PROCESSING_FPS"
     AGGRESSIVE_FRAME_SKIPPING = "AGGRESSIVE_FRAME_SKIPPING"
@@ -36,8 +27,6 @@ class AdaptivePersonLoadTier(str, enum.Enum):
 
 @dataclass
 class SchedulerPolicyParameters:
-    """Dynamic operational parameters derived from system pressure."""
-
     tier: AdaptivePersonLoadTier = AdaptivePersonLoadTier.FULL_QUALITY
     reid_update_interval: int = 8
     max_batch_size: int = 16
@@ -49,11 +38,6 @@ class SchedulerPolicyParameters:
 
 
 class AdaptivePersonProcessingPolicy:
-    """
-    Evaluates runtime telemetry (CPU, RAM, GPU, VRAM, latency, active tracks)
-    and dynamically selects the operational processing tier.
-    """
-
     def __init__(
         self,
         cpu_high_watermark: float = 85.0,
@@ -84,7 +68,6 @@ class AdaptivePersonProcessingPolicy:
         queue_depth: int = 0,
         active_tracks_count: int = 0,
     ) -> SchedulerPolicyParameters:
-        """Evaluate telemetry metrics and return current policy parameters."""
         now = time.monotonic()
         prev_tier = self.current_tier
 
@@ -223,8 +206,6 @@ class AdaptivePersonProcessingPolicy:
 
 @dataclass
 class BatchCandidateItem:
-    """Candidate person item for dynamic batch neural network inference."""
-
     camera_id: str
     track_id: int
     crop: np.ndarray
@@ -234,17 +215,6 @@ class BatchCandidateItem:
 
 
 class PersonTrackScheduler:
-    """
-    Fair-Share Multi-Person Scheduler with Dynamic Batching and Starvation Prevention.
-
-    Features:
-    1. Starvation Prevention: Deficit Round-Robin + Aging ensures tracks in low-density cameras
-       are never starved by a high-density crowd in a different camera.
-    2. Dynamic Batching: Groups eligible crops for OSNet (512D) and ready GEIs for ByGaitLight (256D)
-       to maximize hardware compute efficiency.
-    3. Adaptive Priority: Prioritizes unconfirmed / newly detected persons over already confirmed tracks.
-    """
-
     def __init__(self, adaptive_policy: AdaptivePersonProcessingPolicy | None = None) -> None:
         self.policy_engine = adaptive_policy or AdaptivePersonProcessingPolicy()
         self._lock = threading.Lock()
@@ -265,15 +235,6 @@ class PersonTrackScheduler:
         policy_params: SchedulerPolicyParameters,
         frame_index: int = 0,
     ) -> list[BatchCandidateItem]:
-        """
-        Filter and prioritize person crop items for OSNet appearance batch inference.
-
-        Applies:
-        - ReID update interval gating per track
-        - Confirmed track skipping during elevated system pressure
-        - Fair prioritization across cameras
-        - Batch size capping based on current policy
-        """
         if not candidate_items:
             return []
 
@@ -327,7 +288,6 @@ class PersonTrackScheduler:
             return batch
 
     def get_scheduler_telemetry(self) -> dict[str, Any]:
-        """Return scheduling and batching telemetry."""
         with self._lock:
             return {
                 "current_policy_tier": self.policy_engine.current_tier.value,

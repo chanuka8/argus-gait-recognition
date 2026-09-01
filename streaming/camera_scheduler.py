@@ -1,10 +1,3 @@
-"""
-Camera Scheduler for Phase 4 streaming optimization.
-
-Provides intelligent, priority-weighted frame scheduling, fair queue scheduling,
-starvation prevention via aging, and dynamic polling interval adjustment.
-"""
-
 import time
 from threading import Lock
 from typing import Any
@@ -13,8 +6,6 @@ from monitoring.logging_config import get_logger
 
 
 class CameraScheduler:
-    """Intelligent priority and fair-share camera frame scheduler."""
-
     def __init__(
         self,
         default_priority: int = 5,
@@ -35,7 +26,6 @@ class CameraScheduler:
         self._scheduled_counts: dict[str, int] = {}
 
     def register_camera(self, camera_id: str, priority: int | None = None) -> None:
-        """Register or update a camera's schedule priority (1 to 10)."""
         with self._lock:
             p = priority if priority is not None else self.default_priority
             self._camera_priorities[camera_id] = max(1, min(10, p))
@@ -44,23 +34,19 @@ class CameraScheduler:
                 self._scheduled_counts[camera_id] = 0
 
     def unregister_camera(self, camera_id: str) -> None:
-        """Unregister a camera from scheduling."""
         with self._lock:
             self._camera_priorities.pop(camera_id, None)
             self._last_scheduled.pop(camera_id, None)
             self._scheduled_counts.pop(camera_id, None)
 
     def set_priority(self, camera_id: str, priority: int) -> None:
-        """Dynamically set camera priority."""
         self.register_camera(camera_id, priority)
 
     def get_priority(self, camera_id: str) -> int:
-        """Get priority for a camera."""
         with self._lock:
             return self._camera_priorities.get(camera_id, self.default_priority)
 
     def get_next_camera(self, active_camera_ids: list[str]) -> str | None:
-        """Select next camera to process based on priority and starvation prevention."""
         if not active_camera_ids:
             return None
 
@@ -92,13 +78,11 @@ class CameraScheduler:
             return best_camera
 
     def calculate_dynamic_poll_interval(self, system_load_factor: float = 0.5) -> float:
-        """Calculate dynamic polling interval based on current system load (0.0 to 1.0)."""
         load = max(0.0, min(1.0, system_load_factor))
         interval = self.min_poll_interval + load * (self.max_poll_interval - self.min_poll_interval)
         return round(interval, 4)
 
     def get_schedule_stats(self) -> dict[str, Any]:
-        """Get scheduler performance statistics."""
         with self._lock:
             return {
                 "priorities": self._camera_priorities.copy(),

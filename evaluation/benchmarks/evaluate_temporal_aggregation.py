@@ -6,10 +6,6 @@ from intelligence.track_identity_aggregator import TrackIdentityAggregator
 
 
 class TemporalTrackEvaluator:
-    """
-    Evaluator for temporal identity aggregation across simulated and real video tracks.
-    """
-
     def __init__(
         self,
         window_size: int = 8,

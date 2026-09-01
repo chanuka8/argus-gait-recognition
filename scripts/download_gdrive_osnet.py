@@ -1,7 +1,3 @@
-"""
-Test downloading Google Drive weights with session cookies and confirmation tokens.
-"""
-
 import sys
 from pathlib import Path
 

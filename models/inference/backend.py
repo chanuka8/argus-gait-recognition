@@ -1,10 +1,3 @@
-"""
-Inference Backend Base Interface and Factory for ARGUS AI.
-
-Defines the abstract BaseInferenceBackend interface and factory get_inference_backend()
-to instantiate execution engines (pytorch, onnxruntime, auto) with safe fallback logic.
-"""
-
 import json
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
@@ -47,7 +40,6 @@ class BackendHealth:
 
 
 def load_inference_backend_config() -> dict:
-    """Load inference_backend configuration section from configs/inference.yaml."""
     config_path = Path("configs/inference.yaml")
     defaults = {
         "backend": "pytorch",
@@ -84,8 +76,6 @@ def load_inference_backend_config() -> dict:
 
 
 class BaseInferenceBackend(ABC):
-    """Abstract Base Class for ARGUS model inference execution engines."""
-
     def __init__(self, config: dict | None = None) -> None:
         self.config = config or load_inference_backend_config()
         self.logger = get_logger("detection")
@@ -104,7 +94,6 @@ class BaseInferenceBackend(ABC):
 
     @property
     def requested_backend(self) -> str:
-        """The backend requested by caller or configuration."""
         return self._requested_backend
 
     @requested_backend.setter
@@ -113,14 +102,12 @@ class BaseInferenceBackend(ABC):
 
     @property
     def active_backend(self) -> str:
-        """The actual execution engine currently active for inference."""
         if self.fallback_used and self._fallback_backend is not None:
             return self._fallback_backend.active_backend
         return self.backend_name
 
     @property
     def fallback_used(self) -> bool:
-        """Boolean flag indicating if active backend is a PyTorch fallback."""
         return self._fallback_used
 
     @fallback_used.setter
@@ -129,7 +116,6 @@ class BaseInferenceBackend(ABC):
 
     @property
     def selection_fallback_used(self) -> bool:
-        """Boolean flag indicating if backend selection chain involved a fallback."""
         return self._selection_fallback_used
 
     @selection_fallback_used.setter
@@ -138,7 +124,6 @@ class BaseInferenceBackend(ABC):
 
     @property
     def attempted_backends(self) -> list:
-        """List of backends attempted during selection in order."""
         return self._attempted_backends
 
     @attempted_backends.setter
@@ -147,7 +132,6 @@ class BaseInferenceBackend(ABC):
 
     @property
     def fallback_reason(self) -> str | None:
-        """Concise sanitized reason explaining why fallback occurred, or None."""
         if self._fallback_used or self._selection_fallback_used:
             return self._fallback_reason
         return None
@@ -158,7 +142,6 @@ class BaseInferenceBackend(ABC):
 
     @property
     def execution_provider(self) -> str:
-        """The active low-level execution provider (e.g. CPUExecutionProvider, PyTorch-CPU)."""
         if self.fallback_used and self._fallback_backend is not None:
             return self._fallback_backend.execution_provider
         return self._execution_provider
@@ -169,7 +152,6 @@ class BaseInferenceBackend(ABC):
 
     @property
     def metadata(self) -> dict:
-        """Authoritative metadata dictionary describing backend state."""
         return {
             "requested_backend": self.requested_backend,
             "active_backend": self.active_backend,
@@ -182,18 +164,9 @@ class BaseInferenceBackend(ABC):
 
     @abstractmethod
     def predict(self, x: np.ndarray | torch.Tensor) -> np.ndarray:
-        """
-        Execute forward inference on GEI input tensor/array and return L2-normalized embedding.
-
-        Args:
-            x: Input array or tensor of shape (B, 1, 128, 64) or (128, 64) or (1, 128, 64).
-
-        Returns:
-            L2-normalized float32 numpy array of shape (B, 256).
-        """
+        pass
 
     def warmup(self, sample_input: np.ndarray | torch.Tensor | None = None) -> None:
-        """Run warmup iterations on dummy or provided input tensor."""
         if self.warmup_iterations <= 0:
             return
 
@@ -208,7 +181,6 @@ class BaseInferenceBackend(ABC):
 
     @staticmethod
     def normalize_embedding(embedding: np.ndarray) -> np.ndarray:
-        """Apply L2 normalization on output embedding array."""
         if embedding.ndim == 1:
             norm = np.linalg.norm(embedding)
             return (embedding / (norm + 1e-8)).astype(np.float32)
@@ -217,8 +189,6 @@ class BaseInferenceBackend(ABC):
 
 
 class BackendValidator:
-    """Validates PyTorch and ONNX Runtime backends and performs smoke testing."""
-
     def __init__(self, config: dict | None = None) -> None:
         self.config = config or load_inference_backend_config()
 
@@ -285,8 +255,6 @@ class BackendValidator:
 
 
 class BackendReport:
-    """Generates backend readiness reports."""
-
     def __init__(
         self,
         backend: BaseInferenceBackend,
@@ -326,7 +294,6 @@ def generate_backend_report(
     backend: BaseInferenceBackend,
     output_path: str = "outputs/reports/backend_report.json",
 ) -> dict:
-    """Helper function to generate and write backend readiness report."""
     reporter = BackendReport(backend=backend, output_path=output_path)
     return reporter.generate()
 
@@ -335,16 +302,6 @@ def get_inference_backend(
     config: dict | None = None,
     model_path: str | None = None,
 ) -> BaseInferenceBackend:
-    """
-    Factory function to instantiate configured inference engine backend with safe fallback.
-
-    Args:
-        config: Dictionary containing inference_backend settings.
-        model_path: Optional path to ByGaitLight PyTorch model checkpoint.
-
-    Returns:
-        Initialized BaseInferenceBackend instance.
-    """
     cfg = config or load_inference_backend_config()
     requested_backend = str(cfg.get("backend", "pytorch")).lower()
     allow_fallback = bool(cfg.get("allow_fallback", True))

@@ -1,14 +1,3 @@
-"""
-ARGUS AI — Real Neural Network Learning & Weight Update Verification Script.
-
-Proves:
-1. ByGaitLight CNN trainable parameters exist, loss decreases, weights change via backprop, candidate .pth is generated without touching active weights.
-2. OSNet ReID trainable parameters exist, loss decreases, weights change via backprop, candidate .pth is generated without touching active weights.
-3. 50% Historical Replay dataset mixing prevents catastrophic forgetting.
-4. CandidateValidator enforces dimension, checksum, and Rank-1 gates.
-5. ModelRegistry performs atomic promotion and safe rollback.
-"""
-
 import hashlib
 import shutil
 import sys

@@ -1,7 +1,3 @@
-"""
-Unit tests for Inference Backends abstraction and fallback mechanisms.
-"""
-
 from pathlib import Path
 
 import numpy as np
@@ -265,21 +261,6 @@ def test_cpu_only_onnx_provider_selection_emits_no_cuda_warning(tmp_path: Path, 
 
 
 def test_pytorch_fallback_parity_is_exact(tmp_path: Path):
-    """
-    Verify that when TensorRT is unavailable and fallback is enabled,
-    get_inference_backend() returns a working PyTorch fallback backend
-    with correct metadata and successful deterministic inference.
-
-    This test validates the fallback *contract*, not cross-model weight parity.
-    Two independently constructed PyTorchBackend instances have different random
-    weights when no checkpoint is loaded, so comparing their outputs is invalid.
-    Instead we verify:
-      1. Fallback metadata is correctly reported
-      2. Inference succeeds without exceptions
-      3. Output tensor has expected shape and dtype
-      4. The same backend produces identical output for the same input (self-consistency)
-      5. Output embeddings are L2-normalized
-    """
     cfg = {
         "backend": "tensorrt",
         "engine_path": str(tmp_path / "missing.engine"),
@@ -344,7 +325,6 @@ def test_tensorrt_failure_emits_single_warning():
 
 
 def test_repeated_inference_resource_safety():
-    """Verify backend instance stability and resource safety over 100 repeated inferences."""
     cfg = {"backend": "pytorch", "device": "cpu"}
     backend = get_inference_backend(config=cfg)
     initial_id = id(backend)

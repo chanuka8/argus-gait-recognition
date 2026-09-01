@@ -1,7 +1,3 @@
-"""
-Unit tests for doctor CLI health check script.
-"""
-
 from pathlib import Path
 
 import pytest

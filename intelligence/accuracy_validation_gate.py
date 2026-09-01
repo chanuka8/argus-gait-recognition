@@ -1,18 +1,3 @@
-"""
-Production Accuracy Validation & Anti-Churn Promotion Gate for ARGUS AI.
-
-Evaluates independent head-to-head model comparison results and enforces strict
-evidence-based safety policies before any candidate model can be promoted to active production.
-
-Enforced Gates:
-1. Catastrophic Forgetting Gate: Historical TAR must not degrade beyond tolerance.
-2. New-Condition Improvement Gate: Candidate must match or exceed baseline on new operational data.
-3. Zero FAR Security Gate: Candidate FAR must not exceed baseline FAR (0.0% tolerance).
-4. Zero Confusion-Pair Tolerance: 0.0% false accepts on confusion pairs.
-5. Anti-Churn Gate: Rejects candidate if delta is within noise threshold and no meaningful gain is shown.
-6. Small-Data Uncertainty Policy: Blocks promotion when statistical evidence is insufficient.
-"""
-
 import time
 from dataclasses import asdict, dataclass, field
 from typing import Any
@@ -23,8 +8,6 @@ from monitoring.logging_config import get_logger
 
 @dataclass
 class AccuracyGateDecision:
-    """Complete decision record from the accuracy validation gate."""
-
     candidate_version: str
     baseline_version: str
     model_type: str
@@ -40,10 +23,6 @@ class AccuracyGateDecision:
 
 
 class AccuracyValidationGate:
-    """
-    Production-grade accuracy validation gate preventing catastrophic forgetting and model churn.
-    """
-
     def __init__(
         self,
         max_allowed_far_increase: float = 0.0,
@@ -62,12 +41,6 @@ class AccuracyValidationGate:
         comparison: ModelComparisonResult,
         confusion_pair_far: float = 0.0,
     ) -> AccuracyGateDecision:
-        """
-        Evaluate candidate model promotion against production accuracy gates.
-
-        Returns:
-            AccuracyGateDecision containing PROMOTE, REJECT, or HOLD decision.
-        """
         rejection_reasons: list[str] = []
         gates: dict[str, bool] = {}
 

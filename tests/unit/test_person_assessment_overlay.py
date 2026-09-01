@@ -1,45 +1,3 @@
-"""
-Comprehensive Test Suite for ARGUS AI Person Assessment & Corrected RED/GREEN/YELLOW Overlay Architecture.
-
-Certified Color Semantics:
-- RED BGR (0, 0, 255): Confirmed identity / successfully recognized person.
-- GREEN BGR (0, 255, 0): Person detected and tracked, but identity is not confirmed (default for all
-  ordinary unconfirmed states including UNKNOWN, PENDING, ASSESSING, EVIDENCE_COLLECTING,
-  INSUFFICIENT_EVIDENCE, GAIT_UNAVAILABLE, APPEARANCE_UNAVAILABLE, BIOMETRIC_INAPPLICABLE,
-  WHEELCHAIR, CRUTCHES, NON_STANDARD_GAIT, SEATED, STATIONARY, etc.).
-- YELLOW BGR (0, 255, 255): Reserved special operational / attention state ONLY (e.g. SPECIAL_ATTENTION,
-  SECURITY_ALERT, FLAGGED). Never used for ordinary unconfirmed or evidence-collecting persons.
-
-Tests:
-1. Exact BGR color constants (RED, GREEN, YELLOW).
-2. Confirmed identity -> RED (0, 0, 255).
-3. Unknown -> GREEN (0, 255, 0).
-4. Pending -> GREEN (0, 255, 0).
-5. Assessing -> GREEN (0, 255, 0).
-6. Evidence collecting -> GREEN (0, 255, 0).
-7. Walking person before sufficient gait evidence -> GREEN (0, 255, 0).
-8. Walking person after gait embedding but before identity confirmation -> GREEN (0, 255, 0).
-9. Gait unavailable -> GREEN (0, 255, 0).
-10. Appearance unavailable -> GREEN (0, 255, 0).
-11. Both embeddings unavailable -> GREEN (0, 255, 0).
-12. Wheelchair -> GREEN unless identity confirmed.
-13. Crutches -> GREEN unless identity confirmed.
-14. Non-standard gait -> GREEN unless identity confirmed.
-15. Stationary/seated -> GREEN unless identity confirmed.
-16. Confirmed wheelchair user through appearance pathway -> RED (0, 0, 255).
-17. Confirmed crutches user through appearance pathway -> RED (0, 0, 255).
-18. Multiple persons maintain independent colors concurrently.
-19. Detection without embeddings remains visible.
-20. Identity failure does not remove bounding box.
-21. YELLOW is NOT produced for ordinary unknown/pending/assessment states.
-22. YELLOW is produced only if an explicit operational attention state exists (SPECIAL_ATTENTION).
-23. Single person inference failure containment.
-24. CameraWorker renders all preview overlays correctly.
-25. Walking person biometric gait and appearance continuity.
-26. Multi-camera stream isolation.
-27. No artificial person/track limit caps.
-"""
-
 from __future__ import annotations
 
 import time
@@ -78,10 +36,7 @@ from utils.display_renderer import (
 
 
 class TestPersonAssessmentOverlay:
-    """Test suite certifying the production person assessment overlay architecture."""
-
     def test_exact_bgr_color_constants(self) -> None:
-        """Verify exact BGR color values: RED=(0,0,255), GREEN=(0,255,0), YELLOW=(0,255,255)."""
         assert COLOR_RED_BGR == (0, 0, 255)
         assert COLOR_GREEN_BGR == (0, 255, 0)
         assert COLOR_YELLOW_BGR == (0, 255, 255)
@@ -94,7 +49,6 @@ class TestPersonAssessmentOverlay:
         assert renderer.get_color_for_state(DISPLAY_STATE_SPECIAL_ATTENTION) == (0, 255, 255)
 
     def test_confirmed_identity_renders_red(self) -> None:
-        """Verify confirmed / recognized identity renders with a RED bounding box (0, 0, 255)."""
         renderer = DetectionDisplayRenderer()
         frame = np.zeros((300, 300, 3), dtype=np.uint8)
 
@@ -114,7 +68,6 @@ class TestPersonAssessmentOverlay:
         assert frame[200, 50, 0] == 0
 
     def test_unknown_person_renders_green(self) -> None:
-        """Verify UNKNOWN person renders GREEN (0, 255, 0), NEVER RED or YELLOW."""
         state = map_to_display_state(
             status="UNKNOWN",
             decision="UNKNOWN",
@@ -142,7 +95,6 @@ class TestPersonAssessmentOverlay:
         assert frame[200, 50, 0] == 0
 
     def test_pending_and_assessing_person_renders_green(self) -> None:
-        """Verify person in PENDING or ASSESSING state renders GREEN (0, 255, 0)."""
         renderer = DetectionDisplayRenderer()
         frame = np.zeros((300, 300, 3), dtype=np.uint8)
 
@@ -161,7 +113,6 @@ class TestPersonAssessmentOverlay:
         assert frame[200, 50, 0] == 0
 
     def test_walking_person_before_and_during_evidence_collection_renders_green(self) -> None:
-        """Verify walking person accumulating evidence renders GREEN until confirmed."""
         renderer = DetectionDisplayRenderer()
         frame = np.zeros((300, 300, 3), dtype=np.uint8)
 
@@ -191,7 +142,6 @@ class TestPersonAssessmentOverlay:
         assert frame[200, 50, 1] == 255 and frame[200, 50, 2] == 0
 
     def test_missing_or_incomplete_embeddings_render_green(self) -> None:
-        """Verify missing gait, appearance, or both embeddings renders GREEN."""
         renderer = DetectionDisplayRenderer()
         frame = np.zeros((300, 300, 3), dtype=np.uint8)
 
@@ -210,7 +160,6 @@ class TestPersonAssessmentOverlay:
         assert frame[140, 30, 1] == 255 and frame[140, 30, 2] == 0
 
     def test_wheelchair_crutches_and_nonstandard_gait_render_green_unless_confirmed(self) -> None:
-        """Verify wheelchair, crutches, and non-standard gait render GREEN unless appearance confirms identity."""
         validator = DetectionValidator()
         wheelchair_bbox = [100, 100, 260, 200]
 
@@ -272,7 +221,6 @@ class TestPersonAssessmentOverlay:
         assert frame[200, 110, 2] == 255 and frame[200, 110, 1] == 0
 
     def test_crutches_confirmed_via_appearance_renders_red(self) -> None:
-        """Verify crutches user confirmed via appearance pathway renders RED."""
         ctx = PersonTrackContext(
             camera_id="cam_01",
             track_id=11,
@@ -300,7 +248,6 @@ class TestPersonAssessmentOverlay:
         assert frame[220, 60, 2] == 255 and frame[220, 60, 1] == 0
 
     def test_explicit_special_operational_attention_renders_yellow_only(self) -> None:
-        """Verify YELLOW is ONLY generated when an explicit special operational attention state exists."""
         renderer = DetectionDisplayRenderer()
         frame = np.zeros((300, 300, 3), dtype=np.uint8)
 
@@ -319,7 +266,6 @@ class TestPersonAssessmentOverlay:
         assert frame[200, 50, 0] == 0
 
     def test_multi_person_concurrent_distinct_states(self) -> None:
-        """Verify multi-person frame displays ALL 5 persons simultaneously with their correct independent colors."""
         renderer = DetectionDisplayRenderer()
         frame = np.zeros((600, 600, 3), dtype=np.uint8)
 
@@ -353,7 +299,6 @@ class TestPersonAssessmentOverlay:
         assert frame[180, 410, 2] == 255 and frame[180, 410, 1] == 0
 
     def test_single_person_inference_failure_containment(self) -> None:
-        """Verify exception during one person's biometric extraction does not drop or crash adjacent persons."""
         engine = ProductionMultiCameraEngine(hardware_profile=HardwareProfile(cpu_cores=4, total_ram_mb=16384.0))
         assert engine is not None
         validator = DetectionValidator()
@@ -381,7 +326,6 @@ class TestPersonAssessmentOverlay:
         assert assessed[2][1] == "WHEELCHAIR"
 
     def test_camera_worker_renders_all_assessment_overlays(self) -> None:
-        """Verify CameraWorker._render_preview_overlays renders active cache items with appropriate colors."""
         worker = CameraWorker(
             camera_id="cam_01",
             camera_config={"type": "webcam", "device_index": 0, "width": 320, "height": 240},
@@ -456,7 +400,6 @@ class TestPersonAssessmentOverlay:
         assert rendered[120, 190, 1] == 255 and rendered[120, 190, 2] == 0
 
     def test_walking_person_biometric_gait_and_appearance_continuity(self) -> None:
-        """Verify walking person accumulates silhouettes -> GEI -> ByGaitLight 256D and OSNet 512D embeddings."""
         track_manager = ConcurrentTrackManager()
         gei_builder = StreamGEIBuilder()
         reid_extractor = AppearanceEmbeddingExtractor()
@@ -488,7 +431,6 @@ class TestPersonAssessmentOverlay:
         assert np.isclose(np.linalg.norm(emb), 1.0, atol=1e-3)
 
     def test_multi_camera_stream_isolation(self) -> None:
-        """Verify Camera A tracks and states never appear on Camera B."""
         cache = RecognitionResultCache()
         now = time.monotonic()
 
@@ -532,7 +474,6 @@ class TestPersonAssessmentOverlay:
         assert tracks_b[0].identity == "Bob"
 
     def test_unbounded_detections_support(self) -> None:
-        """Verify validator and context manager support arbitrary high-density counts (e.g. 100 persons) without caps."""
         validator = DetectionValidator()
         frame_shape = (1080, 1920, 3)
 

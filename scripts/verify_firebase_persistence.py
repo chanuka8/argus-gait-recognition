@@ -1,18 +1,3 @@
-"""
-Verification and Health Check Script for Firebase Durable Embedding Persistence Layer.
-
-Executes direct verification across:
-1. Firebase / Offline Embedding Store Operations (CRUD + Dimensions + Versioning).
-2. Read-after-write verification.
-3. Disaster recovery rebuild cycle.
-4. Enrollment lifecycle 7-step invariant and safe media cleanup.
-5. Date-aware candidate neural network fine-tuning (ByGaitLight & OSNet).
-6. Candidate validation, atomic promotion, and rollback invariants.
-7. Non-blocking inference safety invariant.
-
-Emits evidence-based classification adhering to .agents/AGENTS.md rules.
-"""
-
 import shutil
 import sys
 import tempfile

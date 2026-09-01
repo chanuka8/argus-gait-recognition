@@ -1,15 +1,4 @@
 
-"""
-OSNet-x0.25 Deep Person Re-Identification Backbone.
-
-Lightweight omni-scale network for person re-identification.
-Thread-safe singleton with lazy model loading.
-GPU if available, CPU fallback.
-
-Architecture matches torchreid/deep-person-reid for
-pretrained weight compatibility.
-"""
-
 import threading
 from pathlib import Path
 from typing import Self
@@ -24,8 +13,6 @@ from torch import nn
 
 
 class _ConvLayer(nn.Module):
-    """Convolution layer (conv + bn + relu)."""
-
     def __init__(
         self,
         in_channels: int,
@@ -67,8 +54,6 @@ class _ConvLayer(nn.Module):
 
 
 class _Conv1x1(nn.Module):
-    """1x1 convolution + bn + relu."""
-
     def __init__(
         self,
         in_channels: int,
@@ -108,8 +93,6 @@ class _Conv1x1(nn.Module):
 
 
 class _Conv1x1Linear(nn.Module):
-    """1x1 convolution + bn (no relu, for residual)."""
-
     def __init__(
         self,
         in_channels: int,
@@ -141,8 +124,6 @@ class _Conv1x1Linear(nn.Module):
 
 
 class _LightConv3x3(nn.Module):
-    """Lightweight 3x3 depthwise separable convolution (Pointwise 1x1 -> Depthwise 3x3 -> BN -> ReLU)."""
-
     def __init__(
         self,
         in_channels: int,
@@ -191,8 +172,6 @@ class _LightConv3x3(nn.Module):
 
 
 class _ChannelGate(nn.Module):
-    """Channel attention gate (squeeze-excitation)."""
-
     def __init__(
         self,
         in_channels: int,
@@ -243,8 +222,6 @@ class _ChannelGate(nn.Module):
 
 
 class _OSBlock(nn.Module):
-    """Omni-scale feature learning block."""
-
     def __init__(
         self,
         in_channels: int,
@@ -325,8 +302,6 @@ class _OSBlock(nn.Module):
 
 
 class _OSNet(nn.Module):
-    """Omni-Scale Network architecture."""
-
     def __init__(
         self,
         blocks: list[type],
@@ -440,8 +415,6 @@ class _OSNet(nn.Module):
 
 
 def _build_osnet_x0_25() -> _OSNet:
-    """Build OSNet-x0.25 (~530K params)."""
-
     return _OSNet(
         blocks=[_OSBlock, _OSBlock, _OSBlock],
         layers=[2, 2, 2],
@@ -460,15 +433,6 @@ _IMAGENET_STD = [0.229, 0.224, 0.225]
 
 
 class OSNetBackbone:
-    """
-    Thread-safe singleton OSNet-x0.25 backbone
-    for person re-identification.
-
-    Lazy-loads model on first extraction call.
-    GPU if available, CPU fallback.
-    Single model instance across all consumers.
-    """
-
     _instance: "OSNetBackbone | None" = None
     _lock = threading.Lock()
 
@@ -517,8 +481,6 @@ class OSNetBackbone:
         return torch.device(device)
 
     def _ensure_model(self) -> _OSNet:
-        """Lazy-load model with double-checked locking."""
-
         if self._model is not None:
             return self._model
 
@@ -598,7 +560,6 @@ class OSNetBackbone:
         self,
         image: np.ndarray,
     ) -> torch.Tensor:
-        """Preprocess single BGR crop to tensor."""
         if image is None or getattr(image, "size", 0) == 0:
             raise ValueError("Input image or crop is empty")
 
@@ -627,8 +588,6 @@ class OSNetBackbone:
         self,
         images: list[np.ndarray],
     ) -> torch.Tensor:
-        """Preprocess batch of BGR crops."""
-
         tensors = []
 
         for image in images:
@@ -666,10 +625,6 @@ class OSNetBackbone:
         self,
         image: np.ndarray | str | Path,
     ) -> np.ndarray:
-        """
-        Extract normalized 512-dim embedding
-        from a single BGR person crop or image path.
-        """
         if isinstance(image, (str, Path)):
             loaded = cv2.imread(str(image))
             if loaded is None:
@@ -691,11 +646,6 @@ class OSNetBackbone:
         self,
         images: list[np.ndarray],
     ) -> list[np.ndarray]:
-        """
-        Extract normalized embeddings from
-        a batch of BGR person crops.
-        """
-
         if not images:
             return []
 

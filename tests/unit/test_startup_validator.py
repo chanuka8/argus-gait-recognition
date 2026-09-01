@@ -1,7 +1,3 @@
-"""
-Unit tests for extended DeploymentStartupValidator health checks and approved status codes.
-"""
-
 from pathlib import Path
 from unittest.mock import MagicMock
 

@@ -21,8 +21,6 @@ class ObservationState(str, Enum):
 
 @dataclass
 class OperationalObservation:
-    """Represents a single derived biometric observation from live surveillance with full provenance."""
-
     observation_id: str
     camera_id: str
     track_id: int
@@ -84,11 +82,6 @@ class OperationalObservation:
 
 
 class OperationalEmbeddingCollector:
-    """
-    Thread-safe, non-blocking collector for CCTV inference observations with automatic
-    rate-limiting, deduplication, and persistent JSON storage.
-    """
-
     def __init__(
         self,
         output_dir: str = "data/operational_observations",
@@ -153,11 +146,6 @@ class OperationalEmbeddingCollector:
         metadata: dict[str, Any] | None = None,
         media_array: np.ndarray | None = None,
     ) -> OperationalObservation:
-        """
-        Record a new observation from live inference. Always enters in PREDICTED state.
-        Validates embedding dimensions and values, and deduplicates near-identical vectors
-        for the same track within the deduplication window.
-        """
         vec_arr = np.asarray(vector, dtype=np.float32).ravel() if vector is not None else np.array([], dtype=np.float32)
 
 
@@ -265,11 +253,6 @@ class OperationalEmbeddingCollector:
         verified_identity: str,
         verification_source: str = "operator_confirmation",
     ) -> bool:
-        """
-        Explicitly verify an observation with ground truth.
-        Only verified observations meeting quality, dimensional, and mathematical
-        validity gates can become TRAINING_ELIGIBLE.
-        """
         with self._lock:
             for obs in self._buffer:
                 if obs.observation_id == observation_id:
@@ -295,7 +278,6 @@ class OperationalEmbeddingCollector:
             return False
 
     def get_training_eligible(self, modality: str | None = None) -> list[OperationalObservation]:
-        """Return all observations eligible for candidate training/calibration."""
         with self._lock:
             eligible = [o for o in self._buffer if o.state == ObservationState.TRAINING_ELIGIBLE]
             if modality:
@@ -303,13 +285,11 @@ class OperationalEmbeddingCollector:
             return eligible
 
     def get_distinct_eligible_dates(self) -> list[str]:
-        """Return sorted unique observation dates that contain TRAINING_ELIGIBLE observations."""
         with self._lock:
             dates = {o.observation_date for o in self.get_training_eligible() if o.observation_date}
             return sorted(dates)
 
     def get_eligible_by_date(self, observation_date: str, modality: str | None = None) -> list[OperationalObservation]:
-        """Return all TRAINING_ELIGIBLE observations for a specific observation date (YYYY-MM-DD)."""
         with self._lock:
             eligible = [
                 o
@@ -325,7 +305,6 @@ class OperationalEmbeddingCollector:
             return list(self._buffer[-limit:])
 
     def clear(self) -> None:
-        """Clear all stored observations in memory and disk (for testing/cleanup)."""
         with self._lock:
             self._buffer.clear()
             obs_file = self.output_dir / "recent_observations.json"

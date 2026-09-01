@@ -1,10 +1,3 @@
-"""
-Crowd Robustness Manager Engine.
-
-Coordinates crowd density estimation, occlusion-aware silhouette filtering,
-and adaptive identity/reliability decision thresholds in crowded environments.
-"""
-
 from typing import Any
 
 from intelligence.crowd_density_estimator import (
@@ -17,12 +10,6 @@ from monitoring.logging_config import get_logger
 
 
 class CrowdRobustnessManager:
-    """
-    Manager for crowd-robust detection, tracking, silhouette filtering, and decision gating.
-
-    Disabled by default to ensure baseline behavior remains unaffected.
-    """
-
     def __init__(self, config: dict[str, Any] | None = None) -> None:
         self.logger = get_logger("crowd_robustness")
         cfg = config or {}
@@ -49,7 +36,6 @@ class CrowdRobustnessManager:
         self.severe_density_margin_boost = float(adaptive_cfg.get("severe_density_margin_boost", 0.05))
 
     def is_enabled(self) -> bool:
-        """Return whether crowd robustness features are enabled."""
         return self.enabled
 
     def process_frame_density(
@@ -57,22 +43,12 @@ class CrowdRobustnessManager:
         detections: list[dict[str, Any]],
         frame_shape: tuple[int, int] = (1080, 1920),
     ) -> CrowdDensityResult:
-        """Estimate crowd density for current frame."""
         return self.estimator.estimate_density(detections, frame_shape)
 
     def identify_occluded_tracks(
         self,
         tracked_objects: list[dict[str, Any]],
     ) -> tuple[set[int], dict[int, float]]:
-        """
-        Identify tracks whose bounding boxes severely overlap with other active tracks.
-
-        Args:
-            tracked_objects: List of dicts containing 'track_id' and 'bbox'.
-
-        Returns:
-            Tuple of (occluded_track_ids_set, max_overlap_iou_by_track_id_dict)
-        """
         if not self.enabled or not tracked_objects:
             return set(), {}
 
@@ -109,7 +85,6 @@ class CrowdRobustnessManager:
         density_level: CrowdDensityLevel,
         is_occluded: bool = False,
     ) -> float:
-        """Apply crowd density and occlusion adjustments to quality scores."""
         if not self.enabled:
             return base_quality
 
@@ -129,7 +104,6 @@ class CrowdRobustnessManager:
         base_margin_threshold: float,
         density_level: CrowdDensityLevel,
     ) -> float:
-        """Boost margin requirement in severe/high crowds to prevent false positives."""
         if not self.enabled:
             return base_margin_threshold
 

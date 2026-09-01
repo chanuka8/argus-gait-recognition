@@ -1,5 +1,3 @@
-"""Unit and integration tests for Real-Time Watchlist Integration feature."""
-
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -7,8 +5,6 @@ from intelligence.missing_person_workflow import MissingPersonWorkflow, Watchlis
 
 
 class TestWatchlistEntry(unittest.TestCase):
-    """Test WatchlistEntry dataclass model and serialization."""
-
     def test_default_watchlist_entry(self):
         entry = WatchlistEntry(identity_id="person_01")
         self.assertEqual(entry.identity_id, "person_01")
@@ -50,8 +46,6 @@ class TestWatchlistEntry(unittest.TestCase):
 
 
 class TestWatchlistManager(unittest.TestCase):
-    """Test WatchlistManager / MissingPersonWorkflow operational logic."""
-
     def setUp(self):
         self.manager = WatchlistManager(alert_threshold=0.85, cooldown_seconds=5.0)
 
@@ -124,8 +118,6 @@ class TestWatchlistManager(unittest.TestCase):
 
 
 class TestWatchlistPipelineIntegration(unittest.TestCase):
-    """Test pipeline initialization and watchlist matching hooks."""
-
     @patch("pipeline.video_recognition.VideoRecognitionPipeline._load_model", return_value=MagicMock())
     @patch("pipeline.video_recognition.VectorStore")
     def test_video_pipeline_watchlist_initialization(self, mock_store, mock_load_model):

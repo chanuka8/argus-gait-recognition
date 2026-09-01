@@ -1,11 +1,3 @@
-"""
-Environment Validator & State Evaluator for ARGUS AI.
-
-Evaluates host hardware and compute dependencies to determine the authoritative
-environment state (CUDA_READY, CPU_READY, REPAIR_REQUIRED, FAILED) and guides
-the bootstrap process.
-"""
-
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
@@ -63,21 +55,12 @@ class EnvironmentValidationReport:
 
 
 class EnvironmentValidator:
-    """Evaluates compute environment health and dictates repair/fallback paths."""
-
     def __init__(self, weights_dir: str = "models/weights") -> None:
         self.weights_dir = Path(weights_dir)
         self.cuda_detector = CudaDetector(weights_dir=str(self.weights_dir))
 
     @staticmethod
     def validate_cpu_pipeline() -> tuple[bool, list[str], list[str]]:
-        """
-        Verify that core inference components are functional on CPU.
-        Tests:
-        1. PyTorch CPU tensor matmul
-        2. ByGaitLight forward pass on CPU ([1, 256], unit L2 norm)
-        3. ONNX Runtime CPUExecutionProvider silhouette inference
-        """
         details: list[str] = []
         errors: list[str] = []
         cpu_ok = True
@@ -153,14 +136,6 @@ class EnvironmentValidator:
         return cpu_ok, details, errors
 
     def validate(self, force_cpu: bool = False) -> EnvironmentValidationReport:
-        """
-        Execute full environment evaluation:
-        1. Detect hardware
-        2. If force_cpu or no NVIDIA GPU: validate CPU -> CPU_READY
-        3. If NVIDIA GPU present: validate CUDA stages
-           - All pass -> CUDA_READY
-           - Failures present -> Determine if REPAIR_REQUIRED or fallback to CPU_READY
-        """
         hw = HardwareDetector.detect()
         details: list[str] = []
         errors: list[str] = []

@@ -1,11 +1,3 @@
-"""
-Temporal Gait Verification Module.
-
-Maintains a rolling buffer of valid GEI embeddings per track.
-Performs matching across all buffered valid embeddings and applies majority voting
-for robust identity verification.
-"""
-
 import threading
 from collections import Counter
 from typing import Any
@@ -16,13 +8,6 @@ from monitoring.logging_config import get_logger
 
 
 class TemporalGaitVerifier:
-    """
-    Temporal Gait Verifier.
-
-    Buffers valid GEI embeddings (default window size: 3) per track ID,
-    matches each against the gallery, and determines identity via majority voting.
-    """
-
     def __init__(
         self,
         window_size: int = 3,
@@ -40,7 +25,6 @@ class TemporalGaitVerifier:
         track_id: int,
         embedding: np.ndarray,
     ) -> None:
-        """Add a valid GEI embedding to the track's rolling buffer."""
         if embedding is None:
             return
 
@@ -58,7 +42,6 @@ class TemporalGaitVerifier:
         self,
         track_id: int,
     ) -> list[np.ndarray]:
-        """Get copy of current valid embedding buffer for a track."""
         with self._lock:
             return list(self.buffers.get(track_id, []))
 
@@ -70,22 +53,6 @@ class TemporalGaitVerifier:
         gallery_labels: Any,
         metadata: dict | None = None,
     ) -> tuple[str, float, str]:
-        """
-        Perform matching across all valid embeddings in rolling buffer and apply majority voting.
-
-        Args:
-            track_id: Track ID
-            matcher_func: Callable matcher (e.g., matching_step.match)
-            gallery_features: Gallery features matrix
-            gallery_labels: Gallery labels array
-            metadata: Active subject metadata dict
-
-        Returns:
-            Tuple[final_identity, mean_score, decision_type]
-            - final_identity: str
-            - mean_score: float
-            - decision_type: "MAJORITY_VOTE" | "SINGLE_MATCH" | "UNCERTAIN" | "PREVIOUS_IDENTITY"
-        """
         embeddings = self.get_buffer(track_id)
 
         if not embeddings:
@@ -146,7 +113,6 @@ class TemporalGaitVerifier:
         decision_type: str,
         unknown_ceiling: float = 0.70,
     ) -> str:
-        """Map temporal verification outcome to 3-state open-set classification (KNOWN, UNKNOWN, UNCERTAIN)."""
         if final_identity != "UNKNOWN" and decision_type in ("MAJORITY_VOTE", "SINGLE_MATCH"):
             return "KNOWN"
         elif final_identity == "UNKNOWN" and score < unknown_ceiling:
@@ -158,14 +124,12 @@ class TemporalGaitVerifier:
         self,
         track_id: int,
     ) -> None:
-        """Clear rolling buffer and state when a track terminates."""
         with self._lock:
             self.buffers.pop(track_id, None)
             self.last_identities.pop(track_id, None)
             self.logger.debug(f"Cleared temporal buffer for track {track_id}")
 
     def clear_all(self) -> None:
-        """Clear all buffers."""
         with self._lock:
             self.buffers.clear()
             self.last_identities.clear()

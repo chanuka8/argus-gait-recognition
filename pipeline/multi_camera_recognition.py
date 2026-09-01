@@ -129,7 +129,6 @@ def _load_box_stability_config() -> dict:
 
 
 def _load_reid_config() -> dict:
-    """Load ReID config with safe defaults (disabled)."""
     config_path = Path("configs/inference.yaml")
 
     defaults = {
@@ -163,7 +162,6 @@ def _load_reid_config() -> dict:
 
 
 def _load_fusion_config() -> dict:
-    """Load Dual-Modal Fusion config with safe defaults (disabled)."""
     config_path = Path("configs/inference.yaml")
 
     defaults = {
@@ -197,7 +195,6 @@ def _load_fusion_config() -> dict:
 
 
 def _load_quality_config() -> dict:
-    """Load GEI Quality Estimator config."""
     config_path = Path("configs/inference.yaml")
 
     defaults = {
@@ -228,7 +225,6 @@ def _load_quality_config() -> dict:
 
 
 def _load_temporal_config() -> dict:
-    """Load Temporal Gait Verification config."""
     config_path = Path("configs/inference.yaml")
 
     defaults = {
@@ -259,7 +255,6 @@ def _load_temporal_config() -> dict:
 
 
 def _load_transition_config() -> dict:
-    """Load Camera Transition Model config with safe defaults."""
     config_path = Path("configs/inference.yaml")
 
     defaults = {
@@ -298,7 +293,6 @@ def _load_transition_config() -> dict:
 
 
 def _load_track_reliability_config() -> dict:
-    """Load Track Reliability Scorer config."""
     config_path = Path("configs/inference.yaml")
 
     defaults = {
@@ -337,7 +331,6 @@ def _load_track_reliability_config() -> dict:
 
 
 def _load_watchlist_config() -> dict:
-    """Load Watchlist config."""
     config_path = Path("configs/inference.yaml")
 
     defaults = {
@@ -369,7 +362,6 @@ def _load_watchlist_config() -> dict:
 
 
 def _load_crowd_robustness_config() -> dict:
-    """Load Crowd Robustness config."""
     config_path = Path("configs/inference.yaml")
 
     defaults = {
@@ -416,16 +408,6 @@ def _load_crowd_robustness_config() -> dict:
 
 
 class CameraWorkerState:
-    """
-    Isolated per-camera mutable state.
-
-    Each camera gets its own tracker (YOLO + ByteTrack),
-    silhouette processor, GEI buffers, frame counters,
-    recognition results, and prediction smoother.
-    This prevents cross-camera track ID collisions and
-    state corruption.
-    """
-
     def __init__(
         self,
         camera_id: str,
@@ -464,13 +446,6 @@ class CameraWorkerState:
 
 
 class MultiCameraRecognitionPipeline:
-    """
-    Multi-camera orchestrator using Option B architecture.
-
-    Manages per-camera worker threads with isolated state
-    and shared read-only model/gallery resources.
-    """
-
     def __init__(
         self,
         cameras_config_path: str = "configs/cameras.yaml",
@@ -817,10 +792,6 @@ class MultiCameraRecognitionPipeline:
         flat_identity: str,
         flat_score: float,
     ) -> tuple[str, float, str]:
-        """
-        Adaptive hybrid matching decision policy.
-        Identical to single-camera logic.
-        """
         confirmed_threshold = self.policy["confirmed_threshold"]
         verify_low = self.policy["verify_low"]
         verify_high = self.policy["verify_high"]
@@ -1182,13 +1153,6 @@ class MultiCameraRecognitionPipeline:
         camera_id: str,
         frame: np.ndarray,
     ) -> None:
-        """
-        Process a single frame for a specific camera.
-
-        Runs detection, tracking, silhouette extraction,
-        GEI accumulation, and recognition using isolated
-        per-camera state.
-        """
         worker = self.workers[camera_id]
 
         try:
@@ -1400,13 +1364,6 @@ class MultiCameraRecognitionPipeline:
         self,
         camera_id: str,
     ) -> None:
-        """
-        Worker thread loop for a single camera.
-
-        Reads frames from the multi-stream engine and
-        processes them using isolated per-camera state.
-        If the stream dies, the worker exits gracefully.
-        """
         print(f"[MULTI-CAM] Camera {camera_id} worker started")
 
         while self.running:
@@ -1429,13 +1386,6 @@ class MultiCameraRecognitionPipeline:
         print(f"[MULTI-CAM] Camera {camera_id} worker stopped")
 
     def run(self) -> None:
-        """
-        Start the multi-camera recognition pipeline.
-
-        Camera worker threads process frames independently.
-        GUI rendering happens in the main thread only.
-        Press Q to quit.
-        """
         print("\n" + "=" * 60)
         print("ARGUS MULTI-CAMERA RECOGNITION")
         print("=" * 60)

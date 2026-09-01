@@ -1,5 +1,3 @@
-"""Tests for multi-camera system."""
-
 import time
 import unittest
 from pathlib import Path
@@ -13,8 +11,6 @@ from services.camera_worker import CameraWorker
 
 
 class TestCameraWorker(unittest.TestCase):
-    """Test CameraWorker."""
-
     def setUp(self):
         self.config = {
             "id": "test_camera",
@@ -31,7 +27,6 @@ class TestCameraWorker(unittest.TestCase):
         }
 
     def test_worker_initialization(self):
-        """Test worker initialization."""
         worker = CameraWorker(
             camera_id="test_01",
             camera_config=self.config,
@@ -44,7 +39,6 @@ class TestCameraWorker(unittest.TestCase):
         self.assertFalse(worker.is_connected())
 
     def test_worker_stats_structure(self):
-        """Test worker stats structure."""
         worker = CameraWorker(
             camera_id="test_01",
             camera_config=self.config,
@@ -61,7 +55,6 @@ class TestCameraWorker(unittest.TestCase):
         self.assertIn("uptime_seconds", stats)
 
     def test_worker_thread_safety(self):
-        """Test worker thread safety."""
         worker = CameraWorker(
             camera_id="test_01",
             camera_config=self.config,
@@ -77,8 +70,6 @@ class TestCameraWorker(unittest.TestCase):
 
 
 class TestCameraManager(unittest.TestCase):
-    """Test CameraManager."""
-
     def setUp(self):
         self.config_path = Path("configs/cameras.yaml")
         self.backup_path = None
@@ -92,7 +83,6 @@ class TestCameraManager(unittest.TestCase):
             self.backup_path.rename(self.config_path)
 
     def test_manager_initialization(self):
-        """Test manager initialization."""
         manager = CameraManager(
             config_path=str(self.config_path),
             inference_pipeline=None,
@@ -102,7 +92,6 @@ class TestCameraManager(unittest.TestCase):
         self.assertIsNotNone(manager)
 
     def test_manager_add_camera(self):
-        """Test adding camera dynamically."""
         manager = CameraManager(
             config_path=str(self.config_path),
             inference_pipeline=None,
@@ -123,7 +112,6 @@ class TestCameraManager(unittest.TestCase):
         self.assertIn("test_camera", manager.list_cameras())
 
     def test_manager_list_cameras(self):
-        """Test listing cameras."""
         manager = CameraManager(
             config_path=str(self.config_path),
             inference_pipeline=None,
@@ -135,7 +123,6 @@ class TestCameraManager(unittest.TestCase):
         self.assertIsInstance(cameras, list)
 
     def test_manager_get_status(self):
-        """Test getting camera status."""
         manager = CameraManager(
             config_path=str(self.config_path),
             inference_pipeline=None,
@@ -160,7 +147,6 @@ class TestCameraManager(unittest.TestCase):
         self.assertIn("stats", status)
 
     def test_manager_get_all_status(self):
-        """Test getting all cameras status."""
         manager = CameraManager(
             config_path=str(self.config_path),
             inference_pipeline=None,
@@ -185,8 +171,6 @@ class TestCameraManager(unittest.TestCase):
 
 
 class TestCameraMonitor(unittest.TestCase):
-    """Test CameraMonitor."""
-
     def setUp(self):
         self.mock_manager = MagicMock()
         self.mock_manager.get_all_stats.return_value = {
@@ -208,7 +192,6 @@ class TestCameraMonitor(unittest.TestCase):
         }
 
     def test_monitor_initialization(self):
-        """Test monitor initialization."""
         monitor = CameraMonitor(
             camera_manager=self.mock_manager,
             collection_interval=1,
@@ -217,7 +200,6 @@ class TestCameraMonitor(unittest.TestCase):
         self.assertIsNotNone(monitor)
 
     def test_monitor_start_stop(self):
-        """Test monitor start and stop."""
         monitor = CameraMonitor(
             camera_manager=self.mock_manager,
             collection_interval=1,
@@ -234,7 +216,6 @@ class TestCameraMonitor(unittest.TestCase):
         self.assertTrue(monitor._stop_event)
 
     def test_monitor_get_health(self):
-        """Test getting camera health."""
         monitor = CameraMonitor(
             camera_manager=self.mock_manager,
             collection_interval=1,
@@ -258,10 +239,7 @@ class TestCameraMonitor(unittest.TestCase):
 
 
 class TestConfigurationLoading(unittest.TestCase):
-    """Test configuration loading."""
-
     def test_config_yaml_structure(self):
-        """Test cameras.yaml structure."""
         config_path = Path("configs/cameras.yaml")
 
         if not config_path.exists():
@@ -275,7 +253,6 @@ class TestConfigurationLoading(unittest.TestCase):
         self.assertIn("multi_camera", config)
 
     def test_config_camera_schema(self):
-        """Test camera configuration schema."""
         config_path = Path("configs/cameras.yaml")
 
         if not config_path.exists():
@@ -297,10 +274,7 @@ class TestConfigurationLoading(unittest.TestCase):
 
 
 class TestThreadSafety(unittest.TestCase):
-    """Test thread safety."""
-
     def test_worker_concurrent_stats_access(self):
-        """Test concurrent access to worker stats."""
         worker = CameraWorker(
             camera_id="test_01",
             camera_config={
@@ -329,10 +303,7 @@ class TestThreadSafety(unittest.TestCase):
 
 
 class TestMultiCameraConfiguration(unittest.TestCase):
-    """Test multi-camera configuration."""
-
     def test_default_values_override(self):
-        """Test that defaults are applied correctly."""
         config = {
             "defaults": {
                 "width": 640,

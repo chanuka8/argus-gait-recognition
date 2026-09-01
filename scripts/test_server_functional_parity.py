@@ -1,16 +1,3 @@
-"""
-End-to-End Functional Parity and Regression Test for Optimized ARGUS AI Server.
-
-Tests:
-1. Root /health, /status, /metrics, /
-2. API v1 /api/v1/health, /api/v1/status, /api/v1/metrics
-3. Image identification (/api/v1/identify/image)
-4. Enrollment API (/api/v1/enroll)
-5. Camera lifecycle APIs (/api/v1/cameras/start, /api/v1/cameras/stop)
-6. Model integrity and SHA-256 hash preservation
-7. Clean shutdown
-"""
-
 import json
 import os
 import subprocess

@@ -1,7 +1,3 @@
-"""
-Comprehensive ARGUS AI Evaluation Master Runner (Phase B).
-"""
-
 import json
 import sys
 import time
@@ -28,7 +24,6 @@ from preprocessing.image_enhancement import DeterministicImageEnhancer
 
 
 def load_bygait_checkpoint(model_path: Path) -> ByGaitLight:
-    """Load ByGait checkpoint with dynamic part_bins resolution."""
     checkpoint = torch.load(model_path, map_location="cpu")
     filtered = {}
     for key, value in checkpoint.items():

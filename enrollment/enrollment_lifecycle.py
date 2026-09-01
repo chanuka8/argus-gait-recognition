@@ -1,14 +1,3 @@
-"""
-Safe Enrollment Lifecycle and Failure-Safe Raw Data Cleaner for ARGUS AI.
-
-Implements the verified enrollment data lifecycle:
-UPLOAD -> PROCESSING -> EMBEDDING_GENERATED -> PERSISTENCE_VERIFIED -> RAW_MEDIA_DELETED -> EMBEDDING_ONLY
-
-Safety Invariant:
-Never deletes original source videos/photos unless embedding extraction, mathematical validation,
-and durable persistence verification have all fully succeeded.
-"""
-
 import shutil
 import time
 from dataclasses import asdict, dataclass, field
@@ -44,8 +33,6 @@ class EnrollmentStatus(str, Enum):
 
 @dataclass
 class EnrollmentJobResult:
-    """Detailed summary of an enrollment job and its lifecycle transitions."""
-
     job_id: str
     person_id: str
     status: EnrollmentStatus
@@ -67,10 +54,6 @@ class EnrollmentJobResult:
 
 
 class EnrollmentLifecycleManager:
-    """
-    Manages safe biometric enrollment with guaranteed raw-data lifecycle rules.
-    """
-
     def __init__(
         self,
         db: EmbeddingDatabase | None = None,
@@ -99,17 +82,6 @@ class EnrollmentLifecycleManager:
         case_id: str = "",
         auto_delete_raw: bool = True,
     ) -> EnrollmentJobResult:
-        """
-        Execute full lifecycle enrollment for a person.
-
-        Steps:
-        1. Validate inputs and set state to PROCESSING.
-        2. Extract and validate Gait and/or Appearance embeddings.
-        3. Persist embeddings and verify durable database/vector storage.
-        4. Persist to Firebase durable store if configured.
-        5. If verified, atomically and idempotently delete raw media files.
-        6. If any failure occurs, retain raw media files for retry/recovery.
-        """
         job_id = f"job_enroll_{person_id}_{int(time.time())}"
         v_paths = [Path(p) for p in (video_paths or []) if Path(p).exists()]
         p_paths = [Path(p) for p in (photo_paths or []) if Path(p).exists()]
@@ -277,9 +249,6 @@ class EnrollmentLifecycleManager:
 
     @staticmethod
     def safe_delete_raw_file(file_path: Path | str) -> tuple[bool, str | None]:
-        """
-        Safely, idempotently delete a raw media file without raising exceptions.
-        """
         p = Path(file_path)
         try:
             if p.exists():

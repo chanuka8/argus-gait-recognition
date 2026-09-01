@@ -25,7 +25,6 @@ def cosine_sim(v1: np.ndarray, v2: np.ndarray) -> float:
 
 
 def percentile_stats(arr):
-    """Return comprehensive percentile statistics."""
     return {
         "N": len(arr),
         "min": round(float(np.min(arr)), 6),

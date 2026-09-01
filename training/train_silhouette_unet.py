@@ -24,8 +24,6 @@ from training.silhouette_dataset import SilhouetteSegmentationDataset
 
 
 class BCEDiceLoss(nn.Module):
-    """Combined Binary Cross Entropy + Dice Loss for Silhouette Segmentation."""
-
     def __init__(self, smooth: float = 1e-6) -> None:
         super().__init__()
         self.smooth = smooth
@@ -40,7 +38,6 @@ class BCEDiceLoss(nn.Module):
 
 
 def calculate_metrics(pred_binary: torch.Tensor, target_binary: torch.Tensor) -> dict[str, float]:
-    """Calculates Dice, IoU, Precision, and Recall on binary masks."""
     tp = (pred_binary * target_binary).sum().item()
     fp = (pred_binary * (1.0 - target_binary)).sum().item()
     fn = ((1.0 - pred_binary) * target_binary).sum().item()

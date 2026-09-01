@@ -1,14 +1,3 @@
-"""
-Comprehensive Forensic Continual Learning Effectiveness & Real-World Accuracy Metrics Audit.
-
-Executes real PyTorch neural-network training, negative-path tests, independent held-out
-accuracy validation, gallery/threshold separation, statistical significance tests,
-promotion safety, and rollback verification.
-
-Outputs:
-  - outputs/continual_learning_real_world_effectiveness_evidence.json
-"""
-
 import copy
 import hashlib
 import json

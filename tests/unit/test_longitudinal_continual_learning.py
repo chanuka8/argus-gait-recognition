@@ -1,19 +1,3 @@
-"""
-Unit and Integration Tests for Longitudinal Continual Learning & Operational Evidence Architecture.
-
-Verifies:
-1. OperationalEvidenceManager bounded quota, atomic write, and SHA-256 corruption checks.
-2. Track-level and session-level splitting with zero data leakage.
-3. No-surrogate rule: TRAINING_MEDIA_UNAVAILABLE exclusion.
-4. Tri-modal evaluation (Gait, Appearance, DualModalFusion).
-5. Longitudinal timepoint tracking (T0 -> T1 -> T2).
-6. Future holdout partition (E) temporal isolation.
-7. Wilson 95% confidence intervals and McNemar's paired test.
-8. Minimum Evidence Policy enforcement.
-9. Condition-specific evaluation (Same-cam vs Cross-cam, Viewpoint, Clothing, Bags).
-10. Model registry atomic promotion and rollback.
-"""
-
 import shutil
 import tempfile
 import time

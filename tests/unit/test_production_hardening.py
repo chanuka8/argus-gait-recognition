@@ -1,23 +1,3 @@
-"""
-Covers Tasks 18, 19, 21:
-- Camera lifecycle state machine
-- Reconnect engine (exponential backoff, jitter, reset)
-- Camera failure isolation
-- Inference worker resilience
-- Adaptive resource management
-- Frame quality & staleness control
-- FPS governor policies
-- Model lifecycle safety (hot-swap + rollback)
-- Data poisoning protection
-- Structured event logging
-- Graceful shutdown
-- Capacity estimation
-- ProductionSurveillanceRuntime integration
-- Failure injection scenarios
-- Multi-camera simulated load test (1-64 streams)
-- Crash recovery
-"""
-
 import threading
 import time
 
@@ -55,17 +35,13 @@ from streaming.production_runtime import (
 
 
 class TestCameraStateMachine:
-    """Camera lifecycle state machine tests."""
-
     def test_initial_state_is_stopped(self):
-        """Camera initial state must be STOPPED, never FAILED."""
         sm = CameraStateMachine()
         cam = sm.register_camera("cam_01")
         assert cam.connection_state == CameraState.STOPPED
         assert cam.actual_state == CameraState.STOPPED
 
     def test_valid_lifecycle_transitions(self):
-        """Test full happy-path lifecycle: STOPPED → STARTING → CONNECTING → CONNECTED → STOPPING → STOPPED."""
         sm = CameraStateMachine()
         sm.register_camera("cam_lc")
         assert sm.transition("cam_lc", CameraState.STARTING)
@@ -77,7 +53,6 @@ class TestCameraStateMachine:
         assert cam.connection_state == CameraState.STOPPED
 
     def test_invalid_transition_rejected(self):
-        """Cannot jump directly from STOPPED to CONNECTED."""
         sm = CameraStateMachine()
         sm.register_camera("cam_inv")
         result = sm.transition("cam_inv", CameraState.CONNECTED)
@@ -86,7 +61,6 @@ class TestCameraStateMachine:
         assert cam.connection_state == CameraState.STOPPED
 
     def test_reconnect_lifecycle(self):
-        """CONNECTED → RECONNECTING → CONNECTING → CONNECTED (reconnect success)."""
         sm = CameraStateMachine()
         sm.register_camera("cam_rc")
         sm.transition("cam_rc", CameraState.STARTING)
@@ -101,7 +75,6 @@ class TestCameraStateMachine:
         assert cam.reconnect_attempts == 0
 
     def test_degraded_state(self):
-        """CONNECTED → DEGRADED → CONNECTED recovery."""
         sm = CameraStateMachine()
         sm.register_camera("cam_dg")
         sm.transition("cam_dg", CameraState.STARTING)
@@ -114,7 +87,6 @@ class TestCameraStateMachine:
         assert cam.connection_state == CameraState.CONNECTED
 
     def test_failed_state_only_after_connection_attempt(self):
-        """FAILED is reached only from CONNECTING or STARTING, never as default."""
         sm = CameraStateMachine()
         sm.register_camera("cam_fail")
         sm.transition("cam_fail", CameraState.STARTING)
@@ -126,7 +98,6 @@ class TestCameraStateMachine:
         assert cam.last_error == "timeout"
 
     def test_state_listener_notification(self):
-        """State transitions notify registered listeners."""
         sm = CameraStateMachine()
         events = []
         sm.add_state_listener(lambda cid, old, new, err: events.append((cid, old, new)))
@@ -137,7 +108,6 @@ class TestCameraStateMachine:
         assert events[0] == ("cam_ev", CameraState.STOPPED, CameraState.STARTING)
 
     def test_health_score_computation(self):
-        """Health score degrades on failure, recovers on connect."""
         cam = CameraResource(camera_id="cam_hs")
         cam.connection_state = CameraState.FAILED
         assert cam.compute_health_score() == 0.0
@@ -158,10 +128,7 @@ class TestCameraStateMachine:
 
 
 class TestReconnectEngine:
-    """Production reconnect engine tests."""
-
     def test_exponential_backoff_delay(self):
-        """Verify delays increase exponentially."""
         engine = ReconnectEngine(ReconnectConfig(
             min_retry_interval=1.0,
             max_retry_interval=60.0,
@@ -176,7 +143,6 @@ class TestReconnectEngine:
         assert d2 == pytest.approx(4.0, abs=0.01)
 
     def test_delay_clamped_at_max(self):
-        """Delay should not exceed max_retry_interval."""
         engine = ReconnectEngine(ReconnectConfig(
             min_retry_interval=1.0,
             max_retry_interval=10.0,
@@ -187,7 +153,6 @@ class TestReconnectEngine:
         assert d10 == pytest.approx(10.0, abs=0.01)
 
     def test_jitter_applied(self):
-        """Jitter should produce variation across attempts."""
         engine = ReconnectEngine(ReconnectConfig(
             min_retry_interval=1.0,
             max_retry_interval=60.0,
@@ -199,7 +164,6 @@ class TestReconnectEngine:
         assert max(delays) > min(delays)
 
     def test_max_retry_limit(self):
-        """After max attempts, schedule_reconnect returns False."""
         engine = ReconnectEngine(ReconnectConfig(max_retry_attempts=2))
         called = []
         assert engine.schedule_reconnect("cam1", lambda: called.append(1))
@@ -208,7 +172,6 @@ class TestReconnectEngine:
         assert result is False
 
     def test_reset_clears_attempt_counter(self):
-        """reset() clears the attempt count after successful connection."""
         engine = ReconnectEngine(ReconnectConfig(max_retry_attempts=3))
         engine.schedule_reconnect("cam1", lambda: None)
         engine.schedule_reconnect("cam1", lambda: None)
@@ -217,7 +180,6 @@ class TestReconnectEngine:
         assert engine.get_attempt_count("cam1") == 0
 
     def test_cancel_all_prevents_new_schedules(self):
-        """cancel_all() stops all pending reconnects."""
         engine = ReconnectEngine()
         engine.schedule_reconnect("cam1", lambda: None)
         engine.cancel_all()
@@ -225,7 +187,6 @@ class TestReconnectEngine:
         assert result is False
 
     def test_no_busy_looping(self):
-        """Reconnect uses timer threads, not busy loops."""
         engine = ReconnectEngine(ReconnectConfig(min_retry_interval=0.1))
         called = threading.Event()
         engine.schedule_reconnect("cam1", called.set)
@@ -242,10 +203,7 @@ class TestReconnectEngine:
 
 
 class TestCameraFailureIsolation:
-    """Verify camera failures don't cascade to other components."""
-
     def test_single_failure_doesnt_affect_others(self):
-        """Camera A fails, cameras B/C/D continue unaffected."""
         sm = CameraStateMachine()
         for cid in ["A", "B", "C", "D"]:
             sm.register_camera(cid)
@@ -262,7 +220,6 @@ class TestCameraFailureIsolation:
             assert sm.get_camera(cid).connection_state == CameraState.CONNECTED
 
     def test_multiple_simultaneous_failures(self):
-        """Multiple cameras failing simultaneously don't crash the state machine."""
         sm = CameraStateMachine()
         for i in range(8):
             cid = f"cam_{i}"
@@ -286,10 +243,7 @@ class TestCameraFailureIsolation:
 
 
 class TestInferenceWorkerResilience:
-    """Worker pool health monitoring and restart tests."""
-
     def test_worker_info_tracking(self):
-        """Workers track success/failure metrics."""
         info = InferenceWorkerInfo(worker_id="w-00")
         info.record_success(15.0)
         info.record_success(20.0)
@@ -305,7 +259,6 @@ class TestInferenceWorkerResilience:
         assert info.state.value == "FAILED"
 
     def test_worker_pool_start_stop(self):
-        """Pool starts workers and stops cleanly."""
         call_count = {"n": 0}
         stop = threading.Event()
 
@@ -331,10 +284,7 @@ class TestInferenceWorkerResilience:
 
 
 class TestAdaptiveResourceManagement:
-    """Resource-aware backpressure tests."""
-
     def test_healthy_under_normal_load(self):
-        """System reports HEALTHY when resources are low."""
         mgr = AdaptiveResourceManager()
         snap = ResourceSnapshot(cpu_percent=30.0, vram_percent=20.0)
         result = mgr.evaluate(snap)
@@ -342,7 +292,6 @@ class TestAdaptiveResourceManagement:
         assert mgr.processing_rate_factor >= 0.9
 
     def test_saturated_under_high_load(self):
-        """System reports SATURATED when resources are high."""
         mgr = AdaptiveResourceManager(ResourceThresholds(
             max_cpu_percent=85.0, max_vram_percent=90.0
         ))
@@ -352,7 +301,6 @@ class TestAdaptiveResourceManagement:
         assert mgr.processing_rate_factor < 1.0
 
     def test_critical_extreme_load(self):
-        """CRITICAL pressure under extreme resource use."""
         mgr = AdaptiveResourceManager()
         snap = ResourceSnapshot(cpu_percent=95.0, ram_percent=95.0, vram_percent=95.0)
         result = mgr.evaluate(snap)
@@ -360,7 +308,6 @@ class TestAdaptiveResourceManagement:
         assert mgr.processing_rate_factor < 0.5
 
     def test_gradual_recovery(self):
-        """Processing rate recovers gradually, not abruptly."""
         mgr = AdaptiveResourceManager()
 
         mgr.evaluate(ResourceSnapshot(cpu_percent=95.0, vram_percent=95.0))
@@ -380,10 +327,7 @@ class TestAdaptiveResourceManagement:
 
 
 class TestFrameQualityControl:
-    """Frame freshness, duplicate, and ordering validation."""
-
     def test_fresh_frame_accepted(self):
-        """Fresh frame passes validation."""
         gate = FrameQualityGate(max_frame_age_ms=500.0)
         frame = QualifiedFrame(
             camera_id="cam1", frame_id=1, frame_uuid="u1",
@@ -396,7 +340,6 @@ class TestFrameQualityControl:
         assert reason == "accepted"
 
     def test_stale_frame_rejected(self):
-        """Frame older than max_frame_age_ms is rejected."""
         gate = FrameQualityGate(max_frame_age_ms=50.0)
         frame = QualifiedFrame(
             camera_id="cam1", frame_id=1, frame_uuid="u1",
@@ -409,7 +352,6 @@ class TestFrameQualityControl:
         assert "stale" in reason
 
     def test_out_of_order_rejected(self):
-        """Frames arriving out of timestamp order are rejected."""
         gate = FrameQualityGate(max_frame_age_ms=5000.0)
         now = time.monotonic()
         f1 = QualifiedFrame("cam1", 1, "u1", now, "", np.zeros((2, 2, 3), dtype=np.uint8))
@@ -420,7 +362,6 @@ class TestFrameQualityControl:
         assert reason == "out_of_order"
 
     def test_duplicate_frame_rejected(self):
-        """Duplicate frames with same hash are rejected."""
         gate = FrameQualityGate(max_frame_age_ms=5000.0, enable_duplicate_detection=True)
         data = np.ones((10, 10, 3), dtype=np.uint8) * 42
         h = gate.compute_frame_hash(data)
@@ -447,17 +388,13 @@ class TestFrameQualityControl:
 
 
 class TestFPSGovernor:
-    """FPS governance policy tests."""
-
     def test_process_every_frame(self):
-        """PROCESS_EVERY_FRAME always returns True."""
         gov = FPSGovernor(policy=FPSPolicy.PROCESS_EVERY_FRAME)
         assert gov.should_process("cam1") is True
         assert gov.should_process("cam1") is True
         assert gov.should_process("cam1") is True
 
     def test_target_fps_rate_limiting(self):
-        """TARGET_FPS limits processing frequency."""
         gov = FPSGovernor(policy=FPSPolicy.TARGET_FPS, target_inference_fps=5.0)
 
         assert gov.should_process("cam1") is True
@@ -465,7 +402,6 @@ class TestFPSGovernor:
         assert gov.should_process("cam1") is False
 
     def test_adaptive_fps_resource_factor(self):
-        """ADAPTIVE_FPS scales with resource factor."""
         gov = FPSGovernor(
             policy=FPSPolicy.ADAPTIVE_FPS,
             target_inference_fps=10.0,
@@ -478,7 +414,6 @@ class TestFPSGovernor:
         assert eff == pytest.approx(10.0, abs=0.5)
 
     def test_independent_camera_governors(self):
-        """Each camera is governed independently."""
         gov = FPSGovernor(policy=FPSPolicy.TARGET_FPS, target_inference_fps=5.0)
         assert gov.should_process("cam1") is True
         assert gov.should_process("cam2") is True
@@ -492,8 +427,6 @@ class TestFPSGovernor:
 
 
 class TestModelLifecycleSafety:
-    """Model hot-swap and rollback tests."""
-
     def test_set_active_model(self):
         swapper = SafeModelSwapper()
         v1 = ModelVersion("v1.0", "path/v1.pth", "ByGaitLight")
@@ -501,7 +434,6 @@ class TestModelLifecycleSafety:
         assert swapper.get_active().version_id == "v1.0"
 
     def test_candidate_promotion(self):
-        """Candidate is promoted to active, old active becomes rollback target."""
         swapper = SafeModelSwapper()
         v1 = ModelVersion("v1.0", "path/v1.pth", "ByGaitLight")
         v2 = ModelVersion("v2.0", "path/v2.pth", "ByGaitLight")
@@ -512,7 +444,6 @@ class TestModelLifecycleSafety:
         assert swapper.get_active().version_id == "v2.0"
 
     def test_rollback(self):
-        """Rollback restores previous version atomically."""
         swapper = SafeModelSwapper()
         v1 = ModelVersion("v1.0", "path/v1.pth", "ByGaitLight")
         v2 = ModelVersion("v2.0", "path/v2.pth", "ByGaitLight")
@@ -536,7 +467,6 @@ class TestModelLifecycleSafety:
         assert swapper.promote_candidate() is False
 
     def test_swap_listener_notified(self):
-        """Promotion triggers listener callbacks."""
         swapper = SafeModelSwapper()
         notifications = []
         swapper.add_swap_listener(lambda new, old: notifications.append((new.version_id, old.version_id if old else None)))
@@ -563,8 +493,6 @@ class TestModelLifecycleSafety:
 
 
 class TestDataPoisoningProtection:
-    """Poisoning guard validation tests."""
-
     def test_low_confidence_rejected(self):
         guard = DataPoisoningGuard(min_confidence=0.7)
         emb = np.random.randn(512).astype(np.float32)
@@ -591,7 +519,6 @@ class TestDataPoisoningProtection:
         assert "duplicate" in reason
 
     def test_outlier_rejected(self):
-        """Embedding far from cluster centroid is rejected."""
         guard = DataPoisoningGuard(min_confidence=0.5, max_embedding_distance=0.5, min_temporal_gap_seconds=0.0)
 
         base = np.ones(512, dtype=np.float32)
@@ -609,7 +536,6 @@ class TestDataPoisoningProtection:
         assert "outlier" in reason
 
     def test_temporal_consistency(self):
-        """Observations too close in time are rejected."""
         guard = DataPoisoningGuard(min_confidence=0.5, min_temporal_gap_seconds=1.0)
         emb1 = np.random.randn(512).astype(np.float32)
         emb2 = np.random.randn(512).astype(np.float32)
@@ -635,8 +561,6 @@ class TestDataPoisoningProtection:
 
 
 class TestStructuredEventLogging:
-    """Structured event logging tests."""
-
     def test_emit_returns_record(self):
         logger = StructuredEventLogger()
         record = logger.emit(
@@ -681,8 +605,6 @@ class TestStructuredEventLogging:
 
 
 class TestGracefulShutdown:
-    """Graceful shutdown sequence tests."""
-
     def test_shutdown_hooks_execute_in_order(self):
         mgr = GracefulShutdownManager()
         order = []
@@ -725,10 +647,7 @@ class TestGracefulShutdown:
 
 
 class TestCapacityEstimation:
-    """Runtime capacity model tests."""
-
     def test_basic_capacity_estimate(self):
-        """Capacity = throughput / target_fps."""
         est = CapacityEstimator(target_fps_per_camera=10.0)
         result = est.estimate(
             measured_throughput_fps=100.0,
@@ -781,8 +700,6 @@ class TestCapacityEstimation:
 
 
 class TestProductionSurveillanceRuntime:
-    """Integration tests for the top-level runtime."""
-
     def test_register_and_start_camera(self):
         rt = ProductionSurveillanceRuntime()
         cam = rt.register_camera("cam_int_01", source_type="rtsp", fps_target=15)
@@ -855,10 +772,7 @@ class TestProductionSurveillanceRuntime:
 
 
 class TestFailureIsolation:
-    """Multi-camera failure injection tests."""
-
     def test_camera_a_fails_b_c_d_continue(self):
-        """Explicit test: Camera A fails, B/C/D unaffected."""
         rt = ProductionSurveillanceRuntime()
         for cid in ["A", "B", "C", "D"]:
             rt.register_camera(cid)
@@ -872,7 +786,6 @@ class TestFailureIsolation:
             assert cam.connection_state == CameraState.CONNECTED
 
     def test_inference_workers_survive_camera_failure(self):
-        """Worker pool remains operational when cameras fail."""
         rt = ProductionSurveillanceRuntime()
         rt.register_camera("cam_w1")
         rt.start_camera("cam_w1")
@@ -884,7 +797,6 @@ class TestFailureIsolation:
         assert health["cameras"]["total"] == 1
 
     def test_learning_continues_during_camera_failure(self):
-        """Continual learning components are not affected by camera failures."""
         rt = ProductionSurveillanceRuntime()
         rt.register_camera("cam_cl")
         rt.start_camera("cam_cl")
@@ -903,10 +815,7 @@ class TestFailureIsolation:
 
 
 class TestCrashRecovery:
-    """Crash and restart recovery tests."""
-
     def test_camera_config_survives_stop_restart(self):
-        """Camera configuration persists through stop/start cycle."""
         rt = ProductionSurveillanceRuntime()
         rt.register_camera("cam_rs", source_type="rtsp", fps_target=20)
         rt.start_camera("cam_rs")
@@ -924,7 +833,6 @@ class TestCrashRecovery:
         assert cam.connection_state == CameraState.CONNECTING
 
     def test_model_registry_survives_swap(self):
-        """Model registry retains versions after promotion/rollback."""
         rt = ProductionSurveillanceRuntime()
         v1 = ModelVersion("v1", "p1", "M")
         v2 = ModelVersion("v2", "p2", "M")
@@ -939,7 +847,6 @@ class TestCrashRecovery:
         assert rt.model_swapper.get_active().version_id == "v1"
 
     def test_reconnect_engine_recovers_after_cancel(self):
-        """Reconnect engine can be reused after cancel_all."""
         engine = ReconnectEngine()
         engine.schedule_reconnect("cam1", lambda: None)
         engine.cancel_all()
@@ -953,7 +860,6 @@ class TestCrashRecovery:
         engine2.cancel_all()
 
     def test_poisoning_guard_state_independent(self):
-        """Poisoning guard works independently after re-creation."""
         guard1 = DataPoisoningGuard(min_confidence=0.5)
         emb = np.random.randn(512).astype(np.float32)
         guard1.validate_observation("p", 0.9, emb, time.monotonic())
@@ -971,10 +877,6 @@ class TestCrashRecovery:
 
 @pytest.mark.parametrize("num_cameras", [1, 2, 4, 8, 16, 32, 64])
 def test_multicamera_simulation_scaling(num_cameras):
-    """Verify architecture supports 1-64 camera registrations without limits.
-
-    CLASSIFICATION: SIMULATED — not physical camera validation.
-    """
     rt = ProductionSurveillanceRuntime()
 
     for i in range(num_cameras):
@@ -1009,24 +911,19 @@ def test_multicamera_simulation_scaling(num_cameras):
 
 
 class TestArchitectureInvariants:
-    """Verify Phase 4 does not break existing architecture."""
-
     def test_no_hardcoded_max_cameras(self):
-        """System accepts arbitrary camera count."""
         rt = ProductionSurveillanceRuntime()
         for i in range(100):
             rt.register_camera(f"cam_{i}")
         assert rt.get_system_health()["cameras"]["total"] == 100
 
     def test_initial_state_never_failed(self):
-        """Every registered camera starts in STOPPED."""
         rt = ProductionSurveillanceRuntime()
         for i in range(10):
             cam = rt.register_camera(f"cam_{i}")
             assert cam.connection_state == CameraState.STOPPED
 
     def test_bounded_queues_enforced(self):
-        """Frame quality gate enforces bounded staleness."""
         gate = FrameQualityGate(max_frame_age_ms=100.0)
         stale = QualifiedFrame(
             "cam1", 1, "u1",
@@ -1037,7 +934,6 @@ class TestArchitectureInvariants:
         assert ok is False
 
     def test_predicted_never_auto_training_eligible(self):
-        """PREDICTED observations are accepted for persistence but never auto-promoted."""
         guard = DataPoisoningGuard(min_confidence=0.5)
         emb = np.random.randn(512).astype(np.float32)
         ok, _ = guard.validate_observation(

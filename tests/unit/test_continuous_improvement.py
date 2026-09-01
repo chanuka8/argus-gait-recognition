@@ -1,8 +1,3 @@
-"""
-Comprehensive Unit and Integration Tests for ARGUS AI Continuous Improvement Architecture,
-Safe Enrollment Lifecycle, Automatic Raw Data Cleanup, Model Registry, and Rollback System.
-"""
-
 import shutil
 import tempfile
 from pathlib import Path
@@ -29,7 +24,6 @@ from storage.vector_store import VectorStore
 
 @pytest.fixture
 def temp_environment():
-    """Create isolated temporary workspace directory structure."""
     temp_dir = tempfile.mkdtemp(prefix="argus_ci_test_")
     t_path = Path(temp_dir)
     db_dir = t_path / "data" / "embedding_db"

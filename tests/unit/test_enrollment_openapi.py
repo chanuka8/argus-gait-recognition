@@ -7,8 +7,6 @@ from api.v1.router import get_gait_service
 
 
 class StubGaitService:
-    """Stub service for unit testing the enrollment endpoint contract without invoking ML models."""
-
     def __init__(self):
         self.recorded_person_id = None
         self.recorded_image_bytes = []
@@ -25,7 +23,6 @@ class StubGaitService:
 
 
 def test_enrollment_openapi_schema():
-    """Verify OpenAPI schema reports files as array of binary strings for Swagger file picker."""
     app.openapi_schema = None
     openapi = app.openapi()
 
@@ -57,7 +54,6 @@ def test_enrollment_openapi_schema():
 
 
 def test_enrollment_multipart_endpoint_contract():
-    """Verify multipart/form-data upload receives person_id and multiple image byte streams."""
     stub_service = StubGaitService()
 
     app.dependency_overrides[get_gait_service] = lambda: stub_service

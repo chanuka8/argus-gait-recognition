@@ -1,11 +1,3 @@
-"""
-Lightweight Deployment Startup Validator for ARGUS AI Pipeline.
-
-Executes fast pre-flight validation before launching real-time video or camera
-streams. Reuses shared validators without modifying thresholds, loading cameras,
-or altering models.
-"""
-
 from pathlib import Path
 from typing import Any
 
@@ -17,8 +9,6 @@ from utils.config_validator import ConfigValidator, sanitize_rtsp_url
 
 
 class StartupValidationError(RuntimeError):
-    """Exception raised when pre-pipeline deployment validation fails."""
-
     def __init__(self, blocking_issues: list[str]) -> None:
         self.blocking_issues = blocking_issues
         message = "Pipeline startup blocked due to deployment defects:\n  - " + "\n  - ".join(blocking_issues)
@@ -26,8 +16,6 @@ class StartupValidationError(RuntimeError):
 
 
 class DeploymentStartupValidator:
-    """Perform deployment pre-flight checks before recognition startup."""
-
     STATUS_READY = "READY_FOR_CONTROLLED_CCTV_TESTING"
     STATUS_READY_WITH_WARNINGS = "READY_WITH_WARNINGS"
     STATUS_NOT_READY = "NOT_READY"
@@ -40,8 +28,6 @@ class DeploymentStartupValidator:
 
     @staticmethod
     def _sanitize_error(error: object) -> str:
-        """Return a credential-sanitized error message."""
-
         return sanitize_rtsp_url(str(error))
 
     def _validate_storage_path(
@@ -49,13 +35,6 @@ class DeploymentStartupValidator:
         target_dir: Path,
         blocking_issues: list[str],
     ) -> None:
-        """
-        Verify that a runtime storage directory can be created and written.
-
-        A temporary probe file is always removed when possible, including after
-        partial failures.
-        """
-
         test_file = target_dir / ".startup_check.tmp"
 
         try:
@@ -75,32 +54,6 @@ class DeploymentStartupValidator:
         raise_on_failure: bool = True,
         override_backend: Any | None = None,
     ) -> dict[str, Any]:
-        """
-        Validate deployment requirements before pipeline startup.
-
-        Checks include:
-
-        - Logging initialization
-        - Configuration validity
-        - Runtime manifest assets
-        - Backend initialization and smoke testing
-        - Gallery integrity
-        - Output and report directory writability
-
-        The method does not open cameras, connect to RTSP streams, start the
-        recognition pipeline, or modify model, gallery, or configuration files.
-
-        Args:
-            raise_on_failure:
-                Raise ``StartupValidationError`` when blocking issues exist.
-            override_backend:
-                Optional pre-initialized backend used primarily by tests or
-                controlled startup integrations.
-
-        Returns:
-            A structured deployment readiness result.
-        """
-
         blocking_issues: list[str] = []
         warnings: list[str] = []
         unable_to_verify: list[str] = []
@@ -259,8 +212,6 @@ class DeploymentStartupValidator:
         return summary
 
     def get_backend(self) -> Any:
-        """Return the cached, initialized backend instance."""
-
         if self._backend is None:
             self.validate_startup(raise_on_failure=True)
 

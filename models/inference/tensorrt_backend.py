@@ -1,10 +1,3 @@
-"""
-TensorRT Inference Backend for ARGUS AI.
-
-Executes TensorRT engines using lazy optional imports (tensorrt)
-and transparent fallback to PyTorch backend.
-"""
-
 from pathlib import Path
 
 import numpy as np
@@ -14,8 +7,6 @@ from models.inference.backend import BaseInferenceBackend
 
 
 class TensorRTBackend(BaseInferenceBackend):
-    """TensorRT execution engine with lazy import and safe fallback."""
-
     def __init__(
         self,
         config: dict | None = None,
@@ -31,7 +22,6 @@ class TensorRTBackend(BaseInferenceBackend):
         self._init_engine(model_path=model_path)
 
     def _init_engine(self, model_path: str | None = None) -> None:
-        """Initialize TensorRT engine lazily."""
         try:
             import tensorrt as trt
 
@@ -62,19 +52,9 @@ class TensorRTBackend(BaseInferenceBackend):
                 self._fallback_backend.fallback_reason = reason
 
     def is_available(self) -> bool:
-        """Check if TensorRT engine initialized successfully."""
         return self._initialized and self.context is not None
 
     def predict(self, x: np.ndarray | torch.Tensor) -> np.ndarray:
-        """
-        Execute TensorRT inference and return L2-normalized numpy embedding array.
-
-        Args:
-            x: Input array or tensor of shape (B, 1, 128, 64) or (128, 64) or (1, 128, 64).
-
-        Returns:
-            L2-normalized float32 numpy array of shape (B, 256).
-        """
         if not self.is_available():
             if self._fallback_backend is not None:
                 return self._fallback_backend.predict(x)

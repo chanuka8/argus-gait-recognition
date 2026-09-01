@@ -1,12 +1,3 @@
-"""
-Dual-Modal Biometric Fusion (Gait + ReID).
-
-Combines Gait score and OSNet ReID score using quality-adaptive dynamic weighting.
-Handles single-modality fallback automatically if one modality is unavailable.
-Reuses existing QualityEstimator, TrackReliabilityScorer, CrowdOcclusionAnalyzer,
-CrowdDensityEstimator, and RecognitionDeferralEngine inputs.
-"""
-
 from typing import Any
 
 import numpy as np
@@ -17,13 +8,6 @@ from intelligence.score_normalizer import ScoreNormalizer
 
 
 class DualModalFusion:
-    """
-    Dual-Modal Fusion Engine (Gait + ReID).
-
-    Performs score normalization, input quality assessment, dynamic weight
-    allocation, and score fusion.
-    """
-
     def __init__(
         self,
         default_gait_weight: float = 0.7,
@@ -73,7 +57,6 @@ class DualModalFusion:
         vec1: np.ndarray | None,
         vec2: np.ndarray | None,
     ) -> float | None:
-        """Compute cosine similarity between two feature embedding vectors."""
         if vec1 is None or vec2 is None:
             return None
         v1 = np.asarray(vec1, dtype=np.float32).ravel()
@@ -100,13 +83,6 @@ class DualModalFusion:
         occlusion_score: float = 0.0,
         track_reliability: float = 1.0,
     ) -> dict[str, Any]:
-        """
-        Perform dual-modal fusion of Gait and ReID scores or embeddings.
-
-        Automatically adapts weights based on gait quality, crop quality,
-        crowd density, occlusion ratio, and track reliability.
-        Falls back to gait-only mode if appearance embedding or score is absent.
-        """
         if gait_score is None and gait_embedding is not None and gait_gallery_embedding is not None:
             gait_score = self.compute_cosine_similarity(gait_embedding, gait_gallery_embedding)
 
@@ -202,7 +178,6 @@ class DualModalFusion:
 
     @staticmethod
     def _is_valid_identity(identity: Any) -> bool:
-        """Check if an identity label represents a valid known subject."""
         if identity is None:
             return False
         s = str(identity).strip().upper()
@@ -225,23 +200,6 @@ class DualModalFusion:
         track_reliability: float = 1.0,
         unknown_label: str = "UNKNOWN_PERSON",
     ) -> dict[str, Any]:
-        """
-        Make final dual-modal identity decision from gait and appearance candidates.
-
-        Cases:
-        - Case 1 (Same Person): Both modalities identify the same person with scores >= thresholds.
-          Fuses scores according to configured/adaptive weights. Returns final_identity and fused score.
-        - Case 2 (Gait Only Fallback): Appearance is unavailable or below threshold; gait passes threshold.
-          Returns gait_identity and gait_score.
-        - Case 3 (Appearance Only Fallback): Gait is unavailable or below threshold; appearance passes threshold.
-          Returns appearance_identity and appearance_score.
-        - Case 4 (Both Unavailable): Neither modality provides a candidate.
-          Returns UNKNOWN_PERSON and 0.0.
-        - Case 5 (Conflicting Identities): Both modalities pass thresholds but identify different subjects.
-          Explicit conflict resolution: DO NOT blindly average scores. Returns REVIEW_REQUIRED decision.
-        - Case 6 (Below Thresholds): Candidates fail their respective thresholds.
-          Returns UNKNOWN_PERSON.
-        """
         raw_g_id = str(gait_identity).strip() if gait_identity is not None else ""
         raw_a_id = str(appearance_identity).strip() if appearance_identity is not None else ""
 

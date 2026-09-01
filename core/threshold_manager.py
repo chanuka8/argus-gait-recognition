@@ -1,10 +1,3 @@
-"""
-Authoritative Recognition Threshold Manager for ARGUS AI.
-
-Loads, validates, and resolves semantic recognition thresholds from configuration
-(configs/inference.yaml) and optional evaluation calibration metadata (threshold_calibration.json).
-"""
-
 import json
 from dataclasses import dataclass
 from pathlib import Path
@@ -33,8 +26,6 @@ class RecognitionThresholds:
 
 
 class ThresholdManager:
-    """Manages recognition score thresholds and calibration resolution."""
-
     DEFAULT_CONFIG_PATH = Path("configs/inference.yaml")
 
     def __init__(self, config_path: str | None = None) -> None:

@@ -1,16 +1,3 @@
-"""
-Real Integration Simulation Script for ARGUS AI Date-Aware Continuous Embedding Learning.
-
-Demonstrates:
-- DAY 1 (2026-08-26): No new data -> NO TRAINING (Zero jobs created, zero resources consumed)
-- DAY 2 (2026-08-27): New verified training-eligible data -> Exactly ONE job scheduled and promoted
-- DAY 3 (2026-08-28): No new data -> NO TRAINING
-- DAY 4 (2026-08-29): New verified training-eligible data -> ONE job scheduled
-- SAFETY 1: Training failure isolation (active baseline preserved)
-- SAFETY 2: Candidate regression rejection (active baseline preserved)
-- SAFETY 3: Post-promotion runtime regression rollback (previous known-good version restored)
-"""
-
 import os
 import shutil
 import sys

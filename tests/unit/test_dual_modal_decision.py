@@ -16,7 +16,6 @@ def fusion_engine():
 
 
 def test_case_1_same_identity_fusion(fusion_engine):
-    """Case 1: Both modalities identify the same person with scores passing thresholds."""
     res = fusion_engine.decide_identity(
         gait_identity="Person_001",
         gait_score=0.91,
@@ -36,8 +35,6 @@ def test_case_1_same_identity_fusion(fusion_engine):
 
 
 def test_case_2_gait_only_fallback(fusion_engine):
-    """Case 2: Appearance is unavailable; fallback safely to gait-only."""
-
     res_none = fusion_engine.decide_identity(
         gait_identity="Person_001",
         gait_score=0.91,
@@ -68,7 +65,6 @@ def test_case_2_gait_only_fallback(fusion_engine):
 
 
 def test_case_3_appearance_only_fallback(fusion_engine):
-    """Case 3: Gait is unavailable / unknown; use appearance-only decision."""
     res = fusion_engine.decide_identity(
         gait_identity="UNKNOWN",
         gait_score=0.0,
@@ -86,7 +82,6 @@ def test_case_3_appearance_only_fallback(fusion_engine):
 
 
 def test_case_4_both_unavailable(fusion_engine):
-    """Case 4: Both modalities are unavailable / unknown."""
     res = fusion_engine.decide_identity(
         gait_identity="UNKNOWN",
         gait_score=0.0,
@@ -104,7 +99,6 @@ def test_case_4_both_unavailable(fusion_engine):
 
 
 def test_case_5_conflicting_identities_handling(fusion_engine):
-    """Case 5: Both modalities pass thresholds but produce conflicting identities."""
     res = fusion_engine.decide_identity(
         gait_identity="Person_001",
         gait_score=0.91,
@@ -125,7 +119,6 @@ def test_case_5_conflicting_identities_handling(fusion_engine):
 
 
 def test_case_6_scores_below_thresholds(fusion_engine):
-    """Case 6: Candidate scores fail respective thresholds -> UNKNOWN_PERSON."""
     res = fusion_engine.decide_identity(
         gait_identity="Person_001",
         gait_score=0.72,
@@ -142,7 +135,6 @@ def test_case_6_scores_below_thresholds(fusion_engine):
 
 
 def test_custom_fusion_weights_configuration():
-    """Requirement 8: Verify custom gait_weight and appearance_weight allocation."""
     custom_fusion = DualModalFusion(
         default_gait_weight=0.80,
         default_reid_weight=0.20,
@@ -164,8 +156,6 @@ def test_custom_fusion_weights_configuration():
 
 
 def test_recognition_worker_fusion_enabled_vs_disabled():
-    """Test RecognitionWorker decision behavior when fusion is explicitly enabled vs disabled."""
-
     fusion_on = DualModalFusion(default_gait_weight=0.7, default_reid_weight=0.3, enabled=True)
     worker_on = RecognitionWorker(
         camera_id="cam_test_on",

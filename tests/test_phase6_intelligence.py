@@ -1,5 +1,3 @@
-"""Unit tests for Phase 6 intelligence, missing person workflow, and evidence manager."""
-
 import os
 import shutil
 import tempfile
@@ -15,8 +13,6 @@ from storage.evidence_manager import EvidenceManager
 
 
 class TestCrossCameraTracker(unittest.TestCase):
-    """Test CrossCameraTracker."""
-
     def test_global_track_assignment(self):
         tracker = CrossCameraTracker(max_transition_time_seconds=60.0)
         gid1 = tracker.get_or_create_global_id("cam1", local_track_id=1, identity="person_A")
@@ -37,8 +33,6 @@ class TestCrossCameraTracker(unittest.TestCase):
 
 
 class TestReIDCache(unittest.TestCase):
-    """Test ReIDCache."""
-
     def test_cache_put_get(self):
         cache = ReIDCache(ttl_seconds=10.0, max_entries=5)
         emb = np.zeros((256,), dtype=np.float32)
@@ -57,8 +51,6 @@ class TestReIDCache(unittest.TestCase):
 
 
 class TestIdentityPersistence(unittest.TestCase):
-    """Test IdentityPersistence."""
-
     def test_update_and_cooldown(self):
         persistence = IdentityPersistence(suppression_window_seconds=10.0)
         res = persistence.update_identity("subject_01", confidence_score=0.92, camera_id="cam1")
@@ -68,8 +60,6 @@ class TestIdentityPersistence(unittest.TestCase):
 
 
 class TestMissingPersonWorkflow(unittest.TestCase):
-    """Test MissingPersonWorkflow."""
-
     def test_missing_person_workflow(self):
         workflow = MissingPersonWorkflow(alert_threshold=0.85, cooldown_seconds=10.0)
         workflow.register_target("target_101", metadata={"name": "Jane Doe"})
@@ -85,8 +75,6 @@ class TestMissingPersonWorkflow(unittest.TestCase):
 
 
 class TestEvidenceManager(unittest.TestCase):
-    """Test EvidenceManager."""
-
     def setUp(self):
         self.temp_dir = tempfile.mkdtemp()
         self.manager = EvidenceManager(base_evidence_dir=self.temp_dir, max_age_days=1)

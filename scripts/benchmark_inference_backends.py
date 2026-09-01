@@ -1,10 +1,3 @@
-"""
-Inference Backend Performance and Parity Benchmark Script for ARGUS AI.
-
-Measures initialization latency, warm-up latency, mean/median/p95 inference latency,
-throughput, device, precision, and output parity against the PyTorch reference backend.
-"""
-
 import argparse
 import json
 import sys
@@ -29,7 +22,6 @@ def compute_parity_metrics(
     rtol: float = 1e-3,
     is_pytorch_fallback: bool = False,
 ) -> dict:
-    """Compute comprehensive numerical and semantic parity metrics against PyTorch reference."""
     if len(embeddings) != len(reference_embeddings):
         return {
             "parity_passed": False,
@@ -90,7 +82,6 @@ def benchmark_backend(
     model_path: str = "runs/exp_001/best_model.pth",
     reference_embeddings: list[np.ndarray] | None = None,
 ) -> dict:
-    """Benchmark initialization, warm latency, p95 latency, throughput, and parity for a backend."""
     config = {
         "backend": backend_name,
         "device": device,

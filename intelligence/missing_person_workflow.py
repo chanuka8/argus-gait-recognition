@@ -1,5 +1,3 @@
-"""Missing person search, continuous monitoring, operational watchlist, and evidence triggering workflow."""
-
 import time
 from dataclasses import dataclass
 from threading import Lock
@@ -10,8 +8,6 @@ from monitoring.logging_config import get_logger
 
 @dataclass
 class WatchlistEntry:
-    """Represents an operational watchlist entry for real-time recognition."""
-
     identity_id: str
     category: str = "MISSING_PERSON"
     priority: str = "HIGH"
@@ -20,7 +16,6 @@ class WatchlistEntry:
     notes: str = ""
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert entry to dictionary representation."""
         return {
             "identity_id": self.identity_id,
             "category": self.category,
@@ -32,7 +27,6 @@ class WatchlistEntry:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "WatchlistEntry":
-        """Create a WatchlistEntry instance from dictionary."""
         return cls(
             identity_id=str(data.get("identity_id") or data.get("identity", "")),
             category=str(data.get("category", "MISSING_PERSON")),
@@ -44,8 +38,6 @@ class WatchlistEntry:
 
 
 class MissingPersonWorkflow:
-    """Automates missing person target monitoring, watchlist management, alert throttling, and evidence trigger generation."""
-
     def __init__(
         self,
         alert_threshold: float = 0.85,
@@ -76,7 +68,6 @@ class MissingPersonWorkflow:
         alert_enabled: bool = True,
         notes: str = "",
     ) -> WatchlistEntry:
-        """Add or update a target identity in the active watchlist."""
         with self._lock:
             meta = dict(metadata or {})
             cat = str(meta.get("category", category))
@@ -110,7 +101,6 @@ class MissingPersonWorkflow:
             return entry
 
     def unregister_target(self, identity: str) -> bool:
-        """Remove a target identity from the active watchlist."""
         with self._lock:
             if identity in self._target_watchlist or identity in self._watchlist_entries:
                 self._watchlist_entries.pop(identity, None)
@@ -121,7 +111,6 @@ class MissingPersonWorkflow:
             return False
 
     def get_entry(self, identity: str) -> WatchlistEntry | None:
-        """Return WatchlistEntry object for identity if registered."""
         with self._lock:
             return self._watchlist_entries.get(identity)
 
@@ -134,7 +123,6 @@ class MissingPersonWorkflow:
         frame_data: Any | None = None,
         track_id: int | None = None,
     ) -> dict[str, Any] | None:
-        """Evaluate a gait match against the active watchlist."""
         now = time.monotonic()
         with self._lock:
             if identity not in self._target_watchlist and identity not in self._watchlist_entries:
@@ -180,17 +168,14 @@ class MissingPersonWorkflow:
             return event
 
     def get_active_targets(self) -> list[str]:
-        """Return list of active watchlist target identities."""
         with self._lock:
             return [k for k, v in self._watchlist_entries.items() if v.enabled] or list(self._target_watchlist.keys())
 
     def get_recent_events(self) -> list[dict[str, Any]]:
-        """Return all logged missing person match events."""
         with self._lock:
             return self._events.copy()
 
     def export_watchlist_events(self, filename: str = "watchlist_events.json"):
-        """Export watchlist match events to output directory."""
         import json
 
         with self._lock:

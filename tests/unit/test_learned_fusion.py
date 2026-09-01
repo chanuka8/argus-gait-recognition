@@ -1,5 +1,3 @@
-"""Unit tests for Platt Score Calibrator and Learned Logistic Fusion Layer (Phase 1)."""
-
 import numpy as np
 
 from intelligence.learned_fusion import LearnedLogisticFusion

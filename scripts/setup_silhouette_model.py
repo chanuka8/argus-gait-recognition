@@ -1,10 +1,3 @@
-"""
-Silhouette Model Setup and Asset Verification Helper for ARGUS AI.
-
-Validates presence and contract of local learned silhouette segmentation ONNX asset
-(models/engines/silhouette_segmenter.onnx).
-"""
-
 import sys
 from pathlib import Path
 

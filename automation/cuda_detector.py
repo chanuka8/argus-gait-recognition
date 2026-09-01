@@ -1,17 +1,3 @@
-"""
-Multi-Stage CUDA Hardware & Compute Pipeline Detector for ARGUS AI.
-
-Evaluates CUDA readiness across the entire pipeline hierarchy:
-1. NVIDIA hardware presence and driver readiness.
-2. PyTorch CUDA build capability and runtime device availability.
-3. Actual CUDA tensor allocation and synchronized matrix multiplication.
-4. ByGaitLight CNN execution on CUDA ([1, 256] embedding, unit L2 norm).
-5. Ultralytics YOLOv8 runtime execution device verification.
-6. ONNX Runtime CUDAExecutionProvider initialization and silhouette inference.
-
-CUDA is NEVER reported as READY based on torch.cuda.is_available() alone.
-"""
-
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -73,14 +59,11 @@ class CudaDetectionReport:
 
 
 class CudaDetector:
-    """Rigorous multi-stage CUDA pipeline validator."""
-
     def __init__(self, weights_dir: str = "models/weights") -> None:
         self.weights_dir = Path(weights_dir)
         setup_cuda_dll_paths()
 
     def probe_pytorch_cuda_build(self) -> tuple[bool, str | None, str | None, bool, int, str | None]:
-        """Inspect PyTorch build, CUDA capability, and device enumeration."""
         try:
             import torch
 
@@ -95,7 +78,6 @@ class CudaDetector:
             return False, None, None, False, 0, f"PyTorch probe error: {err}"
 
     def probe_cuda_tensor_execution(self) -> tuple[bool, str, str | None]:
-        """Execute real CUDA memory allocation and synchronized 1024x1024 MatMul."""
         try:
             import torch
 
@@ -114,7 +96,6 @@ class CudaDetector:
             return False, "CUDA tensor execution failed", str(err)
 
     def probe_bygait_cuda_execution(self) -> tuple[bool, str, str | None]:
-        """Verify ByGaitLight forward pass on CUDA (output shape [1, 256], unit L2 norm)."""
         try:
             import torch
 
@@ -142,7 +123,6 @@ class CudaDetector:
             return False, "ByGaitLight CUDA verification failed", str(err)
 
     def probe_yolo_cuda_execution(self) -> tuple[bool, str, str, str | None]:
-        """Verify YOLOv8 runtime execution on CUDA directly."""
         try:
             import numpy as np
             import torch
@@ -169,7 +149,6 @@ class CudaDetector:
             return False, "cpu", "YOLO runtime probe error", str(err)
 
     def probe_onnx_cuda_execution(self) -> tuple[bool, str | None, str, list[str], str | None]:
-        """Verify ONNX Runtime CUDA provider initialization and real silhouette inference."""
         setup_cuda_dll_paths()
         try:
             import numpy as np
@@ -227,9 +206,6 @@ class CudaDetector:
             return False, None, "CPUExecutionProvider", [], f"ONNX CUDA probe failed: {err}"
 
     def run_full_detection(self, gpu_info: NvidiaGpuInfo | None = None) -> CudaDetectionReport:
-        """
-        Execute comprehensive 6-phase CUDA readiness audit.
-        """
         if gpu_info is None:
             gpu_info = HardwareDetector.detect_nvidia_gpu()
 

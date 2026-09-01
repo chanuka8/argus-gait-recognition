@@ -2,11 +2,6 @@ import numpy as np
 
 
 class AppearanceMatchingStep:
-    """
-    Appearance Re-Identification matching using Cosine Similarity against
-    512-dimensional appearance gallery vectors.
-    """
-
     def __init__(
         self,
         threshold: float = 0.60,
@@ -146,12 +141,6 @@ class AppearanceMatchingStep:
         metadata: dict | None = None,
         unknown_label: str = "UNKNOWN_PERSON",
     ) -> tuple[str, float]:
-        """
-        Match 512D query appearance embedding against gallery using cosine similarity.
-
-        Returns:
-            (identity, similarity_score)
-        """
         query_vec = self._prepare_query(query_feature)
         if query_vec is None:
             return unknown_label, 0.0
@@ -195,7 +184,6 @@ class AppearanceMatchingStep:
         metadata: dict | None = None,
         k: int = 5,
     ) -> list[tuple[str, float]]:
-        """Return top-K candidate matches ranked by cosine similarity."""
         query_vec = self._prepare_query(query_feature)
         if query_vec is None:
             return []

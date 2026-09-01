@@ -1,14 +1,3 @@
-"""
-ARGUS AI — Centralized Person Detection Validity Evaluator & Metadata.
-
-Evaluates raw person detector bounding boxes against geometric, dimensional,
-and aspect-ratio validity criteria without hardcoded person limits.
-
-Visual Semantics Mapping:
-- VALID detection (satisfies criteria): RED bounding box (0, 0, 255) in BGR.
-- NON-VALID detection (fails criteria): GREEN bounding box (0, 255, 0) in BGR.
-"""
-
 from __future__ import annotations
 
 import time
@@ -21,8 +10,6 @@ import yaml
 
 @dataclass
 class DetectionMetadata:
-    """Standardized metadata container for every detected person."""
-
     camera_id: str
     bbox: list[int]
     confidence: float
@@ -42,11 +29,6 @@ class DetectionMetadata:
 
 
 class DetectionValidator:
-    """
-    Evaluates person detection bounding boxes against standardized validity criteria.
-    Decoupled from identity matching and downstream biometric pipelines.
-    """
-
     def __init__(
         self,
         min_width: int | None = None,
@@ -101,14 +83,6 @@ class DetectionValidator:
         confidence: float,
         frame_shape: tuple[int, ...] | None = None,
     ) -> tuple[bool, str]:
-        """
-        Evaluate a single detection bounding box against physical detection validity criteria.
-        Real physical detections (walking, wheelchair, crutches, seated) return True.
-        Degenerate artifacts, negative dimensions, or extreme noise return False.
-
-        Returns:
-            (is_valid, reason_str)
-        """
         if not bbox or len(bbox) < 4:
             return False, "INVALID_BBOX_COORDINATES"
 
@@ -143,12 +117,6 @@ class DetectionValidator:
         confidence: float,
         frame_shape: tuple[int, ...] | None = None,
     ) -> tuple[bool, str, bool, bool, str]:
-        """
-        Comprehensive per-person assessment separating physical detection validity from biometric pathway usability.
-
-        Returns:
-            (is_valid, mobility_state, gait_eligible, appearance_eligible, reason)
-        """
         is_valid, valid_reason = self.validate_detection(bbox, confidence, frame_shape)
         if not is_valid:
             return False, "NON_STANDARD_GAIT", False, False, valid_reason
@@ -175,7 +143,6 @@ class DetectionValidator:
         confidence: float,
         frame_shape: tuple[int, ...] | None = None,
     ) -> bool:
-        """Convenience boolean check."""
         is_valid, _ = self.validate_detection(bbox, confidence, frame_shape)
         return is_valid
 
@@ -185,7 +152,6 @@ class DetectionValidator:
         confidence: float,
         frame_shape: tuple[int, ...] | None = None,
     ) -> bool:
-        """Evaluate if detection meets gait silhouette and GEI requirements."""
         _, _, gait_eligible, _, _ = self.assess_detection(bbox, confidence, frame_shape)
         return gait_eligible
 
@@ -195,7 +161,6 @@ class DetectionValidator:
         confidence: float,
         frame_shape: tuple[int, ...] | None = None,
     ) -> bool:
-        """Evaluate if detection meets OSNet appearance crop requirements."""
         _, _, _, appearance_eligible, _ = self.assess_detection(bbox, confidence, frame_shape)
         return appearance_eligible
 
@@ -206,10 +171,6 @@ class DetectionValidator:
         camera_id: str = "camera_00",
         frame_id: int = 0,
     ) -> list[DetectionMetadata]:
-        """
-        Converts raw detector dictionary outputs into standardized DetectionMetadata items,
-        attaching validity flags to all detections.
-        """
         tagged_items: list[DetectionMetadata] = []
         now = time.monotonic()
 

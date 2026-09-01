@@ -1,5 +1,3 @@
-"""Unit tests for DeterministicVideoQualityGate (Step 5M)."""
-
 import numpy as np
 
 from preprocessing.video_quality_gate import DeterministicVideoQualityGate

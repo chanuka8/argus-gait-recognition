@@ -59,12 +59,6 @@ class AppearanceGalleryUpdater:
         person_id: str,
         embeddings: list,
     ) -> None:
-        """
-        Add one or more 512D appearance embeddings for a subject ID to the appearance gallery.
-
-        Raises:
-            ValueError: If embeddings list is empty or any embedding is not 512-dimensional.
-        """
         if not person_id or not str(person_id).strip():
             raise ValueError("person_id cannot be empty")
 

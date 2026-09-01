@@ -48,7 +48,6 @@ class TestSilhouetteUNetPipeline(unittest.TestCase):
         self.assertAlmostEqual(metrics["precision"], 0.5)
 
     def test_dataset_loader(self) -> None:
-        """Fully self-contained test using a temporary ZIP archive with synthetic mask."""
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_zip = Path(tmp_dir) / "test_casia.zip"
 
@@ -69,7 +68,6 @@ class TestSilhouetteUNetPipeline(unittest.TestCase):
             self.assertEqual(mask_tensor.dtype, torch.float32)
 
     def test_onnx_export_and_validation(self) -> None:
-        """Fully self-contained test exporting to temporary files."""
         with tempfile.TemporaryDirectory() as tmp_dir:
             pth_path = str(Path(tmp_dir) / "test_segmenter.pth")
             onnx_path = str(Path(tmp_dir) / "test_segmenter.onnx")
@@ -85,7 +83,6 @@ class TestSilhouetteUNetPipeline(unittest.TestCase):
             self.assertTrue(Path(engine_path).exists())
 
     def test_learned_segmenter_mocked_success_path(self) -> None:
-        """Fully self-contained unit test using mocked ONNX session."""
         segmenter = LearnedSilhouetteSegmenter(model_path="non_existent_model.onnx")
 
         mock_session = MagicMock()
@@ -106,7 +103,6 @@ class TestSilhouetteUNetPipeline(unittest.TestCase):
         self.assertEqual(mask.dtype, np.uint8)
 
     def test_learned_segmenter_missing_fallback(self) -> None:
-        """Verifies missing asset causes step to gracefully fall back to Otsu without crashing."""
         step = SilhouetteStep(target_size=(64, 128), method="learned", model_path="non_existent_model.onnx")
         self.assertFalse(step.learned_segmenter.is_available())
 
@@ -119,7 +115,6 @@ class TestSilhouetteUNetPipeline(unittest.TestCase):
         self.assertEqual(mask.dtype, np.uint8)
 
     def test_silhouette_step_end_to_end_learned(self) -> None:
-        """End-to-end test using injected mocked learned segmenter."""
         step = SilhouetteStep(target_size=(64, 128), method="learned", model_path="non_existent_model.onnx")
 
         mock_session = MagicMock()
@@ -172,7 +167,6 @@ class TestSilhouetteUNetPipeline(unittest.TestCase):
         "Real ONNX model asset not present in local environment",
     )
     def test_real_onnx_asset_integration(self) -> None:
-        """Optional integration test guarded by real model asset presence."""
         segmenter = LearnedSilhouetteSegmenter(model_path="models/weights/silhouette_segmenter.onnx")
         self.assertTrue(segmenter.is_available())
 

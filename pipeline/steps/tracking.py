@@ -7,10 +7,6 @@ from ultralytics import YOLO
 
 
 class TrackingStep:
-    """
-    Standard Tracking Step wrapper combining Object Detection and Multi-Object Tracking.
-    """
-
     def __init__(
         self,
         model_path: str | None = None,

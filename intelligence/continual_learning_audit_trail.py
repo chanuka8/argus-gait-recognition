@@ -1,11 +1,3 @@
-"""
-Durable Continual Learning Audit Trail for ARGUS AI.
-
-Maintains an immutable, append-only historical audit trail of all continual learning
-cycles, dataset manifests, baseline/candidate evaluations, parameter deltas,
-promotion decisions, and rollback operations surviving system restarts.
-"""
-
 import json
 import threading
 import time
@@ -19,8 +11,6 @@ from monitoring.logging_config import get_logger
 
 @dataclass
 class ContinualLearningEvent:
-    """Represents an immutable record of a continual learning lifecycle event."""
-
     event_id: str
     event_type: str
     timestamp: float
@@ -52,10 +42,6 @@ class ContinualLearningEvent:
 
 
 class ContinualLearningAuditTrail:
-    """
-    Thread-safe persistent audit trail for continual learning events.
-    """
-
     def __init__(self, audit_file: str = "data/continual_learning_audit_trail.json") -> None:
         self.audit_file = Path(audit_file)
         self.audit_file.parent.mkdir(parents=True, exist_ok=True)
@@ -63,7 +49,6 @@ class ContinualLearningAuditTrail:
         self._logger = get_logger("continual_learning_audit_trail")
 
     def record_event(self, event: ContinualLearningEvent) -> bool:
-        """Atomically append a learning event to the audit trail file."""
         with self._lock:
             events = self.list_events()
             events.append(event)
@@ -79,7 +64,6 @@ class ContinualLearningAuditTrail:
         candidate_version: str,
         **kwargs: Any,
     ) -> ContinualLearningEvent:
-        """Create and persist a new ContinualLearningEvent record."""
         event = ContinualLearningEvent(
             event_id=f"CLE-{int(time.time())}-{uuid.uuid4().hex[:6]}",
             event_type=event_type,
@@ -95,7 +79,6 @@ class ContinualLearningAuditTrail:
         return event
 
     def list_events(self, model_type: str | None = None) -> list[ContinualLearningEvent]:
-        """Read all recorded audit events from disk."""
         with self._lock:
             if not self.audit_file.exists():
                 return []
@@ -112,14 +95,12 @@ class ContinualLearningAuditTrail:
                 return []
 
     def get_event(self, event_id: str) -> ContinualLearningEvent | None:
-        """Get a specific audit event by ID."""
         for e in self.list_events():
             if e.event_id == event_id:
                 return e
         return None
 
     def _save_events(self, events: list[ContinualLearningEvent]) -> bool:
-        """Write events atomically using temporary file replace."""
         tmp = self.audit_file.with_suffix(".tmp")
         try:
             payload = {"events": [e.to_dict() for e in events], "updated_at": time.time()}

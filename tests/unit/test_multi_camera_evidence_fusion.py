@@ -1,7 +1,3 @@
-"""
-Unit tests for Stage 3: Multi-Camera Evidence Fusion.
-"""
-
 from intelligence.multi_camera_evidence_fusion import (
     FusionState,
     MultiCameraEvidenceFusion,

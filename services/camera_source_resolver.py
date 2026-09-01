@@ -1,11 +1,3 @@
-"""
-Automatic Camera Source Resolver for ARGUS Surveillance System.
-
-Dynamically resolves available camera hardware (USB webcams, RTSP streams,
-and HTTP streams) for surveillance zones with thread-safe resource
-reservation and credential-safe logging.
-"""
-
 import sys
 import threading
 from typing import Any
@@ -24,8 +16,6 @@ from services.camera_worker import normalize_camera_source
 
 
 class CameraSourceResolver:
-    """Thread-safe dynamic camera source resolver with secure credential resolution."""
-
     def __init__(
         self,
         config_path: str = "configs/cameras.yaml",
@@ -43,7 +33,6 @@ class CameraSourceResolver:
         self._load_registered_cameras()
 
     def _load_registered_cameras(self) -> None:
-        """Load registered camera definitions from YAML configuration."""
         try:
             with open(self._config_path, "r", encoding="utf-8") as file:
                 data = yaml.safe_load(file)
@@ -58,17 +47,10 @@ class CameraSourceResolver:
             self._registered_cameras = []
 
     def is_source_reserved(self, source_key: str) -> bool:
-        """Return True if the source is currently reserved."""
         with self._lock:
             return source_key in self._reserved_sources
 
     def reserve_source(self, source_key: str, camera_id: str) -> bool:
-        """
-        Reserve a source for a camera.
-
-        Re-reserving a source for the same camera is allowed.
-        A source reserved by another camera cannot be acquired.
-        """
         with self._lock:
             existing_camera_id = self._reserved_sources.get(source_key)
 
@@ -79,7 +61,6 @@ class CameraSourceResolver:
             return True
 
     def pop_retained_capture(self, source_key: str) -> tuple[Any | None, Any | None]:
-        """Atomically retrieve and remove a retained VideoCapture handle and first frame for handover."""
         with self._lock:
             return self._retained_captures.pop(source_key, (None, None))
 
@@ -87,12 +68,6 @@ class CameraSourceResolver:
         self,
         camera_id: str,
     ) -> str | None:
-        """
-        Release the source reservation belonging to a camera.
-
-        Returns:
-            The released source key, or None if no reservation exists.
-        """
         with self._lock:
             for source_key, reserved_camera_id in list(self._reserved_sources.items()):
                 if reserved_camera_id == camera_id:
@@ -111,7 +86,6 @@ class CameraSourceResolver:
             return None
 
     def release_source(self, source_key: str) -> None:
-        """Release a specific source reservation."""
         with self._lock:
             if source_key in self._reserved_sources:
                 del self._reserved_sources[source_key]
@@ -125,13 +99,6 @@ class CameraSourceResolver:
                 self._logger.info(f"Released source reservation {source_key}")
 
     def probe_usb_webcam(self, device_index: int, retain: bool = False) -> bool:
-        """
-        Probe whether a local camera (built-in, integrated, or USB) is connected and readable.
-
-        If retain is True and the probe succeeds, the open VideoCapture handle and first frame
-        are preserved for single-open handover to CameraWorker. Otherwise, the capture is
-        safely closed.
-        """
         source_key = f"usb:{device_index}"
 
         if self.is_source_reserved(source_key):
@@ -185,12 +152,6 @@ class CameraSourceResolver:
                 capture = None
 
     def probe_stream(self, url: str, retain: bool = False) -> bool:
-        """
-        Probe whether an RTSP or HTTP stream is openable and readable.
-
-        Raw stream URLs are never written to logs because they may contain
-        usernames and passwords.
-        """
         source_key = f"stream:{url}"
 
         if self.is_source_reserved(source_key):
@@ -241,30 +202,6 @@ class CameraSourceResolver:
         user_id: str = "default_user",
         credential_id: str | None = None,
     ) -> dict[str, Any]:
-        """
-        Resolve an available camera source automatically with deterministic hardware and stream probing.
-
-        Priority:
-        1. Explicitly requested source:
-           - Numeric device index / 'webcam' / 'usb' -> Local Webcam ('webcam')
-           - RTSP URL ('rtsp://...') or IP address -> RTSP Stream ('rtsp')
-           - HTTP/HTTPS URL -> HTTP Stream ('http')
-        2. 'auto' or empty source:
-           - Priority 1: Free local Webcam device index (0..max_usb_scan-1)
-           - Priority 2: Free registered RTSP/HTTP CCTV stream from configs/cameras.yaml
-        3. If no usable source is found, raises RuntimeError with clear user message.
-
-        Args:
-            camera_id: Unique camera identifier.
-            requested_source: Explicit source or "auto".
-            zone_id: Optional surveillance zone identifier.
-            max_usb_scan: Number of USB device indexes to probe.
-            user_id: Authenticated application user ID.
-            credential_id: Optional credential ID for authentication.
-
-        Returns:
-            Dictionary containing resolved camera source metadata.
-        """
         resolved_credential_id = credential_id
 
         if requested_source and requested_source.strip().lower() != "auto":

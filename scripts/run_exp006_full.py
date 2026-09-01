@@ -1,10 +1,3 @@
-"""
-EXP-006 End-to-End Runner:
-1. Trains PoseLifter3D + PoseGait3DNet on Train (001-062) / Val (063-074) splits using ArcFace + Triplet Loss (0.25).
-2. Evaluates model using Evaluator3D on Test (075-124) with strict sequence disjointness.
-3. Saves artifacts under runs/exp_006_3d/ and compares performance against 2D EXP-003E/004B baseline.
-"""
-
 import json
 import sys
 import time

@@ -1,7 +1,3 @@
-"""
-Comprehensive Unit Tests for ARGUS AI Automation & Environment Management Subsystem.
-"""
-
 import unittest
 
 from api.schemas import ComputeInfo, StatusResponse
@@ -18,8 +14,6 @@ from automation.pytorch_manager import PyTorchManager
 
 
 class TestAutomationSubsystem(unittest.TestCase):
-    """Test suite covering hardware detection, device arbitration, and fallback logic."""
-
     def test_hardware_detector_system(self):
         sys_info = HardwareDetector.detect_system()
         self.assertIsInstance(sys_info, HostSystemInfo)

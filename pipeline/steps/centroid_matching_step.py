@@ -50,13 +50,6 @@ class CentroidMatchingStep:
         metadata: dict | None = None,
         mode: str = "flat",
     ) -> tuple[str, float]:
-        """
-        Supports mode:
-        - 'flat': Standard matching over flat gallery features
-        - 'centroid': Centroid matching
-        - 'centroid_margin': Centroid matching with margin rule
-        - 'centroid_margin_topk': Centroid matching + margin rule + topk consensus
-        """
         if mode == "flat":
             return self.flat_matcher.match(query_feature, gallery_features, gallery_labels, metadata)
 

@@ -47,7 +47,6 @@ def image_to_embedding(model: ByGaitLight, img_path: str) -> np.ndarray:
 
 
 def run_decision_ablations_on_exp003e():
-    """Phases 3 & 4: Open-Set Decision Ablations (EXP-004A .. EXP-004E) on fixed EXP-003E weights."""
     print("\n=======================================================")
     print("  RUNNING OPEN-SET DECISION ABLATIONS (EXP-004A..E)")
     print("=======================================================\n")
@@ -295,7 +294,6 @@ def run_decision_ablations_on_exp003e():
 
 
 def run_retrain_ablation(exp_id: str, exp_name: str, condition_balanced: bool, cross_condition_triplet: bool):
-    """Run a single training-side CL robustness ablation experiment."""
     print("\n=======================================================")
     print(f"  RUNNING {exp_id}: {exp_name}")
     print(f"  condition_balanced={condition_balanced}")
@@ -384,7 +382,6 @@ def run_retrain_ablation(exp_id: str, exp_name: str, condition_balanced: bool, c
 
 
 def run_retrain_f():
-    """EXP-004F: Condition-Balanced Sampling (no cross-condition triplet)."""
     return run_retrain_ablation(
         exp_id="EXP-004F",
         exp_name="Condition-Balanced Sampling",
@@ -394,7 +391,6 @@ def run_retrain_f():
 
 
 def run_retrain_g():
-    """EXP-004G: Cross-Condition Triplet Mining (no balanced sampling)."""
     return run_retrain_ablation(
         exp_id="EXP-004G",
         exp_name="Cross-Condition Triplet Mining",
@@ -404,7 +400,6 @@ def run_retrain_g():
 
 
 def run_retrain_h():
-    """EXP-004H: Combined Condition-Balanced Sampling + Cross-Condition Triplet Mining."""
     return run_retrain_ablation(
         exp_id="EXP-004H",
         exp_name="Balanced Sampling + Cross-Condition Triplet",
@@ -414,7 +409,6 @@ def run_retrain_h():
 
 
 def print_comparison_table(all_results: list[dict]):
-    """Print a comparison table across all EXP-004 retrain ablations."""
     print("\n=======================================================")
     print("  EXP-004 TRAINING-SIDE ABLATION COMPARISON TABLE")
     print("=======================================================\n")

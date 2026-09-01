@@ -1,8 +1,3 @@
-"""
-End-to-End Demonstration and Validation Script for ARGUS AI Continuous Improvement Architecture,
-Safe Enrollment Lifecycle with Automatic Raw Data Cleanup, Model Registry, and Rollback.
-"""
-
 import shutil
 import sys
 import tempfile

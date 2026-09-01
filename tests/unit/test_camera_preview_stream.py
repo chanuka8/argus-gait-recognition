@@ -7,7 +7,6 @@ from services.camera_worker import CameraWorker
 
 
 def test_camera_worker_latest_jpeg_buffer():
-    """Verify CameraWorker stores and returns JPEG encoded frames."""
     cfg = {
         "type": "usb",
         "device_index": 0,
@@ -45,7 +44,6 @@ def test_camera_worker_latest_jpeg_buffer():
 
 
 def test_get_cameras_empty_by_default():
-    """Verify GET /api/v1/cameras returns empty list by default."""
     with TestClient(app) as client:
         resp = client.get("/api/v1/cameras")
         assert resp.status_code == 200
@@ -56,7 +54,6 @@ from unittest.mock import MagicMock, patch
 
 
 def test_mjpeg_stream_and_snapshot_endpoints():
-    """Verify /api/v1/cameras/{camera_id}/stream and /snapshot endpoints with TestClient."""
     mock_cap = MagicMock()
     mock_cap.isOpened.return_value = True
     dummy = np.zeros((480, 640, 3), dtype=np.uint8)

@@ -1,12 +1,3 @@
-"""
-EXP-007 Controlled Ablation Study and Optimization:
-Ablates Encoders (TCN, ST-GCN, CTR-GCN), Sequence Lengths (30, 60, 90),
-and Loss Parameters (ArcFace s=30/64, Triplet w=0.25/0.50) on VAL ONLY (063-074).
-
-Selects the best performing candidate on VAL, evaluates ONCE on TEST (075-124),
-and promotes candidate to models/candidates/gait_3d_exp007_best.pth.
-"""
-
 import json
 import sys
 import time
@@ -26,7 +17,6 @@ from training.gait_3d_trainer import Gait3DTrainer
 
 
 def evaluate_on_val(model_path: str, sequence_length: int = 30) -> float:
-    """Evaluates candidate checkpoint on VAL set (063-074) only."""
     evaluator = Evaluator3D(
         model_path=model_path,
         data_dir="data/casia_processed/skeletons",

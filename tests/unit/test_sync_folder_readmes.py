@@ -1,22 +1,3 @@
-"""Unit tests for package folder README documentation synchronization and git hook installer.
-
-Covers:
-  1. Public file discovery
-  2. Private/excluded directory handling
-  3. Deterministic generation (second sync produces no diff)
-  4. Manual text preservation outside markers
-  5. Stale --check exit code
-  6. Relative link generation (no file:/// links)
-  7. README index generation and validation
-  8. Malformed marker handling
-  9. Atomic write behavior
- 10. Pre-commit hook content verification
- 11. Hook Linux/macOS venv path detection
- 12. No network/model/GPU dependency in sync script
- 13. Missing README returns issues
- 14. Corrupted file safety
-"""
-
 import os
 import subprocess
 import sys
@@ -39,8 +20,6 @@ from scripts.sync_folder_readmes import (
 
 
 class TestFileDiscovery(unittest.TestCase):
-    """Verify get_active_files_for_folder discovers the right files."""
-
     def test_discovers_python_files(self):
         with tempfile.TemporaryDirectory() as td:
             folder = Path(td)
@@ -87,8 +66,6 @@ class TestFileDiscovery(unittest.TestCase):
 
 
 class TestCheckFolderReadme(unittest.TestCase):
-    """Verify check_folder_readme reports correct issues."""
-
     def _make_valid_readme(self, folder: Path, modules: list[str]) -> None:
         sections = [
             "# Test",
@@ -137,8 +114,6 @@ class TestCheckFolderReadme(unittest.TestCase):
 
 
 class TestUpdateFolderReadme(unittest.TestCase):
-    """Verify update_folder_readme synchronizes markers correctly."""
-
     def _make_readme_with_markers(self, folder: Path, table_content: str, manual_text: str = "") -> None:
         content = textwrap.dedent(f"""\
             # Test Package
@@ -221,8 +196,6 @@ class TestUpdateFolderReadme(unittest.TestCase):
 
 
 class TestAtomicWrite(unittest.TestCase):
-    """Verify update_folder_readme uses atomic write (temp file + replace)."""
-
     def test_no_temp_files_left_after_sync(self):
         with tempfile.TemporaryDirectory() as td:
             folder = Path(td)
@@ -271,8 +244,6 @@ class TestAtomicWrite(unittest.TestCase):
 
 
 class TestReadmeIndex(unittest.TestCase):
-    """Verify check_readme_index detects missing entries."""
-
     def test_valid_index(self):
         root_dir = Path(__file__).resolve().parent.parent.parent
         is_valid, issues = check_readme_index(root_dir)
@@ -310,8 +281,6 @@ class TestReadmeIndex(unittest.TestCase):
 
 
 class TestSyncCheckMode(unittest.TestCase):
-    """Verify --check mode exit code behavior."""
-
     def test_check_exits_zero_when_current(self):
         result = subprocess.run(
             [sys.executable, "scripts/sync_folder_readmes.py", "--check"],
@@ -341,8 +310,6 @@ class TestSyncCheckMode(unittest.TestCase):
 
 
 class TestAllFolderReadmesSynchronized(unittest.TestCase):
-    """Integration: verify every target folder passes check."""
-
     def test_all_folder_readmes_exist_and_synchronized(self) -> None:
         root_dir = Path(__file__).resolve().parent.parent.parent
         failed_folders = {}
@@ -356,8 +323,6 @@ class TestAllFolderReadmesSynchronized(unittest.TestCase):
 
 
 class TestNoFileProtocolLinks(unittest.TestCase):
-    """Verify no folder README contains file:/// links."""
-
     def test_no_file_protocol_in_folder_readmes(self):
         root_dir = Path(__file__).resolve().parent.parent.parent
         for folder in TARGET_FOLDERS:
@@ -368,8 +333,6 @@ class TestNoFileProtocolLinks(unittest.TestCase):
 
 
 class TestPreCommitHook(unittest.TestCase):
-    """Verify pre-commit hook content and installer."""
-
     def test_hook_contains_sync_script(self):
         self.assertIn("sync_folder_readmes.py", HOOK_CONTENT)
 
@@ -410,8 +373,6 @@ class TestPreCommitHook(unittest.TestCase):
 
 
 class TestNoRuntimeSideEffects(unittest.TestCase):
-    """Verify sync script doesn't import heavy runtime modules."""
-
     def test_no_torch_import(self):
         path = Path(__file__).resolve().parent.parent.parent / "scripts" / "sync_folder_readmes.py"
         content = path.read_text(encoding="utf-8")
@@ -438,8 +399,6 @@ class TestNoRuntimeSideEffects(unittest.TestCase):
 
 
 class TestLineEndingPreservation(unittest.TestCase):
-    """Verify update_folder_readme preserves original line endings (CRLF vs LF)."""
-
     def _make_readme(self, folder: Path, newline: str) -> None:
         lines = [
             "# Test Package",
@@ -485,8 +444,6 @@ class TestLineEndingPreservation(unittest.TestCase):
 
 
 class TestWindowsRetryAndLockHandling(unittest.TestCase):
-    """Verify atomic write retry logic and temporary file cleanup under transient lock conditions."""
-
     def test_recovers_from_transient_permission_error(self):
         with tempfile.TemporaryDirectory() as td:
             target = Path(td) / "README.md"
@@ -527,8 +484,6 @@ class TestWindowsRetryAndLockHandling(unittest.TestCase):
 
 
 class TestScriptCategorySynchronization(unittest.TestCase):
-    """Verify category synchronization accurately classifies renamed and active scripts."""
-
     def test_validation_and_dataset_script_categories(self):
         self.assertEqual(_get_script_category("demo_confidence_scorer.py"), "Validation")
         self.assertEqual(_get_script_category("demo_gei.py"), "Validation")
@@ -541,8 +496,6 @@ class TestScriptCategorySynchronization(unittest.TestCase):
 
 
 class TestDocsCheckImmutabilityAndSafety(unittest.TestCase):
-    """Verify cli docs-check is strictly read-only and leaves the repository byte-for-byte unchanged."""
-
     def test_docs_check_leaves_docs_tree_and_readmes_byte_for_byte_identical(self):
         import hashlib
 
@@ -626,8 +579,6 @@ class TestDocsCheckImmutabilityAndSafety(unittest.TestCase):
 
 
 class TestSyncIdempotency(unittest.TestCase):
-    """Verify repeated update and check executions are strictly idempotent."""
-
     def test_repeated_update_produces_zero_further_diff(self):
         root_dir = Path(__file__).resolve().parent.parent.parent
 

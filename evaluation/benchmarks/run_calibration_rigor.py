@@ -19,7 +19,6 @@ from pipeline.steps.feature_extraction import FeatureExtractionStep
 
 
 def stratified_kfold_split(y_indices: np.ndarray, n_splits: int = 5, seed: int = 42):
-    """Pure NumPy stratified K-Fold split generator."""
     rng = np.random.RandomState(seed)
     unique_classes = np.unique(y_indices)
     folds = [[] for _ in range(n_splits)]

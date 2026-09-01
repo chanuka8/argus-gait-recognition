@@ -1,5 +1,3 @@
-"""Deterministic unit tests for scripts/migrate_output_layout.py."""
-
 import tempfile
 import unittest
 from pathlib import Path
@@ -8,10 +6,7 @@ from scripts.migrate_output_layout import migrate_outputs
 
 
 class TestMigrateOutputLayout(unittest.TestCase):
-    """Test one-time output layout migration logic."""
-
     def test_migration_dry_run(self) -> None:
-        """Verify dry-run mode logs moves without mutating the filesystem."""
         with tempfile.TemporaryDirectory() as tmpdir:
             outputs_dir = Path(tmpdir) / "outputs"
             legacy_events = outputs_dir / "events"
@@ -24,7 +19,6 @@ class TestMigrateOutputLayout(unittest.TestCase):
             self.assertTrue(dummy_file.exists())
 
     def test_migration_execution_and_conflict_resolution(self) -> None:
-        """Verify actual file move, conflict resolution (_1 suffix), and clean removal."""
         with tempfile.TemporaryDirectory() as tmpdir:
             outputs_dir = Path(tmpdir) / "outputs"
 

@@ -1,5 +1,3 @@
-"""Cross-camera tracking and trajectory continuity across multiple camera feeds."""
-
 import time
 import uuid
 from collections.abc import Callable
@@ -11,8 +9,6 @@ from monitoring.logging_config import get_logger
 
 
 class CrossCameraTracker:
-    """Manages global track IDs and cross-camera transitions."""
-
     def __init__(
         self,
         max_transition_time_seconds: float = 60.0,
@@ -38,7 +34,6 @@ class CrossCameraTracker:
         direction: str | None = None,
         entry_zone: str | None = None,
     ) -> str:
-        """Assign or retrieve a global track ID for a camera stream track."""
         now = self._time_provider()
         key = (camera_id, local_track_id)
 
@@ -165,7 +160,6 @@ class CrossCameraTracker:
         exit_zone: str | None = None,
         direction: str | None = None,
     ) -> None:
-        """Explicitly record a track exit in the transition model."""
         now = self._time_provider()
         with self._lock:
             key = (camera_id, local_track_id)
@@ -184,13 +178,11 @@ class CrossCameraTracker:
                 )
 
     def get_track_history(self, global_track_id: str) -> dict[str, Any] | None:
-        """Get history and transition log for a global track ID."""
         with self._lock:
             track = self._global_tracks.get(global_track_id)
             return track.copy() if track else None
 
     def cleanup_stale_tracks(self, max_age_seconds: float = 300.0) -> int:
-        """Remove tracks inactive past max age."""
         now = self._time_provider()
         removed = 0
         with self._lock:

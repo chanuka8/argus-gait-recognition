@@ -1,10 +1,3 @@
-"""
-3D Pose Gait Model Trainer for ARGUS AI EXP-007.
-
-Supports model architecture selection (TCN, ST-GCN, CTR-GCN), configurable sequence lengths (30/60/90),
-ArcFace + Triplet loss tuning, and subject-disjoint validation early stopping.
-"""
-
 import json
 import sys
 import time
@@ -42,10 +35,6 @@ def get_gait3d_model(encoder_type: str = "tcn", embedding_dim: int = 256) -> tor
 
 
 class Gait3DTrainer:
-    """
-    Trainer for 3D Pose Gait Backbone and Pose Lifter.
-    """
-
     def __init__(
         self,
         data_dir: str = "data/casia_processed/skeletons",

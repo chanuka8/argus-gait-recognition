@@ -1,11 +1,3 @@
-"""
-Implements production-grade camera lifecycle management, reconnect engine,
-failure isolation, inference worker resilience, adaptive resource management,
-frame quality control, FPS governance, model lifecycle safety, structured
-logging, and graceful shutdown.
-
-"""
-
 import enum
 import hashlib
 import json
@@ -29,12 +21,6 @@ from monitoring.logging_config import get_logger
 
 
 class CameraState(enum.Enum):
-    """Production camera lifecycle states.
-
-    Initial state is always STOPPED. FAILED is only reached after
-    an actual connection attempt — never as the default initial state.
-    """
-
     STOPPED = "STOPPED"
     STARTING = "STARTING"
     CONNECTING = "CONNECTING"
@@ -60,8 +46,6 @@ _VALID_TRANSITIONS: dict[CameraState, set[CameraState]] = {
 
 @dataclass
 class CameraResource:
-    """Full camera lifecycle state with production telemetry."""
-
     camera_id: str
     source_type: str = "webcam"
     source_uri: str = ""
@@ -96,7 +80,6 @@ class CameraResource:
     health_score: float = 1.0
 
     def compute_health_score(self) -> float:
-        """Compute health score 0.0-1.0 based on recent metrics."""
         score = 1.0
         if self.connection_state == CameraState.FAILED:
             return 0.0
@@ -115,8 +98,6 @@ class CameraResource:
 
 
 class CameraStateMachine:
-    """Thread-safe camera state machine with validated transitions."""
-
     def __init__(self) -> None:
         self._cameras: dict[str, CameraResource] = {}
         self._lock = threading.RLock()
@@ -133,7 +114,6 @@ class CameraStateMachine:
         codec: str = "h264",
         priority: int = 5,
     ) -> CameraResource:
-        """Register a new camera. Initial state is always STOPPED."""
         with self._lock:
             if camera_id in self._cameras:
                 return self._cameras[camera_id]
@@ -156,7 +136,6 @@ class CameraStateMachine:
             return cam
 
     def transition(self, camera_id: str, new_state: CameraState, error: str = "") -> bool:
-        """Attempt state transition with validation."""
         with self._lock:
             cam = self._cameras.get(camera_id)
             if cam is None:
@@ -218,8 +197,6 @@ class CameraStateMachine:
 
 @dataclass
 class ReconnectConfig:
-    """Reconnect policy configuration."""
-
     min_retry_interval: float = 1.0
     max_retry_interval: float = 60.0
     backoff_multiplier: float = 2.0
@@ -228,8 +205,6 @@ class ReconnectConfig:
 
 
 class ReconnectEngine:
-    """Exponential backoff reconnect engine with jitter and resource safety."""
-
     def __init__(self, config: ReconnectConfig | None = None) -> None:
         self.config = config or ReconnectConfig()
         self._timers: dict[str, threading.Timer] = {}
@@ -241,7 +216,6 @@ class ReconnectEngine:
     def schedule_reconnect(
         self, camera_id: str, callback, *args, **kwargs
     ) -> bool:
-        """Schedule a reconnect attempt with exponential backoff + jitter."""
         with self._lock:
             if self._stopped.is_set():
                 return False
@@ -274,19 +248,16 @@ class ReconnectEngine:
             return True
 
     def reset(self, camera_id: str) -> None:
-        """Reset retry counter after successful connection."""
         with self._lock:
             self._attempts.pop(camera_id, None)
             self._cancel_timer_unsafe(camera_id)
 
     def cancel(self, camera_id: str) -> None:
-        """Cancel pending reconnect for a camera."""
         with self._lock:
             self._cancel_timer_unsafe(camera_id)
             self._attempts.pop(camera_id, None)
 
     def cancel_all(self) -> None:
-        """Cancel all pending reconnects."""
         with self._lock:
             self._stopped.set()
             for camera_id in list(self._timers):
@@ -336,8 +307,6 @@ class InferenceWorkerState(enum.Enum):
 
 @dataclass
 class InferenceWorkerInfo:
-    """Per-worker health and telemetry."""
-
     worker_id: str
     worker_type: str = "shared_inference"
     state: InferenceWorkerState = InferenceWorkerState.IDLE
@@ -368,8 +337,6 @@ class InferenceWorkerInfo:
 
 
 class ResilientWorkerPool:
-    """Manages inference workers with health monitoring, restart, and timeout protection."""
-
     def __init__(
         self,
         num_workers: int = 2,
@@ -389,7 +356,6 @@ class ResilientWorkerPool:
         self._process_fn = None
 
     def start(self, process_fn) -> None:
-        """Start worker pool with given processing function."""
         self._process_fn = process_fn
         self._stop_event.clear()
 
@@ -406,7 +372,6 @@ class ResilientWorkerPool:
         self._logger.info(f"Resilient worker pool started with {self.num_workers} workers")
 
     def stop(self, timeout: float = 5.0) -> None:
-        """Gracefully stop all workers."""
         self._stop_event.set()
         with self._lock:
             for wid, t in list(self._threads.items()):
@@ -422,7 +387,6 @@ class ResilientWorkerPool:
         self._logger.info("Worker pool stopped")
 
     def get_worker_info(self) -> dict[str, dict]:
-        """Return all worker telemetry."""
         with self._lock:
             result = {}
             for wid, info in self._workers.items():
@@ -500,8 +464,6 @@ class ResourcePressure(enum.Enum):
 
 @dataclass
 class ResourceThresholds:
-    """Configurable resource thresholds for adaptive policy."""
-
     max_cpu_percent: float = 85.0
     max_ram_percent: float = 85.0
     max_gpu_percent: float = 90.0
@@ -515,8 +477,6 @@ class ResourceThresholds:
 
 @dataclass
 class ResourceSnapshot:
-    """Point-in-time resource measurements."""
-
     cpu_percent: float = 0.0
     ram_percent: float = 0.0
     ram_used_mb: float = 0.0
@@ -534,8 +494,6 @@ class ResourceSnapshot:
 
 
 class AdaptiveResourceManager:
-    """Monitors system resources and applies backpressure policies."""
-
     def __init__(self, thresholds: ResourceThresholds | None = None) -> None:
         self.thresholds = thresholds or ResourceThresholds()
         self._pressure = ResourcePressure.HEALTHY
@@ -551,12 +509,10 @@ class AdaptiveResourceManager:
 
     @property
     def processing_rate_factor(self) -> float:
-        """Factor 0.0-1.0 applied to processing rate. 1.0 = full speed."""
         with self._lock:
             return self._processing_rate_factor
 
     def take_snapshot(self) -> ResourceSnapshot:
-        """Collect current resource state."""
         snap = ResourceSnapshot()
         try:
             import psutil
@@ -586,7 +542,6 @@ class AdaptiveResourceManager:
         return snap
 
     def evaluate(self, snapshot: ResourceSnapshot | None = None) -> ResourcePressure:
-        """Evaluate resource pressure and adjust processing rate."""
         snap = snapshot or self.take_snapshot()
         th = self.thresholds
 
@@ -665,8 +620,6 @@ class AdaptiveResourceManager:
 
 @dataclass
 class QualifiedFrame:
-    """Frame with full provenance and quality metadata."""
-
     camera_id: str
     frame_id: int
     frame_uuid: str
@@ -680,8 +633,6 @@ class QualifiedFrame:
 
 
 class FrameQualityGate:
-    """Validates frame freshness, duplicates, and ordering."""
-
     def __init__(
         self,
         max_frame_age_ms: float = 500.0,
@@ -700,7 +651,6 @@ class FrameQualityGate:
         self.accepted: int = 0
 
     def validate(self, frame: QualifiedFrame) -> tuple[bool, str]:
-        """Validate a frame. Returns (accepted, reason)."""
         now = time.monotonic()
         age_ms = (now - frame.capture_timestamp) * 1000.0
 
@@ -730,7 +680,6 @@ class FrameQualityGate:
             return True, "accepted"
 
     def compute_frame_hash(self, frame_data: np.ndarray) -> str:
-        """Fast perceptual hash for duplicate detection."""
         if frame_data is None or frame_data.size == 0:
             return ""
 
@@ -759,8 +708,6 @@ class FPSPolicy(enum.Enum):
 
 
 class FPSGovernor:
-    """Controls inference processing rate independently from camera capture rate."""
-
     def __init__(
         self,
         policy: FPSPolicy = FPSPolicy.TARGET_FPS,
@@ -778,7 +725,6 @@ class FPSGovernor:
         self._lock = threading.Lock()
 
     def should_process(self, camera_id: str, resource_factor: float = 1.0) -> bool:
-        """Determine if this frame should be processed based on FPS policy."""
         now = time.monotonic()
 
         if self.policy == FPSPolicy.PROCESS_EVERY_FRAME:
@@ -825,8 +771,6 @@ class FPSGovernor:
 
 
 class ModelVersion:
-    """Represents a versioned model artifact."""
-
     def __init__(
         self,
         version_id: str,
@@ -843,13 +787,6 @@ class ModelVersion:
 
 
 class SafeModelSwapper:
-    """Atomic model version swap with rollback support.
-
-    Lifecycle: ACTIVE → candidate training → validation → registry → promotion → new ACTIVE
-    Workers finish current batch before using promoted version.
-    Rollback restores previous production version atomically.
-    """
-
     def __init__(self) -> None:
         self._active_version: ModelVersion | None = None
         self._previous_version: ModelVersion | None = None
@@ -861,7 +798,6 @@ class SafeModelSwapper:
         self._swap_listeners: list[Any] = []
 
     def set_active(self, version: ModelVersion) -> None:
-        """Set the initial active model version."""
         with self._swap_lock:
             self._active_version = version
             self._registry[version.version_id] = version
@@ -872,14 +808,12 @@ class SafeModelSwapper:
             return self._active_version
 
     def register_candidate(self, version: ModelVersion) -> None:
-        """Register a training candidate for validation."""
         with self._swap_lock:
             self._candidate = version
             self._registry[version.version_id] = version
             self._logger.info(f"Candidate registered: {version.version_id}")
 
     def promote_candidate(self) -> bool:
-        """Atomically promote candidate to active. Old active becomes rollback target."""
         with self._swap_lock:
             if self._candidate is None:
                 self._logger.warning("No candidate to promote")
@@ -900,7 +834,6 @@ class SafeModelSwapper:
             return True
 
     def rollback(self) -> bool:
-        """Atomically rollback to previous production version."""
         with self._swap_lock:
             if self._previous_version is None:
                 self._logger.warning("No previous version available for rollback")
@@ -937,12 +870,6 @@ class SafeModelSwapper:
 
 
 class DataPoisoningGuard:
-    """Prevents poisoned observations from reaching training data.
-
-    Gates: confidence threshold, duplicate rejection, outlier detection,
-    temporal consistency, cross-camera consistency, verification state.
-    """
-
     def __init__(
         self,
         min_confidence: float = 0.70,
@@ -971,8 +898,6 @@ class DataPoisoningGuard:
         timestamp: float,
         verification_state: str = "PREDICTED",
     ) -> tuple[bool, str]:
-        """Validate an observation before it can become training-eligible."""
-
         if verification_state == "PREDICTED":
 
             pass
@@ -1036,8 +961,6 @@ class DataPoisoningGuard:
 
 
 class StructuredEventLogger:
-    """JSON-structured production event logging with credential redaction."""
-
     EVENT_TYPES = frozenset({
         "camera_connected", "camera_disconnected", "camera_reconnect",
         "frame_dropped", "queue_overflow",
@@ -1066,7 +989,6 @@ class StructuredEventLogger:
         correlation_id: str = "",
         extra: dict | None = None,
     ) -> dict:
-        """Emit a structured event record."""
         record = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "severity": severity,
@@ -1104,8 +1026,6 @@ class StructuredEventLogger:
 
 
 class GracefulShutdownManager:
-    """Orchestrates clean system shutdown in correct dependency order."""
-
     def __init__(self) -> None:
         self._shutdown_hooks: list[tuple[int, str, Any]] = []
         self._lock = threading.Lock()
@@ -1114,7 +1034,6 @@ class GracefulShutdownManager:
         self._completed = threading.Event()
 
     def register_hook(self, priority: int, name: str, callback) -> None:
-        """Register a shutdown hook. Lower priority = runs first."""
         with self._lock:
             self._shutdown_hooks.append((priority, name, callback))
             self._shutdown_hooks.sort(key=lambda x: x[0])
@@ -1124,7 +1043,6 @@ class GracefulShutdownManager:
         return self._shutting_down.is_set()
 
     def shutdown(self, timeout_per_hook: float = 5.0) -> dict:
-        """Execute ordered shutdown sequence."""
         if self._shutting_down.is_set():
             return {"status": "already_shutting_down"}
 
@@ -1149,7 +1067,6 @@ class GracefulShutdownManager:
         return results
 
     def install_signal_handlers(self) -> None:
-        """Install OS signal handlers for graceful shutdown."""
         def _handler(signum, frame):
             self._logger.info(f"Received signal {signum}, initiating shutdown")
             self.shutdown()
@@ -1168,13 +1085,6 @@ class GracefulShutdownManager:
 
 
 class CapacityEstimator:
-    """Estimates sustainable camera count from measured runtime metrics.
-
-    Formula: sustainable_cameras = measured_throughput_fps / target_fps_per_camera
-
-    Validated against resource utilization constraints.
-    """
-
     def __init__(
         self,
         target_fps_per_camera: float = 10.0,
@@ -1198,7 +1108,6 @@ class CapacityEstimator:
         p95_latency_ms: float,
         drop_rate: float,
     ) -> dict:
-        """Estimate sustainable camera capacity from measured data."""
         if self.target_fps <= 0 or measured_throughput_fps <= 0:
             return {
                 "estimated_sustainable_cameras": 0,
@@ -1258,23 +1167,6 @@ class CapacityEstimator:
 
 
 class ProductionSurveillanceRuntime:
-    """Top-level production surveillance runtime integrating all Phase 4 components.
-
-    Wires together:
-    - CameraStateMachine (Task 1)
-    - ReconnectEngine (Task 2)
-    - Camera failure isolation (Task 3)
-    - ResilientWorkerPool (Task 4)
-    - AdaptiveResourceManager (Task 5)
-    - FrameQualityGate (Task 6)
-    - FPSGovernor (Task 7)
-    - SafeModelSwapper (Task 13)
-    - DataPoisoningGuard (Task 15)
-    - StructuredEventLogger (Task 16)
-    - GracefulShutdownManager (Task 17)
-    - CapacityEstimator (Task 20)
-    """
-
     def __init__(self, config: dict | None = None) -> None:
         cfg = config or {}
 
@@ -1341,7 +1233,6 @@ class ProductionSurveillanceRuntime:
         resolution: tuple[int, int] = (640, 480),
         priority: int = 5,
     ) -> CameraResource:
-        """Register camera in STOPPED state."""
         cam = self.camera_state_machine.register_camera(
             camera_id=camera_id,
             source_type=source_type,
@@ -1359,14 +1250,12 @@ class ProductionSurveillanceRuntime:
         return cam
 
     def start_camera(self, camera_id: str) -> bool:
-        """Transition camera from STOPPED → STARTING → CONNECTING."""
         ok = self.camera_state_machine.transition(camera_id, CameraState.STARTING)
         if ok:
             self.camera_state_machine.transition(camera_id, CameraState.CONNECTING)
         return ok
 
     def connect_camera(self, camera_id: str) -> bool:
-        """Mark camera as CONNECTED after successful connection."""
         ok = self.camera_state_machine.transition(camera_id, CameraState.CONNECTED)
         if ok:
             self.reconnect_engine.reset(camera_id)
@@ -1379,7 +1268,6 @@ class ProductionSurveillanceRuntime:
         return ok
 
     def fail_camera(self, camera_id: str, error: str = "") -> None:
-        """Handle camera failure — triggers reconnect if applicable."""
         cam = self.camera_state_machine.get_camera(camera_id)
         if cam is None:
             return
@@ -1413,7 +1301,6 @@ class ProductionSurveillanceRuntime:
             )
 
     def stop_camera(self, camera_id: str) -> bool:
-        """Stop a camera cleanly."""
         cam = self.camera_state_machine.get_camera(camera_id)
         if cam is None:
             return False
@@ -1431,7 +1318,6 @@ class ProductionSurveillanceRuntime:
         return True
 
     def get_system_health(self) -> dict:
-        """Comprehensive system health snapshot."""
         cameras = self.camera_state_machine.get_all_cameras()
         snap = self.resource_manager.take_snapshot()
         self.resource_manager.evaluate(snap)
@@ -1480,7 +1366,6 @@ class ProductionSurveillanceRuntime:
         }
 
     def get_camera_health(self) -> dict[str, dict]:
-        """Per-camera health report."""
         cameras = self.camera_state_machine.get_all_cameras()
         result = {}
         for cid, cam in cameras.items():
@@ -1513,7 +1398,6 @@ class ProductionSurveillanceRuntime:
         measured_throughput_fps: float,
         current_cameras: int,
     ) -> dict:
-        """Estimate sustainable camera count from measured runtime data."""
         snap = self.resource_manager.take_snapshot()
         return self.capacity_estimator.estimate(
             measured_throughput_fps=measured_throughput_fps,
@@ -1525,7 +1409,6 @@ class ProductionSurveillanceRuntime:
         )
 
     def _attempt_reconnect(self, camera_id: str) -> None:
-        """Attempt reconnection for a failed camera."""
         cam = self.camera_state_machine.get_camera(camera_id)
         if cam is None or cam.connection_state == CameraState.STOPPED:
             return
@@ -1539,12 +1422,10 @@ class ProductionSurveillanceRuntime:
         self.camera_state_machine.transition(camera_id, CameraState.CONNECTING)
 
     def _shutdown_cameras(self) -> None:
-        """Stop all cameras during shutdown."""
         for cid in list(self.camera_state_machine.get_all_cameras()):
             self.stop_camera(cid)
 
     def _flush_logs(self) -> None:
-        """Flush all log handlers."""
         for handler in logging.root.handlers:
             try:
                 handler.flush()

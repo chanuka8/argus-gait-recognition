@@ -10,7 +10,6 @@ if str(ROOT) not in sys.path:
 
 
 def compute_cosine_similarity(vec1: np.ndarray, vec2: np.ndarray) -> float:
-    """Calculates cosine similarity between two 1D feature vectors."""
     v1 = np.asarray(vec1, dtype=np.float32).flatten()
     v2 = np.asarray(vec2, dtype=np.float32).flatten()
 
@@ -28,7 +27,6 @@ def compute_rank_k_accuracies(
     true_labels: list[str],
     ks: tuple[int, ...] = (1, 5, 10),
 ) -> dict[int, float]:
-    """Calculates Rank-k identification accuracies for given k values."""
     if not ranked_predictions or not true_labels or len(ranked_predictions) != len(true_labels):
         return {k: 0.0 for k in ks}
 
@@ -51,7 +49,6 @@ def compute_cmc_curve(
     true_labels: list[str],
     max_k: int = 20,
 ) -> list[float]:
-    """Computes Cumulative Match Characteristic (CMC) curve up to max_k."""
     if not ranked_predictions or not true_labels:
         return [0.0] * max_k
 
@@ -74,14 +71,6 @@ def compute_biometric_rates(
     is_genuine: list[bool] | np.ndarray,
     threshold: float,
 ) -> dict:
-    """
-    Computes biometric security rates at a specific threshold:
-    - FAR: False Accept Rate (Impostor accepted)
-    - FRR: False Reject Rate (Genuine rejected)
-    - TAR: True Accept Rate (1 - FRR)
-    - TNR: True Reject Rate (1 - FAR)
-    - Precision, Recall, F1
-    """
     scores_arr = np.asarray(scores, dtype=np.float32)
     is_gen_arr = np.asarray(is_genuine, dtype=bool)
 
@@ -137,9 +126,6 @@ def compute_roc_auc_eer(
     is_genuine: list[bool] | np.ndarray,
     num_thresholds: int = 500,
 ) -> dict:
-    """
-    Computes ROC curve points, ROC-AUC, and Equal Error Rate (EER) with threshold.
-    """
     scores_arr = np.asarray(scores, dtype=np.float32)
     is_gen_arr = np.asarray(is_genuine, dtype=bool)
 

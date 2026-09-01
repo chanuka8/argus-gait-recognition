@@ -18,8 +18,6 @@ from storage.vector_store import VectorStore
 
 
 class WebSocketManager:
-    """Manages active WebSocket connections for real-time recognition event broadcasting."""
-
     def __init__(self) -> None:
         self.active_connections: list[WebSocket] = []
 
@@ -40,13 +38,6 @@ class WebSocketManager:
 
 
 class GaitService:
-    """
-    Unified Single-Instance Gait Recognition Service for ARGUS FastAPI Backend.
-    Encapsulates person detection, silhouette extraction (UNet + Otsu fallback),
-    ByGaitLight feature encoding, VectorStore matching, camera worker state, and event history.
-    Uses high-performance lazy initialization and background warmup for instant server startup.
-    """
-
     def __init__(
         self, gallery_dir: str = "models/live_gallery", appearance_gallery_dir: str = "models/appearance_gallery"
     ) -> None:
@@ -95,7 +86,6 @@ class GaitService:
 
     @property
     def is_warmed_up(self) -> bool:
-        """Returns True if background model warmup has completed."""
         return self._is_warmed_up
 
     @property
@@ -283,10 +273,6 @@ class GaitService:
         self._continuous_engine = value
 
     def warmup(self) -> dict[str, Any]:
-        """
-        Pre-warms all heavy models and components in a background worker thread.
-        Guarantees that inference requests after warmup execute with zero initial load latency.
-        """
         with self._lock:
             if self._is_warmed_up:
                 return {"status": "WARMED_UP", "already_warmed": True}
@@ -336,12 +322,10 @@ class GaitService:
             return {"status": "WARMED_UP", "duration": dur, "components": results}
 
     async def warmup_async(self) -> dict[str, Any]:
-        """Asynchronously triggers model warmup in a thread pool without blocking event loop."""
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, self.warmup)
 
     async def shutdown_async(self) -> None:
-        """Gracefully shut down active camera workers."""
         for cam_id, worker in list(self.camera_workers.items()):
             try:
                 worker.stop()
@@ -396,7 +380,6 @@ class GaitService:
                 )
 
     def _handle_recognition_event(self, event_dict: dict) -> None:
-        """Store confirmed recognition event in history and broadcast to WebSocket subscribers."""
         self.events_log.insert(0, event_dict)
         if len(self.events_log) > 500:
             self.events_log.pop()
@@ -422,7 +405,6 @@ class GaitService:
         }
 
     def process_image_bytes(self, image_bytes: bytes, camera_id: str = "upload-image") -> dict:
-        """Processes uploaded image bytes and returns a structured recognition event."""
         array = np.frombuffer(image_bytes, dtype=np.uint8)
         frame = cv2.imdecode(array, cv2.IMREAD_COLOR)
 
@@ -510,7 +492,6 @@ class GaitService:
         return event
 
     def enroll_images(self, person_id: str, image_bytes_list: list[bytes]) -> dict:
-        """Enrolls a new subject into the gallery from uploaded image byte buffers."""
         if not person_id or not person_id.replace("_", "").replace("-", "").isalnum():
             raise ValueError("Invalid person_id: must be alphanumeric (hyphens/underscores permitted)")
 
@@ -615,7 +596,6 @@ class GaitService:
         }
 
     def _load_camera_config(self) -> dict:
-        """Load default camera configuration settings from configs/system.yaml."""
         config_path = Path("configs/system.yaml")
         defaults = {
             "width": 640,
@@ -655,7 +635,6 @@ class GaitService:
         user_id: str = "default_user",
         credential_id: str | None = None,
     ) -> dict:
-        """Starts camera tracking worker state with automatic or explicit source resolution."""
         if camera_id in self.active_cameras:
             return self.get_camera_info(camera_id)
 
@@ -792,7 +771,6 @@ class GaitService:
         return cam_info
 
     def stop_camera(self, camera_id: str) -> bool:
-        """Stops camera tracking worker state and releases source reservation."""
         worker = self.camera_workers.pop(camera_id, None)
         if worker:
             try:
@@ -808,11 +786,9 @@ class GaitService:
         return False
 
     def get_camera_worker(self, camera_id: str) -> CameraWorker | None:
-        """Return active CameraWorker instance if present."""
         return self.camera_workers.get(camera_id)
 
     def get_camera_info(self, camera_id: str) -> dict | None:
-        """Return updated camera status with live telemetry metrics."""
         cam = self.active_cameras.get(camera_id)
         if not cam:
             return None
@@ -837,7 +813,6 @@ class GaitService:
         return cam
 
     def list_all_cameras(self) -> list[dict]:
-        """Return all active camera info with updated telemetry."""
         result = []
         for cam_id in list(self.active_cameras.keys()):
             info = self.get_camera_info(cam_id)

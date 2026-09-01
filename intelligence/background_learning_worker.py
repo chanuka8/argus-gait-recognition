@@ -1,15 +1,3 @@
-"""
-Resource-Safe Background Learning Worker for ARGUS AI.
-
-Executes date-aware candidate calibration & learning jobs strictly isolated
-from the real-time surveillance inference pipeline:
-- Runs in dedicated background thread with bounded queue (concurrency = 1).
-- Never blocks or executes inside RecognitionWorker, CameraWorker, or API server.
-- Anti-catastrophic forgetting: Always blends historical baseline dataset + new date data.
-- Enforces ModelRegistry -> CandidateValidator -> Atomic Promotion / Rejection flow.
-- Full exception containment: Training failures never crash ARGUS or corrupt active models.
-"""
-
 import json
 import queue
 import threading
@@ -38,12 +26,6 @@ from storage.embedding_database import EmbeddingDatabase
 
 
 class BackgroundLearningWorker:
-    """
-    Isolated background executor for continuous learning jobs.
-    Guarantees zero inference disruption, bounded resource utilization,
-    and automated safety gate validation.
-    """
-
     def __init__(
         self,
         scheduler: DateAwareLearningScheduler | None = None,
@@ -108,7 +90,6 @@ class BackgroundLearningWorker:
         self._on_promotion_callback = None
 
     def start(self) -> None:
-        """Start the isolated background learning worker thread."""
         with self._lock:
             if self._worker_thread is not None and self._worker_thread.is_alive():
                 return
@@ -122,14 +103,12 @@ class BackgroundLearningWorker:
             self._logger.info("[WORKER_STARTED] Background learning worker is active.")
 
     def stop(self, timeout: float = 5.0) -> None:
-        """Gracefully signal and stop the background learning worker."""
         self._stop_event.set()
         if self._worker_thread and self._worker_thread.is_alive():
             self._worker_thread.join(timeout=timeout)
             self._logger.info("[WORKER_STOPPED] Background learning worker shut down.")
 
     def submit_job(self, job: LearningJobRecord) -> bool:
-        """Submit a PENDING learning job to the bounded execution queue."""
         try:
             self._job_queue.put_nowait(job)
             self._logger.info(f"Submitted learning job '{job.job_id}' (date: {job.training_date}) to queue.")
@@ -139,7 +118,6 @@ class BackgroundLearningWorker:
             return False
 
     def _worker_loop(self) -> None:
-        """Main worker loop pulling jobs and executing them safely."""
         while not self._stop_event.is_set():
             try:
                 job = self._job_queue.get(timeout=0.5)
@@ -155,14 +133,9 @@ class BackgroundLearningWorker:
                 self._current_job = None
 
     def execute_job_synchronous(self, job: LearningJobRecord) -> LearningJobRecord:
-        """Execute a learning job synchronously in the current thread (for tests or manual trigger)."""
         return self._execute_job(job)
 
     def _execute_job(self, job: LearningJobRecord) -> LearningJobRecord:
-        """
-        Execute candidate generation, regression validation, and atomic promotion
-        with strict exception containment.
-        """
         start_time = time.time()
         job.started_at = start_time
         job.status = LearningJobStatus.RUNNING
@@ -299,11 +272,6 @@ class BackgroundLearningWorker:
     def _prepare_training_data(
         self, job: LearningJobRecord
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray, dict[str, Any]]:
-        """
-        Combine new date's training-eligible data with historical validated baseline data.
-        Generates genuine and impostor pair similarity scores for candidate calibration.
-        """
-
         new_gait: list[np.ndarray] = []
         new_app: list[np.ndarray] = []
         new_labels: list[str] = []
@@ -396,10 +364,6 @@ class BackgroundLearningWorker:
         confusion_pairs: dict[str, Any],
         artifact_path: Path,
     ) -> tuple[dict[str, float], dict[str, Any]]:
-        """
-        Fit candidate LearnedLogisticFusion calibration weights,
-        evaluate out-of-fold validation metrics, and persist candidate artifact.
-        """
         fusion = LearnedLogisticFusion(profile="identification")
         fusion.fit(
             gait_scores=gait_samples,
@@ -464,15 +428,9 @@ class BackgroundLearningWorker:
 
 
     def set_on_promotion_callback(self, callback) -> None:
-        """Set a callback invoked after successful model promotion (for live reload)."""
         self._on_promotion_callback = callback
 
     def _execute_nn_job(self, job: LearningJobRecord, start_time: float) -> LearningJobRecord:
-        """
-        Execute actual NN fine-tuning for ByGaitLight or OSNet models.
-        Produces a candidate .pth artifact, independently evaluates against baseline,
-        enforces accuracy & anti-churn gates, and promotes if passing.
-        """
         try:
 
             train_samples, _val_samples, test_samples, hist_replay, hist_test, future_holdout, manifest = (
@@ -716,10 +674,6 @@ class BackgroundLearningWorker:
     def _prepare_nn_training_data(
         self, job: LearningJobRecord
     ) -> tuple[list[dict], list[dict]]:
-        """
-        Prepare GEI/crop image data for NN fine-tuning.
-        Returns (training_data, historical_data) each as list of {"image": ndarray, "label": str}.
-        """
         training_data = []
         historical_data = []
 

@@ -1,10 +1,3 @@
-"""
-Appearance ReID Embedding Extraction and Caching Module.
-
-Extracts 512D L2-normalized feature vectors using OSNet pretrained backbone.
-Maintains per-track caching and performance gating to minimize inference overhead.
-"""
-
 from typing import Any
 
 import numpy as np
@@ -13,13 +6,6 @@ from monitoring.logging_config import get_logger
 
 
 class AppearanceEmbeddingExtractor:
-    """
-    Appearance ReID embedding extractor and per-track cache manager.
-
-    Wraps OSNet backbone to generate 512D L2-normalized feature embeddings.
-    Caches features per active track ID to avoid repeated CNN inference.
-    """
-
     def __init__(
         self,
         model_path: str = "models/weights/osnet_x0_25.pth",
@@ -36,7 +22,6 @@ class AppearanceEmbeddingExtractor:
         self._init_model()
 
     def _init_model(self) -> None:
-        """Initialize OSNet backbone with exception handling fallback."""
         try:
             from pipeline.steps.reid_feature_extraction import ReIDFeatureExtractionStep
 
@@ -49,7 +34,6 @@ class AppearanceEmbeddingExtractor:
             self.backbone = None
 
     def is_available(self) -> bool:
-        """Check if appearance model is initialized and available."""
         return self.backbone is not None
 
     def extract(
@@ -60,14 +44,6 @@ class AppearanceEmbeddingExtractor:
         track_reliable: bool = True,
         recognition_deferred: bool = False,
     ) -> np.ndarray | None:
-        """
-        Extract 512D L2-normalized appearance embedding for a track crop.
-
-        Uses caching and gating to prevent repeated inference:
-        - If track is unreliable or recognition deferred, returns cached embedding if available.
-        - If crop is invalid or track was updated recently (< update_interval), returns cached.
-        - Otherwise extracts embedding via CNN, normalizes, updates cache, and returns vector.
-        """
         if track_id is None:
             return self._extract_raw(crop)
 
@@ -96,7 +72,6 @@ class AppearanceEmbeddingExtractor:
         return cached_embedding
 
     def _extract_raw(self, crop: np.ndarray | None) -> np.ndarray | None:
-        """Extract and normalize 512D embedding vector from a BGR crop."""
         if not self.is_available() or crop is None or crop.size == 0:
             return None
 
@@ -134,11 +109,6 @@ class AppearanceEmbeddingExtractor:
         track_ids: list[int] | None = None,
         frame_index: int = 0,
     ) -> list[np.ndarray | None]:
-        """
-        Extract normalized 512D embeddings for a batch of person crops using OSNet backbone.
-
-        Automatically updates per-track cache when track_ids are provided.
-        """
         if not self.is_available() or not crops:
             return [None] * len(crops)
 
@@ -188,14 +158,11 @@ class AppearanceEmbeddingExtractor:
         return results
 
     def get_cached(self, track_id: int) -> np.ndarray | None:
-        """Retrieve cached embedding for a track ID."""
         entry = self._cache.get(track_id)
         return entry["embedding"] if entry else None
 
     def clear_track(self, track_id: int) -> None:
-        """Evict track entry from cache."""
         self._cache.pop(track_id, None)
 
     def clear_all(self) -> None:
-        """Clear all cached embeddings."""
         self._cache.clear()

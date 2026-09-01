@@ -1,10 +1,3 @@
-"""
-Production-Grade ARGUS AI Environment Bootstrap & Hardware Arbitration Orchestrator.
-
-Performs deterministic 12-stage hardware discovery, runtime capability validation,
-idempotent package management, and manifest persistence.
-"""
-
 import argparse
 import datetime
 import json
@@ -33,8 +26,6 @@ if hasattr(sys.stdout, "reconfigure"):
 
 
 class EnvironmentBootstrap:
-    """Master orchestrator for ARGUS environment discovery, repair, and validation."""
-
     def __init__(self, force_repair: bool = False, force_cpu: bool = False) -> None:
         self.force_repair = force_repair
         self.force_cpu = force_cpu
@@ -248,7 +239,6 @@ class EnvironmentBootstrap:
         return True
 
     def _save_manifest(self, summary: dict[str, Any]) -> None:
-        """Persist environment snapshot to .venv/argus_env_manifest.json."""
         self.manifest_path.parent.mkdir(parents=True, exist_ok=True)
         data = {
             **summary,

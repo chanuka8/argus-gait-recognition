@@ -1,14 +1,3 @@
-"""
-ARGUS AI Real-Time Package & Large File Streaming Downloader.
-
-Provides live terminal download monitoring with in-place progress bars,
-download speed, ETA calculation, HTTP range resumption, SHA-256 validation,
-and robust network auto-retry.
-
-Usage:
-    python scripts/download_package.py <URL> <OUTPUT_PATH> [--name <NAME>] [--version <VER>] [--platform <PLAT>] [--source <SRC>] [--retries <N>] [--sha256 <HASH>]
-"""
-
 import argparse
 import hashlib
 import os
@@ -20,7 +9,6 @@ from pathlib import Path
 
 
 def format_bytes(num_bytes: float) -> str:
-    """Format bytes to human-readable string (KB, MB, GB)."""
     if num_bytes < 1024:
         return f"{num_bytes:.0f} B"
     elif num_bytes < 1024 * 1024:
@@ -32,7 +20,6 @@ def format_bytes(num_bytes: float) -> str:
 
 
 def format_time(seconds: float) -> str:
-    """Format seconds to MM:SS or HH:MM:SS."""
     if seconds < 0 or seconds > 86400 * 7:
         return "--:--"
     m, s = divmod(int(seconds), 60)
@@ -51,7 +38,6 @@ def render_progress_bar(
     is_tty: bool,
     bar_width: int = 24,
 ) -> None:
-    """Render a live progress bar to stdout."""
     elapsed = time.time() - start_time
     speed_str = f"{format_bytes(speed_bps)}/s"
 
@@ -93,9 +79,6 @@ def download_file(
     max_retries: int = 5,
     chunk_size: int = 256 * 1024,
 ) -> bool:
-    """
-    Download a file with real-time visual progress, automatic resumption, and retries.
-    """
     pkg_name = package_name or output_path.name
     output_path.parent.mkdir(parents=True, exist_ok=True)
     part_path = output_path.with_suffix(output_path.suffix + ".part")

@@ -1,12 +1,3 @@
-"""
-Open-Set Gait Recognition Engine.
-
-Classifies recognition candidates into a clear three-state decision model:
-  - KNOWN: Confirmed enrolled identity with high confidence and distinct margin.
-  - UNKNOWN: Unenrolled identity or probe score below the rejection threshold.
-  - UNCERTAIN: Inconclusive match requiring further evidence or human review.
-"""
-
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
@@ -28,13 +19,6 @@ class OpenSetDecisionResult:
 
 
 class OpenSetRecognizer:
-    """
-    Open-Set Recognizer.
-
-    Applies three-state decision logic (KNOWN, UNKNOWN, UNCERTAIN) on gallery matches,
-    feature quality metrics, and candidate margins.
-    """
-
     def __init__(
         self,
         known_threshold: float = 0.85,
@@ -58,17 +42,6 @@ class OpenSetRecognizer:
         quality_score: float = 1.0,
         temporal_decision: str | None = None,
     ) -> OpenSetDecisionResult:
-        """
-        Evaluates open-set status for a list of candidate matches.
-
-        Args:
-            top_matches: Ranked list of (identity_label, similarity_score) tuples.
-            quality_score: GEI feature quality score [0.0, 1.0].
-            temporal_decision: Decision status from TemporalGaitVerifier if available.
-
-        Returns:
-            OpenSetDecisionResult containing state, identity, score, confidence, and details.
-        """
         if not top_matches:
             return OpenSetDecisionResult(
                 state=OpenSetState.UNKNOWN,

@@ -1,10 +1,3 @@
-"""
-Optional 3D Pose Gait Extraction Step for ARGUS AI Pipeline.
-
-Converts tracking box crops -> 2D keypoints -> Temporal 3D pose lifting -> Normalized 3D joint sequence -> 256-D 3D Gait Embedding.
-Disabled by default (`enabled=False`). Falls back gracefully to 2D GEI gait matching when disabled or unavailable.
-"""
-
 from pathlib import Path
 
 import cv2
@@ -19,10 +12,6 @@ from models.architectures.pose_gait_3d import (
 
 
 class Gait3DStep:
-    """
-    Independent 3D Pose Gait Analysis Step.
-    """
-
     def __init__(
         self,
         enabled: bool = False,
@@ -48,7 +37,6 @@ class Gait3DStep:
             self._initialize_models(pose_model_path, weights_path)
 
     def _initialize_models(self, pose_model_path: str, weights_path: str | None) -> None:
-        """Loads YOLOv8-pose, PoseLifter3D, and PoseGait3DNet onto configured device."""
         try:
             from ultralytics import YOLO
 
@@ -84,16 +72,6 @@ class Gait3DStep:
                 self.enabled = False
 
     def process_frame_crop(self, track_id: str, crop: np.ndarray) -> np.ndarray | None:
-        """
-        Extracts 2D pose from frame crop, updates track buffer, and returns 3D gait embedding if buffer full.
-
-        Args:
-            track_id: Unique tracking identity ID string.
-            crop: BGR image crop of detected person.
-
-        Returns:
-            256-D L2-normalized 3D gait embedding numpy array, or None if disabled/buffering.
-        """
         if not self.enabled or self.pose_estimator is None or crop is None or crop.size == 0:
             return None
 
@@ -127,7 +105,6 @@ class Gait3DStep:
         return emb.astype(np.float32)
 
     def prune_stale_tracks(self, active_track_ids: list[str]) -> None:
-        """Removes track buffers for track IDs no longer active in tracker."""
         if self.pose_buffer is not None:
             active_set = set(active_track_ids)
             stale_keys = [k for k in self.pose_buffer.buffers if k not in active_set]

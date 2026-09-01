@@ -38,7 +38,6 @@ from services.gait_service import GaitService
 
 
 def get_current_user_id(request: Request) -> str:
-    """Extract authenticated user ID from request headers or default to development identity."""
     user_header = request.headers.get("X-User-ID")
     if user_header:
         return user_header.strip()
@@ -57,7 +56,6 @@ _fallback_gait_service: GaitService | None = None
 
 
 def get_gait_service(request: Request = None) -> GaitService:
-    """Return the initialized application-level gait service."""
     global _fallback_gait_service
 
     if request is not None and hasattr(request, "app") and hasattr(request.app.state, "gait_service") and request.app.state.gait_service:
@@ -82,7 +80,6 @@ v1_router = APIRouter(
 def get_health(
     service: Annotated[GaitService, Depends(get_gait_service)],
 ):
-    """Return the health status of the ARGUS gait service."""
     backend_name = "pytorch"
     if service._extractor is not None:
         backend_name = getattr(service._extractor.backend, "backend_name", "pytorch")
@@ -108,7 +105,6 @@ def get_health(
 def get_status(
     service: Annotated[GaitService, Depends(get_gait_service)],
 ):
-    """Return the operational status of the ARGUS backend."""
     from automation.device_manager import DeviceManager
 
     metrics = service.get_metrics()
@@ -147,8 +143,6 @@ def get_status(
 def get_metrics(
     service: Annotated[GaitService, Depends(get_gait_service)],
 ):
-    """Return runtime metrics."""
-
     return service.get_metrics()
 
 
@@ -167,8 +161,6 @@ async def identify_image(
         Form(description="Camera or upload source identifier"),
     ] = "upload-image",
 ):
-    """Identify a person from an uploaded image."""
-
     if file.content_type and not file.content_type.startswith("image/"):
         raise HTTPException(
             status_code=415,
@@ -219,8 +211,6 @@ async def analyze_video(
     ],
     service: Annotated[GaitService, Depends(get_gait_service)],
 ):
-    """Analyze sampled frames from an uploaded video."""
-
     temporary_path: str | None = None
 
     try:
@@ -341,7 +331,6 @@ def create_credential(
     body: CredentialCreateRequest,
     request: Request,
 ):
-    """Store an encrypted RTSP credential associated with the authenticated user."""
     user_id = get_current_user_id(request)
     cm = CredentialManager()
     try:
@@ -367,7 +356,6 @@ def create_credential(
 def list_credentials(
     request: Request,
 ):
-    """List all credentials accessible by the authenticated user with masked secrets."""
     user_id = get_current_user_id(request)
     cm = CredentialManager()
     return cm.list_credentials_for_user(user_id=user_id)
@@ -381,7 +369,6 @@ def get_credential(
     credential_id: str,
     request: Request,
 ):
-    """Retrieve metadata for a specific credential with masked secrets."""
     user_id = get_current_user_id(request)
     cm = CredentialManager()
     meta = cm.get_credential_metadata(credential_id, user_id=user_id)
@@ -398,7 +385,6 @@ def delete_credential(
     credential_id: str,
     request: Request,
 ):
-    """Delete a credential owned by the authenticated user."""
     user_id = get_current_user_id(request)
     cm = CredentialManager()
     try:
@@ -422,7 +408,6 @@ def share_credential(
     body: CredentialShareRequest,
     request: Request,
 ):
-    """Grant another user access to a shared credential."""
     user_id = get_current_user_id(request)
     cm = CredentialManager()
     try:
@@ -453,7 +438,6 @@ def set_camera_credentials(
     body: CredentialCreateRequest,
     request: Request,
 ):
-    """Store credentials scoped for a specific camera_id."""
     user_id = get_current_user_id(request)
     cm = CredentialManager()
     cred_id = body.credential_id or f"cred_{camera_id}"
@@ -480,8 +464,6 @@ def start_camera(
     request: Request,
     service: Annotated[GaitService, Depends(get_gait_service)],
 ):
-    """Start a camera recognition worker with automatic or explicit source resolution."""
-
     if not body.camera_id:
         raise HTTPException(
             status_code=400,
@@ -516,8 +498,6 @@ def stop_camera(
     body: CameraStopRequest,
     service: Annotated[GaitService, Depends(get_gait_service)],
 ):
-    """Stop an active camera recognition worker."""
-
     stopped = service.stop_camera(body.camera_id)
 
     if not stopped:
@@ -539,8 +519,6 @@ def stop_camera(
 def list_cameras(
     service: Annotated[GaitService, Depends(get_gait_service)],
 ):
-    """Return all active camera workers with live telemetry metrics."""
-
     return service.list_all_cameras()
 
 
@@ -552,7 +530,6 @@ def get_camera(
     camera_id: str,
     service: Annotated[GaitService, Depends(get_gait_service)],
 ):
-    """Return live camera worker telemetry and recognition stats for a specific camera."""
     info = service.get_camera_info(camera_id)
     if not info:
         raise HTTPException(
@@ -569,10 +546,6 @@ async def stream_camera(
     camera_id: str,
     service: Annotated[GaitService, Depends(get_gait_service)],
 ):
-    """
-    Stream live camera frames with real-time recognition overlays in multipart/x-mixed-replace MJPEG format.
-    Reuses the active CameraWorker instance without opening additional captures.
-    """
     if camera_id not in service.active_cameras:
         raise HTTPException(
             status_code=404,
@@ -642,7 +615,6 @@ def get_camera_snapshot(
     camera_id: str,
     service: Annotated[GaitService, Depends(get_gait_service)],
 ):
-    """Return the latest single JPEG snapshot frame from the camera worker."""
     worker = service.get_camera_worker(camera_id)
     if not worker or camera_id not in service.active_cameras:
         raise HTTPException(
@@ -679,8 +651,6 @@ async def enroll_subject(
     ],
     service: Annotated[GaitService, Depends(get_gait_service)],
 ):
-    """Enroll a person using one or more gait images."""
-
     normalized_person_id = person_id.strip()
 
     if not normalized_person_id:
@@ -750,8 +720,6 @@ async def enroll_subject(
 def get_events(
     service: Annotated[GaitService, Depends(get_gait_service)],
 ):
-    """Return recent gait recognition events."""
-
     return service.events_log
 
 
@@ -760,8 +728,6 @@ def get_events(
 async def websocket_recognition(
     websocket: WebSocket,
 ):
-    """Provide real-time recognition events through WebSocket."""
-
     if hasattr(websocket.app.state, "gait_service") and websocket.app.state.gait_service:
         service = websocket.app.state.gait_service
     else:

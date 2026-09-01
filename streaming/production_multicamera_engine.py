@@ -42,8 +42,6 @@ from streaming.person_track_scheduler import (
 
 @dataclass
 class HardwareProfile:
-    """System hardware capabilities for dynamic inference and worker adaptation."""
-
     device_type: str = "cpu"
     device_name: str = "CPU"
     total_vram_mb: float = 0.0
@@ -56,7 +54,6 @@ class HardwareProfile:
 
 
 def detect_hardware_profile() -> HardwareProfile:
-    """Inspect local hardware and return dynamic runtime profile without hardcoded limits."""
     import psutil
 
     cpu_cores = os.cpu_count() or 4
@@ -100,8 +97,6 @@ def detect_hardware_profile() -> HardwareProfile:
 
 @dataclass
 class FramePacket:
-    """Encapsulates captured CCTV frame with full provenance and timestamping."""
-
     camera_id: str
     frame_id: int
     capture_time: float
@@ -112,8 +107,6 @@ class FramePacket:
 
 
 class StreamIngestionQueue:
-    """Thread-safe bounded ring buffer queue with backpressure and stale-frame drop policy."""
-
     def __init__(
         self,
         camera_id: str,
@@ -133,7 +126,6 @@ class StreamIngestionQueue:
         self.frames_dequeued = 0
 
     def put(self, packet: FramePacket) -> bool:
-        """Enqueue frame packet with non-blocking overflow drop policy."""
         with self._lock:
             self.frames_enqueued += 1
             try:
@@ -154,7 +146,6 @@ class StreamIngestionQueue:
                     return False
 
     def get(self) -> FramePacket | None:
-        """Dequeue newest non-stale frame packet."""
         now = time.monotonic()
         with self._lock:
             while not self._queue.empty():
@@ -185,13 +176,6 @@ class StreamIngestionQueue:
 
 
 class CentralStreamScheduler:
-    """
-    Central Fair Frame Scheduler.
-
-    Selects frames across registered active camera queues using Deficit Round-Robin
-    with priority weighting and aging-based starvation prevention.
-    """
-
     def __init__(self, starvation_threshold_seconds: float = 1.5) -> None:
         self.starvation_threshold = starvation_threshold_seconds
         self._queues: dict[str, StreamIngestionQueue] = {}
@@ -234,7 +218,6 @@ class CentralStreamScheduler:
             return self._queues.get(camera_id)
 
     def select_next_frame(self) -> FramePacket | None:
-        """Select next frame to process using fair-share scheduling."""
         now = time.monotonic()
         with self._lock:
             active_cams = [cid for cid, q in self._queues.items() if q.qsize() > 0]
@@ -289,13 +272,6 @@ class CentralStreamScheduler:
 
 
 class ProductionMultiCameraEngine:
-    """
-    Production-Grade Scalable Multi-Camera Recognition Engine.
-
-    Manages N concurrent camera streams, dynamic batching across shared GPU/CPU workers,
-    per-camera tracking state, and continual-learning observation collection.
-    """
-
     def __init__(
         self,
         hardware_profile: HardwareProfile | None = None,
@@ -366,7 +342,6 @@ class ProductionMultiCameraEngine:
         max_queue_size: int | None = None,
         max_stale_age_seconds: float = 0.50,
     ) -> StreamIngestionQueue:
-        """Register a new CCTV/RTSP camera stream without hardcoded camera count limits."""
         with self._lock:
             q_size = max_queue_size or self.profile.default_max_queue_size
             queue = self.scheduler.register_stream(
@@ -402,7 +377,6 @@ class ProductionMultiCameraEngine:
             return queue
 
     def unregister_camera(self, camera_id: str) -> None:
-        """Unregister camera and clean resources safely."""
         with self._lock:
             self.scheduler.unregister_stream(camera_id)
             self._camera_trackers.pop(camera_id, None)
@@ -418,7 +392,6 @@ class ProductionMultiCameraEngine:
         frame_id: int = 0,
         source_type: str = "webcam",
     ) -> bool:
-        """Submit incoming camera frame to decoupled ingestion queue."""
         if self._stop_event.is_set() or frame is None or frame.size == 0:
             return False
 
@@ -443,7 +416,6 @@ class ProductionMultiCameraEngine:
         return q.put(packet)
 
     def start(self, num_workers: int | None = None) -> bool:
-        """Start shared inference worker pool."""
         with self._lock:
             if self._running:
                 return True
@@ -468,7 +440,6 @@ class ProductionMultiCameraEngine:
             return True
 
     def stop(self, timeout: float = 3.0) -> bool:
-        """Gracefully stop shared workers and clear queues."""
         self._stop_event.set()
         with self._lock:
             self._running = False
@@ -487,7 +458,6 @@ class ProductionMultiCameraEngine:
             return self._running
 
     def _shared_inference_loop(self) -> None:
-        """Worker loop processing scheduled frames across multi-camera streams."""
         while not self._stop_event.is_set():
             packet = self.scheduler.select_next_frame()
             if packet is None:
@@ -502,7 +472,6 @@ class ProductionMultiCameraEngine:
                 )
 
     def _process_single_frame(self, packet: FramePacket) -> None:
-        """Core detection, tracking, silhouette/GEI, ReID extraction, and fusion for scheduled frame."""
         cid = packet.camera_id
         frame = packet.frame
         iso_now = datetime.now(timezone.utc).isoformat()
@@ -926,7 +895,6 @@ class ProductionMultiCameraEngine:
             )
 
     def get_telemetry(self) -> dict[str, Any]:
-        """Return system-wide and per-camera live observability telemetry."""
         import psutil
 
         proc = psutil.Process(os.getpid())

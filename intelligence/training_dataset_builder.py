@@ -1,19 +1,3 @@
-"""
-Production Continual Learning Training Dataset Builder for ARGUS AI.
-
-Responsible for constructing cryptographically verifiable, leakage-free training,
-validation, and independent held-out evaluation datasets from verified operational
-surveillance observations and historical reference galleries.
-
-Core Invariants:
-1. Strict Data Isolation: Held-out test samples are NEVER seen during training or tuning.
-2. Track/Session-Level Splitting: Observations from the same track or session belong exclusively to one split.
-3. No-Surrogate Rule: Excludes samples lacking genuine spatial media; never synthesizes fake images.
-4. Cryptographic Provenance: Every dataset generates an immutable SHA-256 manifest.
-5. Historical Replay: Balances 50% historical baseline data to prevent catastrophic forgetting.
-6. Future Holdout Partition (E): Supports isolated temporally subsequent test partitions.
-"""
-
 import hashlib
 import json
 import time
@@ -37,8 +21,6 @@ from storage.embedding_database import EmbeddingDatabase
 
 @dataclass
 class DatasetSampleRecord:
-    """Represents an individual sample in a continual-learning dataset."""
-
     sample_id: str
     person_id: str
     camera_id: str
@@ -60,7 +42,6 @@ class DatasetSampleRecord:
             self.session_id = f"sess_{self.camera_id}_{self.track_id}_{int(self.timestamp // 3600)}"
 
     def to_dict(self, include_image: bool = False) -> dict[str, Any]:
-        """Convert sample record to JSON-serializable dictionary."""
         d = {
             "sample_id": self.sample_id,
             "person_id": self.person_id,
@@ -85,8 +66,6 @@ class DatasetSampleRecord:
 
 @dataclass
 class DatasetManifest:
-    """Immutable manifest representing a complete continual learning dataset."""
-
     dataset_id: str
     created_at: float
     observation_date: str
@@ -109,10 +88,6 @@ class DatasetManifest:
 
 
 class TrainingDatasetBuilder:
-    """
-    Constructs production-grade, track-level and session-level leak-proof dataset splits.
-    """
-
     def __init__(
         self,
         collector: OperationalEmbeddingCollector | None = None,
@@ -150,9 +125,6 @@ class TrainingDatasetBuilder:
         list[DatasetSampleRecord],
         DatasetManifest,
     ]:
-        """
-        Build an isolated, track-level leak-proof continual learning dataset.
-        """
         modality = "gait" if model_type == "bygait_light" else "appearance"
         expected_dim = 256 if model_type == "bygait_light" else 512
 
@@ -411,7 +383,6 @@ class TrainingDatasetBuilder:
         hist_test: list[DatasetSampleRecord],
         future_holdout: list[DatasetSampleRecord],
     ) -> None:
-        """Enforce zero sample ID, track ID, and session ID leakage between train and test splits."""
         train_ids = {s.sample_id for s in train}
         val_ids = {s.sample_id for s in val}
         test_ids = {s.sample_id for s in test}

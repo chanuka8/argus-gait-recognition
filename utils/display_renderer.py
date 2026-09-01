@@ -1,23 +1,3 @@
-"""
-ARGUS AI — Detection Display & System Assessment Overlay Renderer.
-
-Professional CCTV-style overlay engine implementing the certified production color semantics:
-- RED BGR (0, 0, 255): Confirmed / successfully recognized identity (CONFIRMED / MATCH).
-- GREEN BGR (0, 255, 0): Person detected and tracked, but identity is not confirmed (default for all
-  normal unconfirmed states including UNKNOWN, PENDING, ASSESSING, EVIDENCE_COLLECTING,
-  INSUFFICIENT_EVIDENCE, GAIT_UNAVAILABLE, APPEARANCE_UNAVAILABLE, BIOMETRIC_INAPPLICABLE,
-  WHEELCHAIR, CRUTCHES, NON_STANDARD_GAIT, SEATED, STATIONARY, etc.).
-- YELLOW BGR (0, 255, 255): Reserved special operational / attention state ONLY (e.g. SPECIAL_ATTENTION,
-  SECURITY_ALERT, FLAGGED). Never used for ordinary unconfirmed or evidence-collecting persons.
-
-Core Invariants:
-1. Every detected person receives a visible bounding box regardless of identity, enrollment, or gait usability.
-2. Bounding-box color represents the person's CONFIRMATION STATE (CONFIRMED = RED, NOT CONFIRMED = GREEN,
-   SPECIAL ATTENTION = YELLOW).
-3. UNKNOWN, ASSESSING, and EVIDENCE_COLLECTING persons ALWAYS render GREEN.
-4. Text labels independently display Camera ID, Track ID, Assessment/Mobility State, Identity, and Score.
-"""
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -46,10 +26,6 @@ COLOR_YELLOW_BGR = (0, 255, 255)
 
 
 def load_display_config() -> dict:
-    """Load the ``display`` section from ``configs/inference.yaml``.
-
-    Returns safe defaults when the file or section is absent.
-    """
     config_path = Path("configs/inference.yaml")
 
     defaults: dict = {
@@ -110,12 +86,6 @@ def map_to_display_state(
     is_valid: bool | None = None,
     is_special_attention: bool = False,
 ) -> str:
-    """Map internal pipeline state to one of the display states:
-
-    1. CONFIRMED (RED) - Confirmed identity / successfully recognized
-    2. SPECIAL_ATTENTION (YELLOW) - Reserved explicit operational attention only
-    3. UNCONFIRMED / ASSESSING / INAPPLICABLE (GREEN) - Detected & tracked, but identity not confirmed (default)
-    """
     if display_state is not None:
         normalized = str(display_state).upper()
         if (normalized in ("CONFIRMED", "MATCH", "VERIFIED_MATCH", "CONFIRMED_MATCH") or normalized.startswith("CONFIRM")) and not normalized.startswith("UN"):
@@ -151,11 +121,6 @@ def map_to_display_state(
 
 
 class DetectionDisplayRenderer:
-    """Draws professional CCTV-style overlays on video frames.
-
-    Implements production color semantics (RED = Confirmed, GREEN = Unconfirmed/Default, YELLOW = Special Attention).
-    """
-
     def __init__(self, config: dict | None = None) -> None:
         self.cfg = config if config is not None else load_display_config()
 
@@ -171,12 +136,6 @@ class DetectionDisplayRenderer:
         self._show_score: bool = bool(self.cfg.get("show_score", True))
 
     def get_color_for_state(self, state: str) -> tuple[int, int, int]:
-        """Return the BGR colour tuple for a given display state string.
-
-        - RED (0, 0, 255): Confirmed identity
-        - YELLOW (0, 255, 255): Explicit special operational attention only
-        - GREEN (0, 255, 0): All other detected, tracked, unconfirmed, assessing, or inapplicable states
-        """
         normalized = str(state).upper()
         if (normalized in ("CONFIRMED", "MATCH", "VERIFIED_MATCH", "CONFIRMED_MATCH") or normalized.startswith("CONFIRM")) and not normalized.startswith("UN"):
             return self._color_confirmed
@@ -188,11 +147,9 @@ class DetectionDisplayRenderer:
         return self._color_unconfirmed
 
     def get_status(self, decision: str) -> str:
-        """Return display state string for a given ARGUS decision."""
         return map_to_display_state(decision=decision)
 
     def get_color(self, status: str) -> tuple[int, int, int]:
-        """Return the BGR colour tuple for *status*."""
         return self.get_color_for_state(status)
 
     def draw(
@@ -210,35 +167,6 @@ class DetectionDisplayRenderer:
         gait_eligible: bool = True,
         is_special_attention: bool = False,
     ) -> None:
-        """Render a single detection overlay on *frame* (mutates in-place).
-
-        Parameters
-        ----------
-        frame : np.ndarray
-            BGR image to draw on.
-        box : array-like
-            Bounding box as ``[x1, y1, x2, y2]``.
-        track_id : int or None
-            Tracker-assigned ID.
-        identity : str
-            Gallery identity string (or ``"UNKNOWN"``).
-        score : float
-            Match confidence or detector score.
-        decision : str
-            ARGUS internal decision string.
-        camera_id : str
-            Camera identifier for the label prefix.
-        display_state : str or None
-            Explicit display state ("CONFIRMED", "UNCONFIRMED", "SPECIAL_ATTENTION", etc.).
-        is_valid : bool or None
-            Detection validity flag.
-        mobility_state : str
-            Observed mobility classification ("STANDARD_WALKING", "WHEELCHAIR", etc.).
-        gait_eligible : bool
-            Gait biometric eligibility flag.
-        is_special_attention : bool
-            Explicit operational attention flag.
-        """
         if not self.cfg.get("enabled", True):
             return
 
@@ -286,10 +214,6 @@ class DetectionDisplayRenderer:
         decision: str = "",
         mobility_state: str = "STANDARD_WALKING",
     ) -> str:
-        """Assemble the label string following the spec:
-
-        ``[camera_id] T{track_id} | STATE | identity | score``
-        """
         parts: list[str] = []
 
         if self._show_cam and camera_id:
@@ -328,7 +252,6 @@ class DetectionDisplayRenderer:
         y: int,
         color: tuple[int, int, int],
     ) -> None:
-        """Draw a text label with background rectangle above *(x, y)*."""
         font = cv2.FONT_HERSHEY_SIMPLEX
         scale = self._font_scale
         thick = 1

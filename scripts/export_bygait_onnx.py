@@ -1,9 +1,3 @@
-"""
-Export PyTorch ByGaitLight model checkpoint to ONNX format and verify numerical parity.
-
-Generates outputs/reports/onnx_validation.json and outputs/reports/onnx_validation.md.
-"""
-
 import argparse
 import json
 import sys
@@ -20,7 +14,6 @@ from models.architectures.bygait_light import ByGaitLight
 
 
 def _to_rel_path(path: str | Path) -> str:
-    """Format path relative to repository ROOT using forward slashes."""
     p = Path(path).resolve()
     try:
         return p.relative_to(ROOT.resolve()).as_posix()
@@ -37,7 +30,6 @@ def export_onnx(
     report_json_path: str = "outputs/reports/onnx_validation.json",
     report_md_path: str = "outputs/reports/onnx_validation.md",
 ) -> bool:
-    """Export PyTorch checkpoint to ONNX atomically and verify numerical output parity."""
     torch.manual_seed(42)
     np.random.seed(42)
 
@@ -217,7 +209,6 @@ def export_onnx(
 
 
 def _write_reports(status: dict, json_path: str, md_path: str) -> None:
-    """Write JSON and Markdown ONNX validation reports."""
     j_file = Path(json_path)
     j_file.parent.mkdir(parents=True, exist_ok=True)
 

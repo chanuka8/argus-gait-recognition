@@ -1,5 +1,3 @@
-"""ARGUS AI Intelligence Package."""
-
 try:
     from intelligence.appearance_embedding import AppearanceEmbeddingExtractor
 except ImportError:

@@ -1,13 +1,3 @@
-"""
-EXP-006 Controlled Experiment:
-3D Pose Gait Branch Evaluation & Comparison against 2D EXP-003E Baseline.
-
-Evaluates:
-  - Rank-1, Rank-5, NM, BG, CL closed-set accuracy
-  - Open-Set ROC-AUC, FAR, FRR, EER
-  - Real-time Benchmark: Inference Latency (ms), Throughput (FPS), GPU VRAM (MB)
-"""
-
 import json
 import sys
 import time
@@ -31,7 +21,6 @@ from scripts.evaluate_exp004 import evaluate_checkpoint
 
 
 def extract_2d_keypoints_sequence(yolo_model: YOLO, img_paths: list[str]) -> np.ndarray:
-    """Extracts 2D keypoints sequence (T, 17, 3) from list of frame/GEI image paths."""
     seq_kpts = []
     for p in img_paths:
         img = cv2.imread(p)

@@ -1,20 +1,3 @@
-"""
-Comprehensive Test Suite for Continual Learning Accuracy Validation & Real Learning Evidence.
-
-Validates:
-1. Strict Data Isolation: Train, Validation, and Independent Test splits have zero leakage.
-2. Cryptographic Manifest Integrity: SHA-256 manifest hashing and provenance tracking.
-3. Baseline Model Snapshotting: Active production baseline is frozen prior to fine-tuning.
-4. Independent Evaluator: Computes Rank-1, TAR, FAR, FRR, EER, AUC, and explicit deltas.
-5. Catastrophic Forgetting Gate: Detects and rejects candidates that degrade historical retention.
-6. Anti-Churn Policy: Rejects candidates with no statistically meaningful improvement.
-7. Zero-Tolerance Security Gates: Rejects candidates with increased FAR or confusion-pair violations.
-8. Small-Data Safety: Correctly flags insufficient sample sizes as INSUFFICIENT_EVIDENCE.
-9. Multi-Camera & Temporal Metadata: Preserves same-camera vs cross-camera evaluations.
-10. Durable Audit Trail: Persists event lineage across application restart.
-11. Atomic Promotion & Rollback: Restores previous production model upon regression.
-"""
-
 import shutil
 import tempfile
 import time
@@ -50,7 +33,6 @@ from storage.embedding_database import EmbeddingDatabase
 
 @pytest.fixture
 def isolated_cl_env():
-    """Create an isolated sandbox environment for continual learning tests."""
     temp_dir = tempfile.mkdtemp(prefix="argus_cl_accuracy_test_")
     t_path = Path(temp_dir)
 

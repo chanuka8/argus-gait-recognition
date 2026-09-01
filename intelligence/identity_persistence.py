@@ -1,5 +1,3 @@
-"""Identity persistence engine for tracking, confidence accumulation, and alert suppression."""
-
 import time
 from threading import Lock
 from typing import Any
@@ -8,8 +6,6 @@ from monitoring.logging_config import get_logger
 
 
 class IdentityPersistence:
-    """Manages persistent identity state, confidence accumulation, and duplicate suppression."""
-
     def __init__(self, suppression_window_seconds: float = 30.0, score_accumulation_decay: float = 0.9) -> None:
         self.suppression_window = suppression_window_seconds
         self.decay = score_accumulation_decay
@@ -20,7 +16,6 @@ class IdentityPersistence:
         self._alert_cooldowns: dict[str, float] = {}
 
     def update_identity(self, identity: str, confidence_score: float, camera_id: str = "") -> dict[str, Any]:
-        """Update confidence score and history for a recognized identity."""
         now = time.monotonic()
         with self._lock:
             if identity not in self._identities:
@@ -52,7 +47,6 @@ class IdentityPersistence:
             return self._identities[identity].copy()
 
     def should_suppress_alert(self, identity: str) -> bool:
-        """Check if an alert for identity should be suppressed due to cooldown."""
         now = time.monotonic()
         with self._lock:
             last_alert = self._alert_cooldowns.get(identity, 0.0)
@@ -62,12 +56,10 @@ class IdentityPersistence:
             return False
 
     def get_identity_state(self, identity: str) -> dict[str, Any] | None:
-        """Get current accumulated state for an identity."""
         with self._lock:
             state = self._identities.get(identity)
             return state.copy() if state else None
 
     def get_all_identities(self) -> dict[str, dict[str, Any]]:
-        """Get states for all active identities."""
         with self._lock:
             return {id_: data.copy() for id_, data in self._identities.items()}

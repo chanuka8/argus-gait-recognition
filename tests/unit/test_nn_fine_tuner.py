@@ -1,16 +1,3 @@
-"""
-Unit Tests for Neural Network Fine-Tuning Module (ByGaitLight and OSNet).
-
-Tests:
-1. ByGaitLight CNN backbone fine-tuning from active weights.
-2. OSNet ReID backbone fine-tuning from active weights.
-3. Dataset construction with 50% historical replay blending.
-4. Candidate artifact generation (.pth) with SHA-256 checksums.
-5. Invariant: Active production model weights are never overwritten in-place.
-6. Validation gates enforcement for NN candidates (dimension, rank-1, checksum).
-7. Resource bounds & timeout handling.
-"""
-
 import hashlib
 import shutil
 import tempfile
@@ -27,7 +14,6 @@ from models.architectures.bygait_light import ByGaitLight
 
 @pytest.fixture
 def tmp_nn_env():
-    """Create isolated environment for NN fine-tuning tests."""
     tmp_dir = Path(tempfile.mkdtemp(prefix="argus_test_nn_"))
     cand_dir = tmp_dir / "candidates"
     cand_dir.mkdir(parents=True, exist_ok=True)
@@ -49,7 +35,6 @@ def tmp_nn_env():
 
 
 def test_bygait_light_fine_tuning_success(tmp_nn_env):
-    """Test ByGaitLight CNN backbone fine-tuning produces a valid candidate .pth."""
     tuner = NNFineTuner(
         candidate_dir=tmp_nn_env["cand_dir"],
         max_epochs=1,
@@ -97,7 +82,6 @@ def test_bygait_light_fine_tuning_success(tmp_nn_env):
 
 
 def test_osnet_fine_tuning_success(tmp_nn_env):
-    """Test OSNet ReID backbone fine-tuning produces a valid candidate .pth."""
     tuner = NNFineTuner(
         candidate_dir=tmp_nn_env["cand_dir"],
         max_epochs=1,
@@ -132,7 +116,6 @@ def test_osnet_fine_tuning_success(tmp_nn_env):
 
 
 def test_active_model_weights_not_overwritten(tmp_nn_env):
-    """Safety Invariant: Active model file is NEVER overwritten during candidate training."""
     active_path = Path(tmp_nn_env["active_bygait_path"])
     initial_bytes = active_path.read_bytes()
     initial_sha = hashlib.sha256(initial_bytes).hexdigest()
@@ -163,7 +146,6 @@ def test_active_model_weights_not_overwritten(tmp_nn_env):
 
 
 def test_candidate_validator_nn_gates():
-    """Test CandidateValidator evaluates NN-specific gates (dimension, checksum, rank1)."""
     validator = CandidateValidator()
 
 

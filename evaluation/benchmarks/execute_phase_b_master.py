@@ -1,18 +1,3 @@
-"""
-Comprehensive Phase B Evaluation Master Runner for ARGUS AI.
-
-Evaluates and explicitly separates:
-1. Closed-Set Rank-1 Identification Accuracy (no threshold)
-2. Threshold-Gated Verification (TAR, FRR, FAR at production gates 0.89/0.72)
-3. 5-Fold Stratified Nested Cross-Validation (Out-of-sample calibration audit)
-4. Fusion Weight Sweep Ablation: Rank-1, Gated TAR, FRR, mAP, ROC-AUC, EER, Margin
-5. Dual-Modal 37-sample Multimodal Evaluation: Gait vs Appearance vs Fused
-   (Rank-1, 5, 10, mAP, mINP, ROC-AUC, EER, TAR@FAR, Precision, Recall, F1, Confusion Matrix)
-6. CASIA-B Disjoint Large-Scale Gait Benchmark (5,466 test sequences: NM, BG, CL, 11-View Angle Matrix)
-7. Open-Set Out-of-Gallery (OOG) Intruder Evaluation (123 unseen subjects, 369 sequences)
-8. Efficiency & Latency Benchmark (GPU/CPU latency, parameter counts, disk size)
-"""
-
 import json
 import sys
 import time

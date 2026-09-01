@@ -1,17 +1,3 @@
-"""
-Forensic Startup Profiling for ARGUS AI Backend Server.
-
-Measures all individual startup stages with microsecond precision:
-1. Python process overhead & stdlib imports
-2. Third-party library imports (torch, cv2, numpy, fastapi, uvicorn, etc.)
-3. Subsystem imports
-4. Model loadings (ByGaitLight, OSNet, Silhouette, YOLO, OpenSet)
-5. Gallery loading & VectorStore
-6. Database & Continual Learning inits
-7. App & Router assembly
-8. End-to-end Uvicorn launch until /health HTTP 200 OK
-"""
-
 import gc
 import json
 import os
@@ -193,11 +179,6 @@ def run_stage_profiling() -> dict:
 
 
 def measure_server_ready(port: int = 8888, timeout_s: float = 60.0) -> float:
-    """
-    Launch Uvicorn backend server in a fresh isolated subprocess.
-    Polls http://127.0.0.1:{port}/health until 200 OK is received.
-    Returns the exact measured time in seconds.
-    """
     env = dict(os.environ)
     env["PORT"] = str(port)
     env["PYTHONPATH"] = str(WORKSPACE_ROOT)

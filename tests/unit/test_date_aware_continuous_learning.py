@@ -1,29 +1,3 @@
-"""
-Comprehensive Unit and Integration Tests for Date-Aware Continuous Embedding Learning in ARGUS AI.
-
-Validates the complete 20-point production-safe continuous learning specification:
-1. No new embeddings -> no training job.
-2. New embeddings on date X -> exactly one job for X.
-3. Multiple new embeddings same date -> still one job.
-4. New embeddings on date Y -> separate job for Y.
-5. Previously processed date -> no duplicate training.
-6. Invalid embedding (wrong dim, NaN/Inf) -> excluded.
-7. Unverified observation -> excluded.
-8. REVIEW_REQUIRED observation -> excluded.
-9. TRAINING_ELIGIBLE observation -> included.
-10. Training failure -> production inference continues.
-11. Candidate validation failure -> active model unchanged.
-12. Candidate success -> candidate promoted.
-13. Runtime regression -> rollback restores previous model.
-14. Restart during RUNNING job -> safe recovery.
-15. Concurrent trigger -> no duplicate jobs.
-16. Model version incompatibility -> candidate rejected.
-17. Raw media deletion only after persistence verification.
-18. Camera worker remains unaffected by training failure.
-19. RecognitionWorker remains responsive while learning runs.
-20. No-new-data day consumes no training resources.
-"""
-
 import shutil
 import tempfile
 import threading
@@ -55,7 +29,6 @@ from storage.embedding_database import EmbeddingDatabase
 
 @pytest.fixture
 def isolated_env():
-    """Create isolated test directory environment."""
     temp_dir = tempfile.mkdtemp(prefix="argus_test_date_aware_")
     t_path = Path(temp_dir)
     db_dir = t_path / "data" / "embedding_db"
@@ -97,7 +70,6 @@ def _seed_verified_observations(
     modality: str = "gait",
     dim: int = 256,
 ):
-    """Helper to populate collector with verified training-eligible observations for a date."""
     for sid in subject_ids:
         for i in range(samples_per_subject):
             vec = np.random.randn(dim).astype(np.float32)

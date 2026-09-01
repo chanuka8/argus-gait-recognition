@@ -1,5 +1,3 @@
-"""Unit tests for TrackIdentityAggregator (Step 5J)."""
-
 from intelligence.track_identity_aggregator import TrackIdentityAggregator
 
 

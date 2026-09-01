@@ -1,10 +1,3 @@
-"""
-Performance Optimizer for Phase 4 streaming optimization.
-
-Provides adaptive frame skipping, queue capacity optimization, latency/memory/CPU
-profiling and tuning, and optional GPU batching configurations.
-"""
-
 from threading import Lock
 from typing import Any, ClassVar
 
@@ -12,8 +5,6 @@ from monitoring.logging_config import get_logger
 
 
 class PerformanceOptimizer:
-    """Adaptive streaming performance optimizer and profiler."""
-
     PROFILES: ClassVar[dict[str, dict[str, Any]]] = {
         "low_latency": {
             "target_fps": 30,
@@ -43,7 +34,6 @@ class PerformanceOptimizer:
         self._config = self.PROFILES[self.current_profile_name].copy()
 
     def set_profile(self, profile_name: str) -> None:
-        """Switch performance profile dynamically."""
         with self._lock:
             if profile_name in self.PROFILES:
                 self.current_profile_name = profile_name
@@ -51,23 +41,19 @@ class PerformanceOptimizer:
                 self._logger.info(f"Switched performance profile to {profile_name}")
 
     def should_skip_frame(self, queue_fullness: float, latency_seconds: float) -> bool:
-        """Determine whether to drop/skip the current frame to maintain target latency."""
         with self._lock:
             threshold = self._config["adaptive_skip_threshold"]
             return queue_fullness > 0.8 or latency_seconds > threshold
 
     def get_optimal_queue_size(self) -> int:
-        """Get recommended queue size based on active profile."""
         with self._lock:
             return self._config["max_queue_size"]
 
     def get_gpu_batch_size(self) -> int:
-        """Get recommended GPU batch size based on active profile."""
         with self._lock:
             return self._config["gpu_batch_size"]
 
     def get_performance_stats(self) -> dict[str, Any]:
-        """Get current optimizer configuration and stats."""
         with self._lock:
             return {
                 "profile": self.current_profile_name,

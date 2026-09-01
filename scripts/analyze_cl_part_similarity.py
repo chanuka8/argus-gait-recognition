@@ -1,9 +1,3 @@
-"""
-EXP-004B CL Root Cause Analysis: HPP Part-Level Similarity Investigation.
-Compares per-part-bin cosine similarity across NM, BG, CL conditions
-to identify which body regions cause clothing-change degradation.
-"""
-
 import sys
 from pathlib import Path
 

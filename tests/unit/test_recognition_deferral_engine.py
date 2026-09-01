@@ -1,7 +1,3 @@
-"""
-Unit tests for Stage 2: Recognition Deferral Engine.
-"""
-
 from intelligence.recognition_deferral_engine import (
     RecognitionDeferralEngine,
     RecognitionState,

@@ -1,10 +1,3 @@
-"""
-Stage 2: Recognition Deferral and Evidence Accumulation Engine.
-
-Manages deterministic recognition deferral, evidence accumulation buffers,
-TTL expiration, and watchlist suppression for deferred/uncertain tracks.
-"""
-
 import time
 from dataclasses import dataclass, field
 from enum import Enum
@@ -43,11 +36,6 @@ class DeferralResult:
 
 
 class RecognitionDeferralEngine:
-    """
-    Evaluates recognition candidates and defers identity decisions until
-    accumulated evidence meets confidence, quality, reliability, and clean-frame criteria.
-    """
-
     def __init__(self, config: dict[str, Any] | None = None) -> None:
         cfg = config or {}
         self.enabled = bool(cfg.get("enabled", False))
@@ -82,9 +70,6 @@ class RecognitionDeferralEngine:
         moderate_occlusion_threshold: float = 0.35,
         timestamp: float | None = None,
     ) -> DeferralResult:
-        """
-        Evaluate candidate match, accumulate evidence into bounded buffer, and determine recognition state.
-        """
         now = timestamp if timestamp is not None else time.monotonic()
         key = (camera_id, track_id)
 
@@ -208,7 +193,6 @@ class RecognitionDeferralEngine:
         )
 
     def cleanup_inactive(self, max_idle_seconds: float = 15.0, current_time: float | None = None) -> None:
-        """Clean expired evidence buffers and retained identities."""
         now = current_time if current_time is not None else time.monotonic()
 
         for key, buf in list(self.evidence_buffers.items()):

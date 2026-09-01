@@ -1,13 +1,3 @@
-"""Secure RTSP credential storage, resolution, and sanitization for ARGUS AI.
-
-Provides multi-tenant user-isolated RTSP credential management with:
-- Authenticated Fernet encryption for at-rest storage
-- User access control and cross-user credential sharing
-- Robust RTSP credential sanitization (masking passwords in logs/APIs/errors)
-- URL credential extraction and reconstruction
-- Backward compatibility with environment variables and existing configurations
-"""
-
 import base64
 import json
 import os
@@ -24,7 +14,6 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 
 def sanitize_rtsp_url(url: str | None) -> str:
-    """Mask RTSP username and password in any URL or error string for secure logging."""
     if not url or not isinstance(url, str):
         return ""
     pattern = r"(rtsp://)([^:\s]+):(.+)@([^/\s]+(?::\d+)?(?:/[^\s]*)?)"
@@ -36,12 +25,6 @@ def sanitize_rtsp_url(url: str | None) -> str:
 
 
 def extract_rtsp_credentials(url: str) -> tuple[str | None, str | None, str]:
-    """
-    Extract embedded username and password from an RTSP URL and return a clean base URL.
-
-    Returns:
-        Tuple of (username, password, clean_base_url)
-    """
     if not url or not isinstance(url, str):
         return None, None, ""
 
@@ -64,12 +47,6 @@ def build_rtsp_url(
     username: str | None = None,
     password: str | None = None,
 ) -> str:
-    """
-    Construct a full RTSP connection URL from a base URL and credentials.
-
-    If base_url already contains credentials, they are replaced by the supplied credentials.
-    If no credentials are supplied, returns the clean base URL.
-    """
     if not base_url or not isinstance(base_url, str):
         return ""
 
@@ -93,7 +70,6 @@ def build_rtsp_url(
 
 
 def derive_fernet_key(passphrase: str, salt: bytes = b"argus_rtsp_salt") -> bytes:
-    """Derive a valid 32-byte Fernet key from a passphrase using PBKDF2HMAC."""
     kdf = PBKDF2HMAC(
         algorithm=hashes.SHA256(),
         length=32,
@@ -104,8 +80,6 @@ def derive_fernet_key(passphrase: str, salt: bytes = b"argus_rtsp_salt") -> byte
 
 
 class CredentialManager:
-    """Manages encrypted user-scoped RTSP credential storage and access control."""
-
     def __init__(
         self,
         credentials_file: str = "configs/credentials.enc",
@@ -139,11 +113,9 @@ class CredentialManager:
 
     @staticmethod
     def generate_key() -> str:
-        """Generate a random 32-byte URL-safe base64 Fernet key string."""
         return Fernet.generate_key().decode("utf-8")
 
     def _load_raw_store(self) -> dict[str, Any]:
-        """Load and decrypt the raw credentials JSON storage."""
         if not self._fernet or not self.credentials_file.exists():
             return {"credentials": {}, "schema_version": 2}
 
@@ -175,7 +147,6 @@ class CredentialManager:
             return {"credentials": {}, "schema_version": 2}
 
     def _save_raw_store(self, store_data: dict[str, Any]) -> None:
-        """Encrypt and write the raw credentials JSON storage to file."""
         if not self._fernet:
             raise ValueError("CredentialManager initialized without a valid encryption key")
 
@@ -193,20 +164,6 @@ class CredentialManager:
         description: str = "",
         shared_user_ids: list[str] | None = None,
     ) -> dict[str, Any]:
-        """
-        Store an encrypted RTSP credential associated with an authenticated owner user.
-
-        Args:
-            owner_user_id: ID of the user creating/owning the credential
-            username: RTSP camera username
-            password: RTSP camera password
-            credential_id: Optional custom identifier (e.g. 'cred_front_gate')
-            description: Optional human-readable description
-            shared_user_ids: Optional list of other user IDs authorized to use this credential
-
-        Returns:
-            Sanitized metadata of the saved credential record.
-        """
         if not credential_id:
             credential_id = f"cred_{secrets.token_hex(4)}"
 
@@ -246,7 +203,6 @@ class CredentialManager:
         }
 
     def can_access(self, credential_id: str, user_id: str = "default_user") -> bool:
-        """Check if user_id is authorized to use credential_id."""
         store = self._load_raw_store()
         record = store.get("credentials", {}).get(credential_id)
         if not record:
@@ -265,11 +221,6 @@ class CredentialManager:
         credential_id: str,
         user_id: str = "default_user",
     ) -> dict[str, str] | None:
-        """
-        Retrieve decrypted username and password for internal pipeline use.
-
-        Returns None if credential does not exist or user_id is unauthorized.
-        """
         if not self.can_access(credential_id, user_id=user_id):
             return None
 
@@ -288,9 +239,6 @@ class CredentialManager:
         credential_id: str,
         user_id: str = "default_user",
     ) -> dict[str, Any] | None:
-        """
-        Retrieve credential metadata with username/password masked (safe for API responses).
-        """
         if not self.can_access(credential_id, user_id=user_id):
             return None
 
@@ -316,7 +264,6 @@ class CredentialManager:
         }
 
     def list_credentials_for_user(self, user_id: str = "default_user") -> list[dict[str, Any]]:
-        """List all credentials accessible by user_id with masked secrets."""
         store = self._load_raw_store()
         results = []
         for cid in store.get("credentials", {}):
@@ -327,7 +274,6 @@ class CredentialManager:
         return results
 
     def delete_credential(self, credential_id: str, user_id: str = "default_user") -> bool:
-        """Delete credential if user_id is the owner or system admin."""
         store = self._load_raw_store()
         creds = store.get("credentials", {})
         if credential_id not in creds:
@@ -343,7 +289,6 @@ class CredentialManager:
         return True
 
     def grant_access(self, credential_id: str, owner_user_id: str, target_user_id: str) -> bool:
-        """Grant another user access to a shared credential."""
         store = self._load_raw_store()
         creds = store.get("credentials", {})
         if credential_id not in creds:
@@ -363,7 +308,6 @@ class CredentialManager:
         return True
 
     def revoke_access(self, credential_id: str, owner_user_id: str, target_user_id: str) -> bool:
-        """Revoke a user's access to a shared credential."""
         store = self._load_raw_store()
         creds = store.get("credentials", {})
         if credential_id not in creds:
@@ -383,12 +327,10 @@ class CredentialManager:
         return True
 
     def has_credential(self, credential_id: str) -> bool:
-        """Check if a credential exists in storage."""
         store = self._load_raw_store()
         return credential_id in store.get("credentials", {})
 
     def encrypt_credentials(self, credentials_data: dict[str, dict[str, str]], output_path: str | None = None) -> Path:
-        """Legacy helper: encrypt dictionary of credentials."""
         for cid, cdata in credentials_data.items():
             self.store_credential(
                 owner_user_id="system_admin",
@@ -399,7 +341,6 @@ class CredentialManager:
         return Path(output_path) if output_path else self.credentials_file
 
     def load_encrypted_credentials(self) -> dict[str, dict[str, str]]:
-        """Legacy helper: load dictionary of credentials."""
         store = self._load_raw_store()
         out = {}
         for cid, record in store.get("credentials", {}).items():
@@ -410,7 +351,6 @@ class CredentialManager:
         return out
 
     def get_credentials(self, camera_id: str) -> tuple[str | None, str | None]:
-        """Legacy helper: retrieve username and password for camera_id."""
         cred = self.get_credential(camera_id, user_id="system_admin")
         if cred:
             return cred.get("username"), cred.get("password")
@@ -418,7 +358,6 @@ class CredentialManager:
 
 
 def is_legacy_plaintext_allowed(config: dict[str, Any], override: bool | None = None) -> bool:
-    """Check if legacy plaintext fallback is enabled via config, env, or override."""
     if override is not None:
         return override
     if config.get("allow_plaintext_credentials") is True:
@@ -433,15 +372,6 @@ def resolve_camera_config(
     legacy_allow_plaintext: bool | None = None,
     user_id: str = "default_user",
 ) -> dict[str, Any]:
-    """
-    Resolve camera credentials adhering to priority order without leaking secrets.
-
-    Priority order:
-    1. Explicit credential_id lookup in CredentialManager (for user_id)
-    2. Environment variables (username_env/password_env, ARGUS_CAMERA_<ID>_*, ARGUS_RTSP_*)
-    3. Encrypted local credential file (by camera_id / credential_id)
-    4. Plaintext configuration fallback (only when explicitly enabled)
-    """
     res = dict(camera_config)
     camera_id = str(res.get("id") or res.get("name") or "camera_default")
     credential_id = res.get("credential_id")

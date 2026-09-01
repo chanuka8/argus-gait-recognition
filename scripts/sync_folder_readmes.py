@@ -1,13 +1,3 @@
-"""Automated README synchronization script for ARGUS AI package folders.
-
-Validates and synchronizes package folder README.md files with the active source modules in each folder.
-
-Usage:
-    python scripts/sync_folder_readmes.py         # Automatically update folder READMEs and index
-    python scripts/sync_folder_readmes.py --check # Check if folder READMEs are synchronized (CI mode)
-    python scripts/sync_folder_readmes.py --update# Explicitly update folder READMEs
-"""
-
 import argparse
 import ast
 import os
@@ -72,7 +62,6 @@ REQUIRED_SECTIONS_BY_FOLDER = {
 
 
 def get_active_files_for_folder(folder_path: Path) -> list[str]:
-    """Get active files/modules that should be documented in Key Modules."""
     folder_name = folder_path.name
 
     if folder_name == "configs":
@@ -120,7 +109,6 @@ def get_active_files_for_folder(folder_path: Path) -> list[str]:
 
 
 def extract_script_description(path: Path) -> str:
-    """Extract purpose/description of a script using AST docstring, argparse, comments, or humanization."""
     if not path.exists():
         return f"Script {path.name}"
 
@@ -185,7 +173,6 @@ def extract_script_description(path: Path) -> str:
 
 
 def get_script_primary_usage(path: Path) -> str:
-    """Generate primary usage command string for a script."""
     name = path.name
     if path.suffix == ".ps1":
         return f"powershell -ExecutionPolicy Bypass -File scripts/{name}"
@@ -198,11 +185,6 @@ def get_script_primary_usage(path: Path) -> str:
 
 
 def _ast_node_to_value(node: ast.AST):
-    """Extract a Python constant value from an AST node for static analysis.
-
-    Returns the resolved value or None if the node cannot be resolved statically.
-    This never executes code; it only inspects the syntax tree.
-    """
     if isinstance(node, ast.Constant):
         return node.value
     if isinstance(node, ast.Name):
@@ -226,11 +208,6 @@ def _ast_node_to_value(node: ast.AST):
 
 
 def extract_cli_arguments(path: Path) -> dict | None:
-    """Extract CLI arguments from argparse definitions using AST static analysis.
-
-    Returns a dict with 'description' and 'arguments' keys, or None if the
-    script does not use argparse. Never imports or executes the target script.
-    """
     if path.suffix != ".py" or not path.exists():
         return None
 
@@ -313,7 +290,6 @@ def extract_cli_arguments(path: Path) -> dict | None:
 
 
 def _get_script_category(name: str) -> str:
-    """Classify a script into a functional category based on its name and role."""
     if name == "sync_folder_readmes.py":
         return "Documentation"
     if name == "install_git_hooks.py":
@@ -375,11 +351,6 @@ def _get_script_category(name: str) -> str:
 
 
 def _get_safety_classification(name: str, path: Path) -> str:
-    """Classify script safety level from static content analysis.
-
-    Categories: Read-Only, Repository Modification, Documentation, Git,
-    Environment, Validation, Deployment.
-    """
     if name == "sync_folder_readmes.py":
         return "Documentation"
     if name == "install_git_hooks.py":
@@ -424,12 +395,10 @@ def _get_safety_classification(name: str, path: Path) -> str:
 
 
 def _is_auto_start(name: str) -> bool:
-    """Determine if a script runs automatically (hook, CI, terminal startup)."""
     return name in ("activate_venv.ps1", "sync_folder_readmes.py")
 
 
 def _is_used_by_ci(name: str, root_dir: Path) -> bool:
-    """Check if a script is directly referenced by any GitHub Actions workflow."""
     workflows_dir = root_dir / ".github" / "workflows"
     if not workflows_dir.exists():
         return False
@@ -445,7 +414,6 @@ def _is_used_by_ci(name: str, root_dir: Path) -> bool:
 
 
 def _is_used_by_hook(name: str, root_dir: Path) -> bool:
-    """Check if a script is referenced by the Git pre-commit hook installer."""
     hook_installer = root_dir / "scripts" / "install_git_hooks.py"
     if not hook_installer.exists():
         return False
@@ -460,11 +428,6 @@ def _is_used_by_hook(name: str, root_dir: Path) -> bool:
 
 
 def _detect_generated_outputs(name: str, path: Path) -> list[str]:
-    """Detect files/directories a script may modify using static analysis.
-
-    Uses AST-free regex pattern matching on source code to identify
-    output paths. Never imports or executes the target script.
-    """
     if name == "sync_folder_readmes.py":
         return ["*/README.md", "docs/README_INDEX.md"]
     if name == "install_git_hooks.py":
@@ -533,12 +496,6 @@ def _detect_generated_outputs(name: str, path: Path) -> list[str]:
 
 
 def _build_script_dependencies(folder_path: Path, root_dir: Path) -> list[tuple[str, str, str]]:
-    """Build verified dependency edges between scripts.
-
-    Returns list of (source, target, evidence_type) tuples.
-    Evidence types: 'reference', 'ci', 'output'.
-    Only includes relationships verified from actual file content.
-    """
     active_files = get_active_files_for_folder(folder_path)
     edges: list[tuple[str, str, str]] = []
 
@@ -583,7 +540,6 @@ def _build_script_dependencies(folder_path: Path, root_dir: Path) -> list[tuple[
 
 
 def _generate_metadata_table(folder_path: Path, root_dir: Path) -> str:
-    """Generate extended script metadata table with category, CLI, CI, and hook columns."""
     active_files = get_active_files_for_folder(folder_path)
     lines = [
         "| Script | Category | CLI | Auto | Used by CI | Used by Hook | Description |",
@@ -604,7 +560,6 @@ def _generate_metadata_table(folder_path: Path, root_dir: Path) -> str:
 
 
 def _generate_cli_reference(folder_path: Path) -> str:
-    """Generate CLI reference with collapsible details per argparse script."""
     active_files = get_active_files_for_folder(folder_path)
     sections: list[str] = []
 
@@ -685,7 +640,6 @@ def _generate_cli_reference(folder_path: Path) -> str:
 
 
 def _generate_command_index(folder_path: Path) -> str:
-    """Generate index of all runnable commands with descriptions."""
     active_files = get_active_files_for_folder(folder_path)
     lines = ["| Command | Description |", "| --- | --- |"]
     for name in active_files:
@@ -699,7 +653,6 @@ def _generate_command_index(folder_path: Path) -> str:
 
 
 def _generate_dependency_graph(folder_path: Path, root_dir: Path) -> str:
-    """Generate Mermaid dependency graph from verified script relationships."""
     edges = _build_script_dependencies(folder_path, root_dir)
 
     if not edges:
@@ -727,7 +680,6 @@ def _generate_dependency_graph(folder_path: Path, root_dir: Path) -> str:
 
 
 def _generate_execution_order(folder_path: Path) -> str:
-    """Generate recommended execution order based on script category analysis."""
     active_files = get_active_files_for_folder(folder_path)
 
     category_order = [
@@ -767,7 +719,6 @@ def _generate_execution_order(folder_path: Path) -> str:
 
 
 def _generate_change_impact(folder_path: Path) -> str:
-    """Generate change impact table showing script outputs."""
     active_files = get_active_files_for_folder(folder_path)
     lines = ["| Script | Generated / Modified Outputs |", "| --- | --- |"]
     for name in active_files:
@@ -779,7 +730,6 @@ def _generate_change_impact(folder_path: Path) -> str:
 
 
 def _generate_safety_classification_section(folder_path: Path) -> str:
-    """Generate safety classification table grouped by classification."""
     active_files = get_active_files_for_folder(folder_path)
 
     classifications: dict[str, list[str]] = {}
@@ -798,7 +748,6 @@ def _generate_safety_classification_section(folder_path: Path) -> str:
 
 
 def _generate_cross_references(root_dir: Path) -> str:
-    """Generate cross-reference links to related documentation and workflows."""
     links: list[str] = []
 
     root_readme = root_dir / "README.md"
@@ -831,7 +780,6 @@ def _generate_cross_references(root_dir: Path) -> str:
 
 
 def _sync_script_categories(folder_path: Path, content: str) -> str:
-    """Synchronize category markers in scripts/README.md."""
     active_files = get_active_files_for_folder(folder_path)
 
     categories = {
@@ -859,12 +807,6 @@ def _sync_script_categories(folder_path: Path, content: str) -> str:
 
 
 def _sync_scripts_extended_sections(folder_path: Path, content: str, root_dir: Path) -> str:
-    """Synchronize all extended documentation sections for scripts/README.md.
-
-    Orchestrates generation of metadata table, CLI reference, command index,
-    dependency graph, execution order, change impact, safety classification,
-    and cross references. Each section is bounded by its own sync markers.
-    """
     sync_generators = {
         "SCRIPT_METADATA_TABLE": lambda: _generate_metadata_table(folder_path, root_dir),
         "CLI_REFERENCE": lambda: _generate_cli_reference(folder_path),
@@ -893,7 +835,6 @@ def _sync_scripts_extended_sections(folder_path: Path, content: str, root_dir: P
 
 
 def check_folder_readme(folder_path: Path) -> tuple[bool, list[str]]:
-    """Check if README.md exists, contains required sections, and lists active modules."""
     readme_path = folder_path / "README.md"
     issues = []
 
@@ -917,7 +858,6 @@ def check_folder_readme(folder_path: Path) -> tuple[bool, list[str]]:
 
 
 def check_readme_index(root_dir: Path) -> tuple[bool, list[str]]:
-    """Check if docs/README_INDEX.md exists and contains links to all package READMEs."""
     index_path = root_dir / "docs" / "README_INDEX.md"
     issues = []
 
@@ -934,7 +874,6 @@ def check_readme_index(root_dir: Path) -> tuple[bool, list[str]]:
 
 
 def _atomic_write_file(target_path: Path, new_content: str, max_retries: int = 5) -> None:
-    """Atomically write new content to target_path with Windows retry and line-ending preservation."""
     target_path = Path(target_path).resolve()
 
 
@@ -984,7 +923,6 @@ def _atomic_write_file(target_path: Path, new_content: str, max_retries: int = 5
 
 
 def update_folder_readme(folder_path: Path, root_dir: Path | None = None) -> bool:
-    """Synchronize Key Modules section in folder README if comment markers are present."""
     readme_path = folder_path / "README.md"
     if not readme_path.exists():
         return False

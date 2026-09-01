@@ -1,22 +1,3 @@
-"""One-time runtime output layout migration script.
-
-Safely migrates existing runtime files from legacy output paths to the new output hierarchy:
-outputs/
-├── reports/ (explainable/, timelines/, benchmark/, evaluation/, exports/)
-├── logs/ (system/, security/, camera/, events/)
-├── monitoring/ (camera_stats/)
-├── media/ (videos/, images/, detections/)
-├── watchlist/
-└── temporary/
-
-Requirements:
-- Never overwrite destination files
-- Resolve filename conflicts deterministically
-- Support dry-run mode
-- Log moved paths only
-- Do not log credentials
-"""
-
 import argparse
 import os
 import shutil
@@ -24,7 +5,6 @@ from pathlib import Path
 
 
 def get_destination_mapping(relative_path: Path) -> Path:
-    """Map legacy relative path inside outputs/ to new target relative path."""
     parts = relative_path.parts
     if not parts:
         return relative_path
@@ -77,7 +57,6 @@ def get_destination_mapping(relative_path: Path) -> Path:
 
 
 def resolve_conflict_path(dest_path: Path) -> Path:
-    """Return dest_path if not existing, else append _1, _2 deterministically."""
     if not dest_path.exists():
         return dest_path
 
@@ -94,7 +73,6 @@ def resolve_conflict_path(dest_path: Path) -> Path:
 
 
 def migrate_outputs(outputs_dir: Path, dry_run: bool = False) -> list[tuple[Path, Path]]:
-    """Migrate legacy runtime files inside outputs_dir to new structure."""
     if not outputs_dir.exists():
         return []
 

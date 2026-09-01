@@ -1,23 +1,3 @@
-"""
-Neural Network Fine-Tuner for ARGUS AI Continuous Learning.
-
-Implements actual CNN backbone weight updates for both ByGaitLight (gait recognition)
-and OSNet (person re-identification) from verified operational data.
-
-Architecture:
-    - Transfer learning from current ACTIVE production model weights.
-    - Training dataset: TRAINING_ELIGIBLE observations + 50% historical replay.
-    - Candidate artifact isolation: Never overwrites the active production model.
-    - Bounded resource utilization: Max 1 concurrent job, GPU memory cap.
-    - Independent promotion: Each candidate is validated and promoted separately.
-
-Safety Invariants:
-    - Training runs asynchronously in a background thread — NEVER blocks CCTV inference.
-    - If training fails/crashes, the currently active model remains fully operational.
-    - Candidate .pth files are immutable once generated — never modified in-place.
-    - Each candidate receives a unique version ID and SHA-256 checksum.
-"""
-
 import hashlib
 import time
 from pathlib import Path
@@ -29,11 +9,6 @@ from monitoring.logging_config import get_logger
 
 
 class NNFineTuner:
-    """
-    Actual neural-network fine-tuning for ByGaitLight and OSNet models.
-    Produces candidate .pth artifacts registered in ModelRegistry.
-    """
-
     def __init__(
         self,
         candidate_dir: str = "models/candidates",
@@ -76,19 +51,6 @@ class NNFineTuner:
         candidate_version: str,
         part_bins: int = 4,
     ) -> dict[str, Any]:
-        """
-        Fine-tune ByGaitLight CNN backbone from ACTIVE production weights.
-
-        Args:
-            active_weights_path: Path to the current ACTIVE ByGaitLight .pth file.
-            training_gei_data: List of dicts with keys 'image' (64x128 GEI ndarray) and 'label' (str).
-            historical_gei_data: List of dicts with keys 'image' (64x128 GEI ndarray) and 'label' (str).
-            candidate_version: Unique version string for this candidate.
-            part_bins: HPP part bin count (must match ACTIVE model architecture).
-
-        Returns:
-            Dict with candidate artifact path, metrics, checksum.
-        """
         start_time = time.time()
         self._logger.info(
             f"[BYGAIT_FINETUNE_START] version={candidate_version} "
@@ -345,18 +307,6 @@ class NNFineTuner:
         historical_crop_data: list[dict[str, Any]],
         candidate_version: str,
     ) -> dict[str, Any]:
-        """
-        Fine-tune OSNet ReID backbone from ACTIVE production weights.
-
-        Args:
-            active_weights_path: Path to the current ACTIVE OSNet .pth file.
-            training_crop_data: List of dicts with 'image' (BGR crop ndarray) and 'label' (str).
-            historical_crop_data: List of dicts with 'image' (BGR crop ndarray) and 'label' (str).
-            candidate_version: Unique version string.
-
-        Returns:
-            Dict with candidate artifact path, metrics, checksum.
-        """
         start_time = time.time()
         self._logger.info(
             f"[OSNET_FINETUNE_START] version={candidate_version} "
@@ -602,7 +552,6 @@ class NNFineTuner:
 
     @staticmethod
     def _calculate_checksum(file_path: Path | str) -> str:
-        """Calculate SHA-256 checksum of a file."""
         p = Path(file_path)
         if not p.exists():
             return ""

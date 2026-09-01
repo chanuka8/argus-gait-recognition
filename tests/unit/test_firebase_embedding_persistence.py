@@ -1,29 +1,3 @@
-"""
-Unit and Integration Test Suite for Firebase Durable Embedding Persistence Layer.
-
-Tests spec 24 & 30 requirements:
-A. Successful persistence to Firebase/offline store
-B. Firebase write failure isolation from live inference
-C. Idempotency of duplicate embedding writes
-D. 256D (gait) and 512D (appearance) dimension isolation and validation
-E. Model-version lineage preservation in documents
-F. Date-aware learning job creation for dates with eligible data
-G. Zero jobs created for dates with no new eligible embeddings
-H. Duplicate date does not produce duplicate jobs
-I. Only TRAINING_ELIGIBLE observations enter candidate training set
-J. Historical baseline replay data (50%) included in training set
-K. Candidate model generation (.pth/.json) without overwriting active model
-L. Candidate validation rejects regressed candidate
-M. Candidate promotion activates new version atomically
-N. Safety rollback restores previous known-good version
-O. Training failure/crash leaves active production model intact
-P. Firebase unavailable does not block local inference or enrollment
-Q. Enrollment lifecycle reaches EMBEDDING_ONLY state upon verified persistence
-R. Persistence failure retains raw media files for retry
-S. Interrupted job recovery upon restart
-T. Read-after-write verification validates vector integrity
-"""
-
 import shutil
 import tempfile
 from pathlib import Path
@@ -56,7 +30,6 @@ from storage.firebase_embedding_store import (
 
 @pytest.fixture
 def tmp_env():
-    """Create isolated temporary environment for storage, registry, and jobs."""
     tmp_dir = Path(tempfile.mkdtemp(prefix="argus_test_firebase_"))
     db_dir = tmp_dir / "embedding_db"
     gait_gal = tmp_dir / "live_gallery"

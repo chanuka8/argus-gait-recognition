@@ -1,10 +1,3 @@
-"""
-Backend Startup Summary Formatter for ARGUS AI.
-
-Emits concise, structured startup summaries after inference engine initialization.
-Reuses authoritative backend metadata without reinitializing models or exposing credentials.
-"""
-
 from pathlib import Path
 
 from monitoring.logging_config import get_logger
@@ -13,8 +6,6 @@ _SUMMARY_EMITTED = False
 
 
 class BackendStartupSummary:
-    """Formats and emits structured backend initialization summaries."""
-
     def __init__(
         self,
         backend,
@@ -45,7 +36,6 @@ class BackendStartupSummary:
         self.logger = get_logger("system")
 
     def format_summary(self) -> str:
-        """Format human-readable CLI summary block."""
         req = getattr(self.backend, "requested_backend", "pytorch")
         act = getattr(self.backend, "active_backend", "pytorch")
         prov = getattr(self.backend, "execution_provider", "PyTorch-CPU")
@@ -74,11 +64,6 @@ class BackendStartupSummary:
         return "\n".join(lines)
 
     def emit(self, force: bool = False, print_cli: bool = True) -> str:
-        """
-        Emit backend summary to system logs and optional stdout CLI once.
-
-        Returns formatted summary string.
-        """
         global _SUMMARY_EMITTED
         summary_text = self.format_summary()
 
@@ -97,6 +82,5 @@ class BackendStartupSummary:
 
 
 def reset_summary_emitted_flag() -> None:
-    """Reset summary single-emit flag for unit testing."""
     global _SUMMARY_EMITTED
     _SUMMARY_EMITTED = False

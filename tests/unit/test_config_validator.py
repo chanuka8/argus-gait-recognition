@@ -1,7 +1,3 @@
-"""
-Unit tests for ConfigValidator and RTSP credential sanitization.
-"""
-
 from pathlib import Path
 
 from utils.config_validator import ConfigValidator, sanitize_rtsp_url

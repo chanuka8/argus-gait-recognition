@@ -1,20 +1,3 @@
-"""
-Tests:
-1. HardwareCapabilityDetector — Full hardware discovery across CPU, RAM, GPU, CUDA, Storage, Network.
-2. SystemProfileEngine — Dynamic runtime profile derivation (AUTO, GPU_SMALL, CPU_ONLY, SERVER).
-3. ProductionCapacityEstimator — Multi-factorial capacity estimation under diverse constraints.
-4. CameraAdmissionController — Pre-flight admission evaluation, degradation, rejection, and isolation.
-5. GPUMemoryGuard — VRAM tracking and safe CUDA OOM recovery.
-6. AdaptiveInferencePolicy — Quality degradation and automatic recovery transitions.
-7. NetworkBandwidthEstimator — Codec, resolution, and FPS ingress bandwidth modeling.
-8. ModelProfileRegistry — OSNet 512D & ByGaitLight 256D resource profiling.
-9. StorageSafetyAuditor — Atomic writes, disk space monitoring, and quarantine.
-10. SecurityAuditor — RTSP credential masking and model lineage.
-11. DeploymentReadinessManager — End-to-end integration summary.
-12. Physical / Probed Webcam Validation — CAP_DSHOW probing and state machine invariants.
-13. Simulated Multi-Stream Scalability — 1 to 128 streams simulation.
-"""
-
 
 import pytest
 
@@ -51,8 +34,6 @@ from streaming.production_runtime import (
 
 
 class TestHardwareCapabilityDiscovery:
-    """Hardware discovery tests."""
-
     def test_discover_returns_valid_report(self):
         detector = HardwareCapabilityDetector()
         report = detector.discover()
@@ -83,8 +64,6 @@ class TestHardwareCapabilityDiscovery:
 
 
 class TestSystemProfileEngine:
-    """Dynamic profile selection tests."""
-
     def test_auto_profile_cpu_only(self):
         report = HardwareCapabilityReport(
             cpu=CPUInfo(physical_cores=4, logical_cores=8),
@@ -131,8 +110,6 @@ class TestSystemProfileEngine:
 
 
 class TestProductionCapacityEstimator:
-    """Capacity and headroom calculation tests."""
-
     def test_sustainable_capacity_calculation(self):
         estimator = ProductionCapacityEstimator(target_camera_fps=15.0)
         res = estimator.estimate_capacity(
@@ -185,8 +162,6 @@ class TestProductionCapacityEstimator:
 
 
 class TestCameraAdmissionController:
-    """Pre-flight camera admission tests."""
-
     def test_safe_admission(self):
         adm = CameraAdmissionController()
         res = adm.evaluate_admission(
@@ -262,7 +237,6 @@ class TestCameraAdmissionController:
         assert res.effective_fps < 15.0
 
     def test_admission_rejection_does_not_affect_active_cameras(self):
-        """Camera failure isolation: Rejection of Cam B leaves Cam A running."""
         rt = ProductionSurveillanceRuntime()
         rt.register_camera("cam_A")
         rt.start_camera("cam_A")
@@ -292,8 +266,6 @@ class TestCameraAdmissionController:
 
 
 class TestAdaptiveInferencePolicy:
-    """Inference quality scaling tests."""
-
     def test_full_quality_under_low_load(self):
         policy = AdaptiveInferencePolicy()
         mode = policy.evaluate_quality_mode(cpu_percent=30.0, vram_percent=25.0, p95_latency_ms=10.0)
@@ -324,8 +296,6 @@ class TestAdaptiveInferencePolicy:
 
 
 class TestGPUMemoryGuard:
-    """VRAM monitoring and safe recovery tests."""
-
     def test_vram_state_structure(self):
         guard = GPUMemoryGuard()
         state = guard.get_vram_state()
@@ -349,8 +319,6 @@ class TestGPUMemoryGuard:
 
 
 class TestNetworkBandwidthEstimator:
-    """Ingress bandwidth modeling tests."""
-
     def test_estimate_camera_bandwidth(self):
         est = NetworkBandwidthEstimator()
         bw_720p = est.estimate_camera_bandwidth(resolution="720p", fps=15.0, codec="h264")
@@ -380,8 +348,6 @@ class TestNetworkBandwidthEstimator:
 
 
 class TestModelProfileRegistry:
-    """Model resource profiling tests."""
-
     def test_default_profiles_exist(self):
         reg = ModelProfileRegistry()
         osnet = reg.get_profile("OSNet-x0.25")
@@ -419,8 +385,6 @@ class TestModelProfileRegistry:
 
 
 class TestStorageSafetyAuditor:
-    """Storage integrity and atomic write tests."""
-
     def test_audit_storage_healthy(self):
         auditor = StorageSafetyAuditor(storage_dir="data")
         res = auditor.audit_storage()
@@ -435,8 +399,6 @@ class TestStorageSafetyAuditor:
 
 
 class TestSecurityAuditor:
-    """Security and credential redaction tests."""
-
     def test_rtsp_sanitization_verification(self):
         raw_url = "rtsp://admin:supersecretpassword123@192.168.1.100:554/stream1"
         assert SecurityAuditor.verify_rtsp_sanitization(raw_url) is True
@@ -454,8 +416,6 @@ class TestSecurityAuditor:
 
 
 class TestDeploymentReadinessManager:
-    """End-to-end deployment readiness orchestration tests."""
-
     def test_get_deployment_summary(self):
         mgr = DeploymentReadinessManager()
         summary = mgr.get_deployment_summary()
@@ -473,10 +433,7 @@ class TestDeploymentReadinessManager:
 
 
 class TestWebcamRegressionAndProbing:
-    """Preserves local webcam handling architecture and verifies device probing."""
-
     def test_camera_source_resolver_probing(self):
-        """Webcam device index probe using Windows CAP_DSHOW and safe fallback."""
         resolver = CameraSourceResolver()
 
         is_index_0 = resolver.probe_usb_webcam(0)
@@ -487,14 +444,12 @@ class TestWebcamRegressionAndProbing:
         resolver.release_source_by_camera_id("cam_owner")
 
     def test_webcam_initial_state_invariant(self):
-        """Webcam initial state must be STOPPED, never FAILED."""
         rt = ProductionSurveillanceRuntime()
         cam = rt.register_camera("webcam_test", source_type="webcam")
         assert cam.connection_state == CameraState.STOPPED
         assert cam.actual_state == CameraState.STOPPED
 
     def test_webcam_lifecycle_transitions(self):
-        """Webcam starts, connects, stops cleanly."""
         rt = ProductionSurveillanceRuntime()
         rt.register_camera("webcam_live", source_type="webcam")
         assert rt.start_camera("webcam_live") is True
@@ -513,10 +468,6 @@ class TestWebcamRegressionAndProbing:
 
 @pytest.mark.parametrize("num_cameras", [1, 2, 4, 8, 16, 32, 64, 128])
 def test_simulated_stream_scaling_1_to_128(num_cameras):
-    """Verify hardware-agnostic architecture scales from 1 to 128 streams.
-
-    CLASSIFICATION: SIMULATED — not physical camera validation.
-    """
     rt = ProductionSurveillanceRuntime()
 
     for i in range(num_cameras):

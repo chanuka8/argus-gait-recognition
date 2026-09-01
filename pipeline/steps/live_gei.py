@@ -11,16 +11,6 @@ except ImportError:
 
 
 class LiveGEI:
-    """
-    Gait-Cycle-Aware Live GEI Rolling Buffer.
-
-    Features:
-      - Consecutive duplicate frame rejection (via silhouette IoU).
-      - Autocorrelation-based gait cycle detection (silhouette width periodicity).
-      - Cycle-aware frame slice aggregation when cycle detected.
-      - Graceful fallback to standard rolling mean when no cycle is detected.
-    """
-
     def __init__(
         self,
         max_frames: int = 15,
@@ -121,10 +111,6 @@ class LiveGEI:
         return len(self.frames) >= self.min_frames
 
     def detect_gait_cycle(self) -> int | None:
-        """
-        Estimate gait cycle period using normalized autocorrelation on silhouette width signal.
-        Returns estimated cycle length in frames, or None if unconfident.
-        """
         if not self.cycle_detection_enabled or len(self.width_signals) < self.min_cycle_frames * 2:
             return None
 

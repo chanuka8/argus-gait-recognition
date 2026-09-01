@@ -1,5 +1,3 @@
-"""Unit tests for QualityEstimator and TemporalGaitVerifier steps."""
-
 import numpy as np
 
 from pipeline.steps.quality_estimator import QualityEstimator

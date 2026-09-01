@@ -27,7 +27,6 @@ def sample_crop():
 
 
 def test_photo_to_512d_appearance_embedding(sample_crop):
-    """Requirement 1 & 2: Extract 512D L2-normalized float32 embedding from photo/crop."""
     extractor = ReIDFeatureExtractionStep()
     embedding = extractor.extract(sample_crop)
 
@@ -42,7 +41,6 @@ def test_photo_to_512d_appearance_embedding(sample_crop):
 
 
 def test_photo_file_extraction(tmp_path, sample_crop):
-    """Test extraction directly from an image file path."""
     img_path = tmp_path / "person_photo.jpg"
     cv2.imwrite(str(img_path), sample_crop)
 
@@ -55,7 +53,6 @@ def test_photo_file_extraction(tmp_path, sample_crop):
 
 
 def test_appearance_gallery_single_person_enrollment(temp_gallery_dir, sample_crop):
-    """Requirement 3 & 5: Enroll person with single photo and verify persistence."""
     updater = AppearanceGalleryUpdater(gallery_dir=temp_gallery_dir)
     extractor = ReIDFeatureExtractionStep()
 
@@ -77,7 +74,6 @@ def test_appearance_gallery_single_person_enrollment(temp_gallery_dir, sample_cr
 
 
 def test_appearance_gallery_multiple_photos_for_one_person(temp_gallery_dir):
-    """Requirement 4: Enrolling multiple reference photos for one person ID."""
     updater = AppearanceGalleryUpdater(gallery_dir=temp_gallery_dir)
     extractor = ReIDFeatureExtractionStep()
 
@@ -99,7 +95,6 @@ def test_appearance_gallery_multiple_photos_for_one_person(temp_gallery_dir):
 
 
 def test_appearance_matching_known_match(temp_gallery_dir, sample_crop):
-    """Requirement 6 & 7: Cosine similarity matching returns correct known identity."""
     updater = AppearanceGalleryUpdater(gallery_dir=temp_gallery_dir)
     extractor = ReIDFeatureExtractionStep()
 
@@ -126,7 +121,6 @@ def test_appearance_matching_known_match(temp_gallery_dir, sample_crop):
 
 
 def test_appearance_matching_unknown_below_threshold(temp_gallery_dir):
-    """Requirement 8: Explicit UNKNOWN_PERSON return when score is below threshold."""
     updater = AppearanceGalleryUpdater(gallery_dir=temp_gallery_dir)
 
 
@@ -156,7 +150,6 @@ def test_appearance_matching_unknown_below_threshold(temp_gallery_dir):
 
 
 def test_appearance_matching_top_k(temp_gallery_dir):
-    """Test top-K ranking candidates by similarity."""
     updater = AppearanceGalleryUpdater(gallery_dir=temp_gallery_dir)
 
     v_query = np.zeros((512,), dtype=np.float32)
@@ -192,7 +185,6 @@ def test_appearance_matching_top_k(temp_gallery_dir):
 
 
 def test_dimension_isolation_rejection(temp_gallery_dir):
-    """Requirement 9: Reject 256D vectors in Appearance gallery and 512D vectors in Gait gallery."""
     appearance_updater = AppearanceGalleryUpdater(gallery_dir=temp_gallery_dir)
     gait_updater = GalleryUpdater(gallery_dir=temp_gallery_dir)
 
@@ -209,7 +201,6 @@ def test_dimension_isolation_rejection(temp_gallery_dir):
 
 
 def test_enrollment_manager_appearance_flow(tmp_path, temp_gallery_dir):
-    """Test full EnrollmentManager photo folder appearance enrollment."""
     person_folder = tmp_path / "Subject_42"
     person_folder.mkdir()
 

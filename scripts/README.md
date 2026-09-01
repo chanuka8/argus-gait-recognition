@@ -12,16 +12,16 @@ This folder contains project maintenance, automation, development, validation, e
 | Script | Purpose | Primary Usage |
 | --- | --- | --- |
 | [activate_venv.ps1](activate_venv.ps1) | ARGUS AI - Automatic Python virtual environment activation. | `powershell -ExecutionPolicy Bypass -File scripts/activate_venv.ps1` |
-| [analyze_cl_part_similarity.py](analyze_cl_part_similarity.py) | EXP-004B CL Root Cause Analysis: HPP Part-Level Similarity Investigation. | `python scripts/analyze_cl_part_similarity.py` |
+| [analyze_cl_part_similarity.py](analyze_cl_part_similarity.py) | Utility script for analyze cl part similarity. | `python scripts/analyze_cl_part_similarity.py` |
 | [analyze_open_set_and_cl.py](analyze_open_set_and_cl.py) | Utility script for analyze open set and cl. | `python scripts/analyze_open_set_and_cl.py` |
-| [audit_continual_learning_effectiveness.py](audit_continual_learning_effectiveness.py) | Comprehensive Forensic Continual Learning Effectiveness & Real-World Accuracy Metrics Audit. | `python scripts/audit_continual_learning_effectiveness.py` |
+| [audit_continual_learning_effectiveness.py](audit_continual_learning_effectiveness.py) | Utility script for audit continual learning effectiveness. | `python scripts/audit_continual_learning_effectiveness.py` |
 | [benchmark.py](benchmark.py) | Performance benchmark script for benchmark. | `python scripts/benchmark.py` |
-| [benchmark_crowd_performance.py](benchmark_crowd_performance.py) | Performance Measurement Benchmark for Crowd Intelligence Features. | `python scripts/benchmark_crowd_performance.py` |
-| [benchmark_inference_backends.py](benchmark_inference_backends.py) | Inference Backend Performance and Parity Benchmark Script for ARGUS AI. | `python scripts/benchmark_inference_backends.py` |
+| [benchmark_crowd_performance.py](benchmark_crowd_performance.py) | Performance benchmark script for benchmark crowd performance. | `python scripts/benchmark_crowd_performance.py` |
+| [benchmark_inference_backends.py](benchmark_inference_backends.py) | Benchmark ARGUS inference backends. | `python scripts/benchmark_inference_backends.py` |
 | [benchmark_silhouette_segmenters.py](benchmark_silhouette_segmenters.py) | Performance benchmark script for benchmark silhouette segmenters. | `python scripts/benchmark_silhouette_segmenters.py` |
 | [bootstrap_env.ps1](bootstrap_env.ps1) | ARGUS AI - Production-Grade Automated Environment Bootstrap & Repair. | `powershell -ExecutionPolicy Bypass -File scripts/bootstrap_env.ps1` |
 | [build_gallery.py](build_gallery.py) | Utility script for build gallery. | `python scripts/build_gallery.py` |
-| [build_tensorrt_engine.py](build_tensorrt_engine.py) | Build TensorRT engine from ONNX model file and verify output parity. | `python scripts/build_tensorrt_engine.py` |
+| [build_tensorrt_engine.py](build_tensorrt_engine.py) | Build TensorRT engine from ONNX model. | `python scripts/build_tensorrt_engine.py` |
 | [clean_live_gallery.py](clean_live_gallery.py) | Clean contaminated identities from ARGUS live gallery | `python scripts/clean_live_gallery.py` |
 | [demo_confidence_scorer.py](demo_confidence_scorer.py) | Utility script for demo confidence scorer. | `python scripts/demo_confidence_scorer.py` |
 | [demo_enrollment.py](demo_enrollment.py) | Utility script for demo enrollment. | `python scripts/demo_enrollment.py` |
@@ -30,41 +30,41 @@ This folder contains project maintenance, automation, development, validation, e
 | [demo_security_layer.py](demo_security_layer.py) | Utility script for demo security layer. | `python scripts/demo_security_layer.py` |
 | [demo_silhouette.py](demo_silhouette.py) | Utility script for demo silhouette. | `python scripts/demo_silhouette.py` |
 | [demo_streaming_optimization.py](demo_streaming_optimization.py) | Utility script for demo streaming optimization. | `python scripts/demo_streaming_optimization.py` |
-| [detect_environment.py](detect_environment.py) | ARGUS AI Hardware & Compute Environment Detector CLI. | `python scripts/detect_environment.py` |
-| [diagnose_f1_score.py](diagnose_f1_score.py) | Targeted F1 Score Forensic Diagnostic Script for ARGUS AI. | `python scripts/diagnose_f1_score.py` |
-| [doctor.py](doctor.py) | ARGUS AI Non-Destructive Deployment Health Checker CLI (doctor.py). | `python scripts/doctor.py` |
-| [download_gdrive_osnet.py](download_gdrive_osnet.py) | Test downloading Google Drive weights with session cookies and confirmation tokens. | `python scripts/download_gdrive_osnet.py` |
+| [detect_environment.py](detect_environment.py) | ARGUS Hardware & Environment Detector | `python scripts/detect_environment.py` |
+| [diagnose_f1_score.py](diagnose_f1_score.py) | Utility script for diagnose f1 score. | `python scripts/diagnose_f1_score.py` |
+| [doctor.py](doctor.py) | Utility script for doctor. | `python scripts/doctor.py` |
+| [download_gdrive_osnet.py](download_gdrive_osnet.py) | Utility script for download gdrive osnet. | `python scripts/download_gdrive_osnet.py` |
 | [download_osnet_weights.py](download_osnet_weights.py) | Utility script for download osnet weights. | `python scripts/download_osnet_weights.py` |
-| [download_package.py](download_package.py) | ARGUS AI Real-Time Package & Large File Streaming Downloader. | `python scripts/download_package.py` |
+| [download_package.py](download_package.py) | ARGUS AI Live Streaming Downloader | `python scripts/download_package.py` |
 | [evaluate_appearance_recognition.py](evaluate_appearance_recognition.py) | Evaluation script for appearance recognition. | `python scripts/evaluate_appearance_recognition.py` |
 | [evaluate_cross_view.py](evaluate_cross_view.py) | Evaluate ARGUS Cross-View Gait Recognition Metrics | `python scripts/evaluate_cross_view.py` |
 | [evaluate_dual_modal_recognition.py](evaluate_dual_modal_recognition.py) | Evaluation script for dual modal recognition. | `python scripts/evaluate_dual_modal_recognition.py` |
-| [evaluate_exp004.py](evaluate_exp004.py) | EXP-004 Evaluation & Reporting Script. | `python scripts/evaluate_exp004.py` |
+| [evaluate_exp004.py](evaluate_exp004.py) | Evaluation script for exp004. | `python scripts/evaluate_exp004.py` |
 | [evaluate_model.py](evaluate_model.py) | Evaluate ARGUS gait recognition model | `python scripts/evaluate_model.py` |
 | [evaluate_open_set.py](evaluate_open_set.py) | Evaluate ARGUS Open-Set Gait Recognition Metrics | `python scripts/evaluate_open_set.py` |
 | [evaluate_open_set_threshold_sweep.py](evaluate_open_set_threshold_sweep.py) | Evaluate ARGUS Open-Set Threshold and Matching Mode Sweep | `python scripts/evaluate_open_set_threshold_sweep.py` |
 | [evaluate_subject_disjoint.py](evaluate_subject_disjoint.py) | Run Full ARGUS Subject-Disjoint Baseline Evaluation Pipeline | `python scripts/evaluate_subject_disjoint.py` |
 | [evaluate_threshold_sweep.py](evaluate_threshold_sweep.py) | Evaluate ARGUS thresholds via sweep evaluation | `python scripts/evaluate_threshold_sweep.py` |
-| [export_bygait_onnx.py](export_bygait_onnx.py) | Export PyTorch ByGaitLight model checkpoint to ONNX format and verify numerical parity. | `python scripts/export_bygait_onnx.py` |
+| [export_bygait_onnx.py](export_bygait_onnx.py) | Export ARGUS ByGaitLight PyTorch model to ONNX. | `python scripts/export_bygait_onnx.py` |
 | [export_silhouette_unet_onnx.py](export_silhouette_unet_onnx.py) | Utility script for export silhouette unet onnx. | `python scripts/export_silhouette_unet_onnx.py` |
-| [extract_casia_skeletons.py](extract_casia_skeletons.py) | Extract per-frame 2D COCO-17 pose keypoints from raw CASIA-B video frame sequences | `python scripts/extract_casia_skeletons.py` |
-| [f1_threshold_calibration_independent_validation.py](f1_threshold_calibration_independent_validation.py) | ARGUS AI — F1 Threshold Calibration & Independent Validation | `python scripts/f1_threshold_calibration_independent_validation.py` |
+| [extract_casia_skeletons.py](extract_casia_skeletons.py) | Utility script for extract casia skeletons. | `python scripts/extract_casia_skeletons.py` |
+| [f1_threshold_calibration_independent_validation.py](f1_threshold_calibration_independent_validation.py) | Utility script for f1 threshold calibration independent validation. | `python scripts/f1_threshold_calibration_independent_validation.py` |
 | [generate_visualizer_charts.py](generate_visualizer_charts.py) | Utility script for generate visualizer charts. | `python scripts/generate_visualizer_charts.py` |
-| [install_git_hooks.py](install_git_hooks.py) | Installs Git pre-commit hooks for automated ARGUS AI README synchronization. | `python scripts/install_git_hooks.py` |
+| [install_git_hooks.py](install_git_hooks.py) | Detect Python interpreter (prefer project-local .venv standard) | `python scripts/install_git_hooks.py` |
 | [manage_venv.ps1](manage_venv.ps1) | ARGUS AI - Safe Virtual Environment Manager for Windows. | `powershell -ExecutionPolicy Bypass -File scripts/manage_venv.ps1` |
-| [migrate_output_layout.py](migrate_output_layout.py) | One-time runtime output layout migration script. | `python scripts/migrate_output_layout.py` |
+| [migrate_output_layout.py](migrate_output_layout.py) | Migrate ARGUS AI output layout. | `python scripts/migrate_output_layout.py` |
 | [preprocess_casia.py](preprocess_casia.py) | Build GEI images from CASIA-B ZIP dataset | `python scripts/preprocess_casia.py` |
-| [process_runner.py](process_runner.py) | ARGUS AI Real-Time Subprocess Execution & Streamer. | `python scripts/process_runner.py` |
-| [profile_live_stream_latency.py](profile_live_stream_latency.py) | Forensic Profiler for ARGUS AI Live Camera Stream Startup Latency. | `python scripts/profile_live_stream_latency.py` |
-| [profile_startup_forensics.py](profile_startup_forensics.py) | Forensic Startup Profiling for ARGUS AI Backend Server. | `python scripts/profile_startup_forensics.py` |
+| [process_runner.py](process_runner.py) | ARGUS Subprocess Streaming Runner | `python scripts/process_runner.py` |
+| [profile_live_stream_latency.py](profile_live_stream_latency.py) | Utility script for profile live stream latency. | `python scripts/profile_live_stream_latency.py` |
+| [profile_startup_forensics.py](profile_startup_forensics.py) | Utility script for profile startup forensics. | `python scripts/profile_startup_forensics.py` |
 | [remove_gallery_identity.py](remove_gallery_identity.py) | Remove an identity from ARGUS gallery | `python scripts/remove_gallery_identity.py` |
 | [remove_numeric_gallery_identities.py](remove_numeric_gallery_identities.py) | Remove numeric CASIA-B identities from ARGUS gallery | `python scripts/remove_numeric_gallery_identities.py` |
 | [run_ablation_study.py](run_ablation_study.py) | Run Full ARGUS Gait Ablation Study (EXP-003A..E) | `python scripts/run_ablation_study.py` |
 | [run_auto_enrollment.py](run_auto_enrollment.py) | ARGUS auto enrollment service | `python scripts/run_auto_enrollment.py` |
 | [run_exp004_ablations.py](run_exp004_ablations.py) | Run EXP-004 Open-Set & CL Robustness Ablations | `python scripts/run_exp004_ablations.py` |
-| [run_exp006_3d.py](run_exp006_3d.py) | EXP-006 Controlled Experiment: | `python scripts/run_exp006_3d.py` |
-| [run_exp006_full.py](run_exp006_full.py) | EXP-006 End-to-End Runner: | `python scripts/run_exp006_full.py` |
-| [run_exp007_ablations.py](run_exp007_ablations.py) | EXP-007 Controlled Ablation Study and Optimization: | `python scripts/run_exp007_ablations.py` |
+| [run_exp006_3d.py](run_exp006_3d.py) | Utility script for run exp006 3d. | `python scripts/run_exp006_3d.py` |
+| [run_exp006_full.py](run_exp006_full.py) | Utility script for run exp006 full. | `python scripts/run_exp006_full.py` |
+| [run_exp007_ablations.py](run_exp007_ablations.py) | Utility script for run exp007 ablations. | `python scripts/run_exp007_ablations.py` |
 | [run_folder_recognition.py](run_folder_recognition.py) | ARGUS folder-based GEI recognition | `python scripts/run_folder_recognition.py` |
 | [run_folder_watcher.py](run_folder_watcher.py) | Utility script for run folder watcher. | `python scripts/run_folder_watcher.py` |
 | [run_gallery_match.py](run_gallery_match.py) | Utility script for run gallery match. | `python scripts/run_gallery_match.py` |
@@ -76,22 +76,22 @@ This folder contains project maintenance, automation, development, validation, e
 | [run_video_recognition.py](run_video_recognition.py) | ARGUS video-file gait recognition | `python scripts/run_video_recognition.py` |
 | [run_webcam_detection.py](run_webcam_detection.py) | Utility script for run webcam detection. | `python scripts/run_webcam_detection.py` |
 | [set_gallery_identity_status.py](set_gallery_identity_status.py) | Set ARGUS gallery identity status | `python scripts/set_gallery_identity_status.py` |
-| [setup_silhouette_model.py](setup_silhouette_model.py) | Silhouette Model Setup and Asset Verification Helper for ARGUS AI. | `python scripts/setup_silhouette_model.py` |
-| [simulate_date_aware_learning.py](simulate_date_aware_learning.py) | Real Integration Simulation Script for ARGUS AI Date-Aware Continuous Embedding Learning. | `python scripts/simulate_date_aware_learning.py` |
-| [smoke_test_deployment.py](smoke_test_deployment.py) | Automated Native Deployment Smoke Test for ARGUS AI. | `python scripts/smoke_test_deployment.py` |
+| [setup_silhouette_model.py](setup_silhouette_model.py) | Utility script for setup silhouette model. | `python scripts/setup_silhouette_model.py` |
+| [simulate_date_aware_learning.py](simulate_date_aware_learning.py) | Utility script for simulate date aware learning. | `python scripts/simulate_date_aware_learning.py` |
+| [smoke_test_deployment.py](smoke_test_deployment.py) | Utility script for smoke test deployment. | `python scripts/smoke_test_deployment.py` |
 | [start_system.bat](start_system.bat) | System startup launcher script. | `scripts/start_system.bat` |
 | [start_system.sh](start_system.sh) | System startup launcher script. | `scripts/start_system.sh` |
 | [sweep_fine_thresholds.py](sweep_fine_thresholds.py) | Utility script for sweep fine thresholds. | `python scripts/sweep_fine_thresholds.py` |
-| [sync_folder_readmes.py](sync_folder_readmes.py) | Automated README synchronization script for ARGUS AI package folders. | `python scripts/sync_folder_readmes.py` |
+| [sync_folder_readmes.py](sync_folder_readmes.py) | Synchronize ARGUS AI folder README files. | `python scripts/sync_folder_readmes.py` |
 | [system_check.py](system_check.py) | Environment and dependency verification script. | `python scripts/system_check.py` |
-| [test_server_functional_parity.py](test_server_functional_parity.py) | End-to-End Functional Parity and Regression Test for Optimized ARGUS AI Server. | `pytest scripts/test_server_functional_parity.py` |
+| [test_server_functional_parity.py](test_server_functional_parity.py) | Validation test script for server functional parity. | `pytest scripts/test_server_functional_parity.py` |
 | [train_model.py](train_model.py) | Train ARGUS ByGaitLight model with metric learning (HPP + ArcFace + Triplet). | `python scripts/train_model.py` |
-| [validate_appearance_runtime.py](validate_appearance_runtime.py) | Full Real-Runtime Appearance Model Validation Script for ARGUS AI. | `python scripts/validate_appearance_runtime.py` |
-| [validate_continuous_improvement_lifecycle.py](validate_continuous_improvement_lifecycle.py) | End-to-End Demonstration and Validation Script for ARGUS AI Continuous Improvement Architecture, | `python scripts/validate_continuous_improvement_lifecycle.py` |
-| [validate_live_surveillance.py](validate_live_surveillance.py) | ARGUS AI — Live End-to-End Multi-Person Surveillance Validation Script. | `python scripts/validate_live_surveillance.py` |
-| [verify_environment.py](verify_environment.py) | ARGUS AI Complete Environment & Model Verification Suite. | `python scripts/verify_environment.py` |
-| [verify_firebase_persistence.py](verify_firebase_persistence.py) | Verification and Health Check Script for Firebase Durable Embedding Persistence Layer. | `python scripts/verify_firebase_persistence.py` |
-| [verify_real_nn_learning.py](verify_real_nn_learning.py) | ARGUS AI — Real Neural Network Learning & Weight Update Verification Script. | `python scripts/verify_real_nn_learning.py` |
+| [validate_appearance_runtime.py](validate_appearance_runtime.py) | Utility script for validate appearance runtime. | `python scripts/validate_appearance_runtime.py` |
+| [validate_continuous_improvement_lifecycle.py](validate_continuous_improvement_lifecycle.py) | Utility script for validate continuous improvement lifecycle. | `python scripts/validate_continuous_improvement_lifecycle.py` |
+| [validate_live_surveillance.py](validate_live_surveillance.py) | Utility script for validate live surveillance. | `python scripts/validate_live_surveillance.py` |
+| [verify_environment.py](verify_environment.py) | Utility script for verify environment. | `python scripts/verify_environment.py` |
+| [verify_firebase_persistence.py](verify_firebase_persistence.py) | Utility script for verify firebase persistence. | `python scripts/verify_firebase_persistence.py` |
+| [verify_real_nn_learning.py](verify_real_nn_learning.py) | Utility script for verify real nn learning. | `python scripts/verify_real_nn_learning.py` |
 <!-- END SYNC: KEY_MODULES -->
 
 ## Script Metadata
@@ -100,16 +100,16 @@ This folder contains project maintenance, automation, development, validation, e
 | Script | Category | CLI | Auto | Used by CI | Used by Hook | Description |
 | --- | --- | --- | --- | --- | --- | --- |
 | [activate_venv.ps1](activate_venv.ps1) | Environment | No | Yes | No | No | ARGUS AI - Automatic Python virtual environment activation. |
-| [analyze_cl_part_similarity.py](analyze_cl_part_similarity.py) | Development | No | No | No | No | EXP-004B CL Root Cause Analysis: HPP Part-Level Similarit... |
+| [analyze_cl_part_similarity.py](analyze_cl_part_similarity.py) | Development | No | No | No | No | Utility script for analyze cl part similarity. |
 | [analyze_open_set_and_cl.py](analyze_open_set_and_cl.py) | Development | No | No | No | No | Utility script for analyze open set and cl. |
-| [audit_continual_learning_effectiveness.py](audit_continual_learning_effectiveness.py) | Validation | No | No | No | No | Comprehensive Forensic Continual Learning Effectiveness &... |
+| [audit_continual_learning_effectiveness.py](audit_continual_learning_effectiveness.py) | Validation | No | No | No | No | Utility script for audit continual learning effectiveness. |
 | [benchmark.py](benchmark.py) | Validation | No | No | No | No | Performance benchmark script for benchmark. |
-| [benchmark_crowd_performance.py](benchmark_crowd_performance.py) | Validation | No | No | No | No | Performance Measurement Benchmark for Crowd Intelligence ... |
-| [benchmark_inference_backends.py](benchmark_inference_backends.py) | Validation | Yes | No | No | No | Inference Backend Performance and Parity Benchmark Script... |
+| [benchmark_crowd_performance.py](benchmark_crowd_performance.py) | Validation | No | No | No | No | Performance benchmark script for benchmark crowd performa... |
+| [benchmark_inference_backends.py](benchmark_inference_backends.py) | Validation | Yes | No | No | No | Benchmark ARGUS inference backends. |
 | [benchmark_silhouette_segmenters.py](benchmark_silhouette_segmenters.py) | Validation | No | No | No | No | Performance benchmark script for benchmark silhouette seg... |
 | [bootstrap_env.ps1](bootstrap_env.ps1) | Environment | No | No | No | No | ARGUS AI - Production-Grade Automated Environment Bootstr... |
 | [build_gallery.py](build_gallery.py) | Dataset | No | No | No | No | Utility script for build gallery. |
-| [build_tensorrt_engine.py](build_tensorrt_engine.py) | Conversion | Yes | No | No | No | Build TensorRT engine from ONNX model file and verify out... |
+| [build_tensorrt_engine.py](build_tensorrt_engine.py) | Conversion | Yes | No | No | No | Build TensorRT engine from ONNX model. |
 | [clean_live_gallery.py](clean_live_gallery.py) | Dataset | Yes | No | No | No | Clean contaminated identities from ARGUS live gallery |
 | [demo_confidence_scorer.py](demo_confidence_scorer.py) | Validation | No | No | No | No | Utility script for demo confidence scorer. |
 | [demo_enrollment.py](demo_enrollment.py) | Validation | No | No | No | No | Utility script for demo enrollment. |
@@ -118,41 +118,41 @@ This folder contains project maintenance, automation, development, validation, e
 | [demo_security_layer.py](demo_security_layer.py) | Validation | No | No | No | No | Utility script for demo security layer. |
 | [demo_silhouette.py](demo_silhouette.py) | Validation | No | No | No | No | Utility script for demo silhouette. |
 | [demo_streaming_optimization.py](demo_streaming_optimization.py) | Validation | No | No | No | No | Utility script for demo streaming optimization. |
-| [detect_environment.py](detect_environment.py) | Validation | Yes | No | No | No | ARGUS AI Hardware & Compute Environment Detector CLI. |
-| [diagnose_f1_score.py](diagnose_f1_score.py) | Development | No | No | No | No | Targeted F1 Score Forensic Diagnostic Script for ARGUS AI. |
-| [doctor.py](doctor.py) | Validation | No | No | No | No | ARGUS AI Non-Destructive Deployment Health Checker CLI (d... |
-| [download_gdrive_osnet.py](download_gdrive_osnet.py) | Development | No | No | No | No | Test downloading Google Drive weights with session cookie... |
+| [detect_environment.py](detect_environment.py) | Validation | Yes | No | No | No | ARGUS Hardware & Environment Detector |
+| [diagnose_f1_score.py](diagnose_f1_score.py) | Development | No | No | No | No | Utility script for diagnose f1 score. |
+| [doctor.py](doctor.py) | Validation | No | No | No | No | Utility script for doctor. |
+| [download_gdrive_osnet.py](download_gdrive_osnet.py) | Development | No | No | No | No | Utility script for download gdrive osnet. |
 | [download_osnet_weights.py](download_osnet_weights.py) | Development | No | No | No | No | Utility script for download osnet weights. |
-| [download_package.py](download_package.py) | Environment | Yes | No | No | No | ARGUS AI Real-Time Package & Large File Streaming Downloa... |
+| [download_package.py](download_package.py) | Environment | Yes | No | No | No | ARGUS AI Live Streaming Downloader |
 | [evaluate_appearance_recognition.py](evaluate_appearance_recognition.py) | Validation | No | No | No | No | Evaluation script for appearance recognition. |
 | [evaluate_cross_view.py](evaluate_cross_view.py) | Validation | Yes | No | No | No | Evaluate ARGUS Cross-View Gait Recognition Metrics |
 | [evaluate_dual_modal_recognition.py](evaluate_dual_modal_recognition.py) | Validation | No | No | No | No | Evaluation script for dual modal recognition. |
-| [evaluate_exp004.py](evaluate_exp004.py) | Validation | Yes | No | No | No | EXP-004 Evaluation & Reporting Script. |
+| [evaluate_exp004.py](evaluate_exp004.py) | Validation | Yes | No | No | No | Evaluation script for exp004. |
 | [evaluate_model.py](evaluate_model.py) | Validation | Yes | No | No | No | Evaluate ARGUS gait recognition model |
 | [evaluate_open_set.py](evaluate_open_set.py) | Validation | Yes | No | No | No | Evaluate ARGUS Open-Set Gait Recognition Metrics |
 | [evaluate_open_set_threshold_sweep.py](evaluate_open_set_threshold_sweep.py) | Validation | Yes | No | No | No | Evaluate ARGUS Open-Set Threshold and Matching Mode Sweep |
 | [evaluate_subject_disjoint.py](evaluate_subject_disjoint.py) | Validation | Yes | No | No | No | Run Full ARGUS Subject-Disjoint Baseline Evaluation Pipeline |
 | [evaluate_threshold_sweep.py](evaluate_threshold_sweep.py) | Validation | Yes | No | No | No | Evaluate ARGUS thresholds via sweep evaluation |
-| [export_bygait_onnx.py](export_bygait_onnx.py) | Conversion | Yes | No | No | No | Export PyTorch ByGaitLight model checkpoint to ONNX forma... |
+| [export_bygait_onnx.py](export_bygait_onnx.py) | Conversion | Yes | No | No | No | Export ARGUS ByGaitLight PyTorch model to ONNX. |
 | [export_silhouette_unet_onnx.py](export_silhouette_unet_onnx.py) | Conversion | No | No | No | No | Utility script for export silhouette unet onnx. |
-| [extract_casia_skeletons.py](extract_casia_skeletons.py) | Dataset | Yes | No | No | No | Extract per-frame 2D COCO-17 pose keypoints from raw CASI... |
-| [f1_threshold_calibration_independent_validation.py](f1_threshold_calibration_independent_validation.py) | Development | No | No | No | No | ARGUS AI — F1 Threshold Calibration & Independent Validation |
+| [extract_casia_skeletons.py](extract_casia_skeletons.py) | Dataset | Yes | No | No | No | Utility script for extract casia skeletons. |
+| [f1_threshold_calibration_independent_validation.py](f1_threshold_calibration_independent_validation.py) | Development | No | No | No | No | Utility script for f1 threshold calibration independent v... |
 | [generate_visualizer_charts.py](generate_visualizer_charts.py) | Validation | No | No | No | No | Utility script for generate visualizer charts. |
-| [install_git_hooks.py](install_git_hooks.py) | Git | No | No | No | No | Installs Git pre-commit hooks for automated ARGUS AI READ... |
+| [install_git_hooks.py](install_git_hooks.py) | Git | No | No | No | No | Detect Python interpreter (prefer project-local .venv sta... |
 | [manage_venv.ps1](manage_venv.ps1) | Environment | No | No | No | No | ARGUS AI - Safe Virtual Environment Manager for Windows. |
-| [migrate_output_layout.py](migrate_output_layout.py) | Conversion | Yes | No | No | No | One-time runtime output layout migration script. |
+| [migrate_output_layout.py](migrate_output_layout.py) | Conversion | Yes | No | No | No | Migrate ARGUS AI output layout. |
 | [preprocess_casia.py](preprocess_casia.py) | Dataset | Yes | No | No | No | Build GEI images from CASIA-B ZIP dataset |
-| [process_runner.py](process_runner.py) | Environment | Yes | No | No | No | ARGUS AI Real-Time Subprocess Execution & Streamer. |
-| [profile_live_stream_latency.py](profile_live_stream_latency.py) | Development | No | No | No | No | Forensic Profiler for ARGUS AI Live Camera Stream Startup... |
-| [profile_startup_forensics.py](profile_startup_forensics.py) | Development | No | No | No | No | Forensic Startup Profiling for ARGUS AI Backend Server. |
+| [process_runner.py](process_runner.py) | Environment | Yes | No | No | No | ARGUS Subprocess Streaming Runner |
+| [profile_live_stream_latency.py](profile_live_stream_latency.py) | Development | No | No | No | No | Utility script for profile live stream latency. |
+| [profile_startup_forensics.py](profile_startup_forensics.py) | Development | No | No | No | No | Utility script for profile startup forensics. |
 | [remove_gallery_identity.py](remove_gallery_identity.py) | Dataset | Yes | No | No | No | Remove an identity from ARGUS gallery |
 | [remove_numeric_gallery_identities.py](remove_numeric_gallery_identities.py) | Dataset | Yes | No | No | No | Remove numeric CASIA-B identities from ARGUS gallery |
 | [run_ablation_study.py](run_ablation_study.py) | Validation | Yes | No | No | No | Run Full ARGUS Gait Ablation Study (EXP-003A..E) |
 | [run_auto_enrollment.py](run_auto_enrollment.py) | Dataset | Yes | No | No | No | ARGUS auto enrollment service |
 | [run_exp004_ablations.py](run_exp004_ablations.py) | Validation | Yes | No | No | No | Run EXP-004 Open-Set & CL Robustness Ablations |
-| [run_exp006_3d.py](run_exp006_3d.py) | Validation | No | No | No | No | EXP-006 Controlled Experiment: |
-| [run_exp006_full.py](run_exp006_full.py) | Validation | No | No | No | No | EXP-006 End-to-End Runner: |
-| [run_exp007_ablations.py](run_exp007_ablations.py) | Validation | No | No | No | No | EXP-007 Controlled Ablation Study and Optimization: |
+| [run_exp006_3d.py](run_exp006_3d.py) | Validation | No | No | No | No | Utility script for run exp006 3d. |
+| [run_exp006_full.py](run_exp006_full.py) | Validation | No | No | No | No | Utility script for run exp006 full. |
+| [run_exp007_ablations.py](run_exp007_ablations.py) | Validation | No | No | No | No | Utility script for run exp007 ablations. |
 | [run_folder_recognition.py](run_folder_recognition.py) | Validation | Yes | No | No | No | ARGUS folder-based GEI recognition |
 | [run_folder_watcher.py](run_folder_watcher.py) | Validation | No | No | No | No | Utility script for run folder watcher. |
 | [run_gallery_match.py](run_gallery_match.py) | Validation | No | No | No | No | Utility script for run gallery match. |
@@ -164,22 +164,22 @@ This folder contains project maintenance, automation, development, validation, e
 | [run_video_recognition.py](run_video_recognition.py) | Validation | Yes | No | No | No | ARGUS video-file gait recognition |
 | [run_webcam_detection.py](run_webcam_detection.py) | Validation | No | No | No | No | Utility script for run webcam detection. |
 | [set_gallery_identity_status.py](set_gallery_identity_status.py) | Dataset | Yes | No | No | No | Set ARGUS gallery identity status |
-| [setup_silhouette_model.py](setup_silhouette_model.py) | Development | No | No | No | No | Silhouette Model Setup and Asset Verification Helper for ... |
-| [simulate_date_aware_learning.py](simulate_date_aware_learning.py) | Validation | No | No | No | No | Real Integration Simulation Script for ARGUS AI Date-Awar... |
-| [smoke_test_deployment.py](smoke_test_deployment.py) | Validation | No | No | No | No | Automated Native Deployment Smoke Test for ARGUS AI. |
+| [setup_silhouette_model.py](setup_silhouette_model.py) | Development | No | No | No | No | Utility script for setup silhouette model. |
+| [simulate_date_aware_learning.py](simulate_date_aware_learning.py) | Validation | No | No | No | No | Utility script for simulate date aware learning. |
+| [smoke_test_deployment.py](smoke_test_deployment.py) | Validation | No | No | No | No | Utility script for smoke test deployment. |
 | [start_system.bat](start_system.bat) | Deployment | No | No | No | No | System startup launcher script. |
 | [start_system.sh](start_system.sh) | Deployment | No | No | No | No | System startup launcher script. |
 | [sweep_fine_thresholds.py](sweep_fine_thresholds.py) | Development | No | No | No | No | Utility script for sweep fine thresholds. |
-| [sync_folder_readmes.py](sync_folder_readmes.py) | Documentation | Yes | Yes | Yes | Yes | Automated README synchronization script for ARGUS AI pack... |
+| [sync_folder_readmes.py](sync_folder_readmes.py) | Documentation | Yes | Yes | Yes | Yes | Synchronize ARGUS AI folder README files. |
 | [system_check.py](system_check.py) | Validation | No | No | No | No | Environment and dependency verification script. |
-| [test_server_functional_parity.py](test_server_functional_parity.py) | Validation | No | No | No | No | End-to-End Functional Parity and Regression Test for Opti... |
+| [test_server_functional_parity.py](test_server_functional_parity.py) | Validation | No | No | No | No | Validation test script for server functional parity. |
 | [train_model.py](train_model.py) | Development | Yes | No | No | No | Train ARGUS ByGaitLight model with metric learning (HPP +... |
-| [validate_appearance_runtime.py](validate_appearance_runtime.py) | Validation | No | No | No | No | Full Real-Runtime Appearance Model Validation Script for ... |
-| [validate_continuous_improvement_lifecycle.py](validate_continuous_improvement_lifecycle.py) | Validation | No | No | No | No | End-to-End Demonstration and Validation Script for ARGUS ... |
-| [validate_live_surveillance.py](validate_live_surveillance.py) | Validation | No | No | No | No | ARGUS AI — Live End-to-End Multi-Person Surveillance Vali... |
-| [verify_environment.py](verify_environment.py) | Validation | No | No | No | No | ARGUS AI Complete Environment & Model Verification Suite. |
-| [verify_firebase_persistence.py](verify_firebase_persistence.py) | Validation | No | No | No | No | Verification and Health Check Script for Firebase Durable... |
-| [verify_real_nn_learning.py](verify_real_nn_learning.py) | Validation | No | No | No | No | ARGUS AI — Real Neural Network Learning & Weight Update V... |
+| [validate_appearance_runtime.py](validate_appearance_runtime.py) | Validation | No | No | No | No | Utility script for validate appearance runtime. |
+| [validate_continuous_improvement_lifecycle.py](validate_continuous_improvement_lifecycle.py) | Validation | No | No | No | No | Utility script for validate continuous improvement lifecy... |
+| [validate_live_surveillance.py](validate_live_surveillance.py) | Validation | No | No | No | No | Utility script for validate live surveillance. |
+| [verify_environment.py](verify_environment.py) | Validation | No | No | No | No | Utility script for verify environment. |
+| [verify_firebase_persistence.py](verify_firebase_persistence.py) | Validation | No | No | No | No | Utility script for verify firebase persistence. |
+| [verify_real_nn_learning.py](verify_real_nn_learning.py) | Validation | No | No | No | No | Utility script for verify real nn learning. |
 <!-- END SYNC: SCRIPT_METADATA_TABLE -->
 
 ## CLI Reference
@@ -308,7 +308,7 @@ python scripts/evaluate_cross_view.py --max-images 500 --gallery-ratio 0.5
 </details>
 
 <details>
-<summary><strong>evaluate_exp004.py</strong> — EXP-004 Evaluation & Reporting Script.</summary>
+<summary><strong>evaluate_exp004.py</strong> — Evaluation script for exp004.</summary>
 
 **Usage**: `python scripts/evaluate_exp004.py`
 
@@ -451,7 +451,7 @@ python scripts/export_bygait_onnx.py --model-path runs/exp_001/best_model.pth --
 </details>
 
 <details>
-<summary><strong>extract_casia_skeletons.py</strong> — Extract per-frame 2D COCO-17 pose keypoints from raw CASIA-B video frame sequences</summary>
+<summary><strong>extract_casia_skeletons.py</strong> — Utility script for extract casia skeletons.</summary>
 
 **Usage**: `python scripts/extract_casia_skeletons.py`
 
@@ -777,10 +777,10 @@ python scripts/train_model.py --epochs 25 --batch-size 16
 Validation scripts perform environment health verification and component sanity tests:
 
 <!-- BEGIN SYNC: VALIDATION_SCRIPTS -->
-- **[audit_continual_learning_effectiveness.py](audit_continual_learning_effectiveness.py)**: Comprehensive Forensic Continual Learning Effectiveness & Real-World Accuracy Metrics Audit. (`python scripts/audit_continual_learning_effectiveness.py`)
+- **[audit_continual_learning_effectiveness.py](audit_continual_learning_effectiveness.py)**: Utility script for audit continual learning effectiveness. (`python scripts/audit_continual_learning_effectiveness.py`)
 - **[benchmark.py](benchmark.py)**: Performance benchmark script for benchmark. (`python scripts/benchmark.py`)
-- **[benchmark_crowd_performance.py](benchmark_crowd_performance.py)**: Performance Measurement Benchmark for Crowd Intelligence Features. (`python scripts/benchmark_crowd_performance.py`)
-- **[benchmark_inference_backends.py](benchmark_inference_backends.py)**: Inference Backend Performance and Parity Benchmark Script for ARGUS AI. (`python scripts/benchmark_inference_backends.py`)
+- **[benchmark_crowd_performance.py](benchmark_crowd_performance.py)**: Performance benchmark script for benchmark crowd performance. (`python scripts/benchmark_crowd_performance.py`)
+- **[benchmark_inference_backends.py](benchmark_inference_backends.py)**: Benchmark ARGUS inference backends. (`python scripts/benchmark_inference_backends.py`)
 - **[benchmark_silhouette_segmenters.py](benchmark_silhouette_segmenters.py)**: Performance benchmark script for benchmark silhouette segmenters. (`python scripts/benchmark_silhouette_segmenters.py`)
 - **[demo_confidence_scorer.py](demo_confidence_scorer.py)**: Utility script for demo confidence scorer. (`python scripts/demo_confidence_scorer.py`)
 - **[demo_enrollment.py](demo_enrollment.py)**: Utility script for demo enrollment. (`python scripts/demo_enrollment.py`)
@@ -789,12 +789,12 @@ Validation scripts perform environment health verification and component sanity 
 - **[demo_security_layer.py](demo_security_layer.py)**: Utility script for demo security layer. (`python scripts/demo_security_layer.py`)
 - **[demo_silhouette.py](demo_silhouette.py)**: Utility script for demo silhouette. (`python scripts/demo_silhouette.py`)
 - **[demo_streaming_optimization.py](demo_streaming_optimization.py)**: Utility script for demo streaming optimization. (`python scripts/demo_streaming_optimization.py`)
-- **[detect_environment.py](detect_environment.py)**: ARGUS AI Hardware & Compute Environment Detector CLI. (`python scripts/detect_environment.py`)
-- **[doctor.py](doctor.py)**: ARGUS AI Non-Destructive Deployment Health Checker CLI (doctor.py). (`python scripts/doctor.py`)
+- **[detect_environment.py](detect_environment.py)**: ARGUS Hardware & Environment Detector (`python scripts/detect_environment.py`)
+- **[doctor.py](doctor.py)**: Utility script for doctor. (`python scripts/doctor.py`)
 - **[evaluate_appearance_recognition.py](evaluate_appearance_recognition.py)**: Evaluation script for appearance recognition. (`python scripts/evaluate_appearance_recognition.py`)
 - **[evaluate_cross_view.py](evaluate_cross_view.py)**: Evaluate ARGUS Cross-View Gait Recognition Metrics (`python scripts/evaluate_cross_view.py`)
 - **[evaluate_dual_modal_recognition.py](evaluate_dual_modal_recognition.py)**: Evaluation script for dual modal recognition. (`python scripts/evaluate_dual_modal_recognition.py`)
-- **[evaluate_exp004.py](evaluate_exp004.py)**: EXP-004 Evaluation & Reporting Script. (`python scripts/evaluate_exp004.py`)
+- **[evaluate_exp004.py](evaluate_exp004.py)**: Evaluation script for exp004. (`python scripts/evaluate_exp004.py`)
 - **[evaluate_model.py](evaluate_model.py)**: Evaluate ARGUS gait recognition model (`python scripts/evaluate_model.py`)
 - **[evaluate_open_set.py](evaluate_open_set.py)**: Evaluate ARGUS Open-Set Gait Recognition Metrics (`python scripts/evaluate_open_set.py`)
 - **[evaluate_open_set_threshold_sweep.py](evaluate_open_set_threshold_sweep.py)**: Evaluate ARGUS Open-Set Threshold and Matching Mode Sweep (`python scripts/evaluate_open_set_threshold_sweep.py`)
@@ -803,9 +803,9 @@ Validation scripts perform environment health verification and component sanity 
 - **[generate_visualizer_charts.py](generate_visualizer_charts.py)**: Utility script for generate visualizer charts. (`python scripts/generate_visualizer_charts.py`)
 - **[run_ablation_study.py](run_ablation_study.py)**: Run Full ARGUS Gait Ablation Study (EXP-003A..E) (`python scripts/run_ablation_study.py`)
 - **[run_exp004_ablations.py](run_exp004_ablations.py)**: Run EXP-004 Open-Set & CL Robustness Ablations (`python scripts/run_exp004_ablations.py`)
-- **[run_exp006_3d.py](run_exp006_3d.py)**: EXP-006 Controlled Experiment: (`python scripts/run_exp006_3d.py`)
-- **[run_exp006_full.py](run_exp006_full.py)**: EXP-006 End-to-End Runner: (`python scripts/run_exp006_full.py`)
-- **[run_exp007_ablations.py](run_exp007_ablations.py)**: EXP-007 Controlled Ablation Study and Optimization: (`python scripts/run_exp007_ablations.py`)
+- **[run_exp006_3d.py](run_exp006_3d.py)**: Utility script for run exp006 3d. (`python scripts/run_exp006_3d.py`)
+- **[run_exp006_full.py](run_exp006_full.py)**: Utility script for run exp006 full. (`python scripts/run_exp006_full.py`)
+- **[run_exp007_ablations.py](run_exp007_ablations.py)**: Utility script for run exp007 ablations. (`python scripts/run_exp007_ablations.py`)
 - **[run_folder_recognition.py](run_folder_recognition.py)**: ARGUS folder-based GEI recognition (`python scripts/run_folder_recognition.py`)
 - **[run_folder_watcher.py](run_folder_watcher.py)**: Utility script for run folder watcher. (`python scripts/run_folder_watcher.py`)
 - **[run_gallery_match.py](run_gallery_match.py)**: Utility script for run gallery match. (`python scripts/run_gallery_match.py`)
@@ -816,16 +816,16 @@ Validation scripts perform environment health verification and component sanity 
 - **[run_tracking.py](run_tracking.py)**: Utility script for run tracking. (`python scripts/run_tracking.py`)
 - **[run_video_recognition.py](run_video_recognition.py)**: ARGUS video-file gait recognition (`python scripts/run_video_recognition.py`)
 - **[run_webcam_detection.py](run_webcam_detection.py)**: Utility script for run webcam detection. (`python scripts/run_webcam_detection.py`)
-- **[simulate_date_aware_learning.py](simulate_date_aware_learning.py)**: Real Integration Simulation Script for ARGUS AI Date-Aware Continuous Embedding Learning. (`python scripts/simulate_date_aware_learning.py`)
-- **[smoke_test_deployment.py](smoke_test_deployment.py)**: Automated Native Deployment Smoke Test for ARGUS AI. (`python scripts/smoke_test_deployment.py`)
+- **[simulate_date_aware_learning.py](simulate_date_aware_learning.py)**: Utility script for simulate date aware learning. (`python scripts/simulate_date_aware_learning.py`)
+- **[smoke_test_deployment.py](smoke_test_deployment.py)**: Utility script for smoke test deployment. (`python scripts/smoke_test_deployment.py`)
 - **[system_check.py](system_check.py)**: Environment and dependency verification script. (`python scripts/system_check.py`)
-- **[test_server_functional_parity.py](test_server_functional_parity.py)**: End-to-End Functional Parity and Regression Test for Optimized ARGUS AI Server. (`pytest scripts/test_server_functional_parity.py`)
-- **[validate_appearance_runtime.py](validate_appearance_runtime.py)**: Full Real-Runtime Appearance Model Validation Script for ARGUS AI. (`python scripts/validate_appearance_runtime.py`)
-- **[validate_continuous_improvement_lifecycle.py](validate_continuous_improvement_lifecycle.py)**: End-to-End Demonstration and Validation Script for ARGUS AI Continuous Improvement Architecture, (`python scripts/validate_continuous_improvement_lifecycle.py`)
-- **[validate_live_surveillance.py](validate_live_surveillance.py)**: ARGUS AI — Live End-to-End Multi-Person Surveillance Validation Script. (`python scripts/validate_live_surveillance.py`)
-- **[verify_environment.py](verify_environment.py)**: ARGUS AI Complete Environment & Model Verification Suite. (`python scripts/verify_environment.py`)
-- **[verify_firebase_persistence.py](verify_firebase_persistence.py)**: Verification and Health Check Script for Firebase Durable Embedding Persistence Layer. (`python scripts/verify_firebase_persistence.py`)
-- **[verify_real_nn_learning.py](verify_real_nn_learning.py)**: ARGUS AI — Real Neural Network Learning & Weight Update Verification Script. (`python scripts/verify_real_nn_learning.py`)
+- **[test_server_functional_parity.py](test_server_functional_parity.py)**: Validation test script for server functional parity. (`pytest scripts/test_server_functional_parity.py`)
+- **[validate_appearance_runtime.py](validate_appearance_runtime.py)**: Utility script for validate appearance runtime. (`python scripts/validate_appearance_runtime.py`)
+- **[validate_continuous_improvement_lifecycle.py](validate_continuous_improvement_lifecycle.py)**: Utility script for validate continuous improvement lifecycle. (`python scripts/validate_continuous_improvement_lifecycle.py`)
+- **[validate_live_surveillance.py](validate_live_surveillance.py)**: Utility script for validate live surveillance. (`python scripts/validate_live_surveillance.py`)
+- **[verify_environment.py](verify_environment.py)**: Utility script for verify environment. (`python scripts/verify_environment.py`)
+- **[verify_firebase_persistence.py](verify_firebase_persistence.py)**: Utility script for verify firebase persistence. (`python scripts/verify_firebase_persistence.py`)
+- **[verify_real_nn_learning.py](verify_real_nn_learning.py)**: Utility script for verify real nn learning. (`python scripts/verify_real_nn_learning.py`)
 <!-- END SYNC: VALIDATION_SCRIPTS -->
 
 ### Dataset
@@ -835,7 +835,7 @@ Dataset utility scripts handle CASIA-B raw preprocessing, GEI generation, galler
 <!-- BEGIN SYNC: DATASET_SCRIPTS -->
 - **[build_gallery.py](build_gallery.py)**: Utility script for build gallery. (`python scripts/build_gallery.py`)
 - **[clean_live_gallery.py](clean_live_gallery.py)**: Clean contaminated identities from ARGUS live gallery (`python scripts/clean_live_gallery.py`)
-- **[extract_casia_skeletons.py](extract_casia_skeletons.py)**: Extract per-frame 2D COCO-17 pose keypoints from raw CASIA-B video frame sequences (`python scripts/extract_casia_skeletons.py`)
+- **[extract_casia_skeletons.py](extract_casia_skeletons.py)**: Utility script for extract casia skeletons. (`python scripts/extract_casia_skeletons.py`)
 - **[preprocess_casia.py](preprocess_casia.py)**: Build GEI images from CASIA-B ZIP dataset (`python scripts/preprocess_casia.py`)
 - **[remove_gallery_identity.py](remove_gallery_identity.py)**: Remove an identity from ARGUS gallery (`python scripts/remove_gallery_identity.py`)
 - **[remove_numeric_gallery_identities.py](remove_numeric_gallery_identities.py)**: Remove numeric CASIA-B identities from ARGUS gallery (`python scripts/remove_numeric_gallery_identities.py`)
@@ -848,10 +848,10 @@ Dataset utility scripts handle CASIA-B raw preprocessing, GEI generation, galler
 Export and conversion scripts handle model format conversion, acceleration engine compilation, and schema migrations:
 
 <!-- BEGIN SYNC: CONVERSION_SCRIPTS -->
-- **[build_tensorrt_engine.py](build_tensorrt_engine.py)**: Build TensorRT engine from ONNX model file and verify output parity. (`python scripts/build_tensorrt_engine.py`)
-- **[export_bygait_onnx.py](export_bygait_onnx.py)**: Export PyTorch ByGaitLight model checkpoint to ONNX format and verify numerical parity. (`python scripts/export_bygait_onnx.py`)
+- **[build_tensorrt_engine.py](build_tensorrt_engine.py)**: Build TensorRT engine from ONNX model. (`python scripts/build_tensorrt_engine.py`)
+- **[export_bygait_onnx.py](export_bygait_onnx.py)**: Export ARGUS ByGaitLight PyTorch model to ONNX. (`python scripts/export_bygait_onnx.py`)
 - **[export_silhouette_unet_onnx.py](export_silhouette_unet_onnx.py)**: Utility script for export silhouette unet onnx. (`python scripts/export_silhouette_unet_onnx.py`)
-- **[migrate_output_layout.py](migrate_output_layout.py)**: One-time runtime output layout migration script. (`python scripts/migrate_output_layout.py`)
+- **[migrate_output_layout.py](migrate_output_layout.py)**: Migrate ARGUS AI output layout. (`python scripts/migrate_output_layout.py`)
 <!-- END SYNC: CONVERSION_SCRIPTS -->
 
 ### Development
@@ -859,15 +859,15 @@ Export and conversion scripts handle model format conversion, acceleration engin
 Development helper scripts run benchmarks, evaluations, training pipelines, and interactive recognition tasks:
 
 <!-- BEGIN SYNC: DEVELOPMENT_SCRIPTS -->
-- **[analyze_cl_part_similarity.py](analyze_cl_part_similarity.py)**: EXP-004B CL Root Cause Analysis: HPP Part-Level Similarity Investigation. (`python scripts/analyze_cl_part_similarity.py`)
+- **[analyze_cl_part_similarity.py](analyze_cl_part_similarity.py)**: Utility script for analyze cl part similarity. (`python scripts/analyze_cl_part_similarity.py`)
 - **[analyze_open_set_and_cl.py](analyze_open_set_and_cl.py)**: Utility script for analyze open set and cl. (`python scripts/analyze_open_set_and_cl.py`)
-- **[diagnose_f1_score.py](diagnose_f1_score.py)**: Targeted F1 Score Forensic Diagnostic Script for ARGUS AI. (`python scripts/diagnose_f1_score.py`)
-- **[download_gdrive_osnet.py](download_gdrive_osnet.py)**: Test downloading Google Drive weights with session cookies and confirmation tokens. (`python scripts/download_gdrive_osnet.py`)
+- **[diagnose_f1_score.py](diagnose_f1_score.py)**: Utility script for diagnose f1 score. (`python scripts/diagnose_f1_score.py`)
+- **[download_gdrive_osnet.py](download_gdrive_osnet.py)**: Utility script for download gdrive osnet. (`python scripts/download_gdrive_osnet.py`)
 - **[download_osnet_weights.py](download_osnet_weights.py)**: Utility script for download osnet weights. (`python scripts/download_osnet_weights.py`)
-- **[f1_threshold_calibration_independent_validation.py](f1_threshold_calibration_independent_validation.py)**: ARGUS AI — F1 Threshold Calibration & Independent Validation (`python scripts/f1_threshold_calibration_independent_validation.py`)
-- **[profile_live_stream_latency.py](profile_live_stream_latency.py)**: Forensic Profiler for ARGUS AI Live Camera Stream Startup Latency. (`python scripts/profile_live_stream_latency.py`)
-- **[profile_startup_forensics.py](profile_startup_forensics.py)**: Forensic Startup Profiling for ARGUS AI Backend Server. (`python scripts/profile_startup_forensics.py`)
-- **[setup_silhouette_model.py](setup_silhouette_model.py)**: Silhouette Model Setup and Asset Verification Helper for ARGUS AI. (`python scripts/setup_silhouette_model.py`)
+- **[f1_threshold_calibration_independent_validation.py](f1_threshold_calibration_independent_validation.py)**: Utility script for f1 threshold calibration independent validation. (`python scripts/f1_threshold_calibration_independent_validation.py`)
+- **[profile_live_stream_latency.py](profile_live_stream_latency.py)**: Utility script for profile live stream latency. (`python scripts/profile_live_stream_latency.py`)
+- **[profile_startup_forensics.py](profile_startup_forensics.py)**: Utility script for profile startup forensics. (`python scripts/profile_startup_forensics.py`)
+- **[setup_silhouette_model.py](setup_silhouette_model.py)**: Utility script for setup silhouette model. (`python scripts/setup_silhouette_model.py`)
 - **[sweep_fine_thresholds.py](sweep_fine_thresholds.py)**: Utility script for sweep fine thresholds. (`python scripts/sweep_fine_thresholds.py`)
 - **[train_model.py](train_model.py)**: Train ARGUS ByGaitLight model with metric learning (HPP + ArcFace + Triplet). (`python scripts/train_model.py`)
 <!-- END SYNC: DEVELOPMENT_SCRIPTS -->
@@ -878,16 +878,16 @@ Development helper scripts run benchmarks, evaluations, training pipelines, and 
 | Command | Description |
 | --- | --- |
 | `powershell -ExecutionPolicy Bypass -File scripts/activate_venv.ps1` | ARGUS AI - Automatic Python virtual environment activation. |
-| `python scripts/analyze_cl_part_similarity.py` | EXP-004B CL Root Cause Analysis: HPP Part-Level Similarity Investig... |
+| `python scripts/analyze_cl_part_similarity.py` | Utility script for analyze cl part similarity. |
 | `python scripts/analyze_open_set_and_cl.py` | Utility script for analyze open set and cl. |
-| `python scripts/audit_continual_learning_effectiveness.py` | Comprehensive Forensic Continual Learning Effectiveness & Real-Worl... |
+| `python scripts/audit_continual_learning_effectiveness.py` | Utility script for audit continual learning effectiveness. |
 | `python scripts/benchmark.py` | Performance benchmark script for benchmark. |
-| `python scripts/benchmark_crowd_performance.py` | Performance Measurement Benchmark for Crowd Intelligence Features. |
-| `python scripts/benchmark_inference_backends.py` | Inference Backend Performance and Parity Benchmark Script for ARGUS... |
+| `python scripts/benchmark_crowd_performance.py` | Performance benchmark script for benchmark crowd performance. |
+| `python scripts/benchmark_inference_backends.py` | Benchmark ARGUS inference backends. |
 | `python scripts/benchmark_silhouette_segmenters.py` | Performance benchmark script for benchmark silhouette segmenters. |
 | `powershell -ExecutionPolicy Bypass -File scripts/bootstrap_env.ps1` | ARGUS AI - Production-Grade Automated Environment Bootstrap & Repair. |
 | `python scripts/build_gallery.py` | Utility script for build gallery. |
-| `python scripts/build_tensorrt_engine.py` | Build TensorRT engine from ONNX model file and verify output parity. |
+| `python scripts/build_tensorrt_engine.py` | Build TensorRT engine from ONNX model. |
 | `python scripts/clean_live_gallery.py` | Clean contaminated identities from ARGUS live gallery |
 | `python scripts/demo_confidence_scorer.py` | Utility script for demo confidence scorer. |
 | `python scripts/demo_enrollment.py` | Utility script for demo enrollment. |
@@ -896,41 +896,41 @@ Development helper scripts run benchmarks, evaluations, training pipelines, and 
 | `python scripts/demo_security_layer.py` | Utility script for demo security layer. |
 | `python scripts/demo_silhouette.py` | Utility script for demo silhouette. |
 | `python scripts/demo_streaming_optimization.py` | Utility script for demo streaming optimization. |
-| `python scripts/detect_environment.py` | ARGUS AI Hardware & Compute Environment Detector CLI. |
-| `python scripts/diagnose_f1_score.py` | Targeted F1 Score Forensic Diagnostic Script for ARGUS AI. |
-| `python scripts/doctor.py` | ARGUS AI Non-Destructive Deployment Health Checker CLI (doctor.py). |
-| `python scripts/download_gdrive_osnet.py` | Test downloading Google Drive weights with session cookies and conf... |
+| `python scripts/detect_environment.py` | ARGUS Hardware & Environment Detector |
+| `python scripts/diagnose_f1_score.py` | Utility script for diagnose f1 score. |
+| `python scripts/doctor.py` | Utility script for doctor. |
+| `python scripts/download_gdrive_osnet.py` | Utility script for download gdrive osnet. |
 | `python scripts/download_osnet_weights.py` | Utility script for download osnet weights. |
-| `python scripts/download_package.py` | ARGUS AI Real-Time Package & Large File Streaming Downloader. |
+| `python scripts/download_package.py` | ARGUS AI Live Streaming Downloader |
 | `python scripts/evaluate_appearance_recognition.py` | Evaluation script for appearance recognition. |
 | `python scripts/evaluate_cross_view.py` | Evaluate ARGUS Cross-View Gait Recognition Metrics |
 | `python scripts/evaluate_dual_modal_recognition.py` | Evaluation script for dual modal recognition. |
-| `python scripts/evaluate_exp004.py` | EXP-004 Evaluation & Reporting Script. |
+| `python scripts/evaluate_exp004.py` | Evaluation script for exp004. |
 | `python scripts/evaluate_model.py` | Evaluate ARGUS gait recognition model |
 | `python scripts/evaluate_open_set.py` | Evaluate ARGUS Open-Set Gait Recognition Metrics |
 | `python scripts/evaluate_open_set_threshold_sweep.py` | Evaluate ARGUS Open-Set Threshold and Matching Mode Sweep |
 | `python scripts/evaluate_subject_disjoint.py` | Run Full ARGUS Subject-Disjoint Baseline Evaluation Pipeline |
 | `python scripts/evaluate_threshold_sweep.py` | Evaluate ARGUS thresholds via sweep evaluation |
-| `python scripts/export_bygait_onnx.py` | Export PyTorch ByGaitLight model checkpoint to ONNX format and veri... |
+| `python scripts/export_bygait_onnx.py` | Export ARGUS ByGaitLight PyTorch model to ONNX. |
 | `python scripts/export_silhouette_unet_onnx.py` | Utility script for export silhouette unet onnx. |
-| `python scripts/extract_casia_skeletons.py` | Extract per-frame 2D COCO-17 pose keypoints from raw CASIA-B video ... |
-| `python scripts/f1_threshold_calibration_independent_validation.py` | ARGUS AI — F1 Threshold Calibration & Independent Validation |
+| `python scripts/extract_casia_skeletons.py` | Utility script for extract casia skeletons. |
+| `python scripts/f1_threshold_calibration_independent_validation.py` | Utility script for f1 threshold calibration independent validation. |
 | `python scripts/generate_visualizer_charts.py` | Utility script for generate visualizer charts. |
-| `python scripts/install_git_hooks.py` | Installs Git pre-commit hooks for automated ARGUS AI README synchro... |
+| `python scripts/install_git_hooks.py` | Detect Python interpreter (prefer project-local .venv standard) |
 | `powershell -ExecutionPolicy Bypass -File scripts/manage_venv.ps1` | ARGUS AI - Safe Virtual Environment Manager for Windows. |
-| `python scripts/migrate_output_layout.py` | One-time runtime output layout migration script. |
+| `python scripts/migrate_output_layout.py` | Migrate ARGUS AI output layout. |
 | `python scripts/preprocess_casia.py` | Build GEI images from CASIA-B ZIP dataset |
-| `python scripts/process_runner.py` | ARGUS AI Real-Time Subprocess Execution & Streamer. |
-| `python scripts/profile_live_stream_latency.py` | Forensic Profiler for ARGUS AI Live Camera Stream Startup Latency. |
-| `python scripts/profile_startup_forensics.py` | Forensic Startup Profiling for ARGUS AI Backend Server. |
+| `python scripts/process_runner.py` | ARGUS Subprocess Streaming Runner |
+| `python scripts/profile_live_stream_latency.py` | Utility script for profile live stream latency. |
+| `python scripts/profile_startup_forensics.py` | Utility script for profile startup forensics. |
 | `python scripts/remove_gallery_identity.py` | Remove an identity from ARGUS gallery |
 | `python scripts/remove_numeric_gallery_identities.py` | Remove numeric CASIA-B identities from ARGUS gallery |
 | `python scripts/run_ablation_study.py` | Run Full ARGUS Gait Ablation Study (EXP-003A..E) |
 | `python scripts/run_auto_enrollment.py` | ARGUS auto enrollment service |
 | `python scripts/run_exp004_ablations.py` | Run EXP-004 Open-Set & CL Robustness Ablations |
-| `python scripts/run_exp006_3d.py` | EXP-006 Controlled Experiment: |
-| `python scripts/run_exp006_full.py` | EXP-006 End-to-End Runner: |
-| `python scripts/run_exp007_ablations.py` | EXP-007 Controlled Ablation Study and Optimization: |
+| `python scripts/run_exp006_3d.py` | Utility script for run exp006 3d. |
+| `python scripts/run_exp006_full.py` | Utility script for run exp006 full. |
+| `python scripts/run_exp007_ablations.py` | Utility script for run exp007 ablations. |
 | `python scripts/run_folder_recognition.py` | ARGUS folder-based GEI recognition |
 | `python scripts/run_folder_watcher.py` | Utility script for run folder watcher. |
 | `python scripts/run_gallery_match.py` | Utility script for run gallery match. |
@@ -942,22 +942,22 @@ Development helper scripts run benchmarks, evaluations, training pipelines, and 
 | `python scripts/run_video_recognition.py` | ARGUS video-file gait recognition |
 | `python scripts/run_webcam_detection.py` | Utility script for run webcam detection. |
 | `python scripts/set_gallery_identity_status.py` | Set ARGUS gallery identity status |
-| `python scripts/setup_silhouette_model.py` | Silhouette Model Setup and Asset Verification Helper for ARGUS AI. |
-| `python scripts/simulate_date_aware_learning.py` | Real Integration Simulation Script for ARGUS AI Date-Aware Continuo... |
-| `python scripts/smoke_test_deployment.py` | Automated Native Deployment Smoke Test for ARGUS AI. |
+| `python scripts/setup_silhouette_model.py` | Utility script for setup silhouette model. |
+| `python scripts/simulate_date_aware_learning.py` | Utility script for simulate date aware learning. |
+| `python scripts/smoke_test_deployment.py` | Utility script for smoke test deployment. |
 | `scripts/start_system.bat` | System startup launcher script. |
 | `scripts/start_system.sh` | System startup launcher script. |
 | `python scripts/sweep_fine_thresholds.py` | Utility script for sweep fine thresholds. |
-| `python scripts/sync_folder_readmes.py` | Automated README synchronization script for ARGUS AI package folders. |
+| `python scripts/sync_folder_readmes.py` | Synchronize ARGUS AI folder README files. |
 | `python scripts/system_check.py` | Environment and dependency verification script. |
-| `pytest scripts/test_server_functional_parity.py` | End-to-End Functional Parity and Regression Test for Optimized ARGU... |
+| `pytest scripts/test_server_functional_parity.py` | Validation test script for server functional parity. |
 | `python scripts/train_model.py` | Train ARGUS ByGaitLight model with metric learning (HPP + ArcFace +... |
-| `python scripts/validate_appearance_runtime.py` | Full Real-Runtime Appearance Model Validation Script for ARGUS AI. |
-| `python scripts/validate_continuous_improvement_lifecycle.py` | End-to-End Demonstration and Validation Script for ARGUS AI Continu... |
-| `python scripts/validate_live_surveillance.py` | ARGUS AI — Live End-to-End Multi-Person Surveillance Validation Scr... |
-| `python scripts/verify_environment.py` | ARGUS AI Complete Environment & Model Verification Suite. |
-| `python scripts/verify_firebase_persistence.py` | Verification and Health Check Script for Firebase Durable Embedding... |
-| `python scripts/verify_real_nn_learning.py` | ARGUS AI — Real Neural Network Learning & Weight Update Verificatio... |
+| `python scripts/validate_appearance_runtime.py` | Utility script for validate appearance runtime. |
+| `python scripts/validate_continuous_improvement_lifecycle.py` | Utility script for validate continuous improvement lifecycle. |
+| `python scripts/validate_live_surveillance.py` | Utility script for validate live surveillance. |
+| `python scripts/verify_environment.py` | Utility script for verify environment. |
+| `python scripts/verify_firebase_persistence.py` | Utility script for verify firebase persistence. |
+| `python scripts/verify_real_nn_learning.py` | Utility script for verify real nn learning. |
 <!-- END SYNC: COMMAND_INDEX -->
 
 ## Script Dependency Graph

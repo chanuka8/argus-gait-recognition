@@ -1,15 +1,3 @@
-"""
-Learned Biometric Fusion Layer for ARGUS AI.
-
-Combines Gait and Appearance features using:
-1. Platt-calibrated posterior match probabilities
-2. Learned logistic fusion layer with cross-modal interaction terms:
-   P(Match | s_gait, s_app) = sigmoid(w_g * calib(s_gait) + w_a * calib(s_app) + w_inter * (s_gait * s_app) + b)
-3. Configurable deployment profiles:
-   - Profile 'identification': Maximizes Closed-Set Rank-1 Identification & Top-1 margin.
-   - Profile 'verification': Minimizes EER / False Accepts for access control gates.
-"""
-
 from typing import Any
 
 import numpy as np
@@ -18,11 +6,6 @@ from intelligence.score_calibrator import PlattScoreCalibrator
 
 
 class LearnedLogisticFusion:
-    """
-    Learned fusion layer for dual-modal biometric scores.
-    Replaces static fixed-weight addition with an empirical decision surface.
-    """
-
     def __init__(
         self,
         w_gait: float = 2.5,
@@ -47,15 +30,6 @@ class LearnedLogisticFusion:
         labels: np.ndarray | list[int],
         loss_type: str = "ranking_auc",
     ) -> "LearnedLogisticFusion":
-        """
-        Fit calibrators and fusion weights using AUC ranking loss or logistic regression.
-
-        Args:
-            gait_scores: Array of genuine and impostor gait similarity scores.
-            app_scores: Array of genuine and impostor appearance similarity scores.
-            labels: 1 for genuine same-person pair, 0 for cross-identity impostor pair.
-            loss_type: 'ranking_auc' (maximizes ROC-AUC / minimizes EER) or 'bce' (binary cross entropy).
-        """
         g_arr = np.asarray(gait_scores, dtype=np.float64).ravel()
         a_arr = np.asarray(app_scores, dtype=np.float64).ravel()
         y_arr = np.asarray(labels, dtype=np.float64).ravel()
@@ -129,7 +103,6 @@ class LearnedLogisticFusion:
         return self
 
     def predict_probability(self, gait_score: float | None, app_score: float | None) -> float:
-        """Compute fused posterior match probability P(Match = 1 | s_gait, s_app)."""
         if gait_score is None and app_score is None:
             return 0.0
         if gait_score is None:
@@ -160,7 +133,6 @@ class LearnedLogisticFusion:
         return float(prob)
 
     def fuse(self, gait_score: float | None, app_score: float | None) -> float:
-        """Alias for predict_probability to combine dual-modal match scores."""
         return self.predict_probability(gait_score=gait_score, app_score=app_score)
 
     def to_dict(self) -> dict[str, Any]:

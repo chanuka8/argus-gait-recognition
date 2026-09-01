@@ -1,22 +1,3 @@
-"""
-Firebase Firestore Durable Embedding Persistence for ARGUS AI.
-
-Provides cloud-durable embedding storage as the authoritative persistence layer,
-while local EmbeddingDatabase + VectorStore remain the low-latency inference cache.
-
-Modes:
-    - "live": Uses Firebase Admin SDK with credentials from env var.
-    - "offline": Uses local JSON file mirror for deterministic testing and
-      environments without Firebase credentials.
-
-Safety Invariants:
-    - Firebase is NEVER in the frame-by-frame CCTV inference path.
-    - Firebase write failures are queued for async retry — never block inference.
-    - Read-after-write verification ensures durable persistence before raw media cleanup.
-    - 256D gait and 512D appearance embeddings are dimensionally isolated.
-    - Model version compatibility is enforced on every write.
-"""
-
 import json
 import os
 import threading
@@ -33,8 +14,6 @@ from monitoring.logging_config import get_logger
 
 @dataclass
 class FirebaseEmbeddingDocument:
-    """Schema for a single biometric embedding document in Firestore."""
-
     embedding_id: str
     person_id: str
     modality: str
@@ -87,8 +66,6 @@ class FirebaseEmbeddingDocument:
 
 @dataclass
 class PersistenceResult:
-    """Result of a Firebase persistence operation."""
-
     success: bool
     embedding_id: str
     firebase_verified: bool = False
@@ -100,16 +77,6 @@ class PersistenceResult:
 
 
 class FirebaseEmbeddingStore:
-    """
-    Firebase Firestore-backed durable embedding persistence.
-
-    Operates in two modes:
-        - "live": Actual Firestore via Firebase Admin SDK (requires credentials).
-        - "offline": Local JSON file mirror for testing and credential-free environments.
-
-    All operations are non-blocking and failure-isolated from the CCTV inference path.
-    """
-
     COLLECTION_NAME = "biometric_embeddings"
     PERSONS_COLLECTION = "biometric_persons"
 
@@ -147,7 +114,6 @@ class FirebaseEmbeddingStore:
             )
 
     def _detect_mode(self) -> str:
-        """Auto-detect whether Firebase credentials are available."""
         cred_path = os.environ.get("FIREBASE_SERVICE_ACCOUNT_PATH") or os.environ.get(
             "GOOGLE_APPLICATION_CREDENTIALS"
         )
@@ -156,7 +122,6 @@ class FirebaseEmbeddingStore:
         return "offline"
 
     def _initialize_firebase(self) -> None:
-        """Initialize Firebase Admin SDK with credentials from environment."""
         try:
             import firebase_admin
             from firebase_admin import credentials, firestore, storage
@@ -189,7 +154,6 @@ class FirebaseEmbeddingStore:
             self._load_offline_store()
 
     def _load_offline_store(self) -> None:
-        """Load the offline JSON mirror store."""
         with self._lock:
             if self.offline_store_path.exists():
                 try:
@@ -202,7 +166,6 @@ class FirebaseEmbeddingStore:
                 self._offline_data = {"embeddings": {}, "persons": {}}
 
     def _save_offline_store(self) -> bool:
-        """Persist the offline mirror to disk atomically."""
         with self._lock:
             tmp = self.offline_store_path.with_suffix(".tmp")
             try:
@@ -219,11 +182,6 @@ class FirebaseEmbeddingStore:
 
 
     def persist_embedding(self, doc: FirebaseEmbeddingDocument) -> PersistenceResult:
-        """
-        Persist a single embedding document to Firebase/offline store.
-        Validates dimensions and model version before writing.
-        """
-
         if doc.modality == "gait" and doc.embedding_dim != 256:
             return PersistenceResult(
                 success=False,
@@ -259,7 +217,6 @@ class FirebaseEmbeddingStore:
         return self._persist_offline(doc)
 
     def _persist_live(self, doc: FirebaseEmbeddingDocument) -> PersistenceResult:
-        """Persist to Firestore via Firebase Admin SDK."""
         try:
             doc_ref = self._firestore_client.collection(self.COLLECTION_NAME).document(doc.embedding_id)
             doc_ref.set(doc.to_dict())
@@ -286,7 +243,6 @@ class FirebaseEmbeddingStore:
             )
 
     def _persist_offline(self, doc: FirebaseEmbeddingDocument) -> PersistenceResult:
-        """Persist to local JSON offline store (deterministic, for testing)."""
         with self._lock:
             self._offline_data.setdefault("embeddings", {})[doc.embedding_id] = doc.to_dict()
 
@@ -303,7 +259,6 @@ class FirebaseEmbeddingStore:
         )
 
     def persist_embeddings(self, docs: list[FirebaseEmbeddingDocument]) -> list[PersistenceResult]:
-        """Persist multiple embedding documents. Returns individual results."""
         return [self.persist_embedding(doc) for doc in docs]
 
 
@@ -311,16 +266,11 @@ class FirebaseEmbeddingStore:
 
 
     def verify_persistence(self, embedding_id: str) -> tuple[bool, str]:
-        """
-        Read-after-write verification: independently read back the embedding
-        document and validate its vector integrity.
-        """
         if self.mode == "live":
             return self._verify_live(embedding_id)
         return self._verify_offline(embedding_id)
 
     def _verify_live(self, embedding_id: str) -> tuple[bool, str]:
-        """Verify document exists in Firestore and has valid vector."""
         try:
             doc_ref = self._firestore_client.collection(self.COLLECTION_NAME).document(embedding_id)
             doc_snap = doc_ref.get()
@@ -339,7 +289,6 @@ class FirebaseEmbeddingStore:
             return False, f"Verification failed: {err}"
 
     def _verify_offline(self, embedding_id: str) -> tuple[bool, str]:
-        """Verify document exists in offline store with valid vector."""
         with self._lock:
             doc_data = self._offline_data.get("embeddings", {}).get(embedding_id)
         if doc_data is None:
@@ -360,7 +309,6 @@ class FirebaseEmbeddingStore:
     def get_embeddings_by_person(
         self, person_id: str, modality: str | None = None
     ) -> list[FirebaseEmbeddingDocument]:
-        """Retrieve all embeddings for a person from Firebase/offline store."""
         if self.mode == "live":
             return self._query_live_by_person(person_id, modality)
         return self._query_offline_by_person(person_id, modality)
@@ -368,7 +316,6 @@ class FirebaseEmbeddingStore:
     def _query_live_by_person(
         self, person_id: str, modality: str | None = None
     ) -> list[FirebaseEmbeddingDocument]:
-        """Query Firestore for embeddings by person_id."""
         try:
             query = self._firestore_client.collection(self.COLLECTION_NAME).where(
                 "person_id", "==", person_id
@@ -386,7 +333,6 @@ class FirebaseEmbeddingStore:
     def _query_offline_by_person(
         self, person_id: str, modality: str | None = None
     ) -> list[FirebaseEmbeddingDocument]:
-        """Query offline store for embeddings by person_id."""
         with self._lock:
             emb_ids = self._offline_data.get("persons", {}).get(person_id, [])
             results = []
@@ -401,7 +347,6 @@ class FirebaseEmbeddingStore:
     def get_embeddings_by_date(
         self, observation_date: str, modality: str | None = None
     ) -> list[FirebaseEmbeddingDocument]:
-        """Retrieve all embeddings for a specific observation date."""
         if self.mode == "live":
             return self._query_live_by_date(observation_date, modality)
         return self._query_offline_by_date(observation_date, modality)
@@ -409,7 +354,6 @@ class FirebaseEmbeddingStore:
     def _query_live_by_date(
         self, observation_date: str, modality: str | None = None
     ) -> list[FirebaseEmbeddingDocument]:
-        """Query Firestore for embeddings by observation_date."""
         try:
             query = self._firestore_client.collection(self.COLLECTION_NAME).where(
                 "observation_date", "==", observation_date
@@ -427,7 +371,6 @@ class FirebaseEmbeddingStore:
     def _query_offline_by_date(
         self, observation_date: str, modality: str | None = None
     ) -> list[FirebaseEmbeddingDocument]:
-        """Query offline store for embeddings by observation_date."""
         with self._lock:
             results = []
             for doc_data in self._offline_data.get("embeddings", {}).values():
@@ -439,7 +382,6 @@ class FirebaseEmbeddingStore:
             return results
 
     def get_all_embeddings(self) -> list[FirebaseEmbeddingDocument]:
-        """Retrieve all embeddings from the store."""
         if self.mode == "live":
             try:
                 results = []
@@ -461,14 +403,12 @@ class FirebaseEmbeddingStore:
 
 
     def _enqueue_retry(self, doc: FirebaseEmbeddingDocument) -> None:
-        """Queue a failed write for async retry."""
         with self._lock:
             self._retry_queue.append(
                 {"doc": doc.to_dict(), "retries": 0, "queued_at": time.time()}
             )
 
     def process_retry_queue(self) -> list[PersistenceResult]:
-        """Process all pending retries. Called periodically from background worker."""
         results = []
         with self._lock:
             pending = list(self._retry_queue)
@@ -502,7 +442,6 @@ class FirebaseEmbeddingStore:
         return results
 
     def get_retry_queue_size(self) -> int:
-        """Return the number of pending retry items."""
         with self._lock:
             return len(self._retry_queue)
 
@@ -511,10 +450,6 @@ class FirebaseEmbeddingStore:
 
 
     def delete_temporary_media(self, case_id: str) -> tuple[bool, str]:
-        """
-        Delete temporary enrollment media from Firebase Storage after
-        embedding persistence is verified.
-        """
         if self.mode != "live" or self._storage_bucket is None:
             return True, "No Firebase Storage cleanup needed (offline mode)"
 
@@ -540,18 +475,6 @@ class FirebaseEmbeddingStore:
 
 
     def rebuild_local_from_firebase(self) -> dict[str, Any]:
-        """
-        Disaster recovery: Pull all embeddings from Firebase and return them
-        as structured data suitable for rebuilding local EmbeddingDatabase
-        and VectorStore galleries.
-
-        Returns:
-            Dictionary mapping person_id -> {
-                "gait_embeddings": [...],
-                "appearance_embeddings": [...],
-                "metadata": {...}
-            }
-        """
         all_docs = self.get_all_embeddings()
         if not all_docs:
             return {}
@@ -596,7 +519,6 @@ class FirebaseEmbeddingStore:
 
 
     def get_persisted_embedding_ids(self) -> set[str]:
-        """Return the set of embedding IDs currently persisted in the store."""
         if self.mode == "live":
             try:
                 ids = set()
@@ -610,7 +532,6 @@ class FirebaseEmbeddingStore:
                 return set(self._offline_data.get("embeddings", {}).keys())
 
     def clear_offline_store(self) -> None:
-        """Clear the offline store (for testing)."""
         with self._lock:
             self._offline_data = {"embeddings": {}, "persons": {}}
             self._save_offline_store()

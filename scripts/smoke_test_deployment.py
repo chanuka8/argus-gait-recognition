@@ -1,22 +1,3 @@
-"""
-Automated Native Deployment Smoke Test for ARGUS AI.
-
-Executes fast end-to-end deployment verification:
-- Validates runtime manifest
-- Runs startup validator health check
-- Initializes inference backend & checks metadata
-- Executes synthetic GEI inference smoke test (verifies shape, L2 normalization)
-- Validates identity gallery
-- Emits backend startup summary
-- Generates JSON and Markdown smoke test reports
-- Tests graceful shutdown sequence
-
-Exit Codes:
-0 = Smoke test passed cleanly
-1 = Confirmed deployment defect detected
-2 = Smoke test invocation or internal setup failure
-"""
-
 import json
 import sys
 from pathlib import Path
@@ -39,11 +20,6 @@ from storage.vector_store import validate_gallery_files
 def run_deployment_smoke_test(
     output_dir: str = "outputs/reports",
 ) -> tuple[int, dict]:
-    """
-    Run complete deployment smoke test suite.
-
-    Returns (exit_code, report_dict).
-    """
     report = {
         "status": "FAILED",
         "exit_code": 2,

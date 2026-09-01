@@ -1,7 +1,3 @@
-"""
-Unit tests for Stage 5 Track Recovery Manager.
-"""
-
 from intelligence.track_recovery_manager import TrackRecoveryManager
 
 

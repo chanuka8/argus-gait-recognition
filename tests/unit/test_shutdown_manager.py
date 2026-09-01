@@ -1,7 +1,3 @@
-"""
-Unit tests for ShutdownManager graceful teardown and signal handling.
-"""
-
 import signal
 import threading
 import time

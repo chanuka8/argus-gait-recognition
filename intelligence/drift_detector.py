@@ -1,12 +1,3 @@
-"""
-Distribution Drift & Performance Degradation Monitor for ARGUS AI.
-
-Monitors operational embedding distributions against enrolled reference galleries:
-- Cosine similarity degradation across sliding time windows.
-- Low-confidence observation rate shifts.
-- Inter-class confusion divergence and centroid distance shifts.
-"""
-
 import time
 from dataclasses import asdict, dataclass, field
 from typing import Any
@@ -22,8 +13,6 @@ from storage.vector_store import VectorStore
 
 @dataclass
 class DriftReport:
-    """Statistical summary of operational embedding distribution vs baseline."""
-
     timestamp: float = field(default_factory=time.time)
     observation_count: int = 0
     mean_confidence: float = 0.0
@@ -38,10 +27,6 @@ class DriftReport:
 
 
 class DriftDetector:
-    """
-    Evaluates distribution drift and performance degradation from operational observations.
-    """
-
     def __init__(
         self,
         collector: OperationalEmbeddingCollector | None = None,
@@ -56,9 +41,6 @@ class DriftDetector:
         self._logger = get_logger("drift_detector")
 
     def evaluate_drift(self, window_size: int = 50) -> DriftReport:
-        """
-        Analyze the most recent N operational observations and report drift statistics.
-        """
         observations = self.collector.get_recent_observations(limit=window_size)
         if not observations:
             return DriftReport(

@@ -1,5 +1,3 @@
-"""Unit tests for user-scoped RTSP credential management in ARGUS AI."""
-
 import re
 import time
 from pathlib import Path
@@ -22,7 +20,6 @@ from services.gait_service import GaitService
 
 
 def _dummy_frame():
-    """Return a valid 640x480 test frame."""
     frame = np.zeros((480, 640, 3), dtype=np.uint8)
     frame[50:150, 50:150] = [0, 255, 0]
     return frame
@@ -30,7 +27,6 @@ def _dummy_frame():
 
 @pytest.fixture
 def temp_credential_store(tmp_path):
-    """Provide an isolated encrypted credential store for testing."""
     key = CredentialManager.generate_key()
     enc_file = tmp_path / "test_credentials.enc"
     cm = CredentialManager(credentials_file=str(enc_file), key=key)
@@ -38,7 +34,6 @@ def temp_credential_store(tmp_path):
 
 
 def test_rtsp_url_sanitization():
-    """RTSP URL sanitization must mask username and password reliably."""
     raw = "rtsp://admin:SecretPass123@192.168.1.100:554/live"
     sanitized = sanitize_rtsp_url(raw)
     assert "SecretPass123" not in sanitized
@@ -52,7 +47,6 @@ def test_rtsp_url_sanitization():
 
 
 def test_rtsp_credential_extraction():
-    """extract_rtsp_credentials must parse username, password, and clean base URL."""
     raw = "rtsp://alice:p%40ssword123@10.0.0.50:554/ch1?stream=main"
     user, passwd, clean_url = extract_rtsp_credentials(raw)
     assert user == "alice"
@@ -67,7 +61,6 @@ def test_rtsp_credential_extraction():
 
 
 def test_rtsp_url_reconstruction():
-    """build_rtsp_url must construct valid authenticated URLs from components."""
     base = "rtsp://192.168.1.100:554/live"
     constructed = build_rtsp_url(base, "admin_user", "SecretPass!@#")
     assert "rtsp://" in constructed
@@ -81,7 +74,6 @@ def test_rtsp_url_reconstruction():
 
 
 def test_complex_rtsp_password(temp_credential_store):
-    """RTSP credentials with complex special characters are handled cleanly."""
     cm = temp_credential_store
     complex_pass = "P@$$w0rd:/?#[]@!$&'()*+,;=%"
     meta = cm.store_credential(
@@ -104,7 +96,6 @@ def test_complex_rtsp_password(temp_credential_store):
 
 
 def test_credentials_never_appear_in_logs(caplog, temp_credential_store):
-    """Logging during camera resolution and worker execution must not contain secrets."""
     cm = temp_credential_store
     cm.store_credential(
         owner_user_id="user_1",
@@ -137,7 +128,6 @@ def test_credentials_never_appear_in_logs(caplog, temp_credential_store):
 
 
 def test_credentials_never_appear_in_api_response():
-    """Credential management API endpoints must never return plaintext passwords."""
     with TestClient(app) as client:
         resp = client.post(
             "/api/v1/credentials",
@@ -173,7 +163,6 @@ def test_credentials_never_appear_in_api_response():
 
 
 def test_camera_info_does_not_expose_password(temp_credential_store):
-    """CameraInfoResponse and active_cameras dictionary must not contain passwords."""
     cm = temp_credential_store
     cm.store_credential(
         owner_user_id="user_sec",
@@ -207,7 +196,6 @@ def test_camera_info_does_not_expose_password(temp_credential_store):
 
 
 def test_user_a_cannot_access_user_b_credentials(temp_credential_store):
-    """Credentials created by User A are inaccessible by unauthorized User B."""
     cm = temp_credential_store
     cm.store_credential(
         owner_user_id="user_a",
@@ -228,7 +216,6 @@ def test_user_a_cannot_access_user_b_credentials(temp_credential_store):
 
 
 def test_authorized_shared_camera_access(temp_credential_store):
-    """User A shares credential with User B; User B can use it without seeing password."""
     cm = temp_credential_store
     cm.store_credential(
         owner_user_id="user_a",
@@ -263,7 +250,6 @@ def test_authorized_shared_camera_access(temp_credential_store):
 
 
 def test_credential_delete(temp_credential_store):
-    """Owner can delete their credential; deleted credentials cannot be accessed."""
     cm = temp_credential_store
     cm.store_credential(
         owner_user_id="user_del",
@@ -279,7 +265,6 @@ def test_credential_delete(temp_credential_store):
 
 
 def test_missing_credential(temp_credential_store):
-    """Requesting a non-existent credential raises a clean descriptive error."""
     resolver = CameraSourceResolver(credential_manager=temp_credential_store)
 
     with pytest.raises(RuntimeError) as exc_info:
@@ -293,7 +278,6 @@ def test_missing_credential(temp_credential_store):
 
 
 def test_invalid_credential_id(temp_credential_store):
-    """Unauthorized user attempting to resolve a credential gets an authorization error."""
     cm = temp_credential_store
     cm.store_credential(
         owner_user_id="user_isolated_owner",
@@ -314,7 +298,6 @@ def test_invalid_credential_id(temp_credential_store):
 
 
 def test_explicit_rtsp_without_credentials():
-    """Unauthenticated public RTSP streams resolve and function normally."""
     resolver = CameraSourceResolver()
     res = resolver.resolve_source(
         camera_id="CAM-PUB",
@@ -326,7 +309,6 @@ def test_explicit_rtsp_without_credentials():
 
 
 def test_explicit_rtsp_with_credentials():
-    """Embedded RTSP credentials in explicit URLs are extracted and separated."""
     resolver = CameraSourceResolver()
     res = resolver.resolve_source(
         camera_id="CAM-EMBED",
@@ -342,7 +324,6 @@ def test_explicit_rtsp_with_credentials():
 
 
 def test_usb_camera_regression():
-    """USB device index resolution (e.g. 0, '0') remains completely functional."""
     resolver = CameraSourceResolver()
     with patch.object(resolver, "probe_usb_webcam", return_value=True):
         res = resolver.resolve_source(
@@ -356,7 +337,6 @@ def test_usb_camera_regression():
 
 
 def test_auto_source_regression():
-    """Auto source resolution continues prioritizing USB then registered RTSP."""
     resolver = CameraSourceResolver()
     with patch.object(resolver, "probe_usb_webcam", return_value=True):
         res = resolver.resolve_source(
@@ -369,7 +349,6 @@ def test_auto_source_regression():
 
 
 def test_rtsp_reconnect_preserves_credentials(temp_credential_store):
-    """When a camera disconnects and reconnects, resolved credentials remain intact."""
     cm = temp_credential_store
     cm.store_credential(
         owner_user_id="user_recon",
@@ -426,7 +405,6 @@ def test_rtsp_reconnect_preserves_credentials(temp_credential_store):
 
 
 def test_failed_camera_start_releases_credential_reference():
-    """Failed startup releases source reservation cleanly."""
     service = GaitService()
     mock_cap = MagicMock()
     mock_cap.isOpened.return_value = False
@@ -442,7 +420,6 @@ def test_failed_camera_start_releases_credential_reference():
 
 
 def test_restart_preserves_credentials(temp_credential_store):
-    """Restarting a worker cleanly preserves the internal connection URL and credentials."""
     cm = temp_credential_store
     cm.store_credential(
         owner_user_id="user_rst",
@@ -483,7 +460,6 @@ def test_restart_preserves_credentials(temp_credential_store):
 
 
 def test_no_plaintext_credentials_in_persisted_camera_config():
-    """configs/cameras.yaml must not store raw plaintext passwords."""
     import yaml
 
     config_path = Path("configs/cameras.yaml")
@@ -498,7 +474,6 @@ def test_no_plaintext_credentials_in_persisted_camera_config():
 
 
 def test_core_logger_filter_redacts_credentials(tmp_path):
-    """core.logger setup_logger must automatically scrub credentials via SensitiveDataFilter."""
     from core.logger import setup_logger
 
     test_logger = setup_logger("ARGUS.TestCoreLogger")
@@ -514,7 +489,6 @@ def test_core_logger_filter_redacts_credentials(tmp_path):
 
 
 def test_monitoring_logger_filter_redacts_credentials():
-    """monitoring.logging_config get_logger must automatically scrub credentials."""
     from monitoring.logging_config import get_logger
 
     test_logger = get_logger("camera")
@@ -529,7 +503,6 @@ def test_monitoring_logger_filter_redacts_credentials():
 
 
 def test_api_camera_start_error_response_redacts_credentials():
-    """When /cameras/start raises an error with raw RTSP URL, detail is sanitized."""
     mock_cap = MagicMock()
     mock_cap.isOpened.return_value = False
 

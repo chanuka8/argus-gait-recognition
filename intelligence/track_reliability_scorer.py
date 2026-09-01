@@ -1,17 +1,3 @@
-"""
-Track Reliability Scorer Engine.
-
-Calculates a normalized reliability score in [0.0, 1.0] for each active track
-by integrating multi-source evidence produced by existing system components:
-
-Semantic Distinction:
-  - Identity Confidence: Measures certainty of identity matching (Temporal Gait Verifier, OpenSet Recognizer).
-  - Track Stability: Measures physical signal/frame quality and track continuity (QualityEstimator, LiveGEI frame buffers, BoxStabilizer).
-
-The overall Track Reliability Score combines both dimensions into a single normalized index in [0.0, 1.0].
-Components are also reported separately in detailed evaluations to prevent mixing stability and identity confidence.
-"""
-
 from typing import Any
 
 import numpy as np
@@ -20,13 +6,6 @@ from monitoring.logging_config import get_logger
 
 
 class TrackReliabilityScorer:
-    """
-    Production-oriented Track Reliability Scorer.
-
-    Produces a normalized reliability score in [0.0, 1.0] using multi-source evidence.
-    Disabled by default to ensure zero impact on default system behavior.
-    """
-
     def __init__(
         self,
         enabled: bool = False,
@@ -58,7 +37,6 @@ class TrackReliabilityScorer:
             self.weights = default_weights
 
     def is_enabled(self) -> bool:
-        """Return whether track reliability scoring is enabled."""
         return self.enabled
 
     def _compute_quality_subscore(
@@ -97,14 +75,6 @@ class TrackReliabilityScorer:
         self,
         open_set_state: str | None,
     ) -> float:
-        """
-        Compute identity reliability open-set subscore.
-
-        Strict Identity Mapping:
-          - KNOWN = 1.00 (Confirmed enrolled identity match)
-          - UNCERTAIN = 0.30 (Inconclusive / candidate ambiguity)
-          - UNKNOWN = 0.00 (Unenrolled / unverified identity)
-        """
         if not open_set_state:
             return 0.00
 
@@ -149,9 +119,6 @@ class TrackReliabilityScorer:
         occlusion_score: float | None = None,
         clean_frame_ratio: float | None = None,
     ) -> float:
-        """
-        Compute normalized track reliability score in [0.0, 1.0].
-        """
         s_qual = self._compute_quality_subscore(quality_score)
         s_temp = self._compute_temporal_subscore(temporal_decision)
         s_open = self._compute_open_set_subscore(open_set_state)
@@ -196,12 +163,6 @@ class TrackReliabilityScorer:
         transition_score: float | None = None,
         stability_score: float | None = None,
     ) -> dict[str, Any]:
-        """
-        Full evaluation of track reliability returning detailed metadata dict.
-
-        Explicitly separates Identity Confidence (temporal + open-set)
-        from Track Stability (quality + observation + detection).
-        """
         s_qual = self._compute_quality_subscore(quality_score)
         s_temp = self._compute_temporal_subscore(temporal_decision)
         s_open = self._compute_open_set_subscore(open_set_state)

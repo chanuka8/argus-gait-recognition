@@ -11,7 +11,6 @@ from services.gait_service import GaitService
 
 
 def test_normalize_camera_source_webcam_indices():
-    """Verify numeric strings and integers are normalized to integer device indices."""
     assert normalize_camera_source("0") == 0
     assert normalize_camera_source("1") == 1
     assert normalize_camera_source(" 2 ") == 2
@@ -20,7 +19,6 @@ def test_normalize_camera_source_webcam_indices():
 
 
 def test_normalize_camera_source_rtsp_and_http():
-    """Verify RTSP, HTTP, HTTPS, and file paths are preserved as unchanged strings."""
     assert normalize_camera_source("rtsp://192.168.1.100:554/stream1") == "rtsp://192.168.1.100:554/stream1"
     assert normalize_camera_source("http://192.168.1.100:8080/video") == "http://192.168.1.100:8080/video"
     assert normalize_camera_source("https://example.com/live/feed.m3u8") == "https://example.com/live/feed.m3u8"
@@ -28,7 +26,6 @@ def test_normalize_camera_source_rtsp_and_http():
 
 
 def test_camera_start_and_stop_lifecycle():
-    """Verify camera start, list, and stop lifecycle through GaitService."""
     service = GaitService()
     mock_cap = MagicMock()
     mock_cap.isOpened.return_value = True
@@ -55,7 +52,6 @@ def test_camera_start_and_stop_lifecycle():
 
 
 def test_camera_api_endpoints():
-    """Verify FastAPI endpoints /api/v1/cameras/start, /stop, and /cameras using lifespan singleton."""
     mock_cap = MagicMock()
     mock_cap.isOpened.return_value = True
     mock_cap.read.return_value = (True, _dummy_frame())
@@ -98,7 +94,6 @@ def test_camera_api_endpoints():
 
 
 def _make_rtsp_config(**overrides):
-    """Build an RTSP camera config dict with fast test timeouts."""
     cfg = {
         "type": "rtsp",
         "url": "rtsp://user:secret@10.0.0.1:554/live",
@@ -118,14 +113,12 @@ def _make_rtsp_config(**overrides):
 
 
 def _dummy_frame():
-    """Return a valid 640x480 BGR frame."""
     frame = np.zeros((480, 640, 3), dtype=np.uint8)
     frame[100:200, 100:200] = [0, 255, 0]
     return frame
 
 
 def test_rtsp_startup_retries_then_succeeds():
-    """RTSP VideoCapture opens but first reads fail; bounded retry eventually succeeds."""
     cfg = _make_rtsp_config()
     worker = CameraWorker("CAM-RETRY", cfg)
 
@@ -157,7 +150,6 @@ def test_rtsp_startup_retries_then_succeeds():
 
 
 def test_rtsp_startup_timeout_clean_failure():
-    """RTSP VideoCapture opens but read() never returns a valid frame — bounded timeout."""
     cfg = _make_rtsp_config(startup_timeout=0.5, startup_retry_interval=0.05)
     worker = CameraWorker("CAM-TIMEOUT", cfg)
 
@@ -176,7 +168,6 @@ def test_rtsp_startup_timeout_clean_failure():
 
 
 def test_capture_open_failure():
-    """VideoCapture cannot open at all — clean startup failure."""
     cfg = _make_rtsp_config()
     worker = CameraWorker("CAM-NOOPEN", cfg)
 
@@ -192,7 +183,6 @@ def test_capture_open_failure():
 
 
 def test_stop_during_startup_handshake():
-    """Stop request during first-frame retry loop aborts startup cleanly."""
     cfg = _make_rtsp_config(startup_timeout=5, startup_retry_interval=0.05)
     worker = CameraWorker("CAM-ABORT", cfg)
 
@@ -219,7 +209,6 @@ def test_stop_during_startup_handshake():
 
 
 def test_duplicate_start_rejected():
-    """Starting the same camera twice does not create duplicate workers."""
     service = GaitService()
     mock_cap = MagicMock()
     mock_cap.isOpened.return_value = True
@@ -242,7 +231,6 @@ def test_duplicate_start_rejected():
 
 
 def test_repeated_stop_is_safe():
-    """Stopping the same camera twice is idempotent and safe."""
     service = GaitService()
     mock_cap = MagicMock()
     mock_cap.isOpened.return_value = True
@@ -260,7 +248,6 @@ def test_repeated_stop_is_safe():
 
 
 def test_startup_failure_no_stale_active_worker():
-    """Failed startup must not leave a stale ACTIVE entry in the registry."""
     service = GaitService()
 
     mock_cap = MagicMock()
@@ -282,7 +269,6 @@ def test_startup_failure_no_stale_active_worker():
 
 
 def test_startup_failure_releases_zone_reservation():
-    """Failed camera startup must release source reservation."""
     service = GaitService()
 
     mock_cap = MagicMock()
@@ -303,7 +289,6 @@ def test_startup_failure_releases_zone_reservation():
 
 
 def test_credential_sanitization_in_error():
-    """RTSP passwords must not appear in API error responses or worker error messages."""
     service = GaitService()
 
     mock_cap = MagicMock()
@@ -324,7 +309,6 @@ def test_credential_sanitization_in_error():
 
 
 def test_runtime_frame_failure_triggers_reconnect():
-    """Temporary runtime frame read failure triggers reconnect, not permanent death."""
     cfg = _make_rtsp_config(
         startup_timeout=1,
         startup_retry_interval=0.05,
@@ -363,7 +347,6 @@ def test_runtime_frame_failure_triggers_reconnect():
 
 
 def test_mjpeg_preview_available_after_startup():
-    """After successful startup the JPEG preview buffer must contain valid data."""
     cfg = _make_rtsp_config()
     worker = CameraWorker("CAM-PREV", cfg)
 
@@ -388,7 +371,6 @@ def test_mjpeg_preview_available_after_startup():
 
 
 def test_successful_stop_releases_resources():
-    """Normal stop: thread terminates, capture released, stats updated."""
     cfg = _make_rtsp_config()
     worker = CameraWorker("CAM-STOPOK", cfg)
 
@@ -409,7 +391,6 @@ def test_successful_stop_releases_resources():
 
 
 def test_camera_worker_restart():
-    """Worker restart() must cleanly stop and restart the worker."""
     cfg = _make_rtsp_config()
     worker = CameraWorker("CAM-RESTART", cfg)
 
@@ -431,7 +412,6 @@ def test_camera_worker_restart():
 
 
 def test_camera_worker_config_boundary_safety():
-    """CameraWorker handles malformed or edge-case configs safely without crashing."""
     malformed_cfg = {
         "type": "usb",
         "device_index": 0,
@@ -456,7 +436,6 @@ def test_camera_worker_config_boundary_safety():
 
 
 def test_source_resolution_file_and_http():
-    """Test resolution of file and http sources."""
     http_cfg = {"type": "http", "url": "http://192.168.1.50:8080/video"}
     w_http = CameraWorker("CAM-HTTP", http_cfg)
     assert w_http._resolve_source() == "http://192.168.1.50:8080/video"
@@ -481,7 +460,6 @@ def test_source_resolution_file_and_http():
 
 
 def test_resolver_sanitizes_credentials_in_label():
-    """CameraSourceResolver must sanitize RTSP credentials in resolved_source_label."""
     from services.camera_source_resolver import CameraSourceResolver
 
     resolver = CameraSourceResolver()
@@ -495,7 +473,6 @@ def test_resolver_sanitizes_credentials_in_label():
 
 
 def test_reconnect_max_attempts_exceeded_exits_loop():
-    """When max_reconnect_attempts is reached, capture loop exits gracefully."""
     cfg = _make_rtsp_config(
         startup_timeout=0.05,
         startup_retry_interval=0.01,
@@ -531,7 +508,6 @@ def test_reconnect_max_attempts_exceeded_exits_loop():
 
 
 def test_system_config_propagates_to_worker():
-    """Modifying startup_timeout/startup_retry_interval in system.yaml configuration reaches CameraWorker."""
     service = GaitService()
 
     custom_yaml = {
@@ -582,7 +558,6 @@ def test_system_config_propagates_to_worker():
 
 
 def test_concurrent_start_attempts():
-    """Multiple threads calling start() simultaneously must result in exactly one active thread."""
     cfg = _make_rtsp_config()
     worker = CameraWorker("CAM-CONC-START", cfg)
 
@@ -611,7 +586,6 @@ def test_concurrent_start_attempts():
 
 
 def test_start_and_stop_race():
-    """Calling stop() immediately after or during start() must not leave orphaned capture threads."""
     cfg = _make_rtsp_config(startup_timeout=2, startup_retry_interval=0.05)
     worker = CameraWorker("CAM-RACE", cfg)
 
@@ -630,7 +604,6 @@ def test_start_and_stop_race():
 
 
 def test_restart_during_reconnect_is_safe():
-    """Restarting a worker while it is in the middle of a reconnect cycle must recover cleanly."""
     cfg = _make_rtsp_config(
         startup_timeout=0.05,
         startup_retry_interval=0.01,
@@ -668,7 +641,6 @@ def test_restart_during_reconnect_is_safe():
 
 
 def test_failed_startup_followed_by_successful_restart():
-    """A failed startup attempt followed by restart() succeeds when source becomes available."""
     cfg = _make_rtsp_config()
     worker = CameraWorker("CAM-FAIL-THEN-RESTART", cfg)
 
@@ -693,7 +665,6 @@ def test_failed_startup_followed_by_successful_restart():
 
 
 def test_capture_release_exception_safety():
-    """Even if VideoCapture.release() raises an exception, worker state is reset cleanly."""
     cfg = _make_rtsp_config()
     worker = CameraWorker("CAM-REL-EXC", cfg)
 
@@ -715,7 +686,6 @@ def test_capture_release_exception_safety():
 
 
 def test_reconnect_attempts_semantics_zero_infinite():
-    """max_reconnect_attempts=0 means infinite reconnects (does not stop on attempt 1 or 2)."""
     cfg = _make_rtsp_config(
         startup_timeout=0.02,
         startup_retry_interval=0.01,
@@ -750,7 +720,6 @@ def test_reconnect_attempts_semantics_zero_infinite():
 
 
 def test_reconnect_attempts_semantics_one():
-    """max_reconnect_attempts=1 exits after 1 failed reconnect attempt."""
     cfg = _make_rtsp_config(
         startup_timeout=0.02,
         startup_retry_interval=0.01,
@@ -784,7 +753,6 @@ def test_reconnect_attempts_semantics_one():
 
 
 def test_credential_masking_complex_password():
-    """RTSP credentials with special characters (e.g. p@ssword) are masked."""
     service = GaitService()
 
     mock_cap = MagicMock()

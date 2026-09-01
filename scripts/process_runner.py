@@ -1,13 +1,3 @@
-"""
-ARGUS AI Real-Time Subprocess Execution & Streamer.
-
-Executes subprocess commands while continuously streaming stdout and stderr
-directly to the active terminal without buffering or suppression.
-
-Usage:
-    python scripts/process_runner.py --tag PIP -- python -m pip install ...
-"""
-
 import argparse
 import os
 import subprocess
@@ -23,9 +13,6 @@ def run_process_streaming(
     timeout_seconds: int | None = None,
     shell: bool = False,
 ) -> int:
-    """
-    Execute a subprocess and stream its output in real time to standard output.
-    """
     tag_prefix = f"[{tag}] " if tag else ""
     cmd_str = " ".join(command) if isinstance(command, list) else command
 

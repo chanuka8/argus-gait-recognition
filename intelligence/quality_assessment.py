@@ -1,20 +1,8 @@
-"""
-Quality Assessment Module for Gait and ReID Input Stream.
-
-Assesses signal quality without additional ML models by evaluating crop dimensions,
-sharpness/blur (Laplacian variance), sequence completeness, and detection confidence.
-"""
-
 import cv2
 import numpy as np
 
 
 class QualityAssessment:
-    """
-    Computes quality scores in [0.0, 1.0] for Gait and ReID modalities.
-    Uses classical image statistics and tracking metadata only.
-    """
-
     def __init__(
         self,
         min_crop_height: int = 60,
@@ -36,12 +24,6 @@ class QualityAssessment:
         crop: np.ndarray | None,
         confidence: float = 1.0,
     ) -> float:
-        """
-        Compute ReID crop quality score [0.0, 1.0].
-
-        Evaluates crop dimensions, aspect ratio, sharpness (blur),
-        and object detection confidence.
-        """
         if crop is None or crop.size == 0 or len(crop.shape) != 3:
             return 0.0
 
@@ -71,12 +53,6 @@ class QualityAssessment:
         gei: np.ndarray | None = None,
         confidence: float = 1.0,
     ) -> float:
-        """
-        Compute Gait quality score [0.0, 1.0].
-
-        Evaluates sequence completeness (frame buffer count), silhouette
-        density, and detection confidence.
-        """
         if gei_frame_count <= 0:
             return 0.0
 

@@ -1,5 +1,3 @@
-"""Unit tests for DeterministicImageEnhancer and Quality Assessment Gating (Step 5L)."""
-
 import cv2
 import numpy as np
 

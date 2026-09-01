@@ -1,9 +1,3 @@
-"""
-EXP-004 Evaluation & Reporting Script.
-Evaluates model checkpoints (EXP-003E, EXP-004F, EXP-004G, EXP-004H) on the strict subject-disjoint split
-and produces complete metrics (Rank-1, Rank-5, NM, BG, CL, ROC-AUC, FAR, FRR, EER, threshold).
-"""
-
 import json
 import sys
 import time
@@ -26,7 +20,6 @@ def evaluate_checkpoint(
     split_config: str = "configs/subject_split.json",
     margin_threshold: float = 0.05,
 ) -> dict:
-    """Run full evaluation pipeline on a checkpoint and return all metrics."""
     out_dir = Path(output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 

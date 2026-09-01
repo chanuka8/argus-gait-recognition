@@ -23,8 +23,6 @@ from security_layer.credentials import sanitize_rtsp_url
 
 @dataclass
 class RecognitionResult:
-    """Structured recognition result for a single tracked subject."""
-
     camera_id: str
     track_id: int
     identity: str
@@ -51,11 +49,6 @@ class RecognitionResult:
 
 
 class RecognitionResultCache:
-    """
-    Thread-safe recognition result cache scoped by (camera_id, track_id).
-    Enforces TTL expiration and track eviction to prevent stale overlays and memory growth.
-    """
-
     def __init__(self, ttl_seconds: float = 2.5) -> None:
         self.ttl_seconds = max(0.1, float(ttl_seconds))
         self._cache: dict[tuple[str, int], RecognitionResult] = {}
@@ -134,12 +127,6 @@ class RecognitionResultCache:
 
 
 class RecognitionWorker:
-    """
-    Decoupled Asynchronous Recognition Worker.
-    Pulls latest frames from bounded queue, executes detection, tracking, GEI accumulation,
-    ByGaitLight matching, and parallel Appearance embedding matching, and updates the shared recognition cache.
-    """
-
     def __init__(
         self,
         camera_id: str,
@@ -282,7 +269,6 @@ class RecognitionWorker:
         gallery_labels: list[str] | None,
         metadata: Any | None = None,
     ) -> None:
-        """Update reference appearance gallery features, labels, and metadata at runtime."""
         with self._lock:
             self.appearance_gallery_features = gallery_features
             self.appearance_gallery_labels = list(gallery_labels) if gallery_labels is not None else []
@@ -302,7 +288,6 @@ class RecognitionWorker:
         gallery_labels: list[str] | None,
         metadata: Any | None = None,
     ) -> None:
-        """Update reference gallery features, labels, and metadata at runtime."""
         with self._lock:
             self.gallery_features = gallery_features
             self.gallery_labels = list(gallery_labels) if gallery_labels is not None else []
@@ -317,10 +302,6 @@ class RecognitionWorker:
             )
 
     def put_frame(self, frame: np.ndarray) -> bool:
-        """
-        Put latest captured frame into recognition queue with non-blocking drop policy.
-        Never blocks the camera capture thread.
-        """
         if self._stop_event.is_set() or frame is None or frame.size == 0:
             return False
 
@@ -387,7 +368,6 @@ class RecognitionWorker:
             }
 
     def _recognition_loop(self) -> None:
-        """Core decoupled detection, tracking, silhouette, GEI, and gait matching loop."""
         while not self._stop_event.is_set():
             loop_start = time.monotonic()
 
@@ -843,7 +823,6 @@ class RecognitionWorker:
                 self._stop_event.wait(sleep_time)
 
     def _recognize_gei(self, gei: np.ndarray) -> tuple[str, float, str, str, np.ndarray | None]:
-        """Run ByGaitLight CNN embedding extraction and gallery matching."""
         try:
             with self._lock:
                 g_features = self.gallery_features

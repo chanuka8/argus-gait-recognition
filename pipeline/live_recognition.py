@@ -124,7 +124,6 @@ def _load_box_stability_config() -> dict:
 
 
 def _load_reid_config() -> dict:
-    """Load ReID config with safe defaults (disabled)."""
     config_path = Path("configs/inference.yaml")
 
     defaults = {
@@ -158,7 +157,6 @@ def _load_reid_config() -> dict:
 
 
 def _load_fusion_config() -> dict:
-    """Load Dual-Modal Fusion config with safe defaults (disabled)."""
     config_path = Path("configs/inference.yaml")
 
     defaults = {
@@ -192,7 +190,6 @@ def _load_fusion_config() -> dict:
 
 
 def _load_quality_config() -> dict:
-    """Load GEI Quality Estimator config."""
     config_path = Path("configs/inference.yaml")
 
     defaults = {
@@ -223,7 +220,6 @@ def _load_quality_config() -> dict:
 
 
 def _load_temporal_config() -> dict:
-    """Load Temporal Gait Verification config."""
     config_path = Path("configs/inference.yaml")
 
     defaults = {
@@ -254,7 +250,6 @@ def _load_temporal_config() -> dict:
 
 
 def _load_track_reliability_config() -> dict:
-    """Load Track Reliability Scorer config."""
     config_path = Path("configs/inference.yaml")
 
     defaults = {
@@ -293,7 +288,6 @@ def _load_track_reliability_config() -> dict:
 
 
 def _load_watchlist_config() -> dict:
-    """Load Watchlist config."""
     config_path = Path("configs/inference.yaml")
 
     defaults = {
@@ -325,7 +319,6 @@ def _load_watchlist_config() -> dict:
 
 
 def _load_crowd_robustness_config() -> dict:
-    """Load Crowd Robustness config."""
     config_path = Path("configs/inference.yaml")
 
     defaults = {
@@ -666,20 +659,6 @@ class LiveRecognitionPipeline:
         flat_identity: str,
         flat_score: float,
     ) -> tuple[str, float, str]:
-        """
-        Adaptive hybrid matching decision policy.
-
-        Returns:
-            (identity, score, decision)
-
-        Decision levels:
-            CONFIRMED_MATCH     -> flat_score >= confirmed_threshold
-            VERIFIED_MATCH      -> verify_low <= flat_score < verify_high,
-                                   centroid verification agrees
-            REVIEW_REQUIRED     -> verification disagrees
-            LOW_CONFIDENCE      -> low_confidence_low <= flat_score < low_confidence_high
-            UNKNOWN_PERSON      -> flat_score < unknown_ceiling or flat is UNKNOWN
-        """
         confirmed_threshold = self.policy["confirmed_threshold"]
         verify_low = self.policy["verify_low"]
         verify_high = self.policy["verify_high"]
@@ -719,12 +698,6 @@ class LiveRecognitionPipeline:
         self,
         gei: np.ndarray,
     ) -> tuple[str, float, str]:
-        """
-        Run flat matching first, then apply adaptive decision policy.
-
-        Returns:
-            (identity, score, decision)
-        """
         embedding = self._gei_to_embedding(
             gei,
         )

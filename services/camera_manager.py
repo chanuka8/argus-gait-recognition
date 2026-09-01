@@ -9,8 +9,6 @@ from services.camera_worker import CameraWorker
 
 
 class CameraManager:
-    """Orchestrates multiple camera workers for multi-camera CCTV surveillance."""
-
     def __init__(
         self,
         config_path: str = "configs/cameras.yaml",
@@ -31,7 +29,6 @@ class CameraManager:
         self._load_config()
 
     def _load_config(self) -> None:
-        """Load camera configuration from YAML."""
         self.cameras_config = {}
         self.defaults = {
             "width": 640,
@@ -82,7 +79,6 @@ class CameraManager:
             self.multi_camera_config = {}
 
     def _create_worker(self, camera_id: str, camera_config: dict) -> CameraWorker | None:
-        """Create a camera worker."""
         try:
             config = {**self.defaults, **camera_config}
             config["id"] = camera_id
@@ -102,7 +98,6 @@ class CameraManager:
             return None
 
     def add_camera(self, camera_id: str, camera_config: dict) -> bool:
-        """Dynamically add a camera."""
         with self._lock:
             if camera_id in self._workers:
                 self._logger.warning(f"Camera {camera_id} already exists")
@@ -135,7 +130,6 @@ class CameraManager:
             return True
 
     def remove_camera(self, camera_id: str) -> bool:
-        """Dynamically remove a camera."""
         with self._lock:
             if camera_id not in self._workers:
                 self._logger.warning(f"Camera {camera_id} not found")
@@ -152,7 +146,6 @@ class CameraManager:
             return success
 
     def save_config(self, output_path: str | Path | None = None) -> bool:
-        """Persist current camera configuration safely to YAML."""
         target_path = Path(output_path) if output_path is not None else self.config_path
         with self._lock:
             try:
@@ -171,7 +164,6 @@ class CameraManager:
                 return False
 
     def start_all(self) -> int:
-        """Start all enabled cameras."""
         started = 0
 
         with self._lock:
@@ -200,7 +192,6 @@ class CameraManager:
         return started
 
     def stop_all(self, timeout: float = 5.0) -> int:
-        """Stop all camera workers."""
         stopped = 0
 
         self._stop_health_check()
@@ -214,7 +205,6 @@ class CameraManager:
         return stopped
 
     def restart_camera(self, camera_id: str) -> bool:
-        """Restart a specific camera."""
         with self._lock:
             if camera_id not in self._workers:
                 self._logger.warning(f"Camera {camera_id} not found")
@@ -224,7 +214,6 @@ class CameraManager:
             return worker.restart()
 
     def get_camera_stats(self, camera_id: str) -> dict | None:
-        """Get statistics for a specific camera."""
         with self._lock:
             if camera_id not in self._workers:
                 return None
@@ -232,7 +221,6 @@ class CameraManager:
             return self._workers[camera_id].get_stats()
 
     def get_all_stats(self) -> dict:
-        """Get statistics for all cameras."""
         stats = {}
 
         with self._lock:
@@ -242,7 +230,6 @@ class CameraManager:
         return stats
 
     def get_camera_status(self, camera_id: str) -> dict | None:
-        """Get status for a specific camera."""
         with self._lock:
             if camera_id not in self._workers:
                 return None
@@ -257,7 +244,6 @@ class CameraManager:
             }
 
     def get_all_status(self) -> dict:
-        """Get status for all cameras."""
         status = {}
 
         with self._lock:
@@ -272,7 +258,6 @@ class CameraManager:
         return status
 
     def _health_check_loop(self) -> None:
-        """Periodic health check for all cameras."""
         interval = int(self.multi_camera_config.get("health_check_interval", 30))
 
         while not self._stop_event.is_set():
@@ -297,7 +282,6 @@ class CameraManager:
                 self._logger.error(f"Error in health check: {e!s}")
 
     def _start_health_check(self) -> None:
-        """Start background health check thread."""
         if self._health_check_thread is not None and self._health_check_thread.is_alive():
             return
 
@@ -310,7 +294,6 @@ class CameraManager:
         self._health_check_thread.start()
 
     def _stop_health_check(self) -> None:
-        """Stop background health check thread."""
         if self._health_check_thread is None:
             return
 
@@ -320,11 +303,9 @@ class CameraManager:
             self._health_check_thread.join(timeout=5.0)
 
     def get_worker(self, camera_id: str) -> CameraWorker | None:
-        """Get a specific camera worker."""
         with self._lock:
             return self._workers.get(camera_id)
 
     def list_cameras(self) -> list[str]:
-        """List all camera IDs."""
         with self._lock:
             return list(self._workers.keys())

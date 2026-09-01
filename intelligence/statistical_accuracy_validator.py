@@ -1,15 +1,3 @@
-"""
-Statistical Accuracy & Minimum Evidence Validator for ARGUS AI Continual Learning.
-
-Provides mathematically rigorous, hypothesis-driven statistical validation for
-continual-learning model comparisons:
-1. Wilson Score Confidence Intervals for binomial rates (Rank-1, TAR, FAR).
-2. Bootstrap Resampling for continuous score distributions.
-3. McNemar's Paired Test for matched candidate vs. baseline decision differences.
-4. Wilcoxon Signed-Rank Test for pairwise similarity distributions.
-5. Configurable Minimum Evidence Policy enforcing scientific rigor and blocking false-positive certification.
-"""
-
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
@@ -20,8 +8,6 @@ from monitoring.logging_config import get_logger
 
 @dataclass
 class MinimumEvidencePolicy:
-    """Configurable minimum sample and trial thresholds required for evidence certification."""
-
     min_identities: int = 2
     min_tracks: int = 4
     min_sessions: int = 2
@@ -37,8 +23,6 @@ class MinimumEvidencePolicy:
 
 @dataclass
 class StatisticalValidationResult:
-    """Complete statistical significance and evidence assessment outcome."""
-
     is_statistically_significant: bool
     is_sufficient_evidence: bool
     evidence_class: str
@@ -63,20 +47,12 @@ class StatisticalValidationResult:
 
 
 class StatisticalAccuracyValidator:
-    """
-    Evaluates statistical hypothesis tests and enforces minimum evidence policy.
-    """
-
     def __init__(self, policy: MinimumEvidencePolicy | None = None) -> None:
         self.policy = policy or MinimumEvidencePolicy()
         self._logger = get_logger("statistical_accuracy_validator")
 
     @staticmethod
     def calculate_wilson_ci(successes: int, trials: int, confidence: float = 0.95) -> tuple[float, float]:
-        """
-        Calculate Wilson score interval with continuity correction for binomial rates.
-        Returns percentage bounds: (lower_pct, upper_pct).
-        """
         if trials <= 0:
             return (0.0, 0.0)
         p = successes / trials
@@ -99,9 +75,6 @@ class StatisticalAccuracyValidator:
         candidate_scores: list[float],
         n_bootstraps: int = 500,
     ) -> tuple[float, float]:
-        """
-        Bootstrap percentile confidence interval for difference in means (Candidate - Baseline).
-        """
         if not baseline_scores or not candidate_scores or len(baseline_scores) != len(candidate_scores):
             return (0.0, 0.0)
 
@@ -129,10 +102,6 @@ class StatisticalAccuracyValidator:
         baseline_correct: list[bool],
         candidate_correct: list[bool],
     ) -> tuple[float, float, bool]:
-        """
-        Paired McNemar test with continuity correction on binary test outcomes.
-        Returns: (chi2_statistic, p_value, is_significant).
-        """
         if len(baseline_correct) != len(candidate_correct) or len(baseline_correct) == 0:
             return (0.0, 1.0, False)
 
@@ -177,9 +146,6 @@ class StatisticalAccuracyValidator:
         impostor_trials: int = 0,
         sample_count: int = 0,
     ) -> StatisticalValidationResult:
-        """
-        Enforces complete statistical validation against the Minimum Evidence Policy.
-        """
         rejection_reasons = []
 
 

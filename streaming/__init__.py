@@ -1,7 +1,3 @@
-"""
-Streaming module for ARGUS AI multi-stream and Phase 4 optimization.
-"""
-
 from streaming.buffer_queue import BufferQueue
 from streaming.camera_scheduler import CameraScheduler
 from streaming.deployment_readiness import (

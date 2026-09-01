@@ -183,20 +183,6 @@ def validate_gallery_files(
     gallery_dir: str | Path = "models/gallery",
     expected_dim: int = 256,
 ) -> tuple[bool, str | None, int]:
-    """
-    Validate gallery feature and label files safely using allow_pickle=False.
-
-    Checks:
-        - File existence
-        - allow_pickle=False safe loading
-        - Non-object numeric feature array
-        - Finite features (no NaN, no Inf)
-        - Shape (N, D) matching expected_dim
-        - 1D labels (N,) with matching N count
-
-    Returns:
-        (is_valid, error_message, count)
-    """
     g_dir = Path(gallery_dir)
     feats_file = g_dir / "gallery_features.npy"
     lbls_file = g_dir / "gallery_labels.npy"

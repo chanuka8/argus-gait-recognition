@@ -1,5 +1,3 @@
-"""Automated verification test suite for ARGUS AI surveillance system audit."""
-
 import os
 import shutil
 import tempfile
@@ -17,8 +15,6 @@ from storage.evidence_manager import EvidenceManager
 
 
 class TestSystemAuditVerification(unittest.TestCase):
-    """System Verification Test Suite covering all 12 audit test requirements."""
-
     def setUp(self):
         self.temp_dir = tempfile.mkdtemp()
 

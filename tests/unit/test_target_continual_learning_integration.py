@@ -1,19 +1,3 @@
-"""
-ARGUS AI — Target Continual-Learning Architecture End-to-End Integration Suite.
-
-Validates the full target architecture lifecycle:
-1. Live CCTV -> Person Detection -> Tracking -> OSNet Crop (512D) -> Operational Collector
-2. Live CCTV -> Tracking -> Silhouette / GEI -> ByGaitLight (256D) -> Operational Collector
-3. Observation persistence to disk (recent_observations.json) & restart survivability
-4. Deduplication & invalid vector rejection
-5. Unknown vs Known person observation state safety (PREDICTED -> VERIFIED -> TRAINING_ELIGIBLE)
-6. Date-Aware Learning Scheduler event-date detection & idempotency
-7. Candidate model training with 50% historical replay buffer (Anti-Catastrophic Forgetting)
-8. CandidateValidator validation gates (TAR, FAR, Confusion pairs)
-9. ModelRegistry versioning, lineage, atomic promotion, and rollback
-10. Multi-camera concurrency safety
-"""
-
 import shutil
 import tempfile
 import threading
@@ -68,7 +52,6 @@ def target_env():
 
 
 def test_1_live_cctv_to_collector_and_persistence(target_env):
-    """Verify live CCTV stream feeds into OperationalEmbeddingCollector and persists."""
     collector = OperationalEmbeddingCollector(
         output_dir=target_env["obs_dir"],
         dedup_window_seconds=0.5,
@@ -167,7 +150,6 @@ def test_1_live_cctv_to_collector_and_persistence(target_env):
 
 
 def test_2_deduplication_and_rate_limiting(target_env):
-    """Verify near-identical vectors within deduplication window do not duplicate."""
     collector = OperationalEmbeddingCollector(
         output_dir=target_env["obs_dir"],
         dedup_window_seconds=1.0,
@@ -204,7 +186,6 @@ def test_2_deduplication_and_rate_limiting(target_env):
 
 
 def test_3_ground_truth_verification_and_scheduling(target_env):
-    """Verify operator verification enables training eligibility and triggers scheduler."""
     collector = OperationalEmbeddingCollector(output_dir=target_env["obs_dir"])
     db = EmbeddingDatabase(
         db_dir=target_env["db_dir"],
@@ -272,7 +253,6 @@ def test_3_ground_truth_verification_and_scheduling(target_env):
 
 
 def test_4_model_registry_validation_and_rollback(target_env):
-    """Verify candidate validation gates, atomic promotion, and rollback."""
     registry = ModelRegistry(registry_file=target_env["reg_file"])
     validator = CandidateValidator()
 
@@ -331,7 +311,6 @@ def test_4_model_registry_validation_and_rollback(target_env):
 
 
 def test_5_multi_camera_concurrency(target_env):
-    """Verify thread-safety when multiple cameras record observations concurrently."""
     collector = OperationalEmbeddingCollector(
         output_dir=target_env["obs_dir"],
         max_buffer_size=500,

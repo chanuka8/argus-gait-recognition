@@ -1,5 +1,3 @@
-"""Evidence manager for organized snapshot, GEI, and metadata storage with retention policy."""
-
 import json
 import time
 from pathlib import Path
@@ -13,8 +11,6 @@ from monitoring.logging_config import get_logger
 
 
 class EvidenceManager:
-    """Manages creation, organized folder structure, and retention policy for evidence files."""
-
     def __init__(self, base_evidence_dir: str = "outputs/media/detections", max_age_days: int = 30) -> None:
         self.base_dir = Path(base_evidence_dir)
         self.max_age_seconds = max_age_days * 86400.0
@@ -31,7 +27,6 @@ class EvidenceManager:
         gei: np.ndarray | None = None,
         extra_metadata: dict[str, Any] | None = None,
     ) -> dict[str, str]:
-        """Save evidence snapshot, GEI, and metadata into organized target directory."""
         now_str = time.strftime("%Y%m%d_%H%M%S")
         timestamp = time.monotonic()
         folder_name = f"{now_str}_{camera_id}"
@@ -77,7 +72,6 @@ class EvidenceManager:
         return saved_files
 
     def enforce_retention_policy(self) -> int:
-        """Purge evidence folders older than retention policy max age."""
         now = time.monotonic()
         deleted = 0
 

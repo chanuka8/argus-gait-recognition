@@ -1,18 +1,18 @@
 class ArgusError(Exception):
-    """Base ARGUS exception."""
+    pass
 
 
 class ConfigurationError(ArgusError):
-    """Configuration related exception."""
+    pass
 
 
 class BootError(ArgusError):
-    """System boot exception."""
+    pass
 
 
 class ModelError(ArgusError):
-    """Model related exception."""
+    pass
 
 
 class PipelineError(ArgusError):
-    """Pipeline related exception."""
+    pass

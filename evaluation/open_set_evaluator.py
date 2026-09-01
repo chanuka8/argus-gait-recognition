@@ -18,11 +18,6 @@ from intelligence.open_set_recognizer import OpenSetRecognizer
 
 
 class SubjectDisjointOpenSetEvaluator(SubjectDisjointEvaluator):
-    """
-    Evaluates open-set identification and unknown subject rejection performance
-    using held-out test subjects partitioned into Known Enrolled vs Unknown Open-Set identities.
-    """
-
     def __init__(
         self,
         gei_root: str = "data/casia_processed/gei",

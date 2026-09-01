@@ -1,14 +1,3 @@
-"""
-ARGUS AI Hardware & Compute Environment Detector CLI.
-
-Scans host hardware (CPU, RAM, NVIDIA GPU, driver, VRAM, CUDA) and compares it
-against the installed PyTorch/CUDA runtime, YOLOv8 runtime device, and ONNX
-execution providers in .venv to determine if the environment is healthy or requires repair.
-
-Usage:
-    python scripts/detect_environment.py [--json]
-"""
-
 import argparse
 import json
 import os
@@ -25,7 +14,6 @@ if str(ROOT) not in sys.path:
 
 
 def setup_torch_dll_path() -> None:
-    """Ensure torch/lib is in PATH and DLL search directory for ONNX CUDA provider."""
     try:
         import torch
 
@@ -39,7 +27,6 @@ def setup_torch_dll_path() -> None:
 
 
 def get_system_hardware() -> dict[str, Any]:
-    """Retrieve OS, CPU core count, and total RAM in GB."""
     os_name = f"{platform.system()} {platform.release()}"
     cpu_count = os.cpu_count() or 1
     ram_gb = 0.0
@@ -60,9 +47,6 @@ def get_system_hardware() -> dict[str, Any]:
 
 
 def get_nvidia_smi_info() -> tuple[bool, str | None, str | None, float | None, str | None]:
-    """
-    Query nvidia-smi for GPU presence, name, driver version, VRAM (MB), and max supported CUDA.
-    """
     smi_path = shutil.which("nvidia-smi") or r"C:\Windows\System32\nvidia-smi.exe"
     if not os.path.exists(smi_path) and not shutil.which("nvidia-smi"):
         return False, None, None, None, None
@@ -98,7 +82,6 @@ def get_nvidia_smi_info() -> tuple[bool, str | None, str | None, float | None, s
 
 
 def get_onnx_providers() -> tuple[list[str], str, bool]:
-    """Inspect available ONNX Runtime execution providers."""
     setup_torch_dll_path()
     try:
         import onnxruntime as ort
@@ -112,7 +95,6 @@ def get_onnx_providers() -> tuple[list[str], str, bool]:
 
 
 def probe_pytorch_cuda() -> dict[str, Any]:
-    """Inspect active PyTorch build in the current environment."""
     info = {
         "installed": False,
         "version": None,
@@ -153,7 +135,6 @@ def probe_pytorch_cuda() -> dict[str, Any]:
 
 
 def probe_yolo_runtime_device() -> tuple[str, str, bool]:
-    """Inspect YOLOv8 configured and resolved runtime execution device."""
     try:
         from pipeline.detection.person_detector import PersonDetector
 
@@ -167,7 +148,6 @@ def probe_yolo_runtime_device() -> tuple[str, str, bool]:
 
 
 def detect_environment() -> dict[str, Any]:
-    """Aggregate hardware state, PyTorch, YOLO, and ONNX compute requirements."""
     sys_hw = get_system_hardware()
     has_gpu, gpu_name, driver_ver, vram_mb, cuda_driver = get_nvidia_smi_info()
     torch_info = probe_pytorch_cuda()

@@ -1,11 +1,3 @@
-"""
-Deployment Runtime Manifest and Packaging Separator for ARGUS AI.
-
-Defines the structure for distinguishing build-time assets vs runtime-only assets,
-ensuring Windows-native deployment packages contain all required runtime modules
-while excluding tests, development tools, caches, and sensitive credentials.
-"""
-
 import json
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -72,19 +64,12 @@ EXCLUDED_PATTERNS = [
 
 @dataclass
 class RuntimeManifest:
-    """Structured container for runtime vs build deployment manifest."""
-
     application_name: str = "ARGUS AI"
     runtime_assets: list = field(default_factory=lambda: list(RUNTIME_ONLY_ASSETS))
     build_assets: list = field(default_factory=lambda: list(BUILD_TIME_ASSETS))
     excluded_patterns: list = field(default_factory=lambda: list(EXCLUDED_PATTERNS))
 
     def validate_runtime_assets(self, repo_root: str = ".") -> dict:
-        """
-        Validate presence of essential runtime assets against the filesystem.
-
-        Returns a dictionary containing 'valid' (bool), 'missing' (list), and 'checked' (list).
-        """
         root = Path(repo_root).resolve()
         checked = []
         missing = []
@@ -102,11 +87,9 @@ class RuntimeManifest:
         }
 
     def to_dict(self) -> dict:
-        """Export manifest data as a dictionary with repository-relative paths only."""
         return asdict(self)
 
     def export_json(self, output_path: str = "deployment/runtime_manifest.json") -> Path:
-        """Write manifest JSON artifact with repository-relative paths."""
         path = Path(output_path)
         path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -121,7 +104,6 @@ class RuntimeManifest:
         return path
 
     def export_markdown(self, output_path: str = "deployment/runtime_manifest.md") -> Path:
-        """Write human-readable runtime manifest markdown documentation."""
         path = Path(output_path)
         path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -163,7 +145,6 @@ class RuntimeManifest:
 
 
 def get_runtime_manifest() -> RuntimeManifest:
-    """Factory helper to return default RuntimeManifest."""
     return RuntimeManifest()
 
 
@@ -171,7 +152,6 @@ def generate_runtime_manifest_artifacts(
     json_path: str = "deployment/runtime_manifest.json",
     md_path: str = "deployment/runtime_manifest.md",
 ) -> dict:
-    """Generate both JSON and Markdown runtime manifest files."""
     manifest = get_runtime_manifest()
     jp = manifest.export_json(output_path=json_path)
     mp = manifest.export_markdown(output_path=md_path)

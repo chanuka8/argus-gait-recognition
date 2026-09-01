@@ -1,7 +1,3 @@
-"""
-Integration tests for Crowd Robustness in Pipeline Components.
-"""
-
 from unittest.mock import MagicMock, patch
 
 from intelligence.crowd_density_estimator import CrowdDensityLevel

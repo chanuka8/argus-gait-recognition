@@ -1,15 +1,3 @@
-"""
-Automated Regression Validation Gate for Candidate Models in ARGUS AI.
-
-Evaluates candidate models/calibration versions against the current active production baseline.
-
-Strict Security & Performance Invariants:
-1. False Accept Rate (FAR) Gate: Any increase in FAR -> REJECT.
-2. Confusion-Pair Gate: Any false accept on high-risk confusion pairs -> REJECT.
-3. True Accept Rate (TAR) Gate: TAR must improve or maintain baseline -> REJECT if degraded.
-4. Numerical Stability Gate: No NaN/Inf outputs or execution errors.
-"""
-
 import time
 from dataclasses import asdict, dataclass, field
 from typing import Any
@@ -21,8 +9,6 @@ from monitoring.logging_config import get_logger
 
 @dataclass
 class ValidationGateResult:
-    """Detailed report from the automated candidate validation gate."""
-
     candidate_version: str
     model_type: str
     passed: bool
@@ -37,10 +23,6 @@ class ValidationGateResult:
 
 
 class CandidateValidator:
-    """
-    Automated regression validation engine enforcing security and accuracy gates.
-    """
-
     def __init__(self, max_allowed_far_increase: float = 0.0) -> None:
         self.max_allowed_far_increase = max_allowed_far_increase
         self._logger = get_logger("candidate_validator")
@@ -53,12 +35,6 @@ class CandidateValidator:
         candidate_metrics: dict[str, float],
         confusion_pair_eval: dict[str, Any] | None = None,
     ) -> ValidationGateResult:
-        """
-        Evaluate candidate metrics against active baseline.
-
-        Returns:
-            ValidationGateResult indicating PASS or REJECT.
-        """
         rejection_reasons = []
         gates = {}
 

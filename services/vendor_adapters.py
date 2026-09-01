@@ -1,13 +1,9 @@
-"""Vendor compatibility adapters for enterprise CCTV cameras."""
-
 from typing import Any
 
 from monitoring.logging_config import get_logger
 
 
 class CameraAdapter:
-    """Base adapter for vendor-specific camera integration."""
-
     VENDOR = "generic"
 
     def __init__(self, host: str, port: int = 554, username: str = "", password: str = "", **kwargs: Any) -> None:
@@ -18,14 +14,12 @@ class CameraAdapter:
         self._logger = get_logger(f"adapter.{self.VENDOR}")
 
     def get_rtsp_url(self, channel: int = 1, subtype: int = 0) -> str:
-        """Return primary RTSP stream URL."""
         auth = f"{self.username}:{self.password}@" if self.username else ""
         return f"rtsp://{auth}{self.host}:{self.port}"
 
     def get_camera_config(
         self, camera_id: str, width: int = 640, height: int = 480, target_fps: int = 15
     ) -> dict[str, Any]:
-        """Build camera config dict compatible with CameraWorker."""
         return {
             "id": camera_id,
             "type": "rtsp",
@@ -41,13 +35,10 @@ class CameraAdapter:
         }
 
     def get_metadata(self) -> dict[str, Any]:
-        """Return vendor metadata."""
         return {"vendor": self.VENDOR, "host": self.host, "port": self.port}
 
 
 class HikvisionAdapter(CameraAdapter):
-    """Hikvision RTSP adapter."""
-
     VENDOR = "hikvision"
 
     def get_rtsp_url(self, channel: int = 1, subtype: int = 0) -> str:
@@ -62,8 +53,6 @@ class HikvisionAdapter(CameraAdapter):
 
 
 class DahuaAdapter(CameraAdapter):
-    """Dahua RTSP adapter."""
-
     VENDOR = "dahua"
 
     def get_rtsp_url(self, channel: int = 1, subtype: int = 0) -> str:
@@ -72,8 +61,6 @@ class DahuaAdapter(CameraAdapter):
 
 
 class UniviewAdapter(CameraAdapter):
-    """Uniview RTSP adapter."""
-
     VENDOR = "uniview"
 
     def get_rtsp_url(self, channel: int = 1, subtype: int = 0) -> str:
@@ -83,8 +70,6 @@ class UniviewAdapter(CameraAdapter):
 
 
 class AxisAdapter(CameraAdapter):
-    """Axis RTSP adapter."""
-
     VENDOR = "axis"
 
     def get_rtsp_url(self, channel: int = 1, subtype: int = 0) -> str:
@@ -93,8 +78,6 @@ class AxisAdapter(CameraAdapter):
 
 
 class GenericRTSPAdapter(CameraAdapter):
-    """Generic RTSP adapter with custom path."""
-
     VENDOR = "generic_rtsp"
 
     def __init__(
@@ -119,6 +102,5 @@ VENDOR_REGISTRY: dict[str, type] = {
 
 
 def get_adapter(vendor: str, **kwargs: Any) -> CameraAdapter:
-    """Factory: return the correct adapter for a vendor name."""
     cls = VENDOR_REGISTRY.get(vendor.lower(), CameraAdapter)
     return cls(**kwargs)

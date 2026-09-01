@@ -27,11 +27,6 @@ from pipeline.steps.matching_step import MatchingStep
 
 
 class SubjectDisjointEvaluator:
-    """
-    Evaluates gait recognition model on held-out test subjects with strict sequence separation.
-    Zero data leakage guaranteed.
-    """
-
     def __init__(
         self,
         gei_root: str = "data/casia_processed/gei",

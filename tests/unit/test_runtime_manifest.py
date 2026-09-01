@@ -1,7 +1,3 @@
-"""
-Unit tests for deployment build/runtime asset manifest.
-"""
-
 from pathlib import Path
 
 from deployment.runtime_manifest import RuntimeManifest, generate_runtime_manifest_artifacts, get_runtime_manifest

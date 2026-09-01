@@ -18,11 +18,6 @@ ALL_ANGLES = ["000", "018", "036", "054", "072", "090", "108", "126", "144", "16
 
 
 class SubjectDisjointCrossViewEvaluator(SubjectDisjointEvaluator):
-    """
-    Evaluates Rank-1, Rank-5, Rank-10 cross-view recognition performance across all
-    11 x 11 gallery-angle x probe-angle pair combinations on subject-disjoint test set.
-    """
-
     def evaluate_cross_view_matrices(self) -> dict:
         test_subjects = self.split_manifest["test_subjects"]
 

@@ -1,10 +1,3 @@
-"""
-Hardware Detection Subsystem for ARGUS AI.
-
-Scans host operating system, CPU architecture, RAM, and NVIDIA GPU hardware
-via direct OS telemetry and nvidia-smi querying without requiring PyTorch.
-"""
-
 import os
 import platform
 import shutil
@@ -57,11 +50,8 @@ class HardwareProfile:
 
 
 class HardwareDetector:
-    """Hardware detector for host OS, memory, and NVIDIA GPU resources."""
-
     @staticmethod
     def detect_system() -> HostSystemInfo:
-        """Detect OS, CPU, RAM, and Python version."""
         os_name = platform.system()
         os_version = platform.release()
         py_ver = sys.version.split()[0]
@@ -91,10 +81,6 @@ class HardwareDetector:
 
     @staticmethod
     def detect_nvidia_gpu() -> NvidiaGpuInfo:
-        """
-        Query nvidia-smi for GPU name, driver, VRAM, and CUDA driver API version.
-        Handles non-NVIDIA systems gracefully without raising exceptions.
-        """
         smi_candidates = [
             shutil.which("nvidia-smi"),
             r"C:\Windows\System32\nvidia-smi.exe",
@@ -169,7 +155,6 @@ class HardwareDetector:
 
     @classmethod
     def detect(cls) -> HardwareProfile:
-        """Execute complete hardware detection suite."""
         sys_info = cls.detect_system()
         gpu_info = cls.detect_nvidia_gpu()
         return HardwareProfile(system=sys_info, gpu=gpu_info)

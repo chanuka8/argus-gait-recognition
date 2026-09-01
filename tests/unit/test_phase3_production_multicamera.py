@@ -1,7 +1,3 @@
-"""
-ARGUS AI — Phase 3 Production Multi-Camera Scalability & Agnostic Architecture Unit Tests.
-"""
-
 import time
 
 import numpy as np
@@ -26,7 +22,6 @@ class DummyCollector:
 
 
 def test_hardware_capability_detection():
-    """Verify hardware profile detection produces valid unbounded configuration."""
     profile = detect_hardware_profile()
     assert isinstance(profile, HardwareProfile)
     assert profile.cpu_cores >= 1
@@ -36,7 +31,6 @@ def test_hardware_capability_detection():
 
 
 def test_bounded_queue_overflow_and_backpressure():
-    """Verify bounded ring queue drops oldest frame and tracks drop counters without crashing."""
     q = StreamIngestionQueue(camera_id="cam_test_01", maxsize=3, max_stale_age_seconds=1.0)
     dummy = np.zeros((10, 10, 3), dtype=np.uint8)
 
@@ -57,7 +51,6 @@ def test_bounded_queue_overflow_and_backpressure():
 
 
 def test_stale_frame_dropping():
-    """Verify frames older than max_stale_age_seconds are discarded."""
     q = StreamIngestionQueue(camera_id="cam_stale_01", maxsize=5, max_stale_age_seconds=0.05)
     dummy = np.zeros((10, 10, 3), dtype=np.uint8)
 
@@ -76,7 +69,6 @@ def test_stale_frame_dropping():
 
 
 def test_fair_stream_scheduler_starvation_prevention():
-    """Verify Deficit Round-Robin + Aging prevents starvation across multiple cameras."""
     scheduler = CentralStreamScheduler(starvation_threshold_seconds=0.1)
     dummy = np.zeros((10, 10, 3), dtype=np.uint8)
 
@@ -101,7 +93,6 @@ def test_fair_stream_scheduler_starvation_prevention():
 
 @pytest.mark.parametrize("num_cams", [1, 4, 8, 16, 32])
 def test_unbounded_camera_registration(num_cams):
-    """Verify engine registers arbitrary number of cameras without hardcoded limits."""
     engine = ProductionMultiCameraEngine()
     dummy = np.zeros((32, 32, 3), dtype=np.uint8)
 
@@ -124,7 +115,6 @@ def test_unbounded_camera_registration(num_cams):
 
 
 def test_camera_stream_isolation():
-    """Verify failure or unregister of one camera does not affect other running streams."""
     engine = ProductionMultiCameraEngine()
     engine.register_camera("cam_A")
     engine.register_camera("cam_B")
@@ -146,7 +136,6 @@ def test_camera_stream_isolation():
 
 
 def test_continual_learning_observation_integration():
-    """Verify observations are successfully passed to OperationalEmbeddingCollector."""
     collector = DummyCollector()
     engine = ProductionMultiCameraEngine(operational_collector=collector)
     engine.register_camera("cam_live_01")
@@ -166,7 +155,6 @@ def test_continual_learning_observation_integration():
 
 
 def test_process_single_frame_tracking_and_caching():
-    """Verify tracked detections populate recognition cache without type errors."""
     class MockDetector:
         def detect(self, frame):
             return [{"bbox": [10, 10, 50, 50], "confidence": 0.95}]

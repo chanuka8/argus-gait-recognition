@@ -1,14 +1,3 @@
-"""
-ARGUS AI Complete Environment & Model Verification Suite.
-
-Performs 6-phase real-time verification of dependencies, compute acceleration,
-CUDA matrix operations, ByGaitLight CNN execution, YOLOv8 person detector runtime device,
-and ONNX Runtime CUDA inference, then persists the verified manifest.
-
-Usage:
-    python scripts/verify_environment.py
-"""
-
 import datetime
 import json
 import os
@@ -23,7 +12,6 @@ if str(ROOT) not in sys.path:
 
 
 def setup_torch_dll_path() -> None:
-    """Ensure torch/lib is in PATH and DLL search directory for ONNX CUDA provider."""
     try:
         import torch
 
@@ -51,7 +39,6 @@ def save_environment_manifest(
     onnx_selected_provider: str,
     overall_status: str,
 ) -> None:
-    """Persist verified environment fingerprint to .venv/argus_env_manifest.json."""
     manifest_path = ROOT / ".venv" / "argus_env_manifest.json"
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
 

@@ -8,12 +8,6 @@ from training.dataset import GEIDataset
 
 
 class ConditionBalancedSampler(Sampler):
-    """Sampler that balances NM (0), BG (1), CL (2) conditions within each batch epoch.
-
-    Groups samples by condition code, then round-robins across conditions
-    so that each condition is represented equally in the training stream.
-    """
-
     def __init__(self, dataset: GEIDataset) -> None:
         super().__init__()
         self.dataset = dataset

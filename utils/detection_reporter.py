@@ -1,17 +1,3 @@
-"""
-ARGUS Detection Reporter.
-
-Thread-safe automated detection report writer that produces JSONL and CSV
-logs plus optional person-crop snapshots.  A configurable cooldown per
-(camera_id, track_id, identity, status) key prevents per-frame report spam.
-
-Only *UNKNOWN* and *CONFIRMED* events are reported by default; this is
-fully configurable via ``configs/inference.yaml → reporting``.
-
-No model weights, recognition thresholds, or matching math are
-modified or referenced by this module.
-"""
-
 import csv
 import json
 import threading
@@ -26,10 +12,6 @@ import yaml
 
 
 def load_reporting_config() -> dict:
-    """Load the ``reporting`` section from ``configs/inference.yaml``.
-
-    Returns safe defaults when the file or section is absent.
-    """
     config_path = Path("configs/inference.yaml")
 
     defaults: dict = {
@@ -85,17 +67,6 @@ _CSV_FIELDS = [
 
 
 class DetectionReporter:
-    """Thread-safe detection event reporter with cooldown deduplication.
-
-    Parameters
-    ----------
-    config : dict, optional
-        Reporting configuration.  When *None*, ``load_reporting_config``
-        is called automatically.
-    source_mode : str
-        Pipeline mode identifier (``"live"``, ``"video"``, ``"multi-camera"``).
-    """
-
     def __init__(
         self,
         config: dict | None = None,
@@ -151,33 +122,6 @@ class DetectionReporter:
         frame: np.ndarray | None = None,
         **kwargs: Any,
     ) -> bool:
-        """Record a detection event if it passes status and cooldown filters.
-
-        Parameters
-        ----------
-        camera_id : str
-            Camera identifier.
-        location : str
-            Camera location string (from ``cameras.yaml``).
-        track_id : int
-            Tracker-assigned ID.
-        identity : str
-            Gallery identity string (or ``"UNKNOWN"``).
-        status : str
-            CCTV status: ``DETECTION``, ``TRACKING``, ``UNKNOWN``, ``CONFIRMED``.
-        score : float
-            Match confidence score.
-        bbox : list[int]
-            Bounding box ``[x1, y1, x2, y2]``.
-        frame : np.ndarray, optional
-            Current video frame for snapshot cropping.
-
-        Returns
-        -------
-        bool
-            ``True`` if the event was actually written; ``False`` if
-            filtered or on cooldown.
-        """
         if not self._enabled:
             return False
 
@@ -283,7 +227,6 @@ class DetectionReporter:
         track_id: int,
         ts: datetime,
     ) -> str:
-        """Crop and save a JPEG snapshot of the detected person region."""
         try:
             h, w = frame.shape[:2]
             x1, y1, x2, y2 = bbox

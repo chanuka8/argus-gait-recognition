@@ -1,12 +1,3 @@
-"""
-Explainable Recognition Report Generator for ARGUS AI.
-
-Generates concise, evidence-driven reports explaining identity recognition
-decisions (confirmed, deferred, watchlist match, identity change, or manual export).
-Supports JSON, CSV, and Markdown exports with atomic file writing and duplicate suppression.
-Excludes secrets, RTSP credentials, and raw biometric embeddings.
-"""
-
 import csv
 import json
 import os
@@ -26,7 +17,6 @@ from security_layer.credentials import sanitize_rtsp_url
 
 
 def load_explainable_reporting_config() -> dict:
-    """Load explainable_reporting configuration section from configs/inference.yaml."""
     config_path = Path("configs/inference.yaml")
     defaults = {
         "enabled": False,
@@ -61,8 +51,6 @@ def load_explainable_reporting_config() -> dict:
 
 @dataclass
 class RecognitionEvidence:
-    """Evidence fields collected during recognition decision."""
-
     event_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     camera_id: str = "default"
@@ -94,7 +82,6 @@ class RecognitionEvidence:
     defer_reason: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert fields to dictionary, ensuring credential sanitization."""
         raw = asdict(self)
         sanitized = {}
         for k, v in raw.items():
@@ -106,8 +93,6 @@ class RecognitionEvidence:
 
 
 class ExplainableRecognitionReporter:
-    """Thread-safe evidence report generator for recognition decisions."""
-
     def __init__(self, config: dict | None = None) -> None:
         self.config = config or load_explainable_reporting_config()
         self.enabled = bool(self.config.get("enabled", False))
@@ -128,7 +113,6 @@ class ExplainableRecognitionReporter:
         identity_changed: bool = False,
         force_export: bool = False,
     ) -> bool:
-        """Determine if a report should be emitted based on trigger rules and cooldown."""
         if not self.enabled and not force_export:
             return False
 
@@ -144,7 +128,6 @@ class ExplainableRecognitionReporter:
         return self.report_confirmed and evidence.final_decision in ("KNOWN", "CONFIRMED")
 
     def _is_cooldown_active(self, key: str) -> bool:
-        """Check if duplicate report cooldown is active."""
         now = time.monotonic()
         with self._lock:
             last_time = self._last_report_times.get(key, 0.0)
@@ -159,7 +142,6 @@ class ExplainableRecognitionReporter:
         identity_changed: bool = False,
         force_export: bool = False,
     ) -> dict[str, Path] | None:
-        """Generate explainable recognition report files atomically."""
         if not self.should_report(evidence, identity_changed=identity_changed, force_export=force_export):
             return None
 
@@ -197,14 +179,12 @@ class ExplainableRecognitionReporter:
         return generated_files
 
     def _write_atomic_json(self, target_path: Path, data: dict) -> None:
-        """Write JSON atomically using temporary file rename."""
         temp_fd, temp_path = tempfile.mkstemp(dir=str(target_path.parent), suffix=".tmp")
         with os.fdopen(temp_fd, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, default=str)
         os.replace(temp_path, target_path)
 
     def _write_atomic_csv(self, target_path: Path, data: dict) -> None:
-        """Write CSV evidence key-value rows atomically."""
         temp_fd, temp_path = tempfile.mkstemp(dir=str(target_path.parent), suffix=".tmp")
         with os.fdopen(temp_fd, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
@@ -214,7 +194,6 @@ class ExplainableRecognitionReporter:
         os.replace(temp_path, target_path)
 
     def _write_atomic_markdown(self, target_path: Path, data: dict) -> None:
-        """Write Markdown evidence document atomically."""
         temp_fd, temp_path = tempfile.mkstemp(dir=str(target_path.parent), suffix=".tmp")
         lines = [
             f"# Explainable Recognition Report — Event {data.get('event_id')}",

@@ -1,5 +1,3 @@
-"""ARGUS AI Pipeline Steps Package (Lazy Loading)."""
-
 import importlib
 from typing import Any
 

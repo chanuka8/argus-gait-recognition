@@ -1,15 +1,3 @@
-"""
-Unit and Integration Tests for Real-Time Recognition Stream.
-
-Covers:
-1. FeatureExtractionStep.extract_from_gei
-2. RecognitionResultCache (put, get, TTL expiry, multi-camera isolation, inactive cleanup)
-3. RecognitionWorker (start, stop, put_frame non-blocking, error resilience, gallery update)
-4. CameraWorker integration (overlay rendering, status frames, client tracking, stats)
-5. API endpoints (list_cameras with telemetry, stream endpoint multi-client, graceful disconnect)
-6. Security / credential redaction across overlays, telemetry, and error logging
-"""
-
 import time
 from unittest.mock import MagicMock
 

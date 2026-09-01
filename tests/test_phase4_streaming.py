@@ -1,7 +1,3 @@
-"""
-Unit tests for Phase 4 streaming optimization components.
-"""
-
 import time
 import unittest
 
@@ -12,8 +8,6 @@ from streaming.worker_pool import CameraWorkerPool
 
 
 class TestCameraScheduler(unittest.TestCase):
-    """Test CameraScheduler."""
-
     def test_scheduler_priority_and_scheduling(self):
         scheduler = CameraScheduler(default_priority=5)
         scheduler.register_camera("cam_low", priority=2)
@@ -46,8 +40,6 @@ class TestCameraScheduler(unittest.TestCase):
 
 
 class TestCameraLoadBalancer(unittest.TestCase):
-    """Test CameraLoadBalancer."""
-
     def test_assign_and_migrate(self):
         lb = CameraLoadBalancer(max_cameras_per_worker=5)
         lb.register_worker("w1")
@@ -75,8 +67,6 @@ class TestCameraLoadBalancer(unittest.TestCase):
 
 
 class TestCameraWorkerPool(unittest.TestCase):
-    """Test CameraWorkerPool."""
-
     def test_pool_management(self):
         pool = CameraWorkerPool(min_workers=1, max_workers=3)
         config = {
@@ -102,8 +92,6 @@ class TestCameraWorkerPool(unittest.TestCase):
 
 
 class TestPerformanceOptimizer(unittest.TestCase):
-    """Test PerformanceOptimizer."""
-
     def test_profile_switching(self):
         opt = PerformanceOptimizer(profile_name="balanced")
         self.assertEqual(opt.get_optimal_queue_size(), 10)

@@ -1,12 +1,3 @@
-"""
-PyTorch Environment & Wheel Management Subsystem for ARGUS AI.
-
-Ensures that exactly one compatible PyTorch build (CUDA or CPU) is active in .venv.
-Never installs or leaves CPU and CUDA PyTorch simultaneously in the same environment.
-Provides idempotent validation: skips downloads and installations when the environment
-is already healthy.
-"""
-
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -33,15 +24,12 @@ class PyTorchInstallSpec:
 
 
 class PyTorchManager:
-    """Idempotent manager for PyTorch CUDA / CPU installations."""
-
     def __init__(self, cache_dir: str = ".venv/wheel_cache") -> None:
         self.cache_dir = Path(cache_dir)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.python_exe = sys.executable
 
     def inspect_current_pytorch(self) -> dict[str, Any]:
-        """Inspect the currently installed PyTorch build and device capabilities."""
         info = {
             "installed": False,
             "version": None,
@@ -78,12 +66,6 @@ class PyTorchManager:
         return info
 
     def is_compatible(self, target_backend: ComputeBackend) -> bool:
-        """
-        Check if the active PyTorch installation matches the target backend.
-        Idempotent:
-        - If target is CUDA: requires working CUDA build and cuda_available.
-        - If target is CPU: requires working PyTorch installation with passing tensor probe on CPU.
-        """
         info = self.inspect_current_pytorch()
         if not info["installed"] or not info["tensor_probe_passed"]:
             return False
@@ -94,7 +76,6 @@ class PyTorchManager:
             return bool(info["installed"] and info["tensor_probe_passed"])
 
     def _run_pip_unbuffered(self, args: list[str]) -> bool:
-        """Execute pip commands with live, unbuffered streaming output."""
         cmd = [self.python_exe, "-u", "-m", "pip"] + args
         print(f"[PIP] Running: {' '.join(cmd)}")
         try:
@@ -116,15 +97,10 @@ class PyTorchManager:
             return False
 
     def uninstall_pytorch(self) -> bool:
-        """Cleanly remove existing PyTorch and TorchVision packages."""
         print("\n[ARGUS] Removing conflicting PyTorch build to ensure clean environment...")
         return self._run_pip_unbuffered(["uninstall", "-y", "torch", "torchvision", "torchaudio"])
 
     def ensure_pytorch(self, target_backend: ComputeBackend, force_reinstall: bool = False) -> bool:
-        """
-        Idempotently ensure the correct PyTorch build is installed.
-        Skips all operations if the environment is already healthy.
-        """
         current = self.inspect_current_pytorch()
 
         if not force_reinstall and self.is_compatible(target_backend):
@@ -195,7 +171,6 @@ class PyTorchManager:
             return self._install_cpu_pytorch()
 
     def _install_cpu_pytorch(self) -> bool:
-        """Install official CPU PyTorch build with matching versions."""
         print("[ARGUS] Installing official CPU PyTorch build (2.5.1 / 0.20.1)...")
         return self._run_pip_unbuffered(
             [

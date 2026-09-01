@@ -1,13 +1,3 @@
-"""
-Regression tests for pre-baseline bug fixes in ARGUS AI.
-
-Validates:
-1. RecognitionWorker modality state handling under various fusion conditions.
-2. Intelligence package complete symbol exports in __all__.
-3. OSNetBackbone checkpoint loading integrity.
-4. EmbeddingDatabase input validation and NaN/dimension safeguards.
-"""
-
 import time
 import warnings
 
@@ -19,7 +9,6 @@ from services.recognition_worker import RecognitionResult, RecognitionResultCach
 
 
 def test_intelligence_package_exports():
-    """Verify all critical intelligence components are exported in intelligence.__all__."""
     required_exports = [
         "TrackIdentityAggregator",
         "ScoreCalibrator",
@@ -39,7 +28,6 @@ def test_intelligence_package_exports():
 
 
 def test_recognition_worker_modality_state_safety():
-    """Verify RecognitionWorker cache and result state handling."""
     cache = RecognitionResultCache(ttl_seconds=5.0)
     now = time.monotonic()
 
@@ -63,7 +51,6 @@ def test_recognition_worker_modality_state_safety():
 
 
 def test_embedding_database_dimension_and_nan_safeguards(tmp_path):
-    """Verify EmbeddingDatabase rejects invalid dimensions, NaNs, and zero norms."""
     from storage.embedding_database import EmbeddingDatabase
 
     db = EmbeddingDatabase(
@@ -113,7 +100,6 @@ def test_embedding_database_dimension_and_nan_safeguards(tmp_path):
 
 
 def test_osnet_backbone_no_future_warnings():
-    """Verify OSNetBackbone load does not trigger torch.load weights_only warnings."""
     from models.reid.osnet_backbone import OSNetBackbone
 
     backbone = OSNetBackbone(model_path="models/weights/osnet_x0_25.pth")

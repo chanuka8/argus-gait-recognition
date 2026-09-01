@@ -1,13 +1,3 @@
-"""
-Track-Level Temporal Confidence Accumulation Layer.
-
-Maintains a bounded sliding window of per-frame dual-modal decision outputs (candidate
-identity, fused score, modality state) per active track ID. Promotes a track to CONFIRMED
-only when bounded window consensus (voting >= M%) and average confidence (score >= 0.72)
-are met. Produces REVIEW_REQUIRED near-miss alerts and LOW_CONFIDENCE quiet logs for
-unconfirmed tracks.
-"""
-
 import threading
 import time
 from collections import Counter, deque
@@ -17,12 +7,6 @@ from monitoring.logging_config import get_logger
 
 
 class TrackIdentityAggregator:
-    """
-    Temporal sliding-window consensus and confidence aggregator for per-track identity verification.
-
-    Sits on top of per-frame decide_identity() outputs without modifying underlying fusion math.
-    """
-
     def __init__(
         self,
         window_size: int = 8,
@@ -76,15 +60,6 @@ class TrackIdentityAggregator:
         modality_state: str = "UNKNOWN",
         details: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        """
-        Ingest a per-frame decide_identity() output and update the sliding window for track_id.
-
-        Returns track-level aggregation result with decision:
-        - CONFIRMED: Consensus >= M% AND average score >= confirm_threshold.
-        - REVIEW_REQUIRED: Consensus >= M% AND average score in [confirm_threshold - margin, confirm_threshold).
-        - LOW_CONFIDENCE: Candidate present but below near-miss margin (logged, no operator alert).
-        - UNKNOWN: No valid candidate or insufficient consensus.
-        """
         now = time.time()
         record = {
             "identity": str(identity).strip() if identity is not None else "UNKNOWN_PERSON",
@@ -236,9 +211,6 @@ class TrackIdentityAggregator:
             }
 
     def on_track_lost(self, track_id: int) -> dict[str, Any] | None:
-        """
-        Handle track loss/eviction. Logs track summary and clears buffer to prevent cross-track carryover.
-        """
         with self._lock:
             if track_id not in self._tracks:
                 return None
@@ -289,14 +261,12 @@ class TrackIdentityAggregator:
             return summary
 
     def clear_track(self, track_id: int) -> None:
-        """Explicitly clear track state on re-acquisition or tracker reset."""
         with self._lock:
             self._tracks.pop(track_id, None)
             self._track_stats.pop(track_id, None)
             self._confirmed_identities.pop(track_id, None)
 
     def reset_all(self) -> None:
-        """Clear all active tracks."""
         with self._lock:
             self._tracks.clear()
             self._track_stats.clear()

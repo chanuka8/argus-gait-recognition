@@ -1,21 +1,3 @@
-"""
-Implements:
-1. HardwareCapabilityDetector — Full hardware discovery (CPU, RAM, GPU, CUDA, Storage, Network).
-2. SystemProfileEngine & DeploymentMode — Dynamic profile derivation without hardcoded limits.
-3. NetworkBandwidthEstimator — Stream bandwidth modeling and ingress headroom.
-4. ModelProfileRegistry — Resource and throughput profiles for OSNet 512D & ByGaitLight 256D.
-5. ProductionCapacityEstimator — Multi-factorial capacity and headroom modeling.
-6. CameraAdmissionController — Pre-flight admission gate with failure isolation.
-7. GPUMemoryGuard — VRAM monitoring, batch scaling, and safe CUDA OOM recovery.
-8. AdaptiveInferencePolicy — Quality degradation and automatic recovery policies.
-9. StorageSafetyAuditor — Persistent observation storage integrity and disk monitoring.
-10. SecurityAuditor — Credential masking and model lineage verification.
-11. DeploymentReadinessManager — Unified deployment orchestration layered above CameraSourceResolver.
-
-All core biometric invariants (OSNet 512D, ByGaitLight 256D, GEI, DualModalFusion) and
-existing webcam access architectures (CameraSourceResolver, CAP_DSHOW) are preserved 100%.
-"""
-
 import enum
 import os
 import shutil
@@ -107,14 +89,11 @@ class HardwareCapabilityReport:
 
 
 class HardwareCapabilityDetector:
-    """Discovers local system hardware capabilities without hardcoded assumptions."""
-
     def __init__(self, workspace_path: str = ".") -> None:
         self.workspace_path = workspace_path
         self._logger = get_logger("hardware_detector")
 
     def discover(self) -> HardwareCapabilityReport:
-        """Inspect host and return a complete capability report."""
         report = HardwareCapabilityReport(
             timestamp=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             cpu=self._detect_cpu(),
@@ -295,8 +274,6 @@ class DeploymentMode(enum.Enum):
 
 @dataclass
 class RuntimeParameters:
-    """Runtime configuration dynamically derived from hardware capabilities."""
-
     profile_name: str
     worker_count: int = 2
     detector_batch_size: int = 1
@@ -312,15 +289,12 @@ class RuntimeParameters:
 
 
 class SystemProfileEngine:
-    """Derives optimized runtime parameters based on detected hardware profile."""
-
     @classmethod
     def select_profile(
         cls,
         report: HardwareCapabilityReport,
         explicit_profile: SystemProfile = SystemProfile.AUTO,
     ) -> RuntimeParameters:
-        """Select appropriate profile and derive runtime parameters."""
         gpu = report.gpu
         cpu = report.cpu
         ram = report.ram
@@ -465,8 +439,6 @@ class ModelResourceProfile:
 
 
 class ModelProfileRegistry:
-    """Registry maintaining empirical resource and performance profiles for pipeline models."""
-
     def __init__(self) -> None:
         self._profiles: dict[str, ModelResourceProfile] = {
             "OSNet-x0.25": ModelResourceProfile(
@@ -526,8 +498,6 @@ class ModelProfileRegistry:
 
 
 class NetworkBandwidthEstimator:
-    """Estimates camera stream network ingress requirements and link headroom."""
-
 
     CODEC_BITRATES_MBPS: ClassVar[dict[str, dict[str, float]]] = {
         "h264": {
@@ -556,7 +526,6 @@ class NetworkBandwidthEstimator:
         fps: float = 15.0,
         codec: str = "h264",
     ) -> float:
-        """Estimate required Mbps for a single stream."""
         c = codec.lower()
         if c not in self.CODEC_BITRATES_MBPS:
             c = "h264"
@@ -577,7 +546,6 @@ class NetworkBandwidthEstimator:
         fps: float = 15.0,
         codec: str = "h264",
     ) -> dict[str, Any]:
-        """Evaluate network capacity and headroom for target camera configuration."""
         per_cam_mbps = self.estimate_camera_bandwidth(resolution, fps, codec)
         total_required_mbps = per_cam_mbps * target_camera_count
         headroom_mbps = max(0.0, link_speed_mbps - total_required_mbps)
@@ -602,8 +570,6 @@ class NetworkBandwidthEstimator:
 
 
 class ProductionCapacityEstimator:
-    """Calculates sustainable multi-camera deployment capacity based on runtime measurements."""
-
     def __init__(self, target_camera_fps: float = 10.0) -> None:
         self.target_camera_fps = max(1.0, target_camera_fps)
 
@@ -618,7 +584,6 @@ class ProductionCapacityEstimator:
         drop_rate: float,
         network_headroom_pct: float = 80.0,
     ) -> dict[str, Any]:
-        """Multi-factorial capacity calculation."""
         if measured_throughput_fps <= 0:
             return {
                 "estimated_sustainable_cameras": 1,
@@ -697,10 +662,6 @@ class ProductionCapacityEstimator:
         vram_total_mb: float = 4000.0,
         p95_latency_ms: float = 30.0,
     ) -> dict[str, Any]:
-        """
-        Calculates dynamic multi-person capacity, throughput, and recommended load tier
-        across multiple cameras without artificial software person limits.
-        """
         total_active_persons = max(1, camera_count * persons_per_camera)
 
 
@@ -759,13 +720,6 @@ class AdmissionResult:
 
 
 class CameraAdmissionController:
-    """Enforces pre-flight capacity verification before activating a new stream.
-
-    Guarantees:
-    - Verifies CPU, RAM, VRAM, network, and compute capacity before admitting a camera.
-    - Rejection or degradation of Camera N never destabilizes existing active Cameras 1..N-1.
-    """
-
     def __init__(
         self,
         max_cpu_percent: float = 85.0,
@@ -792,7 +746,6 @@ class CameraAdmissionController:
         network_headroom_pct: float = 80.0,
         target_fps: float = 15.0,
     ) -> AdmissionResult:
-        """Evaluate whether a camera can be admitted safely."""
         with self._lock:
 
             if cpu_percent >= self.max_cpu_percent:
@@ -900,8 +853,6 @@ class InferenceQualityMode(enum.Enum):
 
 
 class AdaptiveInferencePolicy:
-    """Governs dynamic quality scaling under resource pressure without mutating weights or embeddings."""
-
     def __init__(self) -> None:
         self._mode = InferenceQualityMode.FULL_QUALITY
         self._lock = threading.Lock()
@@ -918,7 +869,6 @@ class AdaptiveInferencePolicy:
         vram_percent: float,
         p95_latency_ms: float,
     ) -> InferenceQualityMode:
-        """Determine quality mode based on telemetry."""
         with self._lock:
             old_mode = self._mode
             if cpu_percent > 90.0 or vram_percent > 92.0 or p95_latency_ms > 300.0:
@@ -945,8 +895,6 @@ class AdaptiveInferencePolicy:
 
 
 class GPUMemoryGuard:
-    """Monitors VRAM and handles safe recovery from CUDA OOM."""
-
     def __init__(self, vram_warning_threshold_mb: float = 500.0) -> None:
         self.vram_warning_threshold_mb = vram_warning_threshold_mb
         self._logger = get_logger("gpu_memory_guard")
@@ -973,7 +921,6 @@ class GPUMemoryGuard:
         return {"allocated_mb": 0.0, "reserved_mb": 0.0, "total_mb": 0.0, "free_mb": 0.0}
 
     def handle_cuda_oom(self, exception: Exception, context: str = "") -> bool:
-        """Handle CUDA OOM cleanly without crashing the runtime."""
         with self._lock:
             self.oom_recoveries_count += 1
             self._logger.error(f"CUDA Out-of-Memory intercepted in {context}: {exception}")
@@ -998,14 +945,11 @@ class GPUMemoryGuard:
 
 
 class StorageSafetyAuditor:
-    """Validates observation persistence integrity, atomic writes, and disk space."""
-
     def __init__(self, storage_dir: str = "data") -> None:
         self.storage_dir = storage_dir
         self._logger = get_logger("storage_safety")
 
     def audit_storage(self) -> dict[str, Any]:
-        """Perform storage audit."""
         abs_path = os.path.abspath(self.storage_dir)
         exists = os.path.exists(abs_path)
         disk_usage = shutil.disk_usage(abs_path if exists else ".")
@@ -1040,11 +984,8 @@ class StorageSafetyAuditor:
 
 
 class SecurityAuditor:
-    """Audits runtime security, credential protection, and model lineage."""
-
     @staticmethod
     def verify_rtsp_sanitization(url: str) -> bool:
-        """Verify password is never exposed in output string."""
         sanitized = sanitize_rtsp_url(url)
         if "@" in url and "://" in url:
             parts = url.split("://", 1)[1].split("@", 1)[0]
@@ -1071,11 +1012,6 @@ class SecurityAuditor:
 
 
 class DeploymentReadinessManager:
-    """Top-level Phase 5 Deployment Readiness Manager.
-
-    Layers cleanly above the existing CameraSourceResolver and ProductionSurveillanceRuntime.
-    """
-
     def __init__(self, workspace_path: str = ".") -> None:
         self.detector = HardwareCapabilityDetector(workspace_path)
         self.hardware_report = self.detector.discover()
@@ -1091,7 +1027,6 @@ class DeploymentReadinessManager:
         self._logger = get_logger("deployment_manager")
 
     def get_deployment_summary(self) -> dict[str, Any]:
-        """Return comprehensive deployment readiness report."""
         vram = self.gpu_guard.get_vram_state()
         storage = self.storage_auditor.audit_storage()
         security = self.security_auditor.audit_system_security()
@@ -1127,7 +1062,6 @@ class DeploymentReadinessManager:
         current_active_cameras: int,
         target_fps: float = 15.0,
     ) -> AdmissionResult:
-        """Evaluate pre-flight camera admission dynamically using current system resources."""
         cpu_pct = 0.0
         ram_pct = 0.0
         try:

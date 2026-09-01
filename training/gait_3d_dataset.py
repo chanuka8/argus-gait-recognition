@@ -1,8 +1,3 @@
-"""
-PyTorch Dataset for 3D Pose Gait Model Training & Evaluation.
-Loads per-sequence 2D/3D skeleton keypoint arrays from data/casia_processed/skeletons/.
-"""
-
 from pathlib import Path
 
 import numpy as np
@@ -11,10 +6,6 @@ from torch.utils.data import Dataset
 
 
 class Gait3DSkeletonDataset(Dataset):
-    """
-    Dataset for loading 3D Pose Gait sequence keypoint arrays (.npy).
-    """
-
     def __init__(
         self,
         subjects: list[str],

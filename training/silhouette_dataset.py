@@ -8,11 +8,6 @@ from torch.utils.data import Dataset
 
 
 class SilhouetteSegmentationDataset(Dataset):
-    """
-    Fast In-Memory Dataset for UNet Person Silhouette Segmentation.
-    Pre-loads silhouette frames from CASIA-B raw ZIP archive into memory and synthesizes realistic RGB crop pairs.
-    """
-
     def __init__(
         self,
         zip_path: str = "data/casia_b_raw.zip",

@@ -1,22 +1,9 @@
-"""
-Runtime Biometric Confusion Risk Detector for ARGUS AI.
-
-Evaluates cross-subject similarity upon new enrollment and automatically tags high-risk
-confusion groups to prevent cross-identity false confirmations in production.
-"""
-
 from typing import Any
 
 import numpy as np
 
 
 class RuntimeConfusionDetector:
-    """
-    Automated similarity analyzer for enrolled identity galleries.
-    Flags cross-subject similarity clusters exceeding safe operating thresholds.
-    Supports advisory mode and configurable feature flagging.
-    """
-
     def __init__(
         self,
         gait_risk_thresh: float = 0.92,
@@ -39,9 +26,6 @@ class RuntimeConfusionDetector:
         gallery_gait: dict[str, list[np.ndarray]],
         gallery_app: dict[str, list[np.ndarray]],
     ) -> dict[str, Any]:
-        """
-        Scan a newly enrolled subject against all existing gallery identities.
-        """
         flagged_confusions = []
         max_g_sims = {}
         max_a_sims = {}

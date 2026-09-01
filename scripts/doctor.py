@@ -1,13 +1,3 @@
-"""
-ARGUS AI Non-Destructive Deployment Health Checker CLI (doctor.py).
-
-Verifies system environment, PyTorch/ONNX backends, model artifacts, gallery integrity,
-externalized configurations, storage permissions, and logging readiness.
-
-Usage:
-    python scripts/doctor.py
-"""
-
 import importlib
 import json
 import shutil
@@ -29,7 +19,6 @@ STATUS_UNABLE = "UNABLE_TO_VERIFY"
 
 
 def _to_rel(path: str | Path) -> str:
-    """Format path relative to repository ROOT using forward slashes."""
     p = Path(path).resolve()
     try:
         return p.relative_to(ROOT.resolve()).as_posix()
@@ -41,7 +30,6 @@ def run_doctor(
     json_path: str = "outputs/reports/health_report.json",
     md_path: str = "outputs/reports/health_report.md",
 ) -> tuple[int, dict]:
-    """Execute non-destructive health checks and write health reports."""
     try:
         return _execute_doctor_checks(json_path=json_path, md_path=md_path)
     except (RuntimeError, ValueError, TypeError, OSError) as e:

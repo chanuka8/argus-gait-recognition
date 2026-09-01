@@ -1,19 +1,3 @@
-"""
-Bounded Operational Evidence & Representation Manager for ARGUS AI Continual Learning.
-
-Responsible for preserving strictly the minimum verified training, validation, and
-evaluation media representations (2D GEIs and 3D appearance crops) required for
-scientifically valid neural-network fine-tuning and evaluation.
-
-Core Production Invariants:
-1. Bounded Quota: Enforces hard storage limits (default: 500 MB) and auto-evicts unlocked records.
-2. TTL Retention: Configurable evidence retention policy with automatic expired file cleanup.
-3. Manifest Locking: Never deletes evidence items locked by active evaluation manifests.
-4. Cryptographic Integrity: Validates SHA-256 checksums on write and read to detect corruption.
-5. Atomic Writes: Writes to temporary files before atomic filesystem rename.
-6. Minimum Representation Preference: Stores only 64x128 GEIs and 256x128 crops, NO continuous video.
-"""
-
 import hashlib
 import json
 import os
@@ -42,8 +26,6 @@ class EvidenceCategory(str, Enum):
 
 @dataclass
 class OperationalEvidenceRecord:
-    """Metadata index record for an individual stored biometric evidence item."""
-
     evidence_id: str
     observation_id: str
     camera_id: str
@@ -91,10 +73,6 @@ class OperationalEvidenceRecord:
 
 
 class OperationalEvidenceManager:
-    """
-    Manages quota-limited, verifiable biometric training and evaluation media.
-    """
-
     def __init__(
         self,
         storage_dir: str = "data/operational_evidence",
@@ -152,9 +130,6 @@ class OperationalEvidenceManager:
         session_id: str = "",
         condition_metadata: dict[str, Any] | None = None,
     ) -> OperationalEvidenceRecord | None:
-        """
-        Store a verified 2D GEI or 3D appearance crop array atomically with SHA-256 integrity.
-        """
         if media_array is None or not isinstance(media_array, np.ndarray):
             return None
 
@@ -225,10 +200,6 @@ class OperationalEvidenceManager:
         return record
 
     def load_evidence(self, evidence_id: str) -> np.ndarray | None:
-        """
-        Load and verify a stored biometric evidence array.
-        Detects corruption via SHA-256 validation.
-        """
         with self._lock:
             record = self._records.get(evidence_id)
             if not record:
@@ -257,7 +228,6 @@ class OperationalEvidenceManager:
                 return None
 
     def lock_manifest_evidence(self, evidence_ids: list[str], manifest_id: str) -> int:
-        """Lock evidence items to an immutable dataset manifest to prevent deletion."""
         locked_count = 0
         with self._lock:
             for eid in evidence_ids:
@@ -269,7 +239,6 @@ class OperationalEvidenceManager:
         return locked_count
 
     def unlock_manifest_evidence(self, manifest_id: str) -> int:
-        """Release manifest locks after an evaluation cycle or manifest archiving."""
         unlocked_count = 0
         with self._lock:
             for rec in self._records.values():
@@ -281,7 +250,6 @@ class OperationalEvidenceManager:
         return unlocked_count
 
     def get_total_storage_bytes(self) -> int:
-        """Compute current total disk usage of operational evidence files."""
         with self._lock:
             total = 0
             for rec in self._records.values():
@@ -291,7 +259,6 @@ class OperationalEvidenceManager:
             return total
 
     def _enforce_quota_and_cleanup(self) -> None:
-        """Evict expired or over-quota unlocked evidence records."""
         now = time.time()
 
         evicted = []

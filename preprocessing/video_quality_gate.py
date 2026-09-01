@@ -1,17 +1,3 @@
-"""
-Deterministic Video and Silhouette Quality Gate for ARGUS AI Auto-Enrollment (Step 5M).
-
-Enforces strict pre-deletion quality assurance on raw video uploads and extracted silhouettes
-before GEI synthesis and biometric embedding generation.
-
-Checks:
-1. Usable Frame Count: Minimum valid silhouette frames (>= 15 frames) for a complete gait cycle.
-2. Full-Body Silhouette Completeness: Aspect ratio (H/W >= 1.3), non-empty mask area (>10%), and vertical height coverage.
-3. Motion Consistency & Gait Dynamism: Non-zero centroid displacement across frames (rejects static standing/jitter).
-4. Frame-Level Exposure & Blur: Mean luminance (30 <= L <= 235), Laplacian blur variance (>= 25.0).
-5. Borderline Deterministic Enhancement: Bilateral denoising, adaptive CLAHE, Lanczos upscaling (NO generative AI).
-"""
-
 from dataclasses import dataclass, field
 
 import cv2
@@ -32,10 +18,6 @@ class VideoQualityAssessmentResult:
 
 
 class DeterministicVideoQualityGate:
-    """
-    Quality gate applied to video uploads and silhouette sequences prior to GEI generation and vector storage.
-    """
-
     def __init__(
         self,
         min_frames: int = 5,
@@ -55,7 +37,6 @@ class DeterministicVideoQualityGate:
         self.min_motion_displacement = float(min_motion_displacement)
 
     def assess_frame_quality(self, crop: np.ndarray) -> tuple[bool, float, float]:
-        """Assess blur variance and exposure on an individual crop."""
         if crop is None or crop.size == 0:
             return False, 0.0, 0.0
         gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY) if crop.ndim == 3 else crop
@@ -65,7 +46,6 @@ class DeterministicVideoQualityGate:
         return is_ok, blur_var, mean_lum
 
     def assess_silhouette_quality(self, silhouette: np.ndarray) -> tuple[bool, float, float, tuple[float, float]]:
-        """Assess silhouette completeness, aspect ratio, and centroid."""
         if silhouette is None or silhouette.size == 0:
             return False, 0.0, 0.0, (0.0, 0.0)
 
@@ -92,9 +72,6 @@ class DeterministicVideoQualityGate:
         frames: list[np.ndarray],
         silhouettes: list[np.ndarray],
     ) -> VideoQualityAssessmentResult:
-        """
-        Assess an entire video sequence and its corresponding extracted silhouettes.
-        """
         issues = []
         usable_frames = 0
         blur_scores, lum_scores, aspect_ratios, centroids = [], [], [], []
@@ -163,9 +140,6 @@ class DeterministicVideoQualityGate:
         )
 
     def enhance_crop_deterministic(self, crop: np.ndarray) -> np.ndarray:
-        """
-        Apply deterministic non-generative enhancement to borderline salvageable person crop.
-        """
         if crop is None or crop.size == 0:
             return crop
 

@@ -1,10 +1,3 @@
-"""
-3D Pose Gait Analysis Module for ARGUS AI.
-
-Provides lightweight 2D-to-3D temporal pose lifting, view-invariant skeleton
-normalization, graph convolution encoders (ST-GCN, CTR-GCN, TCN), and feature extraction.
-"""
-
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -41,7 +34,6 @@ COCO_EDGES: list[tuple[int, int]] = [
 
 
 def build_coco17_adjacency_matrix() -> torch.Tensor:
-    """Builds normalized spatial adjacency matrix for 17 COCO joints."""
     A = torch.eye(17, dtype=torch.float32)
     for i, j in COCO_EDGES:
         A[i, j] = 1.0
@@ -55,24 +47,12 @@ def build_coco17_adjacency_matrix() -> torch.Tensor:
 
 
 class SkeletonNormalizer3D(nn.Module):
-    """
-    Normalizes 3D joint sequences for translation (pelvis centering),
-    scale (torso & limb scaling), viewpoint (yaw rotation alignment), and temporal smoothing.
-    """
-
     def __init__(self, eps: float = 1e-6, smooth_kernel: int = 3) -> None:
         super().__init__()
         self.eps = eps
         self.smooth_kernel = smooth_kernel
 
     def forward(self, joints_3d: torch.Tensor) -> torch.Tensor:
-        """
-        Args:
-            joints_3d: Tensor of shape (B, T, 17, 3) or (T, 17, 3) with (x, y, z) coordinates.
-
-        Returns:
-            Normalized 3D joints tensor of identical shape.
-        """
         is_unbatched = joints_3d.ndim == 3
         if is_unbatched:
             joints_3d = joints_3d.unsqueeze(0)
@@ -120,11 +100,6 @@ class SkeletonNormalizer3D(nn.Module):
 
 
 class PoseLifter3D(nn.Module):
-    """
-    Lightweight 1D Temporal Convolutional Pose Lifter mapping 2D keypoints (x, y, conf)
-    across T frames to estimated joint depth z.
-    """
-
     def __init__(self, num_joints: int = 17, hidden_dim: int = 128) -> None:
         super().__init__()
         self.num_joints = num_joints
@@ -141,13 +116,6 @@ class PoseLifter3D(nn.Module):
         self.depth_head = nn.Linear(hidden_dim, num_joints)
 
     def forward(self, keypoints_2d: torch.Tensor) -> torch.Tensor:
-        """
-        Args:
-            keypoints_2d: Tensor of shape (B, T, 17, 3) containing (x, y, confidence).
-
-        Returns:
-            Lifted 3D joints tensor of shape (B, T, 17, 3) containing (x, y, z).
-        """
         is_unbatched = keypoints_2d.ndim == 3
         if is_unbatched:
             keypoints_2d = keypoints_2d.unsqueeze(0)
@@ -173,14 +141,6 @@ class PoseLifter3D(nn.Module):
 
 
 def compute_enriched_skeleton_features(norm_joints: torch.Tensor) -> torch.Tensor:
-    """
-    Computes positions, velocities, accelerations, and bone vectors.
-    Args:
-        norm_joints: (B, T, 17, 3)
-    Returns:
-        Tensor of shape (B, T, 17, 9) containing (pos, vel, acc) per joint.
-    """
-
     v_diff = norm_joints[:, 1:, :, :] - norm_joints[:, :-1, :, :]
     v_zero = torch.zeros_like(norm_joints[:, :1, :, :])
     vel = torch.cat([v_zero, v_diff], dim=1)
@@ -196,10 +156,6 @@ def compute_enriched_skeleton_features(norm_joints: torch.Tensor) -> torch.Tenso
 
 
 class PoseGait3DNet(nn.Module):
-    """
-    Architecture A: Improved Multi-Scale Dilated TCN Gait Encoder.
-    """
-
     def __init__(self, num_joints: int = 17, embedding_dim: int = 256) -> None:
         super().__init__()
         self.num_joints = num_joints
@@ -250,8 +206,6 @@ class PoseGait3DNet(nn.Module):
 
 
 class STGCNBlock(nn.Module):
-    """Spatial Graph Conv + Temporal 1D Conv block."""
-
     def __init__(self, in_channels: int, out_channels: int, stride: int = 1) -> None:
         super().__init__()
         self.gconv = nn.Conv1d(in_channels, out_channels, kernel_size=1)
@@ -293,10 +247,6 @@ class STGCNBlock(nn.Module):
 
 
 class STGCNGait3DNet(nn.Module):
-    """
-    Architecture B: Spatial-Temporal Graph Convolution Network (ST-GCN).
-    """
-
     def __init__(self, num_joints: int = 17, embedding_dim: int = 256) -> None:
         super().__init__()
         self.num_joints = num_joints
@@ -347,11 +297,6 @@ class STGCNGait3DNet(nn.Module):
 
 
 class CTRGCNGait3DNet(nn.Module):
-    """
-    Architecture C: Channel-Wise Topology Refinement Graph Network (CTR-GCN).
-    Dynamically learns adaptive graph topology refinement per temporal block.
-    """
-
     def __init__(self, num_joints: int = 17, embedding_dim: int = 256) -> None:
         super().__init__()
         self.num_joints = num_joints
@@ -396,22 +341,12 @@ class CTRGCNGait3DNet(nn.Module):
 
 
 class TemporalPoseBuffer:
-    """
-    Buffers 2D pose keypoint sequences per track ID and performs
-    linear interpolation for low-confidence or missing joints.
-    """
-
     def __init__(self, max_length: int = 30, conf_threshold: float = 0.30) -> None:
         self.max_length = max_length
         self.conf_threshold = conf_threshold
         self.buffers: dict[str, list[np.ndarray]] = {}
 
     def add_keypoints(self, track_id: str, keypoints: np.ndarray) -> None:
-        """
-        Args:
-            track_id: Unique tracking ID.
-            keypoints: Array of shape (17, 3) with (x, y, confidence).
-        """
         if track_id not in self.buffers:
             self.buffers[track_id] = []
         self.buffers[track_id].append(keypoints.copy())
@@ -421,12 +356,6 @@ class TemporalPoseBuffer:
             self.buffers[track_id].pop(0)
 
     def get_sequence(self, track_id: str) -> np.ndarray | None:
-        """
-        Retrieves interpolated 2D keypoint sequence for a track ID.
-
-        Returns:
-            Array of shape (T, 17, 3) or None if buffer has fewer than 5 frames.
-        """
         if track_id not in self.buffers or len(self.buffers[track_id]) < 5:
             return None
 

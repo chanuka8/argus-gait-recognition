@@ -1,16 +1,3 @@
-"""
-Implements:
-- /health/live    — Liveness probe (process alive)
-- /health/ready   — Readiness probe (system ready to process)
-- /health/degraded — Degradation check
-- /health/cameras — Per-camera health
-- /health/workers — Inference worker health
-- /health/system  — Full resource health + capacity estimation
-
-One disconnected camera does NOT make the entire system unhealthy.
-Readiness represents system capability, not perfection of every configured camera.
-"""
-
 import os
 import time
 
@@ -24,13 +11,11 @@ _start_time = time.monotonic()
 
 
 def set_runtime(runtime) -> None:
-    """Set the production runtime reference for health checks."""
     global _runtime
     _runtime = runtime
 
 
 def _get_resource_snapshot() -> dict:
-    """Collect current system resource metrics."""
     metrics = {
         "cpu_percent": 0.0,
         "ram_percent": 0.0,
@@ -69,7 +54,6 @@ def _get_resource_snapshot() -> dict:
 
 @health_router.get("/live")
 def health_live():
-    """Liveness probe — process is alive and responding."""
     return {
         "status": "alive",
         "uptime_seconds": round(time.monotonic() - _start_time, 1),
@@ -79,11 +63,6 @@ def health_live():
 
 @health_router.get("/ready")
 def health_ready():
-    """Readiness probe — system is ready to accept and process camera streams.
-
-    One disconnected camera does NOT make the system 'not ready'.
-    Readiness requires: process alive + at least one worker available.
-    """
     ready = True
     reasons = []
 
@@ -109,7 +88,6 @@ def health_ready():
 
 @health_router.get("/degraded")
 def health_degraded():
-    """Check if system is operational but degraded."""
     degraded = False
     degradation_reasons = []
 
@@ -145,7 +123,6 @@ def health_degraded():
 
 @health_router.get("/cameras")
 def health_cameras():
-    """Per-camera health report."""
     if _runtime is None:
         return {"cameras": {}, "total": 0}
 
@@ -158,7 +135,6 @@ def health_cameras():
 
 @health_router.get("/workers")
 def health_workers():
-    """Inference worker health report."""
     if _runtime is None:
         return {"workers": {}, "total": 0}
 
@@ -171,7 +147,6 @@ def health_workers():
 
 @health_router.get("/system")
 def health_system():
-    """Full system resource health snapshot with capacity estimation."""
     resources = _get_resource_snapshot()
 
     result = {
@@ -196,7 +171,6 @@ def health_system():
 
 @health_router.get("/hardware")
 def health_hardware():
-    """Hardware capability discovery report without hardcoded environment assumptions."""
     from streaming.deployment_readiness import HardwareCapabilityDetector
 
     detector = HardwareCapabilityDetector()
@@ -205,7 +179,6 @@ def health_hardware():
 
 @health_router.get("/models")
 def health_models():
-    """Resource and throughput profiles for pipeline neural network models."""
     from streaming.deployment_readiness import ModelProfileRegistry
 
     registry = ModelProfileRegistry()
@@ -214,7 +187,6 @@ def health_models():
 
 @health_router.get("/capacity")
 def health_capacity():
-    """Comprehensive multi-factorial camera capacity estimation."""
     from streaming.deployment_readiness import DeploymentReadinessManager
 
     mgr = DeploymentReadinessManager()
@@ -224,7 +196,6 @@ def health_capacity():
 
 @health_router.get("/admission")
 def health_admission():
-    """Current camera admission status and headroom."""
     from streaming.deployment_readiness import DeploymentReadinessManager
 
     mgr = DeploymentReadinessManager()
@@ -239,7 +210,6 @@ def health_admission():
 
 @health_router.get("/deployment")
 def health_deployment():
-    """Complete deployment readiness diagnostic report."""
     from streaming.deployment_readiness import DeploymentReadinessManager
 
     mgr = DeploymentReadinessManager()

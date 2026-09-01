@@ -1,18 +1,5 @@
-"""
-Stateless Score Normalizer for Gait and ReID Biometric Scores.
-
-Normalizes raw cosine similarity / distance scores into the [0.0, 1.0] range.
-"""
-
 
 class ScoreNormalizer:
-    """
-    Stateless score normalization module.
-
-    Converts raw similarity scores into normalized probabilities/confidences
-    in the range [0.0, 1.0] using configurable min-max bounds or clipping.
-    """
-
     def __init__(
         self,
         gait_min_max: tuple[float, float] = (0.0, 1.0),
@@ -38,7 +25,6 @@ class ScoreNormalizer:
         self,
         score: float | None,
     ) -> float | None:
-        """Normalize gait cosine score to [0.0, 1.0]."""
         if score is None:
             return None
         return self._min_max_scale(
@@ -51,7 +37,6 @@ class ScoreNormalizer:
         self,
         score: float | None,
     ) -> float | None:
-        """Normalize ReID cosine score to [0.0, 1.0]."""
         if score is None:
             return None
         return self._min_max_scale(
@@ -66,7 +51,6 @@ class ScoreNormalizer:
         min_val: float = 0.0,
         max_val: float = 1.0,
     ) -> float | None:
-        """Normalize generic score with explicit bounds."""
         if score is None:
             return None
         return self._min_max_scale(

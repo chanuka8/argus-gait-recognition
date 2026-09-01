@@ -1,11 +1,3 @@
-"""
-Strict Subject-Disjoint Evaluator for 3D Pose Gait Model (EXP-006).
-
-Ensures 100% sequence disjointness between Gallery (NM-01..02) and Probe (NM-03..06, BG-01..02, CL-01..02).
-Evaluates Rank-1, Rank-5, NM, BG, CL, Cross-View, ROC-AUC, EER, score-only & margin-aware FAR/FRR/TAR,
-as well as latency (ms), throughput (FPS), and peak VRAM.
-"""
-
 import json
 import sys
 import time
@@ -25,10 +17,6 @@ from models.architectures.pose_gait_3d import PoseLifter3D
 
 
 class Evaluator3D:
-    """
-    Evaluator for 3D Pose Gait models on subject-disjoint test splits.
-    """
-
     def __init__(
         self,
         model_path: str = "runs/exp_006_3d/best_model.pth",

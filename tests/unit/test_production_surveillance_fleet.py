@@ -1,12 +1,3 @@
-"""
-Unit tests for Production Surveillance Fleet Architecture:
-- Dynamic Camera Admission & Capacity Verification
-- CameraWorker shared inference engine dispatch & preview overlays
-- Multi-camera DualModalFusion & TrackIdentityAggregator integration
-- Camera fleet dynamic configuration persistence
-- Continual learning observation capture integrity
-"""
-
 import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -32,8 +23,6 @@ from streaming.production_multicamera_engine import (
 
 
 class TestCameraFleetAdmission:
-    """Test dynamic camera admission and pre-flight capacity evaluation."""
-
     def test_admission_controller_normal_resources(self):
         controller = CameraAdmissionController(
             max_cpu_percent=85.0,
@@ -82,8 +71,6 @@ class TestCameraFleetAdmission:
 
 
 class TestCameraWorkerInferenceEngineIntegration:
-    """Test CameraWorker feeding frames to shared ProductionMultiCameraEngine."""
-
     def test_camera_worker_dispatches_to_inference_engine(self):
         mock_engine = MagicMock()
         mock_engine.is_running.return_value = True
@@ -108,8 +95,6 @@ class TestCameraWorkerInferenceEngineIntegration:
 
 
 class TestMultiCameraFusionAndAggregation:
-    """Test ProductionMultiCameraEngine with DualModalFusion and TrackIdentityAggregator."""
-
     def test_engine_processes_frame_with_fusion_and_aggregation(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             collector = OperationalEmbeddingCollector(output_dir=tmp_dir)
@@ -155,8 +140,6 @@ class TestMultiCameraFusionAndAggregation:
 
 
 class TestCameraManagerDynamicConfig:
-    """Test dynamic camera configuration persistence in CameraManager."""
-
     def test_camera_manager_save_config(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             cfg_path = Path(tmp_dir) / "cameras.yaml"

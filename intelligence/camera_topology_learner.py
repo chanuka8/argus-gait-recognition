@@ -1,12 +1,3 @@
-"""
-Stage 4: Automatic Camera Topology Learning Engine.
-
-Extends CameraTransitionModel in shadow mode by recording transition statistics from
-high-confidence, low-occlusion observation pairs across cameras.
-
-Exports learned topology suggestions to YAML/JSON without overwriting manual configuration.
-"""
-
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -33,11 +24,6 @@ class LearnedEdgeStats:
 
 
 class CameraTopologyLearner:
-    """
-    Learns spatial-temporal camera topology edges, transition probabilities,
-    and travel time bounds from observation data.
-    """
-
     def __init__(self, config: dict[str, Any] | None = None, transition_model: Any | None = None) -> None:
         self.logger = get_logger("camera_topology_learner")
         cfg = config or {}
@@ -54,7 +40,6 @@ class CameraTopologyLearner:
         self.exit_events: dict[tuple[str, str], tuple[float, float, float]] = {}
 
     def set_transition_model(self, transition_model: Any) -> None:
-        """Register active CameraTransitionModel instance for online topology synchronization."""
         self.transition_model = transition_model
 
     def is_enabled(self) -> bool:
@@ -68,7 +53,6 @@ class CameraTopologyLearner:
         occlusion: float,
         timestamp: float | None = None,
     ) -> None:
-        """Record candidate exit event from source camera."""
         if not self.enabled or identity == "UNKNOWN":
             return
 
@@ -87,11 +71,6 @@ class CameraTopologyLearner:
         is_temporally_confirmed: bool = True,
         timestamp: float | None = None,
     ) -> bool:
-        """
-        Evaluate and record a potential camera transition event.
-
-        Returns True if transition observation is accepted for topology learning.
-        """
         if not self.enabled:
             return False
 
@@ -155,7 +134,6 @@ class CameraTopologyLearner:
         return True
 
     def _update_transition_probabilities(self, source_camera: str) -> None:
-        """Normalize transition probabilities for all edges originating from source_camera."""
         src_edges = [edge for (src, _), edge in self.learned_edges.items() if src == source_camera]
         total_count = sum(edge.transition_count for edge in src_edges)
 
@@ -164,7 +142,6 @@ class CameraTopologyLearner:
                 edge.learned_transition_probability = float(edge.transition_count / total_count)
 
     def get_suggested_topology(self) -> dict[str, Any]:
-        """Format suggested topology edges that have reached minimum_samples threshold."""
         suggestions = {}
         for (src, dst), edge in self.learned_edges.items():
             if edge.transition_count >= self.minimum_samples:
@@ -181,7 +158,6 @@ class CameraTopologyLearner:
         return suggestions
 
     def export_learned_topology(self, output_path: str | None = None) -> str:
-        """Export learned topology suggestions to YAML file."""
         target_path = Path(output_path or self.export_path)
         target_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -213,7 +189,6 @@ class CameraTopologyLearner:
         return str(target_path)
 
     def load_learned_topology(self, input_path: str | None = None) -> bool:
-        """Load previously exported camera topology suggestions from YAML file."""
         target_path = Path(input_path or self.export_path)
         if not target_path.exists():
             return False
@@ -253,7 +228,6 @@ class CameraTopologyLearner:
             return False
 
     def update_transition_model(self, transition_model: Any | None = None) -> int:
-        """Update a CameraTransitionModel instance with online learned transitions if shadow_mode is disabled."""
         target = transition_model or self.transition_model
         if target is None or self.shadow_mode or not self.enabled:
             return 0
@@ -276,7 +250,6 @@ class CameraTopologyLearner:
         transition_model: Any | None = None,
         timestamp: float | None = None,
     ) -> int:
-        """Synchronize learned topology edges to active CameraTransitionModel if bounded sync interval has elapsed."""
         if self.shadow_mode or not self.enabled:
             return 0
 
@@ -294,17 +267,14 @@ class CameraTopologyLearner:
 
     @classmethod
     def from_config(cls, config: dict[str, Any] | None = None) -> "CameraTopologyLearner":
-        """Factory method to instantiate from config dictionary."""
         return cls(config=config)
 
     def reset(self) -> None:
-        """Reset learned statistics."""
         self.learned_edges.clear()
         self.exit_events.clear()
         self.last_sync_time = -float("inf")
 
     def cleanup_inactive(self, max_idle_seconds: float = 3600.0, current_time: float | None = None) -> None:
-        """Clean expired exit events."""
         now = current_time if current_time is not None else time.monotonic()
         for key, (ts, _, _) in list(self.exit_events.items()):
             if (now - ts) > max_idle_seconds:

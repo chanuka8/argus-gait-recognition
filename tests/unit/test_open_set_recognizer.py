@@ -1,5 +1,3 @@
-"""Unit tests for OpenSetRecognizer 3-state decision model."""
-
 from intelligence.open_set_recognizer import OpenSetDecisionResult, OpenSetRecognizer, OpenSetState
 
 

@@ -1,10 +1,3 @@
-"""
-Build and Version Metadata Extractor and Container for ARGUS AI.
-
-Extracts application version, Git commit/branch details, Python environment metadata,
-model reference identifiers, and configuration fingerprints without network requests.
-"""
-
 import hashlib
 import subprocess
 import sys
@@ -14,8 +7,6 @@ from pathlib import Path
 
 @dataclass
 class BuildMetadata:
-    """Dataclass holding build and version metadata for deployment artifacts."""
-
     application_name: str
     application_version: str
     git_commit: str
@@ -27,7 +18,6 @@ class BuildMetadata:
     configuration_fingerprint: str
 
     def to_dict(self) -> dict:
-        """Export metadata as dictionary, verifying no absolute paths or credentials exist."""
         data = asdict(self)
         raw_str = str(data)
         if "C:\\Users" in raw_str or "/home/" in raw_str:
@@ -38,7 +28,6 @@ class BuildMetadata:
 
 
 def get_git_commit(repo_dir: str = ".") -> str:
-    """Safely fetch short git commit hash or return UNKNOWN on failure."""
     try:
         res = subprocess.run(
             ["git", "rev-parse", "--short", "HEAD"],
@@ -56,7 +45,6 @@ def get_git_commit(repo_dir: str = ".") -> str:
 
 
 def get_git_branch(repo_dir: str = ".") -> str:
-    """Safely fetch git branch name or return UNKNOWN on failure."""
     try:
         res = subprocess.run(
             ["git", "rev-parse", "--abbrev-ref", "HEAD"],
@@ -74,7 +62,6 @@ def get_git_branch(repo_dir: str = ".") -> str:
 
 
 def get_application_version(version_path: str = "VERSION") -> str:
-    """Read application version string from VERSION file or return 0.0.0-dev."""
     path = Path(version_path)
     if path.exists():
         try:
@@ -87,7 +74,6 @@ def get_application_version(version_path: str = "VERSION") -> str:
 
 
 def compute_configuration_fingerprint(configs_dir: str = "configs") -> str:
-    """Compute deterministic SHA-256 fingerprint hash of configuration files in configs/."""
     cdir = Path(configs_dir)
     if not cdir.exists() or not cdir.is_dir():
         return "NO_CONFIG_DIR"
@@ -112,19 +98,6 @@ def extract_build_metadata(
     backend=None,
     model_reference: str | None = None,
 ) -> BuildMetadata:
-    """
-    Extract authoritative BuildMetadata structure.
-
-    Args:
-        repo_dir: Root repository path.
-        version_file: Path to VERSION file.
-        configs_dir: Directory containing YAML configuration files.
-        backend: Optional initialized inference backend.
-        model_reference: Optional model path string override.
-
-    Returns:
-        Populated BuildMetadata instance.
-    """
     app_ver = get_application_version(version_path=version_file)
     git_commit = get_git_commit(repo_dir=repo_dir)
     git_branch = get_git_branch(repo_dir=repo_dir)

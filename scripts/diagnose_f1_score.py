@@ -1,20 +1,3 @@
-"""
-Targeted F1 Score Forensic Diagnostic Script for ARGUS AI.
-
-Investigates why the current recognition evaluation produces:
-Precision = 10.00%, Recall = 100.00%, F1 = 18.18%, FAR = 100.00%, EER = 31.67%.
-
-Executes:
-1. Raw score extraction (600 trials: 60 genuine, 540 impostor).
-2. Genuine vs Impostor score distribution analysis & percentiles.
-3. Diagnostic threshold sweep (0.00 to 1.00).
-4. Confusion matrix generation at current (0.50) and optimal diagnostic threshold.
-5. Precision-Recall and ROC curve calculations.
-6. Bootstrap confidence interval calculations.
-7. Modality and Gallery effect decomposition.
-8. Generation of diagnostic plots (PNG) and evidence JSON.
-"""
-
 import hashlib
 import json
 import math

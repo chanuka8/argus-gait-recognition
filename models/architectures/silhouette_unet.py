@@ -3,8 +3,6 @@ from torch import nn
 
 
 class DoubleConv(nn.Module):
-    """(Conv2d -> BatchNorm2d -> ReLU) * 2"""
-
     def __init__(self, in_channels: int, out_channels: int) -> None:
         super().__init__()
         self.conv = nn.Sequential(
@@ -21,13 +19,6 @@ class DoubleConv(nn.Module):
 
 
 class SilhouetteUNet(nn.Module):
-    """
-    Lightweight UNet for Binary Person Silhouette Segmentation.
-
-    Input:  (N, 3, H, W) RGB crop normalized to [0, 1]
-    Output: (N, 1, H, W) Binary foreground probability map in [0, 1]
-    """
-
     def __init__(self, in_channels: int = 3, out_channels: int = 1) -> None:
         super().__init__()
         self.inc = DoubleConv(in_channels, 32)

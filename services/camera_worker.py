@@ -17,7 +17,6 @@ if TYPE_CHECKING:
 
 
 def normalize_camera_source(source) -> int | str:
-    """Normalize camera source to an integer device index or cleaned string."""
     if isinstance(source, int):
         return source
 
@@ -37,8 +36,6 @@ def normalize_camera_source(source) -> int | str:
 
 
 class CameraWorker:
-    """Independent worker for a single camera stream with real-time JPEG preview buffer and recognition overlays."""
-
     def __init__(
         self,
         camera_id: str,
@@ -146,16 +143,6 @@ class CameraWorker:
             return normalize_camera_source(source_val)
 
     def _wait_for_first_frame(self, safe_source: str) -> bool:
-        """Wait for the first valid frame with bounded retry.
-
-        RTSP streams typically require 1-5 seconds to negotiate and buffer the
-        first frame after VideoCapture is opened. This method retries read()
-        up to startup_timeout seconds, checking _stop_event between retries
-        so that a pending stop request can abort startup immediately.
-
-        Returns True if a valid frame was received and the JPEG preview buffer
-        was populated, False otherwise.
-        """
         self._logger.info(f"Waiting for first frame from {safe_source} (timeout={self._startup_timeout}s)")
         deadline = time.monotonic() + self._startup_timeout
         attempt = 0
@@ -336,7 +323,6 @@ class CameraWorker:
                     self._logger.warning(f"Error releasing camera capture: {exc}")
 
     def _render_status_frame(self, message: str = "OFFLINE") -> bytes:
-        """Render a clean status placeholder frame when camera is disconnected or reconnecting."""
         try:
             frame = np.zeros((self._height, self._width, 3), dtype=np.uint8)
             cv2.putText(
@@ -364,7 +350,6 @@ class CameraWorker:
             return b""
 
     def _render_preview_overlays(self, frame: np.ndarray) -> np.ndarray:
-        """Render live CCTV overlays: bounding boxes, track labels, identities, top status, and timestamp."""
         try:
             annotated = frame.copy()
             active_tracks = []
@@ -438,22 +423,18 @@ class CameraWorker:
             return frame
 
     def register_client(self) -> None:
-        """Increment active streaming client counter."""
         with self._lock:
             self._active_clients += 1
 
     def unregister_client(self) -> None:
-        """Decrement active streaming client counter."""
         with self._lock:
             self._active_clients = max(0, self._active_clients - 1)
 
     def get_active_clients(self) -> int:
-        """Get number of currently connected stream clients."""
         with self._lock:
             return self._active_clients
 
     def _capture_loop(self) -> None:
-        """Main frame capture, recognition delegation, and preview encoding loop."""
         reconnect_attempts = 0
         frame_interval = 1.0 / self._target_fps if self._target_fps > 0 else 0.0
 
@@ -563,19 +544,16 @@ class CameraWorker:
         self._logger.info("Camera capture loop stopped")
 
     def get_latest_jpeg(self) -> bytes | None:
-        """Return the latest encoded JPEG frame bytes safely."""
         with self._lock:
             return self._latest_jpeg
 
     def wait_for_frame(self, timeout: float = 0.5) -> bytes | None:
-        """Wait for the next frame to be encoded and return latest JPEG bytes."""
         self._frame_event.wait(timeout)
         self._frame_event.clear()
         with self._lock:
             return self._latest_jpeg
 
     def get_stats(self) -> dict:
-        """Get current camera statistics including recognition telemetry."""
         rec_stats = {}
         if self.recognition_worker is not None:
             rec_stats = self.recognition_worker.get_stats()
@@ -599,7 +577,6 @@ class CameraWorker:
             return self._thread is not None and self._thread.is_alive()
 
     def start(self) -> bool:
-        """Start camera capture thread and recognition worker after verifying readiness."""
         with self._lock:
             if self._is_starting or (self._thread is not None and self._thread.is_alive()):
                 return False
@@ -637,7 +614,6 @@ class CameraWorker:
             return False
 
     def stop(self, timeout: float = 3.0) -> bool:
-        """Stop camera capture thread and recognition worker."""
         self._stop_event.set()
         thread_to_join = None
         with self._lock:
@@ -657,6 +633,5 @@ class CameraWorker:
         return True
 
     def restart(self, timeout: float = 3.0) -> bool:
-        """Restart camera capture thread and recognition worker cleanly."""
         self.stop(timeout=timeout)
         return self.start()

@@ -69,12 +69,6 @@ class GalleryUpdater:
         person_id: str,
         embeddings: list,
     ) -> None:
-        """
-        Add one or more 256D gait embeddings for a subject ID to the gait gallery.
-
-        Raises:
-            ValueError: If embeddings list is empty or any embedding is not 256-dimensional.
-        """
         if not person_id or not str(person_id).strip():
             raise ValueError("person_id cannot be empty")
 

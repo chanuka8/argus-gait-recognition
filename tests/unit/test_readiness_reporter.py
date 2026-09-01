@@ -1,7 +1,3 @@
-"""
-Unit tests for DeploymentReadinessReporter.
-"""
-
 from pathlib import Path
 
 from deployment.readiness_reporter import ALLOWED_OVERALL_STATUSES, DeploymentReadinessReporter

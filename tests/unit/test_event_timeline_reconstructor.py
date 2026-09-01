@@ -1,7 +1,3 @@
-"""
-Unit tests for Event Timeline Reconstruction Module.
-"""
-
 import json
 from pathlib import Path
 

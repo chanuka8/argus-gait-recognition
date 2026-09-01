@@ -1,5 +1,3 @@
-"""Camera health and statistics monitoring."""
-
 import json
 import time
 from pathlib import Path
@@ -10,8 +8,6 @@ from core.logger import setup_logger
 
 
 class CameraMonitor:
-    """Monitor camera health, performance, and statistics."""
-
     def __init__(
         self,
         camera_manager: Any,
@@ -33,7 +29,6 @@ class CameraMonitor:
         self._alerts: dict[str, list] = {}
 
     def start(self) -> None:
-        """Start monitoring."""
         if not self._stop_event:
             self._logger.warning("Monitor already running")
             return
@@ -49,7 +44,6 @@ class CameraMonitor:
         self._logger.info("Camera monitor started")
 
     def stop(self, timeout: float = 5.0) -> None:
-        """Stop monitoring."""
         self._stop_event = True
 
         if self._monitor_thread is not None and self._monitor_thread.is_alive():
@@ -58,7 +52,6 @@ class CameraMonitor:
         self._logger.info("Camera monitor stopped")
 
     def _monitoring_loop(self) -> None:
-        """Periodic monitoring loop."""
         while not self._stop_event:
             try:
                 time.sleep(self.collection_interval)
@@ -74,7 +67,6 @@ class CameraMonitor:
                 self._logger.error(f"Monitoring error: {e!s}")
 
     def _collect_stats(self) -> None:
-        """Collect current statistics from all cameras."""
         all_stats = self.camera_manager.get_all_stats()
         timestamp = time.monotonic()
 
@@ -94,7 +86,6 @@ class CameraMonitor:
                     self._stats_history[camera_id] = self._stats_history[camera_id][-1000:]
 
     def _check_health(self) -> None:
-        """Check camera health and generate alerts."""
         all_status = self.camera_manager.get_all_status()
 
         with self._lock:
@@ -150,7 +141,6 @@ class CameraMonitor:
                     self._alerts[camera_id] = self._alerts[camera_id][-1000:]
 
     def _save_stats(self) -> None:
-        """Save statistics to disk."""
         try:
             with self._lock:
                 for camera_id, history in self._stats_history.items():
@@ -166,7 +156,6 @@ class CameraMonitor:
             self._logger.error(f"Failed to save stats: {e!s}")
 
     def get_camera_health(self, camera_id: str) -> dict[str, Any] | None:
-        """Get health status for a camera."""
         status = self.camera_manager.get_camera_status(camera_id)
 
         if status is None:
@@ -182,7 +171,6 @@ class CameraMonitor:
             }
 
     def get_all_health(self) -> dict[str, Any]:
-        """Get health status for all cameras."""
         all_status = self.camera_manager.get_all_status()
         health = {}
 
@@ -198,7 +186,6 @@ class CameraMonitor:
         return health
 
     def get_alerts(self, camera_id: str | None = None) -> dict[str, list]:
-        """Get alerts for camera(s)."""
         with self._lock:
             if camera_id:
                 return {camera_id: self._alerts.get(camera_id, [])}
@@ -206,7 +193,6 @@ class CameraMonitor:
             return {cid: alerts.copy() for cid, alerts in self._alerts.items()}
 
     def clear_alerts(self, camera_id: str | None = None) -> None:
-        """Clear alerts for camera(s)."""
         with self._lock:
             if camera_id:
                 if camera_id in self._alerts:

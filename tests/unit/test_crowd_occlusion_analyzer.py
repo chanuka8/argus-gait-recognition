@@ -1,7 +1,3 @@
-"""
-Unit tests for Stage 1: Crowd-Aware Occlusion Analyzer.
-"""
-
 from intelligence.crowd_occlusion_analyzer import (
     CrowdDensityLevel,
     CrowdOcclusionAnalyzer,

@@ -1,11 +1,3 @@
-"""
-Resumable Live Package Downloader & Process Execution Subsystem for ARGUS AI.
-
-Provides real-time, unbuffered visual progress tracking for large binary package
-downloads (PyTorch CUDA wheels ~2.5 GB, ONNX wheels) with automatic range-based
-resume on interrupted transfers, speed calculation, ETA computation, and retries.
-"""
-
 import sys
 import time
 import urllib.error
@@ -14,13 +6,10 @@ from pathlib import Path
 
 
 class DownloadManager:
-    """Live progress downloader supporting HTTP range resumption and real-time telemetry."""
-
     CHUNK_SIZE = 1024 * 1024
 
     @staticmethod
     def _format_size(num_bytes: float) -> str:
-        """Format byte counts into human-readable strings (MB / GB)."""
         if num_bytes >= 1024**3:
             return f"{num_bytes / (1024**3):.2f} GB"
         if num_bytes >= 1024**2:
@@ -31,7 +20,6 @@ class DownloadManager:
 
     @staticmethod
     def _format_time(seconds: float) -> str:
-        """Format seconds into HH:MM:SS string."""
         if seconds < 0 or seconds > 86400 * 7:
             return "--:--:--"
         m, s = divmod(int(seconds), 60)
@@ -48,20 +36,6 @@ class DownloadManager:
         max_retries: int = 5,
         retry_delay_sec: float = 3.0,
     ) -> bool:
-        """
-        Download a file with live progress output, supporting resume.
-
-        Args:
-            url: Remote URL.
-            dest_path: Local destination file path.
-            package_name: Label for terminal logging.
-            expected_size: Optional total size if known in advance.
-            max_retries: Number of connection retries.
-            retry_delay_sec: Delay between retry attempts.
-
-        Returns:
-            True if download completed and verified, False otherwise.
-        """
         dest_path = Path(dest_path)
         dest_path.parent.mkdir(parents=True, exist_ok=True)
         part_path = dest_path.with_suffix(dest_path.suffix + ".part")

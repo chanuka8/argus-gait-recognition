@@ -1,12 +1,3 @@
-"""
-Multi-stream engine for ARGUS multi-camera support.
-
-Manages multiple camera feeds with independent capture threads.
-Each camera runs in its own daemon thread with FPS limiting.
-Frames are placed into per-camera thread-safe queues for
-consumption by the main recognition pipeline.
-"""
-
 import threading
 import time
 from queue import Empty, Full, Queue
@@ -17,8 +8,6 @@ from security_layer.credentials import resolve_camera_config, sanitize_rtsp_url
 
 
 class CameraStream:
-    """Thread-safe single camera stream with FPS limiting."""
-
     def __init__(
         self,
         camera_id: str,
@@ -44,7 +33,6 @@ class CameraStream:
         self.frames_dropped = 0
 
     def start(self) -> bool:
-        """Open the video source and start the capture thread."""
         self.cap = cv2.VideoCapture(self.source)
 
         if not self.cap.isOpened():
@@ -66,7 +54,6 @@ class CameraStream:
         return True
 
     def _capture_loop(self) -> None:
-        """Background capture loop that reads frames at target FPS."""
         while self.running:
             try:
                 ret, frame = self.cap.read()
@@ -101,23 +88,15 @@ class CameraStream:
                 break
 
     def read(self):
-        """
-        Non-blocking read of the latest frame.
-
-        Returns:
-            (success: bool, frame or None)
-        """
         try:
             return True, self.queue.get_nowait()
         except Empty:
             return False, None
 
     def is_opened(self) -> bool:
-        """Check if the camera stream is still running."""
         return self.running and self.cap is not None and self.cap.isOpened()
 
     def stop(self) -> None:
-        """Stop the capture thread and release the camera."""
         self.running = False
 
         if self.thread is not None:
@@ -127,7 +106,6 @@ class CameraStream:
             self.cap.release()
 
     def stats(self) -> dict:
-        """Return stream statistics."""
         return {
             "camera_id": self.camera_id,
             "source": sanitize_rtsp_url(str(self.source)),
@@ -139,14 +117,6 @@ class CameraStream:
 
 
 class MultiStreamEngine:
-    """
-    Manages multiple CameraStream instances.
-
-    Each camera feed runs in its own background thread.
-    The engine provides a unified interface for reading
-    frames and checking status across all cameras.
-    """
-
     def __init__(
         self,
         camera_configs: list[dict],
@@ -174,12 +144,6 @@ class MultiStreamEngine:
             )
 
     def start_all(self) -> dict[str, bool]:
-        """
-        Start all camera streams.
-
-        Returns:
-            dict mapping camera_id to start success boolean.
-        """
         results = {}
 
         for camera_id, stream in self.streams.items():
@@ -192,26 +156,17 @@ class MultiStreamEngine:
         return results
 
     def read(self, camera_id: str):
-        """
-        Non-blocking read from a specific camera.
-
-        Returns:
-            (success: bool, frame or None)
-        """
         if camera_id not in self.streams:
             return False, None
 
         return self.streams[camera_id].read()
 
     def active_cameras(self) -> list[str]:
-        """Return list of camera IDs with active streams."""
         return [cid for cid, stream in self.streams.items() if stream.is_opened()]
 
     def stop_all(self) -> None:
-        """Stop all camera streams and release resources."""
         for stream in self.streams.values():
             stream.stop()
 
     def stats(self) -> dict[str, dict]:
-        """Return statistics for all camera streams."""
         return {cid: stream.stats() for cid, stream in self.streams.items()}

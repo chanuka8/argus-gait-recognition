@@ -25,7 +25,6 @@ def temp_gallery_dir():
 
 @pytest.fixture
 def mock_detector_and_tracker():
-    """Mock detector and tracker generating 2 simultaneous tracks."""
     detector = MagicMock()
 
     detector.detect.return_value = np.array([
@@ -43,8 +42,6 @@ def mock_detector_and_tracker():
 
 
 def test_live_person_crop_to_appearance_matching(temp_gallery_dir):
-    """Requirement 1, 2, 7: Live frame -> person crop -> appearance embedding -> gallery match with track_id."""
-
     v_alice = np.zeros((512,), dtype=np.float32)
     v_alice[0] = 1.0
 
@@ -131,7 +128,6 @@ def test_live_person_crop_to_appearance_matching(temp_gallery_dir):
 
 
 def test_per_track_appearance_caching():
-    """Requirement 3: Per-track caching reuses embeddings between update intervals."""
     extractor = AppearanceEmbeddingExtractor(update_interval=5)
     crop = np.random.randint(0, 256, (128, 64, 3), dtype=np.uint8)
 
@@ -150,7 +146,6 @@ def test_per_track_appearance_caching():
 
 
 def test_appearance_failure_does_not_break_gait():
-    """Requirement 4: Appearance extractor throwing exception does not stop gait recognition."""
     cache = RecognitionResultCache()
     failing_extractor = MagicMock()
     failing_extractor.extract.side_effect = RuntimeError("OSNet GPU OOM simulation")
@@ -208,7 +203,6 @@ def test_appearance_failure_does_not_break_gait():
 
 
 def test_empty_appearance_gallery_operating_in_gait_only_mode():
-    """Requirement 5: Empty appearance gallery operates cleanly in gait-only mode."""
     worker = RecognitionWorker(
         camera_id="cam_03",
         appearance_gallery_features=np.empty((0, 512), dtype=np.float32),
@@ -233,7 +227,6 @@ def test_empty_appearance_gallery_operating_in_gait_only_mode():
 
 
 def test_multiple_simultaneous_tracks(mock_detector_and_tracker):
-    """Requirement 6 & 7: Multiple simultaneous tracks preserve individual appearance identities."""
     detector, tracker = mock_detector_and_tracker
     cache = RecognitionResultCache()
 
@@ -304,7 +297,6 @@ def test_multiple_simultaneous_tracks(mock_detector_and_tracker):
 
 
 def test_update_appearance_gallery_runtime_safe():
-    """Verify that update_appearance_gallery safely updates appearance gallery without corrupting worker state."""
     worker = RecognitionWorker(camera_id="cam_update_test")
 
 

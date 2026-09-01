@@ -1,15 +1,3 @@
-"""
-Unified Crowd Intelligence System.
-
-Integrates:
-  1. Stage 1: Crowd-Aware Occlusion Handling (CrowdOcclusionAnalyzer)
-  2. Stage 2: Recognition Deferral & Evidence Accumulation (RecognitionDeferralEngine)
-  3. Stage 3: Multi-Camera Evidence Fusion (MultiCameraEvidenceFusion)
-  4. Stage 4: Automatic Camera Topology Learning (CameraTopologyLearner)
-
-Disabled by default (`enabled: false`) for 100% backward compatibility.
-"""
-
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -43,10 +31,6 @@ class CrowdIntelligenceEvaluation:
 
 
 class CrowdIntelligenceSystem:
-    """
-    Unified Orchestrator for Crowd-Intelligence Features across single-camera and multi-camera pipelines.
-    """
-
     def __init__(self, config: dict[str, Any] | None = None, transition_model: Any | None = None) -> None:
         self.logger = get_logger("crowd_intelligence")
         cfg = config or self._load_default_config()
@@ -65,7 +49,6 @@ class CrowdIntelligenceSystem:
         self.topology_learner = CameraTopologyLearner(top_cfg, transition_model=transition_model)
 
     def set_transition_model(self, transition_model: Any) -> None:
-        """Register active CameraTransitionModel instance for online topology updates."""
         self.transition_model = transition_model
         self.topology_learner.set_transition_model(transition_model)
 
@@ -142,7 +125,6 @@ class CrowdIntelligenceSystem:
         camera_id: str = "cam_00",
         timestamp: float | None = None,
     ) -> FrameCrowdAnalysis:
-        """Stage 1: Process frame crowd density and per-track occlusion analysis."""
         return self.occlusion_analyzer.analyze_frame(
             detections=detections,
             frame_shape=frame_shape,
@@ -167,9 +149,6 @@ class CrowdIntelligenceSystem:
         source_camera: str | None = None,
         timestamp: float | None = None,
     ) -> CrowdIntelligenceEvaluation:
-        """
-        Evaluate Stage 2 (Deferral), Stage 3 (Fusion), and Stage 4 (Topology Learning) for a track.
-        """
         now = timestamp if timestamp is not None else time.monotonic()
         entity_key = global_track_id or f"{camera_id}_{track_id}"
 
@@ -283,7 +262,6 @@ class CrowdIntelligenceSystem:
         )
 
     def cleanup_inactive(self, max_idle_seconds: float = 15.0, current_time: float | None = None) -> None:
-        """Periodic cleanup across all sub-engines."""
         now = current_time if current_time is not None else time.monotonic()
         self.occlusion_analyzer.cleanup_inactive(max_idle_seconds, now)
         self.deferral_engine.cleanup_inactive(max_idle_seconds, now)

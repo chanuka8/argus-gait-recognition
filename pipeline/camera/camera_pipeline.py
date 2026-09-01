@@ -1,5 +1,3 @@
-"""Per-camera detection and recognition pipeline."""
-
 import time
 from threading import Lock
 from typing import Any
@@ -10,8 +8,6 @@ from core.logger import setup_logger
 
 
 class CameraPipeline:
-    """Independent detection and recognition pipeline for each camera."""
-
     def __init__(
         self,
         camera_id: str,
@@ -46,11 +42,6 @@ class CameraPipeline:
         self,
         frame: np.ndarray,
     ) -> dict[str, Any]:
-        """
-        Process single frame through full pipeline.
-
-        Returns detection results, tracks, GEI, and recognition results.
-        """
         frame_start = time.perf_counter()
         results = {
             "camera_id": self.camera_id,
@@ -127,21 +118,17 @@ class CameraPipeline:
         return results
 
     def get_current_frame(self) -> np.ndarray | None:
-        """Get current frame."""
         with self._lock:
             return self.current_frame.copy() if self.current_frame is not None else None
 
     def get_current_detections(self) -> list[dict]:
-        """Get current detections."""
         with self._lock:
             return self.current_detections.copy()
 
     def get_current_gei(self) -> np.ndarray | None:
-        """Get current GEI."""
         with self._lock:
             return self.current_gei.copy() if self.current_gei is not None else None
 
     def get_stats(self) -> dict[str, Any]:
-        """Get pipeline statistics."""
         with self._lock:
             return self.stats.copy()

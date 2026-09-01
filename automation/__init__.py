@@ -1,7 +1,3 @@
-"""
-ARGUS AI Environment Automation & Compute Subsystem.
-"""
-
 from automation.cuda_detector import CudaDetector
 from automation.device_manager import DeviceManager
 from automation.dll_manager import setup_cuda_dll_paths

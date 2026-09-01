@@ -1,5 +1,3 @@
-"""Re-ID embedding feature cache with TTL and automatic cleanup."""
-
 import time
 from threading import Lock
 from typing import Any
@@ -8,8 +6,6 @@ from monitoring.logging_config import get_logger
 
 
 class ReIDCache:
-    """Thread-safe embedding cache with TTL expiration and memory optimization."""
-
     def __init__(self, ttl_seconds: float = 300.0, max_entries: int = 1000) -> None:
         self.ttl = ttl_seconds
         self.max_entries = max_entries
@@ -19,7 +15,6 @@ class ReIDCache:
         self._cache: dict[str, dict[str, Any]] = {}
 
     def put(self, key: str, embedding: Any, metadata: dict[str, Any] | None = None) -> None:
-        """Store an embedding feature in cache."""
         now = time.monotonic()
         with self._lock:
             if len(self._cache) >= self.max_entries and key not in self._cache:
@@ -32,7 +27,6 @@ class ReIDCache:
             }
 
     def get(self, key: str) -> Any | None:
-        """Retrieve an embedding if present and not expired."""
         now = time.monotonic()
         with self._lock:
             entry = self._cache.get(key)
@@ -46,7 +40,6 @@ class ReIDCache:
             return entry["embedding"]
 
     def cleanup_expired(self) -> int:
-        """Purge expired cache entries."""
         now = time.monotonic()
         removed = 0
         with self._lock:
@@ -63,12 +56,10 @@ class ReIDCache:
         del self._cache[oldest_key]
 
     def clear(self) -> None:
-        """Clear all entries."""
         with self._lock:
             self._cache.clear()
 
     def size(self) -> int:
-        """Get current size of valid cache entries."""
         self.cleanup_expired()
         with self._lock:
             return len(self._cache)

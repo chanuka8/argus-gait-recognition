@@ -242,10 +242,6 @@ class AutoEnrollmentService:
         return target_folder, prepared
 
     def enroll_pending(self, force: bool = False) -> list[dict]:
-        """
-        Scan input directory and enroll pending identities using the safe lifecycle.
-        Only deletes raw files if embedding extraction and persistence verification pass.
-        """
         results: list[dict] = []
 
         for person_folder in self._person_folders():

@@ -1,14 +1,3 @@
-"""
-Date-Aware Learning Scheduler & Job State Manager for ARGUS AI.
-
-Enforces event-date driven continuous learning:
-- NO blind 24-hour training timers.
-- Training jobs are scheduled ONLY when new, verified, TRAINING_ELIGIBLE embeddings
-  exist for a previously unprocessed observation date (YYYY-MM-DD).
-- Idempotent: Never schedules duplicate concurrent jobs or reprocesses completed dates.
-- Graceful crash & startup recovery for interrupted jobs.
-"""
-
 import json
 import threading
 import time
@@ -41,8 +30,6 @@ class LearningJobStatus(str, Enum):
 
 @dataclass
 class LearningJobRecord:
-    """Represents a date-driven continuous learning job and its audit trail."""
-
     job_id: str
     training_date: str
     created_at: float = field(default_factory=time.time)
@@ -94,12 +81,6 @@ class LearningJobRecord:
 
 
 class DateAwareLearningScheduler:
-    """
-    Event-Date Driven Learning Scheduler for ARGUS AI Continuous Embedding Learning.
-    Scans for new eligible data dates, manages job lifecycle state idempotently,
-    and isolates training execution from live inference pipelines.
-    """
-
     def __init__(
         self,
         jobs_file: str = "data/learning_jobs.json",
@@ -160,19 +141,16 @@ class DateAwareLearningScheduler:
                 return False
 
     def list_jobs(self) -> list[LearningJobRecord]:
-        """Return all scheduled, running, or completed learning jobs."""
         jobs = self._load_jobs()
         return sorted(jobs.values(), key=lambda j: j.created_at)
 
     def get_job(self, job_id: str) -> LearningJobRecord | None:
-        """Lookup a specific learning job by ID."""
         jobs = self._load_jobs()
         return jobs.get(job_id)
 
     def get_job_for_date_and_type(
         self, training_date: str, model_type: str
     ) -> LearningJobRecord | None:
-        """Lookup the learning job for a specific date and model_type combination."""
         jobs = self._load_jobs()
         for j in reversed(list(jobs.values())):
             if (
@@ -188,10 +166,6 @@ class DateAwareLearningScheduler:
         return None
 
     def get_processed_dates(self, model_type: str | None = None) -> set[str]:
-        """Return all observation dates that have already been processed or are in progress.
-
-        If model_type is specified, only return dates processed for that specific model type.
-        """
         jobs = self._load_jobs()
         processed = set()
         for j in jobs.values():
@@ -208,10 +182,6 @@ class DateAwareLearningScheduler:
         return processed
 
     def recover_interrupted_jobs(self) -> list[LearningJobRecord]:
-        """
-        Scan for jobs that were in RUNNING or VALIDATING state during an unexpected restart.
-        Safely transition them to INTERRUPTED state without corrupting model registry.
-        """
         with self._lock:
             jobs = self._load_jobs()
             recovered = []
@@ -234,18 +204,6 @@ class DateAwareLearningScheduler:
             return recovered
 
     def scan_for_eligible_data(self) -> dict[str, dict[str, Any]]:
-        """
-        Scan operational observations and embedding database.
-        Group verified, training-eligible data by observation_date (YYYY-MM-DD).
-
-        Returns:
-            Dictionary mapping date_str -> {
-                "observations": list of eligible OperationalObservation,
-                "embeddings": list of eligible EmbeddingRecord,
-                "identities": list of distinct subject IDs,
-                "total_count": int
-            }
-        """
         with self._lock:
             date_data: dict[str, dict[str, Any]] = {}
 
@@ -298,10 +256,6 @@ class DateAwareLearningScheduler:
             return result
 
     def get_unprocessed_dates(self, model_type: str | None = None) -> dict[str, dict[str, Any]]:
-        """
-        Return only observation dates that have new eligible data and have NOT
-        been processed in a completed or active job for the given model_type.
-        """
         all_dates = self.scan_for_eligible_data()
         processed = self.get_processed_dates(model_type=model_type)
         unprocessed = {d: info for d, info in all_dates.items() if d not in processed}
@@ -314,11 +268,6 @@ class DateAwareLearningScheduler:
         force: bool = False,
         metadata: dict[str, Any] | None = None,
     ) -> LearningJobRecord | None:
-        """
-        Idempotently create a single continuous learning job for a specific observation date
-        and model type. If a job already exists for this (date, model_type) and force is False,
-        returns existing job.
-        """
         with self._lock:
             jobs = self._load_jobs()
 
@@ -408,13 +357,6 @@ class DateAwareLearningScheduler:
         model_type: str = "dual_modal_fusion",
         model_types: list[str] | None = None,
     ) -> list[LearningJobRecord]:
-        """
-        Scan for all unprocessed dates with eligible data and create PENDING learning jobs.
-        If NO new eligible data dates exist, logs NO_NEW_DATA and creates zero jobs.
-
-        If model_types is specified, creates separate jobs for each model type per date.
-        Otherwise, creates a single job per date for the given model_type.
-        """
         with self._lock:
             types_to_schedule = model_types or [model_type]
             scheduled_jobs = []
@@ -440,7 +382,6 @@ class DateAwareLearningScheduler:
             return scheduled_jobs
 
     def update_job(self, job: LearningJobRecord) -> bool:
-        """Persist updated state of a learning job."""
         with self._lock:
             jobs = self._load_jobs()
             jobs[job.job_id] = job

@@ -1,10 +1,3 @@
-"""
-Performance Measurement Benchmark for Crowd Intelligence Features.
-
-Measures mean, median, and p95 overhead per frame, active track throughput,
-sample count, and memory allocation delta.
-"""
-
 import time
 
 import numpy as np

@@ -1,10 +1,3 @@
-"""
-Full Real-Runtime Appearance Model Validation Script for ARGUS AI.
-
-Executes Tests 1 through 12 using real image assets, model weights, and the actual ARGUS pipeline.
-Strict Evidence-Based Reporting Policy compliant.
-"""
-
 import json
 import sys
 import time

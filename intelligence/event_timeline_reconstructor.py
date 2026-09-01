@@ -1,13 +1,3 @@
-"""
-Event Timeline Reconstruction Module for ARGUS AI.
-
-Accumulates spatial-temporal surveillance events across camera streams into
-chronological trajectories per global track or identity.
-Supports deduplication, event pruning, retention cleanup, thread-safe mutations,
-and atomic export to JSON, CSV, and Markdown formats.
-Excludes secrets, RTSP credentials, and raw biometric embeddings.
-"""
-
 import csv
 import json
 import os
@@ -27,7 +17,6 @@ from security_layer.credentials import sanitize_rtsp_url
 
 
 def load_event_timeline_config() -> dict:
-    """Load event_timeline configuration section from configs/inference.yaml."""
     config_path = Path("configs/inference.yaml")
     defaults = {
         "enabled": False,
@@ -62,8 +51,6 @@ def load_event_timeline_config() -> dict:
 
 @dataclass
 class TimelineEvent:
-    """Individual event payload in a track timeline."""
-
     event_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     event_type: str = "UNKNOWN"
@@ -78,7 +65,6 @@ class TimelineEvent:
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert payload to dictionary with sanitized strings."""
         raw = asdict(self)
         sanitized = {}
         for k, v in raw.items():
@@ -98,8 +84,6 @@ class TimelineEvent:
 
 
 class EventTimelineReconstructor:
-    """Thread-safe event timeline accumulator and exporter."""
-
     def __init__(self, config: dict | None = None) -> None:
         self.config = config or load_event_timeline_config()
         self.enabled = bool(self.config.get("enabled", False))
@@ -115,7 +99,6 @@ class EventTimelineReconstructor:
         self._last_updated: dict[str, float] = {}
 
     def _get_key(self, global_track_id: str | None, camera_id: str, local_track_id: int | None) -> str:
-        """Resolve a unique trajectory key."""
         if global_track_id:
             return f"global_{global_track_id}"
         loc_id = local_track_id if local_track_id is not None else 0
@@ -136,7 +119,6 @@ class EventTimelineReconstructor:
         reason: str = "",
         metadata: dict | None = None,
     ) -> TimelineEvent | None:
-        """Record an event into the trajectory timeline, enforcing bounds and deduplication."""
         if not self.enabled:
             return None
 
@@ -192,7 +174,6 @@ class EventTimelineReconstructor:
         return event
 
     def cleanup_expired_tracks(self) -> int:
-        """Purge trajectories that have been idle longer than retention_seconds."""
         now = time.monotonic()
         expired_keys = []
 
@@ -206,12 +187,10 @@ class EventTimelineReconstructor:
         return len(expired_keys)
 
     def get_timeline(self, key_or_track_id: str) -> list[TimelineEvent]:
-        """Retrieve copy of event sequence for a given trajectory key."""
         with self._lock:
             return list(self._timelines.get(str(key_or_track_id), []))
 
     def export_timeline(self, key_or_track_id: str) -> dict[str, Path] | None:
-        """Export timeline trajectory to configured file formats atomically."""
         key = str(key_or_track_id)
         events_copy = self.get_timeline(key)
         if not events_copy:
@@ -243,7 +222,6 @@ class EventTimelineReconstructor:
         return generated_files
 
     def _write_atomic_json(self, target_path: Path, track_key: str, events: list[dict]) -> None:
-        """Write JSON trajectory file atomically."""
         payload = {
             "track_key": track_key,
             "event_count": len(events),
@@ -256,7 +234,6 @@ class EventTimelineReconstructor:
         os.replace(temp_path, target_path)
 
     def _write_atomic_csv(self, target_path: Path, events: list[dict]) -> None:
-        """Write CSV trajectory file atomically."""
         temp_fd, temp_path = tempfile.mkstemp(dir=str(target_path.parent), suffix=".tmp")
         fields = [
             "event_id",
@@ -279,7 +256,6 @@ class EventTimelineReconstructor:
         os.replace(temp_path, target_path)
 
     def _write_atomic_markdown(self, target_path: Path, track_key: str, events: list[dict]) -> None:
-        """Write Markdown timeline file atomically."""
         temp_fd, temp_path = tempfile.mkstemp(dir=str(target_path.parent), suffix=".tmp")
         lines = [
             f"# Event Timeline Reconstruction — Trajectory `{track_key}`",

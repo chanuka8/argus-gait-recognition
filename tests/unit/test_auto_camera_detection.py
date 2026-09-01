@@ -1,10 +1,3 @@
-"""
-ARGUS AI - Automatic Camera-Source Detection & Runtime Lifecycle Test Suite.
-Verifies deterministic auto-detection for Webcams and RTSP streams, ensuring
-source type is only resolved and displayed at stream connection time when frames
-are actually received, and remains hidden on standby, disconnect, or error.
-"""
-
 from unittest.mock import MagicMock, patch
 
 import numpy as np
@@ -15,21 +8,18 @@ from services.gait_service import GaitService
 
 
 def _dummy_frame(w: int = 640, h: int = 480):
-    """Return a valid dummy BGR image frame for OpenCV capture mocking."""
     frame = np.zeros((h, w, 3), dtype=np.uint8)
     frame[100:200, 100:200] = [0, 255, 0]
     return frame
 
 
 def test_01_camera_standby_initial_state_source_hidden():
-    """Verify camera in standby before start stream does NOT have active source_type."""
     service = GaitService()
     cam_info = service.get_camera_info("UNSTARTED_CAM")
     assert cam_info is None
 
 
 def test_02_start_stream_webcam_success():
-    """Verify Start Stream for webcam connects, captures frames, and exposes source_type='webcam'."""
     service = GaitService()
     mock_cap = MagicMock()
     mock_cap.isOpened.return_value = True
@@ -48,7 +38,6 @@ def test_02_start_stream_webcam_success():
 
 
 def test_03_start_stream_rtsp_success():
-    """Verify Start Stream for RTSP connects, captures frames, and exposes source_type='rtsp'."""
     service = GaitService()
     mock_cap = MagicMock()
     mock_cap.isOpened.return_value = True
@@ -70,7 +59,6 @@ def test_03_start_stream_rtsp_success():
 
 
 def test_04_webcam_connection_failure():
-    """Verify webcam failure hides source, releases lock, and returns descriptive error."""
     service = GaitService()
     mock_cap = MagicMock()
     mock_cap.isOpened.return_value = False
@@ -96,7 +84,6 @@ def test_04_webcam_connection_failure():
 
 
 def test_05_rtsp_connection_failure():
-    """Verify unreachable RTSP stream failure hides source and raises descriptive error."""
     service = GaitService()
     mock_cap = MagicMock()
     mock_cap.isOpened.return_value = False
@@ -125,7 +112,6 @@ def test_05_rtsp_connection_failure():
 
 
 def test_06_stop_stream_hides_source():
-    """Verify stopping an active camera releases worker and removes active stream source."""
     service = GaitService()
     mock_cap = MagicMock()
     mock_cap.isOpened.return_value = True
@@ -143,7 +129,6 @@ def test_06_stop_stream_hides_source():
 
 
 def test_07_unexpected_disconnect_recovery():
-    """Verify camera worker watchdog initiates reconnect on stream drop."""
     mock_cap = MagicMock()
     mock_cap.isOpened.return_value = True
     mock_cap.read.side_effect = [
@@ -168,7 +153,6 @@ def test_07_unexpected_disconnect_recovery():
 
 
 def test_08_reconnect_detects_runtime_source_again():
-    """Verify restarting a previously stopped camera re-detects and confirms active source."""
     service = GaitService()
     mock_cap = MagicMock()
     mock_cap.isOpened.return_value = True
@@ -189,7 +173,6 @@ def test_08_reconnect_detects_runtime_source_again():
 
 
 def test_09_multiple_cameras_independent_sources():
-    """Verify multiple camera cards show their own source independently upon start."""
     service = GaitService()
     mock_cap = MagicMock()
     mock_cap.isOpened.return_value = True
@@ -211,7 +194,6 @@ def test_09_multiple_cameras_independent_sources():
 
 
 def test_10_api_start_stream_endpoint_contract():
-    """Verify FastAPI /api/v1/cameras/start returns valid CameraInfoResponse with runtime source."""
     from fastapi.testclient import TestClient
 
     from api.server import app

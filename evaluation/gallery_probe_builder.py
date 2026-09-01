@@ -13,10 +13,6 @@ DEFAULT_PROBE_CL_SEQS = ["cl-01", "cl-02"]
 
 
 def parse_filename_meta(image_path: Path) -> dict:
-    """
-    Parses a CASIA-B GEI filename.
-    Format example: 001_nm-01_090.png
-    """
     stem = image_path.stem
     parts = stem.split("_")
 

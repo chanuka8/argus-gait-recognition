@@ -1,10 +1,3 @@
-"""
-Diagnostic and Loss-Surface Analysis Utilities for Biometric Fusion.
-
-Provides tools for inspecting score distributions, comparing BCE vs AUC ranking losses,
-and analyzing per-sample ranking trajectories.
-"""
-
 from typing import Any
 
 import numpy as np
@@ -12,10 +5,6 @@ from scipy.optimize import minimize
 
 
 class FusionDiagnostics:
-    """
-    Diagnostic analyzer for dual-modal feature score distributions and optimization loss surfaces.
-    """
-
     @staticmethod
     def analyze_score_distributions(
         gait_scores: np.ndarray | list[float],

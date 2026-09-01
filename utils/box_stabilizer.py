@@ -4,10 +4,6 @@ import numpy as np
 
 
 def compute_iou(box1, box2) -> float:
-    """
-    Compute Intersection over Union (IoU) between two bounding boxes.
-    Bounding box format: [x1, y1, x2, y2]
-    """
     x1_1, y1_1, x2_1, y2_1 = box1
     x1_2, y1_2, x2_2, y2_2 = box2
 
@@ -32,15 +28,6 @@ def compute_iou(box1, box2) -> float:
 
 
 class BoxStabilizer:
-    """
-    Stabilizes bounding boxes across frames using:
-    - EMA (Exponential Moving Average) smoothing.
-    - IoU verification to reject sudden tracking glitches/jumps.
-    - Speed/dimension jump checks to detect rapid tracking shifts.
-    - Temporary box extrapolation for missed detection frames.
-    - Thread-safe state tracking.
-    """
-
     def __init__(self, config: dict):
         self.enabled = config.get("enabled", True)
         self.alpha = config.get("ema_alpha", 0.35)
@@ -55,13 +42,6 @@ class BoxStabilizer:
         self._lock = threading.Lock()
 
     def update(self, raw_detections: list, frame_shape: tuple) -> dict:
-        """
-        raw_detections: list of tuples (track_id, box_xyxy, confidence)
-        frame_shape: tuple of (height, width)
-
-        Returns:
-            dict: track_id -> (stable_box_xyxy, is_valid, is_predicted)
-        """
         if not self.enabled:
             return {tid: (np.array(box, dtype=np.float32), True, False) for tid, box, _ in raw_detections}
 

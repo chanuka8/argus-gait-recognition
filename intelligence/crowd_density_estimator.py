@@ -1,13 +1,3 @@
-"""
-Crowd Density Estimator Engine.
-
-Calculates frame-level crowd density based on object detection bounding boxes,
-evaluating person count, total frame area ratio, average pairwise overlap (IoU),
-and count of strongly overlapping persons.
-
-Returns density levels: LOW, MODERATE, HIGH, SEVERE.
-"""
-
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
@@ -31,7 +21,6 @@ class CrowdDensityResult:
 
 
 def compute_iou(box1: list[float], box2: list[float]) -> float:
-    """Compute Intersection over Union (IoU) between two bounding boxes [x1, y1, x2, y2]."""
     x1_1, y1_1, x2_1, y2_1 = box1
     x1_2, y1_2, x2_2, y2_2 = box2
 
@@ -55,12 +44,6 @@ def compute_iou(box1: list[float], box2: list[float]) -> float:
 
 
 class CrowdDensityEstimator:
-    """
-    Frame-level Crowd Density Estimator.
-
-    Analyzes bounding boxes to determine crowd density tier (LOW, MODERATE, HIGH, SEVERE).
-    """
-
     def __init__(
         self,
         strong_overlap_threshold: float = 0.25,
@@ -90,16 +73,6 @@ class CrowdDensityEstimator:
         detections: list[dict[str, Any]],
         frame_shape: tuple[int, int] = (1080, 1920),
     ) -> CrowdDensityResult:
-        """
-        Estimate crowd density from detection list and frame dimensions.
-
-        Args:
-            detections: List of detection dicts containing 'bbox' key ([x1, y1, x2, y2]).
-            frame_shape: (height, width) of the image frame.
-
-        Returns:
-            CrowdDensityResult containing level (LOW, MODERATE, HIGH, SEVERE) and metrics.
-        """
         person_count = len(detections)
         if person_count == 0:
             return CrowdDensityResult(

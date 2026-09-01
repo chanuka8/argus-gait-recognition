@@ -7,10 +7,6 @@ from preprocessing.video_quality_gate import (
 
 
 class EnrollmentSafeguardEvaluator:
-    """
-    Evaluates enrollment pre-deletion quality gates and runtime confusion safeguards.
-    """
-
     def __init__(self, quality_gate: DeterministicVideoQualityGate | None = None) -> None:
         self.quality_gate = quality_gate or DeterministicVideoQualityGate()
 

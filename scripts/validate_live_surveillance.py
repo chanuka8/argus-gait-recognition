@@ -1,19 +1,3 @@
-"""
-ARGUS AI — Live End-to-End Multi-Person Surveillance Validation Script.
-
-Performs real physical runtime execution on the connected DirectShow webcam
-and live validation of the 8-stage pipeline:
-1. Physical Webcam Capture (CameraSourceResolver + cv2.CAP_DSHOW)
-2. YOLO Person Detection
-3. Independent Tracking & Unbounded Context Allocation
-4. Per-Person Assessment (MobilityState)
-5. Biometric Eligibility (Gait / Appearance)
-6. StreamGEI -> ByGaitLight (256D) Gait Pathway
-7. OSNet-x0.25 (512D) Appearance Pathway
-8. Dual-Modal Fusion & Identity Assessment
-9. CCTV Overlay Rendering (RED / GREEN / YELLOW)
-"""
-
 from __future__ import annotations
 
 import json

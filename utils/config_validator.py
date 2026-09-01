@@ -1,10 +1,3 @@
-"""
-Reusable Configuration Validator and Credential Sanitizer for ARGUS AI.
-
-Validates deployment settings across YAML configurations and provides human-readable
-error messages while ensuring sensitive RTSP credentials are masked in logs and reports.
-"""
-
 import re
 from pathlib import Path
 from typing import ClassVar
@@ -13,15 +6,6 @@ import yaml
 
 
 def sanitize_rtsp_url(text: str | None) -> str:
-    """
-    Sanitize all RTSP credentials from string or connection URL.
-
-    Handles:
-    - rtsp://user:pass@host:port/path -> rtsp://user:***@host:port/path
-    - Multiple RTSP URLs in single error message
-    - Encoded characters (%40, %21, etc.)
-    - Query parameters (?channel=1&stream=main)
-    """
     if not text or not isinstance(text, str):
         return ""
 
@@ -30,8 +14,6 @@ def sanitize_rtsp_url(text: str | None) -> str:
 
 
 class ConfigValidationError(ValueError):
-    """Human-readable configuration validation error suppressing traceback spam."""
-
     def __init__(self, errors: list[str]) -> None:
         self.errors = errors
         message = "Configuration validation failed:\n  - " + "\n  - ".join(errors)
@@ -39,8 +21,6 @@ class ConfigValidationError(ValueError):
 
 
 class ConfigValidator:
-    """Validator for ARGUS deployment YAML configurations."""
-
     VALID_BACKENDS: ClassVar[set[str]] = {"pytorch", "onnxruntime", "auto"}
     VALID_DEVICES: ClassVar[set[str]] = {"cpu", "cuda", "gpu", "auto"}
     VALID_PRECISIONS: ClassVar[set[str]] = {"fp32", "fp16"}
@@ -49,7 +29,6 @@ class ConfigValidator:
         self.configs_dir = Path(configs_dir)
 
     def load_yaml(self, file_path: str | Path) -> tuple[dict | None, str | None]:
-        """Safely load YAML file without raising unhandled exceptions."""
         path = Path(file_path)
         if not path.exists():
             return None, f"Configuration file not found: {path.as_posix()}"
@@ -66,7 +45,6 @@ class ConfigValidator:
             return None, f"Error reading configuration file {path.as_posix()}: {e}"
 
     def validate_inference_config(self, config: dict) -> list[str]:
-        """Validate inference.yaml parameters."""
         errors = []
         backend_cfg = config.get("inference_backend", {})
         if not isinstance(backend_cfg, dict):
@@ -97,7 +75,6 @@ class ConfigValidator:
         return errors
 
     def validate_cameras_config(self, config: dict) -> list[str]:
-        """Validate cameras.yaml parameters."""
         errors = []
         cameras = config.get("cameras", {})
         if not isinstance(cameras, dict):
@@ -128,7 +105,6 @@ class ConfigValidator:
         return errors
 
     def validate_system_config(self, config: dict) -> list[str]:
-        """Validate system.yaml parameters."""
         errors = []
 
         rec_cfg = config.get("recognition", {})
@@ -146,7 +122,6 @@ class ConfigValidator:
         return errors
 
     def validate_all(self) -> dict[str, list[str]]:
-        """Validate all standard configuration files in self.configs_dir."""
         results = {}
 
         inf_data, err = self.load_yaml(self.configs_dir / "inference.yaml")

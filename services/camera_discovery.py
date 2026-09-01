@@ -1,5 +1,3 @@
-"""Automatic camera discovery and health validation service."""
-
 import re
 import socket
 import time
@@ -13,8 +11,6 @@ from security_layer.credentials import resolve_camera_config
 
 
 class DiscoveredCamera:
-    """Metadata container for a discovered camera."""
-
     def __init__(self, host: str, port: int = 554, vendor: str = "generic", onvif_xaddr: str = "") -> None:
         self.host = host
         self.port = port
@@ -39,8 +35,6 @@ class DiscoveredCamera:
 
 
 class CameraDiscoveryService:
-    """Configuration-driven camera discovery and RTSP health validation."""
-
     def __init__(
         self,
         discovery_config: dict[str, Any] | None = None,
@@ -51,7 +45,6 @@ class CameraDiscoveryService:
         self._cameras: dict[str, DiscoveredCamera] = {}
 
     def discover_from_config(self, cameras_config: dict[str, dict[str, Any]]) -> list[DiscoveredCamera]:
-        """Discover cameras from a cameras.yaml-style config dict."""
         discovered: list[DiscoveredCamera] = []
         for cam_id, raw_cfg in cameras_config.items():
             cfg_dict = dict(raw_cfg) if isinstance(raw_cfg, dict) else {}
@@ -82,7 +75,6 @@ class CameraDiscoveryService:
         return discovered
 
     def parse_ws_discovery_response(self, xml_text: str) -> list[str]:
-        """Parse WS-Discovery ProbeMatch responses to extract XAddrs."""
         xaddrs: list[str] = []
         try:
             matches = re.findall(r"<[\w:]*XAddrs[^>]*>([^<]+)</[\w:]*XAddrs>", xml_text)
@@ -95,7 +87,6 @@ class CameraDiscoveryService:
         return xaddrs
 
     def validate_rtsp_stream(self, rtsp_url: str, timeout_seconds: float = 5.0) -> bool:
-        """Validate that an RTSP URL is reachable and returns frames."""
         try:
             cap = cv2.VideoCapture(rtsp_url)
             cap.set(cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, int(timeout_seconds * 1000))
@@ -108,7 +99,6 @@ class CameraDiscoveryService:
             return False
 
     def check_host_reachable(self, host: str, port: int = 554, timeout: float = 2.0) -> bool:
-        """TCP connect check to verify camera host is reachable."""
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(timeout)
@@ -119,7 +109,6 @@ class CameraDiscoveryService:
             return False
 
     def health_check_camera(self, camera_id: str, rtsp_url: str = "") -> dict[str, Any]:
-        """Run full health check on a discovered camera."""
         with self._lock:
             cam = self._cameras.get(camera_id)
 
@@ -143,13 +132,11 @@ class CameraDiscoveryService:
         }
 
     def get_all_discovered(self) -> dict[str, dict[str, Any]]:
-        """Return all discovered cameras."""
         with self._lock:
             return {cid: cam.to_dict() for cid, cam in self._cameras.items()}
 
     @staticmethod
     def _parse_rtsp_url(url: str) -> tuple:
-        """Extract host and port from an RTSP URL."""
         match = re.search(r"rtsp://(?:[^@]+@)?([^:/]+)(?::(\d+))?", url)
         if match:
             host = match.group(1)
@@ -159,7 +146,6 @@ class CameraDiscoveryService:
 
     @staticmethod
     def detect_vendor_from_url(url: str) -> str:
-        """Heuristic vendor detection from RTSP URL path."""
         url_lower = url.lower()
         if "/streaming/channels/" in url_lower:
             return "hikvision"

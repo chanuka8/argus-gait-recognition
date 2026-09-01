@@ -1,10 +1,3 @@
-"""
-GEI Feature Quality Estimator.
-
-Evaluates generated Gait Energy Images (GEI) prior to embedding extraction.
-Computes metrics for Blur, Noise, Shadow, GEI Completeness, and Bounding Box Stability.
-"""
-
 from typing import Any
 
 import cv2
@@ -14,12 +7,6 @@ from monitoring.logging_config import get_logger
 
 
 class QualityEstimator:
-    """
-    Lightweight, real-time GEI Quality Estimator.
-
-    Evaluates GEI quality against a configurable threshold to skip low-quality frames.
-    """
-
     def __init__(
         self,
         quality_threshold: float = 0.6,
@@ -49,10 +36,6 @@ class QualityEstimator:
         self,
         gei: np.ndarray,
     ) -> float:
-        """
-        Compute blur score [0.0, 1.0] using Laplacian variance.
-        Higher is sharper / higher quality.
-        """
         if gei is None or gei.size == 0:
             return 0.0
 
@@ -72,10 +55,6 @@ class QualityEstimator:
         self,
         gei: np.ndarray,
     ) -> float:
-        """
-        Compute noise score [0.0, 1.0].
-        Higher means lower background noise.
-        """
         if gei is None or gei.size == 0:
             return 0.0
 
@@ -102,10 +81,6 @@ class QualityEstimator:
         self,
         gei: np.ndarray,
     ) -> float:
-        """
-        Compute shadow score [0.0, 1.0].
-        Detects ground shadow artifacts in the bottom portion of GEI.
-        """
         if gei is None or gei.size == 0:
             return 0.0
 
@@ -127,10 +102,6 @@ class QualityEstimator:
         self,
         gei: np.ndarray,
     ) -> float:
-        """
-        Compute GEI completeness score [0.0, 1.0].
-        Evaluates body portion coverage and non-zero density.
-        """
         if gei is None or gei.size == 0:
             return 0.0
 
@@ -163,10 +134,6 @@ class QualityEstimator:
         gei: np.ndarray,
         box_aspect_ratio: float | None = None,
     ) -> float:
-        """
-        Compute bounding box stability score [0.0, 1.0].
-        Evaluates aspect ratio consistency (standard person ratio is ~2:1 height:width).
-        """
         if gei is None or gei.size == 0:
             return 0.0
 
@@ -187,16 +154,6 @@ class QualityEstimator:
         gei: np.ndarray,
         box_aspect_ratio: float | None = None,
     ) -> dict[str, Any]:
-        """
-        Evaluate GEI quality across all metrics.
-
-        Returns:
-            Dict containing:
-                - overall_quality: float [0.0, 1.0]
-                - metrics: Dict[str, float]
-                - accepted: bool
-                - reason: str | None
-        """
         if gei is None or gei.size == 0:
             self.logger.warning("QualityEstimator rejected: GEI is empty or None")
             return {

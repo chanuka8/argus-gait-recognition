@@ -113,7 +113,6 @@ class FeatureExtractionStep:
         self,
         gei: np.ndarray,
     ) -> np.ndarray:
-        """Extract a 256-d L2-normalized embedding directly from an in-memory GEI array."""
         if gei is None or gei.size == 0:
             return np.empty((0, 256), dtype=np.float32)
 

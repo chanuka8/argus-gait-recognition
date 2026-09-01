@@ -1,5 +1,3 @@
-"""ONVIF client for enterprise camera integration."""
-
 import re
 from typing import Any, ClassVar
 from xml.etree import ElementTree
@@ -8,8 +6,6 @@ from monitoring.logging_config import get_logger
 
 
 class ONVIFProfile:
-    """Parsed ONVIF media profile."""
-
     def __init__(
         self, name: str, token: str, stream_uri: str = "", resolution: tuple = (640, 480), encoding: str = "H264"
     ) -> None:
@@ -30,8 +26,6 @@ class ONVIFProfile:
 
 
 class ONVIFCapabilities:
-    """Parsed ONVIF device capabilities."""
-
     def __init__(self) -> None:
         self.has_ptz: bool = False
         self.has_media: bool = False
@@ -52,13 +46,6 @@ class ONVIFCapabilities:
 
 
 class ONVIFClient:
-    """ONVIF camera discovery and capability client.
-
-    Performs ONVIF device interrogation via SOAP/XML parsing.
-    Does not require zeep or onvif-py; uses lightweight XML parsing
-    for environments where those dependencies are unavailable.
-    """
-
     NAMESPACES: ClassVar[dict[str, str]] = {
         "s": "http://www.w3.org/2003/05/soap-envelope",
         "tds": "http://www.onvif.org/ver10/device/wsdl",
@@ -78,7 +65,6 @@ class ONVIFClient:
         self._media_url = f"http://{host}:{port}/onvif/media_service"
 
     def build_soap_envelope(self, body_xml: str) -> str:
-        """Build SOAP envelope with optional WS-Security header."""
         header = ""
         if self.username:
             header = f"""<s:Header>
@@ -98,7 +84,6 @@ class ONVIFClient:
 </s:Envelope>"""
 
     def parse_capabilities_response(self, xml_text: str) -> ONVIFCapabilities:
-        """Parse a GetCapabilities SOAP response into ONVIFCapabilities."""
         caps = ONVIFCapabilities()
         try:
             root = ElementTree.fromstring(xml_text)
@@ -127,7 +112,6 @@ class ONVIFClient:
         return caps
 
     def parse_device_info_response(self, xml_text: str) -> dict[str, str]:
-        """Parse GetDeviceInformation SOAP response."""
         info: dict[str, str] = {}
         try:
             root = ElementTree.fromstring(xml_text)
@@ -150,7 +134,6 @@ class ONVIFClient:
         return info
 
     def parse_profiles_response(self, xml_text: str) -> list[ONVIFProfile]:
-        """Parse GetProfiles SOAP response into list of ONVIFProfile."""
         profiles: list[ONVIFProfile] = []
         try:
             root = ElementTree.fromstring(xml_text)
@@ -197,12 +180,10 @@ class ONVIFClient:
     def build_rtsp_url(
         host: str, port: int = 554, path: str = "/Streaming/Channels/101", username: str = "", password: str = ""
     ) -> str:
-        """Build authenticated RTSP URL."""
         auth = f"{username}:{password}@" if username else ""
         return f"rtsp://{auth}{host}:{port}{path}"
 
     @staticmethod
     def extract_host_from_xaddr(xaddr: str) -> str | None:
-        """Extract host IP from ONVIF XAddr URL."""
         match = re.search(r"https?://([^:/]+)", xaddr)
         return match.group(1) if match else None

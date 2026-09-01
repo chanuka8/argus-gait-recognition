@@ -1,34 +1,15 @@
-"""
-Statistical Score Calibration for Biometric Fusion (Platt Scaling & Isotonic Calibration).
-
-Converts raw cosine similarities (Gait and Appearance) into calibrated posterior match probabilities:
-P(Match = 1 | score) in [0.0, 1.0].
-"""
-
 from typing import Any
 
 import numpy as np
 
 
 class PlattScoreCalibrator:
-    """
-    Parametric Platt Scaling score calibrator.
-    Fits a logistic sigmoid mapping: P(y=1 | s) = 1 / (1 + exp(-(A * s + B))).
-    """
-
     def __init__(self, A: float = 10.0, B: float = -5.0) -> None:
         self.A = float(A)
         self.B = float(B)
         self.is_fitted = False
 
     def fit(self, scores: np.ndarray | list[float], labels: np.ndarray | list[int]) -> "PlattScoreCalibrator":
-        """
-        Fit Platt scaling parameters (A, B) via maximum likelihood logistic regression.
-
-        Args:
-            scores: Array of raw similarity scores.
-            labels: Binary array (1 for genuine same-person, 0 for impostor).
-        """
         s_arr = np.asarray(scores, dtype=np.float64).ravel()
         y_arr = np.asarray(labels, dtype=np.float64).ravel()
 
@@ -62,7 +43,6 @@ class PlattScoreCalibrator:
         return self
 
     def calibrate(self, score: float | np.ndarray) -> float | np.ndarray:
-        """Transform raw cosine similarity into calibrated probability."""
         if score is None:
             return None
         s = np.asarray(score, dtype=np.float64)

@@ -1,11 +1,3 @@
-"""
-Stage 3: Multi-Camera Evidence Fusion Engine.
-
-Performs score-level evidence fusion across multiple cameras for a shared track identity,
-incorporating gait similarity, appearance/ReID, open-set margin, temporal verification,
-track reliability, camera transition probability, travel-time likelihood, and occlusion/quality weights.
-"""
-
 import time
 from dataclasses import dataclass
 from enum import Enum
@@ -47,10 +39,6 @@ class MultiCameraFusionResult:
 
 
 class MultiCameraEvidenceFusion:
-    """
-    Score-level multi-camera evidence fusion engine.
-    """
-
     def __init__(self, config: dict[str, Any] | None = None) -> None:
         cfg = config or {}
         self.enabled = bool(cfg.get("enabled", False))
@@ -83,7 +71,6 @@ class MultiCameraEvidenceFusion:
 
     @classmethod
     def from_config(cls, config: dict[str, Any] | None = None) -> "MultiCameraEvidenceFusion":
-        """Factory method to instantiate from config dictionary."""
         return cls(config=config)
 
     def add_observation(
@@ -103,7 +90,6 @@ class MultiCameraEvidenceFusion:
         occlusion_score: float = 0.10,
         timestamp: float | None = None,
     ) -> None:
-        """Record an observation for multi-camera fusion."""
         now = timestamp if timestamp is not None else time.monotonic()
         entity_key = global_track_id or f"{camera_id}_{local_track_id}"
 
@@ -147,9 +133,6 @@ class MultiCameraEvidenceFusion:
         fallback_score: float = 0.0,
         current_time: float | None = None,
     ) -> MultiCameraFusionResult:
-        """
-        Fuse multi-camera observations for entity_key.
-        """
         now = current_time if current_time is not None else time.monotonic()
 
         if not self.enabled:
@@ -276,7 +259,6 @@ class MultiCameraEvidenceFusion:
         )
 
     def cleanup_inactive(self, max_idle_seconds: float = 20.0, current_time: float | None = None) -> None:
-        """Clean expired observations."""
         now = current_time if current_time is not None else time.monotonic()
         for key, obs in list(self.observations.items()):
             self.observations[key] = [r for r in obs if (now - r.timestamp) <= max_idle_seconds]

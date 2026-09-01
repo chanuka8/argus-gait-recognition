@@ -11,14 +11,12 @@ from services.gait_service import GaitService
 
 
 def _dummy_frame():
-    """Return a valid dummy 640x480 BGR frame for mocked capture."""
     frame = np.zeros((480, 640, 3), dtype=np.uint8)
     frame[100:200, 100:200] = [0, 255, 0]
     return frame
 
 
 def test_normalize_camera_source():
-    """Verify source normalization for numeric indices and URLs."""
     assert normalize_camera_source("0") == 0
     assert normalize_camera_source(" 2 ") == 2
     assert normalize_camera_source("rtsp://192.168.1.100:554/stream") == "rtsp://192.168.1.100:554/stream"
@@ -26,7 +24,6 @@ def test_normalize_camera_source():
 
 
 def test_source_resolver_free_usb_discovery():
-    """Verify resolver discovers a free USB webcam."""
     resolver = CameraSourceResolver()
 
     with patch.object(resolver, "probe_usb_webcam", return_value=True):
@@ -46,7 +43,6 @@ def test_source_resolver_free_usb_discovery():
 
 
 def test_source_resolver_skip_unavailable_usb_and_select_rtsp():
-    """Verify resolver skips failing USB devices and falls back to registered RTSP."""
     resolver = CameraSourceResolver()
     resolver._registered_cameras = [
         {"id": "camera_01", "name": "Main Gate", "url": "rtsp://192.168.1.100:554/stream1", "enabled": True}
@@ -64,7 +60,6 @@ def test_source_resolver_skip_unavailable_usb_and_select_rtsp():
 
 
 def test_source_resolver_no_source_available_raises():
-    """Verify controlled error when no USB or RTSP sources are reachable."""
     resolver = CameraSourceResolver()
     resolver._registered_cameras = []
 
@@ -74,7 +69,6 @@ def test_source_resolver_no_source_available_raises():
 
 
 def test_gait_service_auto_source_lifecycle():
-    """Verify GaitService start_camera and stop_camera with auto source and reservation cleanup."""
     service = GaitService()
     mock_cap = MagicMock()
     mock_cap.isOpened.return_value = True
@@ -98,7 +92,6 @@ def test_gait_service_auto_source_lifecycle():
 
 
 def test_api_cameras_start_auto_contract():
-    """Verify FastAPI /api/v1/cameras/start with source: auto."""
     mock_cap = MagicMock()
     mock_cap.isOpened.return_value = True
     mock_cap.read.return_value = (True, _dummy_frame())

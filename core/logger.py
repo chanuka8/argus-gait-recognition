@@ -5,8 +5,6 @@ from security_layer.credentials import sanitize_rtsp_url
 
 
 class SensitiveDataFilter(logging.Filter):
-    """Logging filter that redacts RTSP credentials from log records."""
-
     def filter(self, record: logging.LogRecord) -> bool:
         if isinstance(record.msg, str):
             record.msg = sanitize_rtsp_url(record.msg)

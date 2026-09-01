@@ -1,17 +1,3 @@
-"""
-Deterministic Image Enhancement and Input Quality Gating Pipeline.
-
-Provides non-generative, deterministic pre-processing for user-uploaded enrollment photos
-and video crops before ReID/Appearance embedding extraction.
-
-Empirically Validated Behavior (Step 5L):
-- Edge-preserving bilateral denoising (improves noisy/mixed embeddings by +0.03 to +0.04 cosine similarity)
-- Mild unsharp masking (improves blurred/low-res crops by +0.003)
-- Adaptive CLAHE (triggered only for underexposed inputs L < 50, avoiding color distortion on normal photos)
-- Classical anti-aliased upscaling (Lanczos4 for crops below 256x128)
-- Strict pre-extraction quality gating with user-facing rejection feedback
-"""
-
 from dataclasses import dataclass
 from typing import Any
 
@@ -21,7 +7,6 @@ import numpy as np
 
 @dataclass
 class QualityAssessmentResult:
-    """Detailed quality assessment result for an input image or crop."""
     is_acceptable: bool
     quality_score: float
     brightness: float
@@ -45,11 +30,6 @@ class QualityAssessmentResult:
 
 
 class DeterministicImageEnhancer:
-    """
-    Non-generative image quality enhancement and validation gate.
-    Every output pixel is a strict mathematical function of nearby input pixels.
-    """
-
     def __init__(
         self,
         target_height: int = 256,
@@ -87,10 +67,6 @@ class DeterministicImageEnhancer:
         )
 
     def assess_quality(self, image: np.ndarray) -> QualityAssessmentResult:
-        """
-        Evaluate raw input image quality before enhancement or embedding extraction.
-        Returns QualityAssessmentResult with pass/fail and descriptive user feedback.
-        """
         if image is None or image.size == 0 or len(image.shape) != 3:
             return QualityAssessmentResult(
                 is_acceptable=False,
@@ -183,13 +159,6 @@ class DeterministicImageEnhancer:
         )
 
     def enhance(self, image: np.ndarray) -> np.ndarray:
-        """
-        Apply deterministic non-generative corrections:
-        1. Classical upscaling (Lanczos4) if below target dimensions
-        2. Adaptive CLAHE (applied only if underexposed L < 50 to preserve color fidelity)
-        3. Edge-preserving bilateral denoising (suppresses sensor noise without blurring edges)
-        4. Mild unsharp masking (recovers subtle clothing/edge boundaries)
-        """
         if image is None or image.size == 0:
             return image
 
@@ -226,10 +195,6 @@ class DeterministicImageEnhancer:
         return processed
 
     def process_and_gate(self, image: np.ndarray) -> tuple[bool, np.ndarray | None, QualityAssessmentResult]:
-        """
-        Evaluate quality gate, and if acceptable, return (True, enhanced_image, assessment).
-        If rejected, returns (False, None, assessment).
-        """
         assessment = self.assess_quality(image)
         if not assessment.is_acceptable:
             return False, None, assessment

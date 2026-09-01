@@ -6,14 +6,6 @@ from models.reid.osnet_backbone import OSNetBackbone
 
 
 class ReIDFeatureExtractionStep:
-    """
-    Person re-identification feature extraction
-    using OSNet-x0.25 backbone.
-
-    Secondary biometric module.
-    Does not replace gait feature extraction.
-    """
-
     def __init__(
         self,
         model_path: str = "models/weights/osnet_x0_25.pth",
@@ -28,12 +20,6 @@ class ReIDFeatureExtractionStep:
         self,
         crop: np.ndarray | str | Path,
     ) -> np.ndarray | None:
-        """
-        Extract normalized ReID embedding
-        from a BGR person crop or image filepath.
-
-        Returns None if crop is invalid.
-        """
         if crop is None:
             return None
 
@@ -60,11 +46,6 @@ class ReIDFeatureExtractionStep:
         self,
         crops: list[np.ndarray],
     ) -> list[np.ndarray | None]:
-        """
-        Extract ReID embeddings from
-        a batch of BGR person crops.
-        """
-
         valid = []
         valid_indices = []
 

@@ -10,11 +10,6 @@ except ImportError:
 
 
 class LearnedSilhouetteSegmenter:
-    """
-    Learned human silhouette segmentation strategy using local ONNX model.
-    Falls back gracefully if ONNX runtime or model file is unavailable.
-    """
-
     def __init__(self, model_path: str = "models/weights/silhouette_segmenter.onnx", threshold: float = 0.5) -> None:
         self.model_path = Path(model_path)
         self.threshold = threshold
@@ -64,9 +59,6 @@ class LearnedSilhouetteSegmenter:
         return self.session is not None
 
     def validate_model(self) -> tuple[bool, str]:
-        """
-        Validate model file presence, ONNX session initialization, and dry-run inference.
-        """
         if not self.model_path.exists():
             return False, f"Model file not found at {self.model_path}"
         if not self.is_available():
@@ -114,8 +106,6 @@ class LearnedSilhouetteSegmenter:
 
 
 class OtsuSilhouetteExtractor:
-    """Otsu thresholding silhouette extraction strategy (fallback)."""
-
     def extract_mask(self, crop: np.ndarray) -> np.ndarray | None:
         if crop is None or crop.size == 0:
             return None
@@ -127,13 +117,6 @@ class OtsuSilhouetteExtractor:
 
 
 class SilhouetteStep:
-    """
-    Unified Silhouette Step.
-    Tries learned segmentation strategy first; falls back to Otsu strategy if unavailable.
-    Applies shared morphological cleaning, primary person contour filtering, height normalization,
-    and 64x128 canvas alignment.
-    """
-
     def __init__(
         self,
         target_size: tuple[int, int] = (64, 128),

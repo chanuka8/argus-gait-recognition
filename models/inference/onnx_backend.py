@@ -1,10 +1,3 @@
-"""
-ONNX Runtime Inference Backend for ARGUS AI.
-
-Executes ONNX models using onnxruntime with lazy optional imports
-and transparent fallback to PyTorch backend.
-"""
-
 from pathlib import Path
 
 import numpy as np
@@ -14,8 +7,6 @@ from models.inference.backend import BaseInferenceBackend
 
 
 class ONNXBackend(BaseInferenceBackend):
-    """ONNX Runtime execution engine with lazy import and safe fallback."""
-
     def __init__(
         self,
         config: dict | None = None,
@@ -31,7 +22,6 @@ class ONNXBackend(BaseInferenceBackend):
         self._init_session(model_path=model_path)
 
     def _init_session(self, model_path: str | None = None) -> None:
-        """Initialize ONNX Runtime inference session lazily."""
         try:
             from automation.device_manager import DeviceManager
             from automation.dll_manager import setup_cuda_dll_paths
@@ -100,19 +90,9 @@ class ONNXBackend(BaseInferenceBackend):
                 self._fallback_backend.fallback_reason = reason
 
     def is_available(self) -> bool:
-        """Check if ONNX session initialized successfully."""
         return self._initialized and self.session is not None
 
     def predict(self, x: np.ndarray | torch.Tensor) -> np.ndarray:
-        """
-        Execute ONNX inference and return L2-normalized numpy embedding array.
-
-        Args:
-            x: Input array or tensor of shape (B, 1, 128, 64) or (128, 64) or (1, 128, 64).
-
-        Returns:
-            L2-normalized float32 numpy array of shape (B, 256).
-        """
         if not self.is_available():
             if self._fallback_backend is not None:
                 return self._fallback_backend.predict(x)

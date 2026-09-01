@@ -1,17 +1,3 @@
-"""
-Independent Accuracy & Generalization Evaluator for ARGUS AI Continual Learning.
-
-Performs head-to-head empirical evaluation of the active production BASELINE model
-against newly trained CANDIDATE models on identical, held-out independent test datasets.
-
-Core Verification Principles:
-1. Identical Test Sets: Baseline and Candidate are evaluated on exactly the same test tensors/embeddings.
-2. Explicit Deltas: Calculates Delta Rank-1, Delta TAR, Delta FAR, Delta EER, Delta AUC.
-3. Catastrophic Forgetting Quantification: Separately measures historical retention vs new-condition adaptation.
-4. Statistical Uncertainty: Calculates sample size confidence and marks small data as INSUFFICIENT_EVIDENCE.
-5. Multi-Camera Provenance: Separates same-camera vs cross-camera identification accuracy.
-"""
-
 import time
 from dataclasses import asdict, dataclass, field
 from typing import Any
@@ -24,8 +10,6 @@ from monitoring.logging_config import get_logger
 
 @dataclass
 class EvaluationMetrics:
-    """Comprehensive performance metrics on an independent test dataset."""
-
     rank1_accuracy: float
     tar: float
     far: float
@@ -55,8 +39,6 @@ class EvaluationMetrics:
 
 @dataclass
 class ModelComparisonResult:
-    """Head-to-head evaluation comparison between Baseline and Candidate."""
-
     baseline_version: str
     candidate_version: str
     dataset_id: str
@@ -85,10 +67,6 @@ class ModelComparisonResult:
 
 
 class ContinualLearningEvaluator:
-    """
-    Production independent evaluator computing mathematically rigorous metrics and deltas.
-    """
-
     def __init__(
         self,
         min_statistical_trials: int = 8,
@@ -107,11 +85,6 @@ class ContinualLearningEvaluator:
         feature_extractor_fn=None,
         threshold: float = 0.50,
     ) -> EvaluationMetrics:
-        """
-        Evaluate a single model (baseline or candidate) on independent test samples.
-        If feature_extractor_fn is provided, re-extracts embeddings from sample images;
-        otherwise uses pre-computed normalized sample vectors.
-        """
         historical_test_samples = historical_test_samples or []
         all_samples = test_samples + historical_test_samples
 
@@ -298,9 +271,6 @@ class ContinualLearningEvaluator:
         dataset_id: str,
         model_type: str,
     ) -> ModelComparisonResult:
-        """
-        Compare Baseline Model vs. Candidate Model metrics and compute explicit deltas.
-        """
         delta_rank1 = round(candidate_metrics.rank1_accuracy - baseline_metrics.rank1_accuracy, 2)
         delta_tar = round(candidate_metrics.tar - baseline_metrics.tar, 2)
         delta_far = round(candidate_metrics.far - baseline_metrics.far, 2)

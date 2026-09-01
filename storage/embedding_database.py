@@ -1,11 +1,3 @@
-"""
-Versioned Embedding Database for ARGUS AI.
-
-Manages durable, structured, version-aware embedding records for enrolled persons.
-Maintains individual embedding lineage, metadata, model version compatibility,
-and provides bidirectional synchronization with VectorStore fast-path matrix files.
-"""
-
 import json
 import time
 import uuid
@@ -24,7 +16,6 @@ _FirebaseEmbeddingDocument = None
 
 
 def _get_firebase_classes():
-    """Lazy-load Firebase store classes to avoid import-time dependency."""
     global _FirebaseEmbeddingStore, _FirebaseEmbeddingDocument
     if _FirebaseEmbeddingStore is None:
         from storage.firebase_embedding_store import (
@@ -39,8 +30,6 @@ def _get_firebase_classes():
 
 @dataclass
 class EmbeddingRecord:
-    """Represents an individual versioned biometric embedding vector and its metadata."""
-
     embedding_id: str
     person_id: str
     modality: str
@@ -87,8 +76,6 @@ class EmbeddingRecord:
 
 @dataclass
 class PersonRecord:
-    """Represents an enrolled person and all associated versioned embeddings."""
-
     person_id: str
     created_at: float = field(default_factory=time.time)
     updated_at: float = field(default_factory=time.time)
@@ -124,14 +111,6 @@ class PersonRecord:
 
 
 class EmbeddingDatabase:
-    """
-    Thread-safe versioned embedding storage manager.
-
-    Maintains JSON-serializable records for all enrolled identities with full
-    lineage and model compatibility guarantees, and mirrors data into VectorStore
-    files for high-speed inference.
-    """
-
     def __init__(
         self,
         db_dir: str = "data/embedding_db",
@@ -190,13 +169,6 @@ class EmbeddingDatabase:
         created_at: float | None = None,
         observation_date: str | None = None,
     ) -> dict[str, Any]:
-        """
-        Validate, version, and persist embeddings for a subject into the database,
-        then synchronize with the VectorStore inference galleries.
-
-        Returns:
-            Summary dict with persistence verification results.
-        """
         person = self.get_person(person_id)
         if person is None:
             person = PersonRecord(person_id=person_id)
@@ -318,10 +290,6 @@ class EmbeddingDatabase:
         expected_gait_count: int | None = None,
         expected_app_count: int | None = None,
     ) -> tuple[bool, str]:
-        """
-        Strictly verify that database records and VectorStore files are durably written
-        and match expected counts before allowing raw media deletion.
-        """
         person = self.get_person(person_id)
         if person is None:
             return False, f"Person record for '{person_id}' missing in database"
@@ -358,7 +326,6 @@ class EmbeddingDatabase:
         return True, "Persistence verified"
 
     def _sync_vector_stores(self) -> None:
-        """Re-index all active person records into fast-path VectorStore numpy files."""
         all_persons = self.list_all_persons()
 
 
@@ -428,7 +395,6 @@ class EmbeddingDatabase:
         return results
 
     def get_distinct_observation_dates(self) -> list[str]:
-        """Return sorted unique observation dates (YYYY-MM-DD) across all enrolled embeddings."""
         dates = set()
         for p in self.list_all_persons():
             for e in p.gait_embeddings + p.appearance_embeddings:
@@ -437,7 +403,6 @@ class EmbeddingDatabase:
         return sorted(dates)
 
     def get_embeddings_by_date(self, observation_date: str, modality: str | None = None) -> list[EmbeddingRecord]:
-        """Return all active embeddings associated with a specific observation date."""
         matched = []
         for p in self.list_all_persons():
             embeddings = []
@@ -452,9 +417,6 @@ class EmbeddingDatabase:
         return matched
 
     def check_model_compatibility(self, model_version: str, expected_dim: int, modality: str) -> bool:
-        """
-        Verify that a candidate model's output specification is compatible with the database.
-        """
         if modality == "gait" and expected_dim != 256:
             return False
         return not (modality == "appearance" and expected_dim != 512)
@@ -470,11 +432,6 @@ class EmbeddingDatabase:
         source_session_id: str,
         observation_date: str,
     ) -> list:
-        """
-        Asynchronously persist embeddings to Firebase.
-        Non-blocking: failures are logged and queued for retry,
-        but NEVER fail the local persistence or inference.
-        """
         if self.firebase_store is None:
             return []
 
@@ -507,10 +464,6 @@ class EmbeddingDatabase:
         return results
 
     def sync_from_firebase(self, person_id: str) -> dict[str, Any]:
-        """
-        Pull embeddings for a person from Firebase and merge into local records.
-        Used for reconciliation and recovery.
-        """
         if self.firebase_store is None:
             return {"success": False, "error": "No Firebase store configured"}
 
@@ -546,10 +499,6 @@ class EmbeddingDatabase:
             return {"success": False, "error": str(err)}
 
     def rebuild_from_firebase(self) -> dict[str, Any]:
-        """
-        Disaster recovery: Rebuild entire local EmbeddingDatabase and VectorStore
-        galleries from Firebase durable store.
-        """
         if self.firebase_store is None:
             return {"success": False, "error": "No Firebase store configured"}
 
@@ -582,9 +531,6 @@ class EmbeddingDatabase:
             return {"success": False, "error": str(err)}
 
     def get_firebase_sync_status(self) -> dict[str, Any]:
-        """
-        Report which local embeddings have confirmed Firebase persistence vs. pending.
-        """
         if self.firebase_store is None:
             return {"firebase_configured": False}
 

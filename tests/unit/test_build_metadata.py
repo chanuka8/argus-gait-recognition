@@ -1,7 +1,3 @@
-"""
-Unit tests for BuildMetadata extraction and non-fatal fallback behavior.
-"""
-
 from pathlib import Path
 from unittest.mock import MagicMock
 

@@ -1,10 +1,3 @@
-"""
-PyTorch Reference Inference Backend for ARGUS AI.
-
-Wraps ByGaitLight CNN model for reference CPU/GPU execution.
-Guarantees L2 normalization semantics and input tensor shape handling.
-"""
-
 from pathlib import Path
 
 import numpy as np
@@ -15,8 +8,6 @@ from models.inference.backend import BaseInferenceBackend
 
 
 class PyTorchBackend(BaseInferenceBackend):
-    """PyTorch reference backend implementation."""
-
     def __init__(
         self,
         config: dict | None = None,
@@ -31,14 +22,12 @@ class PyTorchBackend(BaseInferenceBackend):
         self.warmup()
 
     def _resolve_device(self, device_str: str) -> torch.device:
-        """Resolve target PyTorch execution device via centralized DeviceManager."""
         from automation.device_manager import DeviceManager
 
         resolved = DeviceManager.get_instance().resolve_component_device(device_str)
         return torch.device(resolved)
 
     def _load_model(self) -> ByGaitLight:
-        """Instantiate ByGaitLight model and load weights if checkpoint exists."""
         part_bins = 4
         filtered = {}
         if self.model_path.exists():
@@ -70,15 +59,6 @@ class PyTorchBackend(BaseInferenceBackend):
         return model
 
     def predict(self, x: np.ndarray | torch.Tensor) -> np.ndarray:
-        """
-        Execute PyTorch forward inference and return L2-normalized numpy embedding array.
-
-        Args:
-            x: Input array or tensor of shape (B, 1, 128, 64) or (128, 64) or (1, 128, 64).
-
-        Returns:
-            L2-normalized float32 numpy array of shape (B, 256).
-        """
         if isinstance(x, np.ndarray):
             tensor = torch.from_numpy(x).float()
         else:

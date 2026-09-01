@@ -1,18 +1,3 @@
-"""
-Longitudinal Accuracy Evaluator for ARGUS AI Continual Learning.
-
-Maintains multi-timepoint longitudinal evaluation history (T0 -> T1 -> T2 -> Tn)
-evaluating active Baseline Model (A) vs. Candidate Model (B) across:
-- Historical Test Set (C): Catastrophic forgetting assessment.
-- New Operational Test Set (D): Unseen operational generalization.
-- Future Holdout Set (E): Strictly temporally subsequent test partition.
-
-Evaluates Tri-Modal Independence:
-1. Gait-Only Evaluation (GEI -> ByGaitLight 256D)
-2. Appearance-Only Evaluation (Crop -> OSNet-x0.25 512D)
-3. DualModalFusion Evaluation (Combined score distribution)
-"""
-
 import json
 import threading
 import time
@@ -33,8 +18,6 @@ from monitoring.logging_config import get_logger
 
 @dataclass
 class LongitudinalTimepointRecord:
-    """Immutable evaluation record for a specific continual learning lifecycle timepoint."""
-
     timepoint_id: str
     timestamp: float
     model_type: str
@@ -61,10 +44,6 @@ class LongitudinalTimepointRecord:
 
 
 class LongitudinalAccuracyEvaluator:
-    """
-    Orchestrates longitudinal tri-modal evaluation and persistent accuracy history tracking.
-    """
-
     def __init__(
         self,
         history_file: str = "data/continual_learning_longitudinal_history.json",
@@ -91,9 +70,6 @@ class LongitudinalAccuracyEvaluator:
         gait_extractor_fn=None,
         appearance_extractor_fn=None,
     ) -> LongitudinalTimepointRecord:
-        """
-        Execute full longitudinal evaluation across operational test, historical test, and future holdouts.
-        """
         historical_test_samples = historical_test_samples or []
         future_holdout_samples = future_holdout_samples or []
         all_eval_samples = operational_test_samples + historical_test_samples
@@ -203,7 +179,6 @@ class LongitudinalAccuracyEvaluator:
         return record
 
     def _evaluate_by_condition(self, samples: list[DatasetSampleRecord], condition_key: str) -> dict[str, Any]:
-        """Group samples by condition metadata key and compute sample count."""
         grouped: dict[str, int] = {}
         for s in samples:
             val = str(s.condition_tags.get(condition_key, "STANDARD"))
@@ -211,7 +186,6 @@ class LongitudinalAccuracyEvaluator:
         return grouped
 
     def list_history(self) -> list[LongitudinalTimepointRecord]:
-        """Read all longitudinal evaluation timepoint records from disk."""
         with self._lock:
             if not self.history_file.exists():
                 return []
@@ -224,7 +198,6 @@ class LongitudinalAccuracyEvaluator:
                 return []
 
     def _record_timepoint(self, record: LongitudinalTimepointRecord) -> bool:
-        """Atomically append a longitudinal timepoint record to history file."""
         with self._lock:
             history = self.list_history()
             history.append(record)

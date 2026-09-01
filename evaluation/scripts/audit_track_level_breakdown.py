@@ -1,8 +1,3 @@
-"""
-Audit Script: Exact Composition Breakdown, Matched-Population Single vs Track Comparison,
-Cross-Matching FAR Audit, and Retroactive Confusion Gate Verification.
-"""
-
 import sys
 from pathlib import Path
 

@@ -1,7 +1,3 @@
-"""
-Unit tests for ONNX export, structural validation, atomic replacement, and report generation.
-"""
-
 import hashlib
 import json
 from pathlib import Path

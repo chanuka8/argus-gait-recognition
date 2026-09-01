@@ -1,5 +1,3 @@
-"""Production-grade Camera Transition Model for spatial-temporal multi-camera tracking."""
-
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -13,8 +11,6 @@ from monitoring.logging_config import get_logger
 
 @dataclass
 class CameraTransitionRule:
-    """Directed transition parameters between source and destination cameras."""
-
     source_camera: str
     destination_camera: str
     min_travel_seconds: float
@@ -26,8 +22,6 @@ class CameraTransitionRule:
 
 @dataclass
 class ExitRecord:
-    """Record of a track exiting or observed on a camera."""
-
     camera_id: str
     local_track_id: Any
     global_id: str | None
@@ -40,8 +34,6 @@ class ExitRecord:
 
 
 class CameraTransitionModel:
-    """Validates camera topology, filters transition candidates, and scores transitions."""
-
     def __init__(
         self,
         config: dict[str, Any] | None = None,
@@ -65,7 +57,6 @@ class CameraTransitionModel:
             self.load_config(config)
 
     def load_config(self, config: dict[str, Any]) -> None:
-        """Parse and validate camera transition topology and scoring weights."""
         with self._lock:
             self._topology.clear()
 
@@ -171,7 +162,6 @@ class CameraTransitionModel:
                     self._topology[src_cam_str][dest_cam_str] = rule
 
     def is_enabled(self) -> bool:
-        """Check if any valid transition topology is loaded."""
         with self._lock:
             return len(self._topology) > 0
 
@@ -185,7 +175,6 @@ class CameraTransitionModel:
         entry_zone: str | None = None,
         exit_zone: str | None = None,
     ) -> None:
-        """Add or dynamically update a directed transition topology rule online."""
         if not source_camera or not destination_camera:
             return
         with self._lock:
@@ -214,7 +203,6 @@ class CameraTransitionModel:
         direction: str | None = None,
         timestamp: float | None = None,
     ) -> None:
-        """Record an exit or track observation for a camera track."""
         if not camera_id:
             return
 
@@ -246,7 +234,6 @@ class CameraTransitionModel:
         entry_zone: str | None = None,
         timestamp: float | None = None,
     ) -> tuple[ExitRecord, float] | None:
-        """Filter candidates by topology/time-window and score candidates deterministically."""
         now = timestamp if timestamp is not None else self._time_provider()
 
         with self._lock:
@@ -332,7 +319,6 @@ class CameraTransitionModel:
         exit_identity: str | None,
         exit_feature: Any | None,
     ) -> float:
-        """Compute normalized similarity score in [0.0, 1.0]."""
         if candidate_feature is not None and exit_feature is not None:
             try:
                 f1 = np.asarray(candidate_feature, dtype=np.float32).flatten()
@@ -353,7 +339,6 @@ class CameraTransitionModel:
         return 0.5
 
     def _calculate_travel_time_likelihood(self, delta_t: float, min_t: float, max_t: float) -> float:
-        """Compute triangular travel time likelihood centered in [min_t, max_t]."""
         if max_t <= min_t:
             return 1.0 if abs(delta_t - min_t) < 1e-5 else 0.0
 
@@ -364,7 +349,6 @@ class CameraTransitionModel:
         return max(0.0, min(1.0, likelihood))
 
     def _cleanup_expired_exits_locked(self, now: float) -> int:
-        """Purge exit records exceeding maximum history window."""
         expired_keys = [
             key for key, rec in self._exits.items() if (now - rec.exit_timestamp) > self._max_history_seconds
         ]
@@ -373,7 +357,6 @@ class CameraTransitionModel:
         return len(expired_keys)
 
     def cleanup_stale_exits(self, max_age_seconds: float | None = None) -> int:
-        """Public method to purge stale exit records."""
         now = self._time_provider()
         with self._lock:
             cutoff = max_age_seconds if max_age_seconds is not None else self._max_history_seconds

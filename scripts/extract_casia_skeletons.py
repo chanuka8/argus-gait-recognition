@@ -1,12 +1,3 @@
-"""
-Extract per-frame 2D COCO-17 pose keypoints from raw CASIA-B video frame sequences
-in data/casia_b_raw.zip and save under data/casia_processed/skeletons/.
-
-Output per sequence:
-data/casia_processed/skeletons/{subject}/{subject}_{condition}_{view}.npy
-Array shape: (T_frames, 17, 3) containing (x, y, confidence).
-"""
-
 import sys
 import time
 import zipfile

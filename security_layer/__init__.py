@@ -1,10 +1,3 @@
-"""
-ARGUS Security Layer
-
-Provides security event evaluation, logging, and secure RTSP credential resolution
-for surveillance and gait recognition workflows.
-"""
-
 from security_layer.credentials import (
     CredentialManager,
     resolve_camera_config,

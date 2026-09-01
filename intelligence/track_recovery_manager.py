@@ -1,10 +1,3 @@
-"""
-Stage 5: Deterministic Track Recovery Engine.
-
-Maintains bounded recently-lost track states and performs deterministic ID-switch checks
-and track recovery using spatial IoU, bounding box dimensions, and historical evidence.
-"""
-
 import time
 from dataclasses import dataclass
 from typing import Any
@@ -25,10 +18,6 @@ class LostTrackRecord:
 
 
 class TrackRecoveryManager:
-    """
-    Deterministic track recovery manager for bridging temporary lost-track gaps in crowded scenes.
-    """
-
     def __init__(
         self,
         max_lost_seconds: float = 3.0,
@@ -52,7 +41,6 @@ class TrackRecoveryManager:
         quality: float = 1.0,
         timestamp: float | None = None,
     ) -> None:
-        """Register a track that was lost by ByteTrack tracker."""
         now = timestamp if timestamp is not None else time.monotonic()
         key = (camera_id, int(track_id))
 
@@ -79,11 +67,6 @@ class TrackRecoveryManager:
         new_bbox: list[int],
         timestamp: float | None = None,
     ) -> LostTrackRecord | None:
-        """
-        Attempt to match a newly initialized track ID to a recently lost track.
-
-        Returns LostTrackRecord if matched, or None.
-        """
         now = timestamp if timestamp is not None else time.monotonic()
         key = (camera_id, int(new_track_id))
 
@@ -130,7 +113,6 @@ class TrackRecoveryManager:
         return None
 
     def cleanup_expired(self, current_time: float | None = None) -> None:
-        """Purge expired lost tracks."""
         now = current_time if current_time is not None else time.monotonic()
         for key, record in list(self.lost_tracks.items()):
             if (now - record.last_seen_time) > self.max_lost_seconds:

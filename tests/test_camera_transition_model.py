@@ -1,5 +1,3 @@
-"""Unit tests for production-grade Camera Transition Model and CrossCameraTracker integration."""
-
 import threading
 import unittest
 from unittest.mock import MagicMock, patch
@@ -11,8 +9,6 @@ from intelligence.cross_camera_tracker import CrossCameraTracker
 
 
 class MockClock:
-    """Injectable deterministic clock for unit testing."""
-
     def __init__(self, initial_time: float = 1000.0) -> None:
         self.current_time = initial_time
 
@@ -24,8 +20,6 @@ class MockClock:
 
 
 class TestCameraTransitionModel(unittest.TestCase):
-    """Focused tests for CameraTransitionModel topology, filtering, scoring, and safety."""
-
     def setUp(self) -> None:
         self.clock = MockClock(initial_time=1000.0)
         self.sample_config = {
@@ -72,7 +66,6 @@ class TestCameraTransitionModel(unittest.TestCase):
         self.assertEqual(history["transitions"][0]["to"], "cam_b")
 
     def test_invalid_a_to_c_transition(self) -> None:
-        """Reject candidates where direct topology A -> C is not configured."""
         model = CameraTransitionModel(config=self.sample_config, time_provider=self.clock.now)
         tracker = CrossCameraTracker(transition_model=model, time_provider=self.clock.now)
 
@@ -83,7 +76,6 @@ class TestCameraTransitionModel(unittest.TestCase):
         self.assertNotEqual(gid1, gid2)
 
     def test_too_early_arrival(self) -> None:
-        """Reject candidate appearing before minimum travel time (e.g. delta_t = 3s < min 5s)."""
         model = CameraTransitionModel(config=self.sample_config, time_provider=self.clock.now)
         tracker = CrossCameraTracker(transition_model=model, time_provider=self.clock.now)
 
@@ -94,7 +86,6 @@ class TestCameraTransitionModel(unittest.TestCase):
         self.assertNotEqual(gid1, gid2)
 
     def test_too_late_arrival(self) -> None:
-        """Reject candidate appearing after maximum travel time (e.g. delta_t = 35s > max 30s)."""
         model = CameraTransitionModel(config=self.sample_config, time_provider=self.clock.now)
         tracker = CrossCameraTracker(transition_model=model, time_provider=self.clock.now)
 
@@ -105,7 +96,6 @@ class TestCameraTransitionModel(unittest.TestCase):
         self.assertNotEqual(gid1, gid2)
 
     def test_exact_minimum_and_maximum_boundaries(self) -> None:
-        """Exact min_travel_seconds (5.0s) and max_travel_seconds (30.0s) must be accepted."""
         clock1 = MockClock(1000.0)
         model1 = CameraTransitionModel(config=self.sample_config, time_provider=clock1.now)
         tracker1 = CrossCameraTracker(transition_model=model1, time_provider=clock1.now)
@@ -125,7 +115,6 @@ class TestCameraTransitionModel(unittest.TestCase):
         self.assertEqual(gid3, gid4)
 
     def test_missing_transition_configuration(self) -> None:
-        """When topology config is empty/missing, preserve existing fallback behavior."""
         empty_model = CameraTransitionModel(config={}, time_provider=self.clock.now)
         self.assertFalse(empty_model.is_enabled())
 
@@ -136,7 +125,6 @@ class TestCameraTransitionModel(unittest.TestCase):
         self.assertEqual(gid1, gid2)
 
     def test_invalid_configuration_handling(self) -> None:
-        """Configuration with invalid rules must fail safely with warnings."""
         invalid_config = {
             "camera_transitions": {
                 "": {"cam_b": {"min_travel_seconds": 5}},
@@ -159,7 +147,6 @@ class TestCameraTransitionModel(unittest.TestCase):
             self.assertNotIn("cam_d", model._topology["cam_a"])
 
     def test_same_local_track_id_on_different_cameras(self) -> None:
-        """Ensure (cam_a, 42) and (cam_b, 42) are treated as distinct global keys."""
         model = CameraTransitionModel(config=self.sample_config, time_provider=self.clock.now)
         tracker = CrossCameraTracker(transition_model=model, time_provider=self.clock.now)
 
@@ -172,7 +159,6 @@ class TestCameraTransitionModel(unittest.TestCase):
         self.assertIn(("cam_b", 42), tracker._local_to_global)
 
     def test_deterministic_tie_handling(self) -> None:
-        """Resolve candidate ties deterministically."""
         model = CameraTransitionModel(config=self.sample_config, time_provider=self.clock.now)
 
         emb = np.ones((128,), dtype=np.float32)
@@ -206,7 +192,6 @@ class TestCameraTransitionModel(unittest.TestCase):
         self.assertEqual(exit_rec.global_id, "GTRACK-FIRST")
 
     def test_expired_state_cleanup(self) -> None:
-        """Exit records older than max_history_seconds are automatically purged."""
         model = CameraTransitionModel(config=self.sample_config, time_provider=self.clock.now)
         model.record_exit("cam_a", local_track_id=1, global_id="GTRACK-OLD", timestamp=1000.0)
 
@@ -216,7 +201,6 @@ class TestCameraTransitionModel(unittest.TestCase):
         self.assertEqual(len(model._exits), 0)
 
     def test_camera_reconnect_and_track_id_reuse(self) -> None:
-        """Handle track ID reuse after long disconnection cleanly."""
         model = CameraTransitionModel(config=self.sample_config, time_provider=self.clock.now)
         tracker = CrossCameraTracker(transition_model=model, time_provider=self.clock.now)
 
@@ -229,7 +213,6 @@ class TestCameraTransitionModel(unittest.TestCase):
         self.assertNotEqual(gid1, gid2)
 
     def test_concurrent_access(self) -> None:
-        """Verify thread safety under heavy concurrent access."""
         model = CameraTransitionModel(config=self.sample_config, time_provider=self.clock.now)
         tracker = CrossCameraTracker(transition_model=model, time_provider=self.clock.now)
 
@@ -248,7 +231,6 @@ class TestCameraTransitionModel(unittest.TestCase):
         self.assertGreater(len(tracker._global_tracks), 0)
 
     def test_backward_compatibility_when_disabled(self) -> None:
-        """Verify CrossCameraTracker default instantiation operates identically to legacy tracker."""
         tracker = CrossCameraTracker(max_transition_time_seconds=60.0)
         self.assertIsNone(tracker.transition_model)
 
@@ -258,13 +240,10 @@ class TestCameraTransitionModel(unittest.TestCase):
 
 
 class TestMultiCameraPipelineTransitionIntegration(unittest.TestCase):
-    """Integration test verifying full multi-camera recognition pipeline wiring with CameraTransitionModel."""
-
     @patch("pipeline.multi_camera_recognition.MultiCameraRecognitionPipeline._load_model")
     @patch("pipeline.multi_camera_recognition.VectorStore")
     @patch("pipeline.multi_camera_recognition.MultiStreamEngine")
     def test_pipeline_integration_wiring(self, mock_stream_engine, mock_vector_store, mock_load_model) -> None:
-        """Verify MultiCameraRecognitionPipeline instantiates transition model and maps global IDs without external weights."""
         mock_load_model.return_value = MagicMock()
         mock_vector_store.return_value.load.return_value = None
 

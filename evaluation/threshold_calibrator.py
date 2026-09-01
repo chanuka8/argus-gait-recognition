@@ -12,11 +12,6 @@ from evaluation.gallery_probe_builder import build_gallery_and_probe_sets
 
 
 class ThresholdCalibrator:
-    """
-    Calibrates recognition operating threshold using ONLY validation subjects.
-    Never tunes or optimizes thresholds on the test set.
-    """
-
     def __init__(
         self,
         val_subjects: list[str],

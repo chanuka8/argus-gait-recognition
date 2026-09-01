@@ -1,20 +1,3 @@
-"""
-Forensic Profiler for ARGUS AI Live Camera Stream Startup Latency.
-
-Measures the exact end-to-end and per-stage latency from:
-    START STREAM ACTION (POST /api/v1/cameras/start)
-        ↓
-    SOURCE RESOLVER (probe & validation)
-        ↓
-    CAMERA WORKER (capture open & first read)
-        ↓
-    INITIAL JPEG ENCODE
-        ↓
-    STREAM ENDPOINT (first valid frame transmitted & received)
-
-Provides microsecond-accurate breakdown across 5 repeated real local runs.
-"""
-
 import gc
 import json
 import statistics
@@ -36,7 +19,6 @@ from services.gait_service import GaitService
 
 
 def measure_isolated_stages() -> dict[str, Any]:
-    """Measures isolated atomic operations in the camera startup lifecycle."""
     print("=" * 70)
     print("STAGE-BY-STAGE ISOLATED LATENCY PROFILING")
     print("=" * 70)
@@ -116,13 +98,6 @@ def measure_isolated_stages() -> dict[str, Any]:
 
 
 def run_single_end_to_end_start(run_index: int, service: GaitService, camera_id: str = "CCTV-BENCH") -> dict[str, float]:
-    """
-    Executes a complete, real lifecycle run:
-    1. start_camera()
-    2. Wait for first valid JPEG from get_latest_jpeg() or stream generator
-    3. stop_camera()
-    Measures sub-millisecond timestamps for each milestone.
-    """
     gc.collect()
     time.sleep(0.5)
 

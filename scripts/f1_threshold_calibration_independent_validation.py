@@ -1,32 +1,3 @@
-"""
-ARGUS AI — F1 Threshold Calibration & Independent Validation
-
-This script implements a rigorous, statistically defensible threshold
-calibration and independent evaluation protocol:
-
-1. CALIBRATION SET (subjects 101-110): Used for threshold sweep & selection.
-   These subjects were used in the prior diagnostic sweep — reusing them
-   ensures calibration consistency and avoids fresh data contamination.
-
-2. INDEPENDENT TEST SET (subjects 051-070): Completely subject-disjoint,
-   NEVER used for threshold selection, sweep, gallery construction during
-   calibration, model training, or any prior optimization.
-
-3. Gallery/Probe Protocol (per partition):
-   Gallery: nm-01..nm-04 sequences (normal walking, first 4 takes) averaged.
-   Probes: nm-05, nm-06, cl-*, bg-* sequences (unseen conditions/takes).
-
-4. Threshold Selection: Max-F1 on calibration set → frozen.
-
-5. Independent Evaluation: Baseline (0.500) vs Frozen Calibrated threshold
-   on the independent test set, with Wilson CIs, bootstrap CIs, score
-   distribution analysis, and multi-objective operating point recommendations.
-
-CRITICAL INTERPRETATION RULE:
-   Any F1 improvement is attributable SOLELY to threshold calibration.
-   Model weights are IDENTICAL (frozen). No NN learning improvement is claimed.
-"""
-
 import hashlib
 import json
 import sys
@@ -72,7 +43,6 @@ OUTPUT_REPORT = Path("ARGUS_F1_THRESHOLD_CALIBRATION_INDEPENDENT_VALIDATION_REPO
 
 
 def load_frozen_model() -> ByGaitLight:
-    """Load the frozen production ByGaitLight model. No weight modification."""
     model = ByGaitLight(embedding_dim=256, part_bins=1)
     state = torch.load(BYGAIT_CHECKPOINT, map_location="cpu", weights_only=True)
     clean = {
@@ -86,7 +56,6 @@ def load_frozen_model() -> ByGaitLight:
 
 
 def compute_checkpoint_sha256() -> str:
-    """Compute SHA-256 of the frozen model checkpoint file."""
     h = hashlib.sha256()
     with open(BYGAIT_CHECKPOINT, "rb") as f:
         for chunk in iter(lambda: f.read(8192), b""):
@@ -95,7 +64,6 @@ def compute_checkpoint_sha256() -> str:
 
 
 def extract_embedding(model: ByGaitLight, gei_arr: np.ndarray) -> np.ndarray:
-    """Extract L2-normalized 256-D embedding from a GEI image."""
     with torch.no_grad():
         img = np.asarray(gei_arr, dtype=np.float32)
         if img.ndim == 2:
@@ -113,14 +81,6 @@ def extract_embedding(model: ByGaitLight, gei_arr: np.ndarray) -> np.ndarray:
 
 
 def build_gallery_and_probes(model: ByGaitLight, subject_ids: list[str]):
-    """
-    Build gallery embeddings and probe list for a set of subjects.
-
-    Gallery: Average of nm-01..nm-04 GEIs per subject.
-    Probes: nm-05, nm-06, cl-*, bg-* GEIs per subject.
-
-    Returns: (gallery_embs: dict[str, np.ndarray], probe_list: list[(sid, fname, img)])
-    """
     gallery_embs = {}
     probe_list = []
     skipped_subjects = []
@@ -169,12 +129,6 @@ def build_gallery_and_probes(model: ByGaitLight, subject_ids: list[str]):
 
 
 def compute_score_pairs(model: ByGaitLight, gallery_embs: dict, probe_list: list):
-    """
-    Compute all genuine and impostor similarity scores.
-
-    Returns: (genuine_scores: list[float], impostor_scores: list[float],
-              all_scores: list[dict])
-    """
     genuine_scores = []
     impostor_scores = []
     all_scores = []
@@ -204,7 +158,6 @@ def compute_score_pairs(model: ByGaitLight, gallery_embs: dict, probe_list: list
 
 
 def evaluate_at_threshold(genuine: np.ndarray, impostor: np.ndarray, threshold: float) -> dict:
-    """Compute all biometric metrics at a given decision threshold."""
     n_gen = len(genuine)
     n_imp = len(impostor)
 
@@ -237,7 +190,6 @@ def evaluate_at_threshold(genuine: np.ndarray, impostor: np.ndarray, threshold: 
 
 
 def compute_eer(genuine: np.ndarray, impostor: np.ndarray) -> tuple[float, float]:
-    """Compute EER by fine-grained threshold search."""
     best_eer = 100.0
     best_th = 0.5
     for th in np.arange(0.0, 1.001, 0.001):
@@ -255,7 +207,6 @@ def compute_eer(genuine: np.ndarray, impostor: np.ndarray) -> tuple[float, float
 
 
 def wilson_ci(successes: int, trials: int, confidence: float = 0.95) -> tuple[float, float]:
-    """Wilson score interval for binomial proportion (returns percentage bounds)."""
     if trials <= 0:
         return (0.0, 0.0)
     p = successes / trials
@@ -276,11 +227,6 @@ def bootstrap_ci_metric(
     n_boot: int = BOOTSTRAP_ITERATIONS,
     seed: int = BOOTSTRAP_SEED,
 ) -> tuple[float, float, float]:
-    """
-    Bootstrap CI for a metric computed from genuine/impostor arrays at a threshold.
-    metric_fn(gen_sample, imp_sample, threshold) -> float
-    Returns: (point_estimate, ci_lower, ci_upper)
-    """
     rng = np.random.RandomState(seed)
     point = metric_fn(genuine, impostor, threshold)
     boot_values = []
@@ -312,7 +258,6 @@ def _f1_fn(gen, imp, th):
 
 
 def score_distribution_stats(scores: np.ndarray) -> dict:
-    """Compute percentile statistics for a score distribution."""
     if len(scores) == 0:
         return {}
     return {
@@ -334,10 +279,6 @@ def score_distribution_stats(scores: np.ndarray) -> dict:
 
 
 def run_calibration_sweep(genuine: np.ndarray, impostor: np.ndarray) -> dict:
-    """
-    Sweep thresholds on the CALIBRATION set to select operating points.
-    This data is used ONLY for threshold selection, not for final evaluation.
-    """
     thresholds = [round(t, 3) for t in np.arange(SWEEP_START, SWEEP_END + SWEEP_STEP / 2, SWEEP_STEP)]
     results = []
     for th in thresholds:
@@ -665,7 +606,6 @@ def main():
 
 
 def generate_markdown_report(data: dict) -> str:
-    """Generate the full ARGUS F1 Threshold Calibration Markdown report."""
     meta = data["metadata"]
     pv = data["partition_verification"]
     cs = data["calibration_sweep"]

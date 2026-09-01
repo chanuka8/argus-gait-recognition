@@ -2,14 +2,6 @@ import numpy as np
 
 
 class ReIDMatchingStep:
-    """
-    Person re-identification matching
-    using cosine similarity.
-
-    Secondary matching module.
-    Does not replace gait matching.
-    """
-
     def __init__(
         self,
         threshold: float = 0.6,
@@ -64,14 +56,6 @@ class ReIDMatchingStep:
         metadata: dict | None = None,
         unknown_label: str = "UNKNOWN_PERSON",
     ):
-        """
-        Match query ReID embedding against
-        gallery using cosine similarity.
-
-        Returns:
-            (identity, reid_score)
-        """
-
         if gallery_features is None or gallery_labels is None:
             return unknown_label, 0.0
 

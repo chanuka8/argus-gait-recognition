@@ -1,11 +1,3 @@
-"""
-Centralized Windows DLL Search Path and CUDA Runtime Helper for ARGUS AI.
-
-Ensures NVIDIA CUDA DLLs and PyTorch CUDA libraries (such as cublas, cudnn, cufft)
-are correctly registered in the Windows dynamic link library search path before
-ONNX Runtime or CUDA C-extensions are loaded.
-"""
-
 import os
 import sys
 from pathlib import Path
@@ -15,15 +7,6 @@ _INITIALIZED: bool = False
 
 
 def setup_cuda_dll_paths() -> list[str]:
-    """
-    Safely configure Windows DLL search paths for PyTorch and ONNX Runtime CUDA.
-
-    Adds torch/lib and known CUDA runtime directories to os.environ["PATH"]
-    and registers them via os.add_dll_directory() if available (Python 3.8+ on Windows).
-
-    Returns:
-        List of paths successfully added to DLL search path.
-    """
     global _INITIALIZED, _DLL_DIRECTORIES_REGISTERED
 
     if _INITIALIZED:

@@ -22,8 +22,6 @@ class ModelDeploymentStatus(str, Enum):
 
 @dataclass
 class ModelVersionRecord:
-    """Represents a specific model/calibration version and its complete audit lineage."""
-
     model_version: str
     model_type: str
     architecture: str
@@ -71,11 +69,6 @@ class ModelVersionRecord:
 
 
 class ModelRegistry:
-    """
-    Central repository for managing model versions, validation gates, atomic promotions,
-    and automatic rollbacks across ARGUS AI inference subsystems.
-    """
-
     def __init__(self, registry_file: str = "models/model_registry.json") -> None:
         self.registry_file = Path(registry_file)
         self.registry_file.parent.mkdir(parents=True, exist_ok=True)
@@ -83,7 +76,6 @@ class ModelRegistry:
         self._initialize_defaults()
 
     def _initialize_defaults(self) -> None:
-        """Seed registry with known production baseline models if file does not exist."""
         if not self.registry_file.exists():
             base_gait = ModelVersionRecord(
                 model_version="v1.0.0",
@@ -229,7 +221,6 @@ class ModelRegistry:
         parent_version: str | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> ModelVersionRecord:
-        """Register a new candidate model version prior to automated validation."""
         checksum = self._calculate_checksum(artifact_path)
         existing = self.get_model(model_version, model_type)
         if existing:
@@ -263,7 +254,6 @@ class ModelRegistry:
         metrics: dict[str, Any],
         rejection_reason: str | None = None,
     ) -> ModelVersionRecord:
-        """Record the automated regression validation outcome for a candidate version."""
         data = self._load_registry()
         updated = None
 
@@ -294,10 +284,6 @@ class ModelRegistry:
         model_type: str | None = None,
         reason: str | None = None,
     ) -> ModelVersionRecord:
-        """
-        Atomically promote a VALIDATED candidate to ACTIVE production status,
-        archiving the currently active production version and recording the rollback pointer.
-        """
         data = self._load_registry()
         current_active_idx = None
         target_idx = None
@@ -352,9 +338,6 @@ class ModelRegistry:
         return ModelVersionRecord.from_dict(target)
 
     def rollback(self, model_type: str, reason: str = "Automated health/regression failure") -> ModelVersionRecord:
-        """
-        Atomically rollback the active model version to the previous known-good production version.
-        """
         data = self._load_registry()
         current_active_idx = None
 

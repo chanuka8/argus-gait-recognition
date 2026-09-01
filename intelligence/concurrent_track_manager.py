@@ -1,10 +1,3 @@
-"""
-Concurrent Track Management & Per-Person Context Isolation Module.
-
-Provides unbounded, thread-safe tracking context management, per-person state isolation,
-deterministic track recovery, and automatic memory cleanup for large numbers of concurrent persons.
-"""
-
 from __future__ import annotations
 
 import enum
@@ -21,8 +14,6 @@ from monitoring.logging_config import get_logger
 
 
 class TrackLifecycleState(str, enum.Enum):
-    """Lifecycle states for concurrent person tracks."""
-
     DETECTED = "DETECTED"
     TRACKING = "TRACKING"
     PROCESSING = "PROCESSING"
@@ -34,8 +25,6 @@ class TrackLifecycleState(str, enum.Enum):
 
 
 class PersonAssessmentState(str, enum.Enum):
-    """System assessment state for person display overlay."""
-
     CONFIRMED = "CONFIRMED"
     UNCONFIRMED = "UNCONFIRMED"
     SPECIAL_ATTENTION = "SPECIAL_ATTENTION"
@@ -44,8 +33,6 @@ class PersonAssessmentState(str, enum.Enum):
 
 
 class MobilityState(str, enum.Enum):
-    """Observed mobility classification for biometric pathway routing."""
-
     STANDARD_WALKING = "STANDARD_WALKING"
     WHEELCHAIR = "WHEELCHAIR"
     CRUTCHES_AID = "CRUTCHES_AID"
@@ -55,14 +42,6 @@ class MobilityState(str, enum.Enum):
 
 @dataclass
 class PersonTrackContext:
-    """
-    Isolated state container for a single tracked person.
-
-    Contains all spatial, temporal, biometric, and lifecycle metadata.
-    Guarantees strict isolation: failure or corruption in one track context
-    cannot affect any other track or camera.
-    """
-
     camera_id: str
     track_id: int
     state: TrackLifecycleState = TrackLifecycleState.DETECTED
@@ -105,7 +84,6 @@ class PersonTrackContext:
     identity_history: list[str] = field(default_factory=list)
 
     def is_active(self) -> bool:
-        """Return True if the track is in an active tracking or processing state."""
         return self.state in (
             TrackLifecycleState.DETECTED,
             TrackLifecycleState.TRACKING,
@@ -116,16 +94,9 @@ class PersonTrackContext:
         )
 
     def is_expired(self) -> bool:
-        """Return True if the track has been finalized and expired."""
         return self.state == TrackLifecycleState.EXPIRED
 
     def evaluate_display_state(self) -> str:
-        """Evaluate the display classification:
-        - CONFIRMED (RED): Confirmed identity / recognized match
-        - SPECIAL_ATTENTION (YELLOW): Reserved explicit operational attention
-        - UNCONFIRMED / BIOMETRIC_INAPPLICABLE (GREEN): Default for all detected, tracked, assessing, unknown, or inapplicable subjects
-        """
-
         if (
             self.status in ("CONFIRMED", "MATCH", "VERIFIED_MATCH")
             or self.decision in ("CONFIRMED", "CONFIRMED_MATCH", "MATCH", "VERIFIED_MATCH")
@@ -166,7 +137,6 @@ class PersonTrackContext:
         score: float,
         frame_index: int,
     ) -> None:
-        """Safely update appearance biometric state."""
         if embedding is not None:
             self.appearance_embedding = embedding
         self.appearance_identity = identity
@@ -180,7 +150,6 @@ class PersonTrackContext:
         score: float,
         frame_index: int,
     ) -> None:
-        """Safely update gait biometric state."""
         if embedding is not None:
             self.gait_embedding = embedding
         self.gait_identity = identity
@@ -195,7 +164,6 @@ class PersonTrackContext:
         status: str,
         details: dict[str, Any] | None = None,
     ) -> None:
-        """Safely update fused identity decision."""
         self.fused_identity = identity
         self.fused_score = float(score)
         self.decision = decision
@@ -212,16 +180,6 @@ class PersonTrackContext:
 
 
 class ConcurrentTrackManager:
-    """
-    Thread-safe manager for unbounded concurrent person tracks across multiple cameras.
-
-    Key Responsibilities:
-    1. Unbounded Track Allocation: Dynamically creates and maintains person contexts without fixed caps.
-    2. Per-Person Isolation: Ensures independent state, embeddings, and error containment per track.
-    3. Deterministic Track Recovery: Re-links tracks across momentary occlusions or tracker ID switches.
-    4. Safe Lifecycle Cleanup: Purges expired track states across subsystems to prevent memory leaks.
-    """
-
     def __init__(
         self,
         max_idle_seconds: float = 5.0,
@@ -245,20 +203,17 @@ class ConcurrentTrackManager:
         self._total_expired_tracks = 0
 
     def get_track(self, camera_id: str, track_id: int) -> PersonTrackContext | None:
-        """Retrieve person track context by camera and track ID."""
         key = (camera_id, int(track_id))
         with self._lock:
             return self._tracks.get(key)
 
     def get_active_tracks(self, camera_id: str | None = None) -> list[PersonTrackContext]:
-        """Return list of all active track contexts, optionally filtered by camera_id."""
         with self._lock:
             if camera_id is not None:
                 return [t for (cid, _), t in self._tracks.items() if cid == camera_id and t.is_active()]
             return [t for t in self._tracks.values() if t.is_active()]
 
     def get_all_tracks(self, camera_id: str | None = None) -> list[PersonTrackContext]:
-        """Return all tracked contexts (active + missing), optionally filtered by camera_id."""
         with self._lock:
             if camera_id is not None:
                 return [t for (cid, _), t in self._tracks.items() if cid == camera_id]
@@ -275,11 +230,6 @@ class ConcurrentTrackManager:
         frame_index: int = 0,
         timestamp: float | None = None,
     ) -> PersonTrackContext:
-        """
-        Create or update a track context upon receiving a frame detection/tracking update.
-
-        Performs automatic recovery check if track_id appears new in the scene.
-        """
         now = timestamp if timestamp is not None else time.monotonic()
         key = (camera_id, int(track_id))
 
@@ -347,9 +297,6 @@ class ConcurrentTrackManager:
         current_active_track_ids: set[int],
         timestamp: float | None = None,
     ) -> list[PersonTrackContext]:
-        """
-        Mark tracks that were not detected in the current camera frame as TEMPORARILY_MISSING.
-        """
         missing_tracks: list[PersonTrackContext] = []
 
         with self._lock:
@@ -373,7 +320,6 @@ class ConcurrentTrackManager:
         new_bbox: list[int],
         now: float,
     ) -> PersonTrackContext | None:
-        """Search recently lost tracks in the same camera for a spatial IoU match."""
         best_candidate_key = None
         best_iou = self.recovery_iou_threshold
 
@@ -402,12 +348,6 @@ class ConcurrentTrackManager:
         cleanup_callbacks: list[Callable[[str, int], None]] | None = None,
         timestamp: float | None = None,
     ) -> list[tuple[str, int]]:
-        """
-        Identify and purge expired tracks that have been inactive beyond max_idle_seconds.
-
-        Invokes external cleanup callbacks (e.g. GEI buffer purge, appearance cache purge)
-        to guarantee zero memory leakage across long-running surveillance operations.
-        """
         now = timestamp if timestamp is not None else time.monotonic()
         idle_threshold = max_idle_seconds if max_idle_seconds is not None else self.max_idle_seconds
         expired_keys: list[tuple[str, int]] = []
@@ -442,7 +382,6 @@ class ConcurrentTrackManager:
         camera_id: str,
         cleanup_callbacks: list[Callable[[str, int], None]] | None = None,
     ) -> int:
-        """Evict all tracks belonging to a stopped or removed camera."""
         removed_count = 0
         with self._lock:
             keys_to_remove = [k for k in self._tracks if k[0] == camera_id]
@@ -465,7 +404,6 @@ class ConcurrentTrackManager:
         return removed_count
 
     def clear_all(self) -> None:
-        """Clear all active and buffered tracks across all cameras."""
         with self._lock:
             self._tracks.clear()
             self._recently_lost_tracks.clear()
@@ -474,7 +412,6 @@ class ConcurrentTrackManager:
             self._total_expired_tracks = 0
 
     def get_stats(self) -> dict[str, Any]:
-        """Return real-time track manager telemetry."""
         with self._lock:
             active = [t for t in self._tracks.values() if t.is_active()]
             missing = [t for t in self._tracks.values() if t.state == TrackLifecycleState.TEMPORARILY_MISSING]

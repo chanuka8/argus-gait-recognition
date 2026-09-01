@@ -1,19 +1,5 @@
-"""
-Dynamic Fusion Weight Allocation for Dual-Modal (Gait + ReID) Biometrics.
-
-Enforces constraint: gait_weight + reid_weight = 1.0.
-Supports default static weights and quality-adaptive dynamic weighting.
-"""
-
 
 class DynamicFusionWeights:
-    """
-    Dual-modal weight allocator.
-
-    Maintains gait_weight + reid_weight = 1.0.
-    Dynamically adjusts weights based on modal quality factors.
-    """
-
     def __init__(
         self,
         default_gait_weight: float = 0.7,
@@ -34,12 +20,6 @@ class DynamicFusionWeights:
         gait_quality: float = 1.0,
         reid_quality: float = 1.0,
     ) -> tuple[float, float]:
-        """
-        Compute normalized dual-modal weights (w_gait, w_reid).
-
-        Returns:
-            Tuple[w_gait, w_reid] such that w_gait + w_reid = 1.0.
-        """
         g_avail = bool(gait_available and gait_quality > 0.0)
         r_avail = bool(reid_available and reid_quality > 0.0)
 

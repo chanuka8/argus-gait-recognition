@@ -1,7 +1,3 @@
-"""
-Build TensorRT engine from ONNX model file and verify output parity.
-"""
-
 import argparse
 import subprocess
 import sys
@@ -17,7 +13,6 @@ def build_engine_python(
     engine_path: Path,
     precision: str = "fp16",
 ) -> bool:
-    """Build TensorRT engine using tensorrt Python bindings."""
     try:
         import tensorrt as trt
 
@@ -61,7 +56,6 @@ def build_engine_trtexec(
     engine_path: Path,
     precision: str = "fp16",
 ) -> bool:
-    """Build TensorRT engine using trtexec CLI binary."""
     cmd = [
         "trtexec",
         f"--onnx={onnx_path}",

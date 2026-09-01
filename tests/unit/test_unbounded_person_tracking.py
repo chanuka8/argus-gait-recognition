@@ -1,19 +1,3 @@
-"""
-Comprehensive Unit & Scalability Test Suite for ARGUS AI Unbounded Multi-Person Architecture.
-
-Tests:
-1. Unbounded track allocation (1, 10, 50, 100, 250, 500, 1000 simulated persons).
-2. Per-person context isolation and zero state crosstalk.
-3. Deterministic track recovery across temporary missing frames.
-4. Deterministic garbage collection and zero memory leakage over 10,000 track lifecycle events.
-5. Dynamic batching for OSNet (512D) and ByGaitLight (256D) embeddings.
-6. Fair-share scheduling & starvation prevention between crowded (50 persons) and sparse (2 persons) cameras.
-7. Adaptive load degradation and automatic recovery tiers.
-8. Single-track failure isolation (corrupted bbox, zero-size crop, NaN embedding, exception containment).
-9. Multi-camera x Multi-person workload simulations (1x100, 4x25, 16x10, 32x10).
-10. Hardware-agnostic dynamic capacity estimation across system profiles.
-"""
-
 from __future__ import annotations
 
 import time
@@ -40,10 +24,7 @@ from streaming.production_multicamera_engine import (
 
 
 class TestUnboundedPersonTracking:
-    """Test suite validating unbounded person tracking, dynamic batching, and fair scheduling."""
-
     def test_unbounded_person_track_creation_and_context(self) -> None:
-        """Verify dynamic unbounded track context allocation for 1, 10, 50, 100, 250, 500, 1000 persons."""
         mgr = ConcurrentTrackManager(max_idle_seconds=5.0)
 
 
@@ -72,7 +53,6 @@ class TestUnboundedPersonTracking:
             assert len(mgr.get_active_tracks()) == count
 
     def test_per_person_context_isolation(self) -> None:
-        """Verify strict isolation between person track contexts (no cross-track pollution)."""
         mgr = ConcurrentTrackManager()
 
         ctx1 = mgr.update_or_create_track("cam_0", 101, [10, 10, 50, 100], confidence=0.9)
@@ -96,7 +76,6 @@ class TestUnboundedPersonTracking:
         assert ctx1.state == TrackLifecycleState.IDENTIFIED
 
     def test_track_lifecycle_and_spatial_recovery(self) -> None:
-        """Verify lifecycle progression: DETECTED -> TRACKING -> TEMPORARILY_MISSING -> RECOVERED."""
         mgr = ConcurrentTrackManager(recovery_iou_threshold=0.25, recovery_time_window_seconds=2.0)
 
 
@@ -121,7 +100,6 @@ class TestUnboundedPersonTracking:
         assert stats["total_recovered_tracks"] == 1
 
     def test_track_expiration_and_zero_memory_leak(self) -> None:
-        """Verify deterministic garbage collection over 10,000 track lifecycle events with 0 leak."""
         mgr = ConcurrentTrackManager(max_idle_seconds=0.05)
         gei_builder = StreamGEIBuilder()
         appearance_extractor = AppearanceEmbeddingExtractor()
@@ -165,7 +143,6 @@ class TestUnboundedPersonTracking:
         assert len(gei_builder.track_buffers) == 0
 
     def test_dynamic_batching_reid_and_gait(self) -> None:
-        """Verify dynamic batch extraction for OSNet (512D) and ByGaitLight (256D)."""
         extractor = AppearanceEmbeddingExtractor()
 
         crops = [np.ones((120, 60, 3), dtype=np.uint8) * ((i % 10) * 20 + 1) for i in range(16)]
@@ -186,7 +163,6 @@ class TestUnboundedPersonTracking:
             assert extractor.get_cached(tid) is not None
 
     def test_fair_share_scheduler_starvation_prevention(self) -> None:
-        """Verify fair scheduling: Camera A (50 persons) does not starve Camera B (2 persons)."""
         scheduler = PersonTrackScheduler()
         policy_params = scheduler.policy_engine.evaluate_policy(active_tracks_count=52)
 
@@ -220,7 +196,6 @@ class TestUnboundedPersonTracking:
         assert scheduled_cam_b > 0
 
     def test_adaptive_load_degradation_tiers(self) -> None:
-        """Verify adaptive degradation transitions under simulated hardware pressure."""
         policy = AdaptivePersonProcessingPolicy()
 
 
@@ -245,7 +220,6 @@ class TestUnboundedPersonTracking:
         assert p4.target_fps_scale == 0.25
 
     def test_per_track_failure_isolation(self) -> None:
-        """Verify single-track failure (corrupted crop, invalid bbox, NaN vector) is isolated."""
         extractor = AppearanceEmbeddingExtractor()
         engine = ProductionMultiCameraEngine(appearance_extractor=extractor)
         engine.register_camera("cam_test")
@@ -264,7 +238,6 @@ class TestUnboundedPersonTracking:
         assert good_ctx.is_active() is True
 
     def test_multi_camera_multi_person_workload_simulation(self) -> None:
-        """Simulate multi-camera x multi-person configurations (1x100, 4x25, 16x10, 32x10) [SIMULATED]."""
         scenarios = [
             (1, 100),
             (4, 25),
@@ -288,7 +261,6 @@ class TestUnboundedPersonTracking:
             assert res["estimated_track_memory_mb"] > 0
 
     def test_dynamic_capacity_estimation_profiles(self) -> None:
-        """Verify dynamic capacity adaptation across CPU-only, low-resource, standard GPU, and server."""
         estimator = ProductionCapacityEstimator()
 
 

@@ -68,7 +68,6 @@ if (FRONTEND_DIST_DIR / "assets").exists():
 
 
 def custom_openapi():
-    """Custom OpenAPI schema generator ensuring multipart files format=binary for Swagger file picker."""
     if app.openapi_schema:
         return app.openapi_schema
 
@@ -154,10 +153,6 @@ def root():
 
 @app.get("/{full_path:path}")
 async def serve_spa_frontend(full_path: str):
-    """
-    Catch-all route to serve the React Single Page Application (SPA).
-    Supports client-side routing while preserving /api, /docs, /redoc, /health, /status, and /metrics.
-    """
     if full_path.startswith("api/") or full_path in (
         "docs",
         "redoc",

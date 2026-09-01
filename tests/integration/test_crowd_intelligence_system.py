@@ -1,7 +1,3 @@
-"""
-Integration tests for unified Crowd Intelligence System across Stages 1 to 4.
-"""
-
 from intelligence.crowd_intelligence_system import CrowdIntelligenceSystem
 from intelligence.crowd_occlusion_analyzer import CrowdDensityLevel
 

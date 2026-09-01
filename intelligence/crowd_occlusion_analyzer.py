@@ -1,10 +1,3 @@
-"""
-Stage 1: Crowd-Aware Occlusion Analyzer Engine.
-
-Provides lightweight crowd density analysis, per-track bounding-box mutual occlusion scoring,
-moving-window smoothing, clean-frame ratio calculation, and silhouette acceptance decisions.
-"""
-
 import time
 from dataclasses import dataclass, field
 from enum import Enum
@@ -21,7 +14,6 @@ class CrowdDensityLevel(str, Enum):
 
 
 def compute_iou(box1: list[float], box2: list[float]) -> float:
-    """Compute Intersection over Union (IoU) between two bounding boxes [x1, y1, x2, y2]."""
     x1_1, y1_1, x2_1, y2_1 = box1
     x1_2, y1_2, x2_2, y2_2 = box2
 
@@ -70,10 +62,6 @@ class FrameCrowdAnalysis:
 
 
 class CrowdOcclusionAnalyzer:
-    """
-    Analyzes frame crowd density and maintains per-track occlusion state and silhouette gating.
-    """
-
     def __init__(
         self,
         config: dict[str, Any] | None = None,
@@ -99,18 +87,6 @@ class CrowdOcclusionAnalyzer:
         camera_id: str = "cam_00",
         timestamp: float | None = None,
     ) -> FrameCrowdAnalysis:
-        """
-        Analyze crowd density and compute per-track occlusion scores for a frame.
-
-        Args:
-            detections: List of detection dicts with 'track_id' (or index) and 'bbox'.
-            frame_shape: (height, width) of image frame.
-            camera_id: Camera identifier string.
-            timestamp: Monotonic timestamp.
-
-        Returns:
-            FrameCrowdAnalysis dataclass.
-        """
         now = timestamp if timestamp is not None else time.monotonic()
         person_count = len(detections)
 
@@ -221,7 +197,6 @@ class CrowdOcclusionAnalyzer:
     def cleanup_inactive(
         self, max_idle_seconds: float = 10.0, current_time: float | None = None
     ) -> list[tuple[str, Any]]:
-        """Purge inactive track states that have timed out."""
         now = current_time if current_time is not None else time.monotonic()
         purged = []
         for key, state in list(self.track_states.items()):
