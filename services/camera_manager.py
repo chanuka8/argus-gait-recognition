@@ -108,7 +108,7 @@ class CameraManager:
                 self._logger.warning(f"Camera {camera_id} already exists")
                 return False
 
-            # Dynamic admission check if configured
+
             if camera_config.get("enforce_admission", False):
                 try:
                     from streaming.deployment_readiness import DeploymentReadinessManager

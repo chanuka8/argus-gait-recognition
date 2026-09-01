@@ -266,7 +266,7 @@ class DualModalFusion:
             track_reliability=track_reliability,
         )
 
-        # Case 1: Both modalities identify the same person
+
         if g_passes and a_passes and (raw_g_id == raw_a_id):
             final_identity = raw_g_id
             final_score = fusion_res["final_score"]
@@ -275,7 +275,7 @@ class DualModalFusion:
             modality_state = "DUAL_MODAL_MATCH"
             conflict = False
 
-        # Case 5: Both pass thresholds but produce conflicting identities
+
         elif g_passes and a_passes and (raw_g_id != raw_a_id):
             final_identity = "REVIEW_REQUIRED"
             final_score = max(g_score, a_score)
@@ -284,7 +284,7 @@ class DualModalFusion:
             modality_state = "CONFLICT"
             conflict = True
 
-        # Case 2: Gait-only fallback (gait passes, appearance unavailable or below threshold)
+
         elif g_passes and not a_passes:
             final_identity = raw_g_id
             final_score = g_score
@@ -293,7 +293,7 @@ class DualModalFusion:
             modality_state = "GAIT_ONLY"
             conflict = False
 
-        # Case 3: Appearance-only fallback (appearance passes, gait unavailable or below threshold)
+
         elif a_passes and not g_passes:
             final_identity = raw_a_id
             final_score = a_score
@@ -302,7 +302,7 @@ class DualModalFusion:
             modality_state = "APPEARANCE_ONLY"
             conflict = False
 
-        # Case 4 & 6: Both unavailable or both below thresholds
+
         else:
             final_identity = unknown_label
             final_score = max(g_score, a_score) if (g_score > 0 or a_score > 0) else 0.0
@@ -311,7 +311,7 @@ class DualModalFusion:
             modality_state = "UNAVAILABLE" if (g_score == 0 and a_score == 0) else "BELOW_THRESHOLD"
             conflict = False
 
-        # Step 5N: Conservative Safeguard for High-Risk Confusion Pairs
+
         if decision == "CONFIRMED" and self._is_valid_identity(final_identity):
             for group in self.high_risk_confusion_groups:
                 if final_identity in group:

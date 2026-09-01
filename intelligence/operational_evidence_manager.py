@@ -50,7 +50,7 @@ class OperationalEvidenceRecord:
     track_id: int
     session_id: str
     person_id: str
-    modality: str  # 'gait' or 'appearance'
+    modality: str
     category: EvidenceCategory
     shape: list[int]
     dtype: str
@@ -98,7 +98,7 @@ class OperationalEvidenceManager:
     def __init__(
         self,
         storage_dir: str = "data/operational_evidence",
-        max_storage_bytes: int = 500 * 1024 * 1024,  # 500 MB default
+        max_storage_bytes: int = 500 * 1024 * 1024,
         retention_days: float = 30.0,
     ) -> None:
         self.storage_dir = Path(storage_dir)
@@ -162,7 +162,7 @@ class OperationalEvidenceManager:
         if arr.size == 0 or not np.isfinite(arr).all():
             return None
 
-        # Validate minimum representation shape
+
         if modality == "gait":
             if arr.ndim != 2 or arr.shape[0] < 32 or arr.shape[1] < 32:
                 self._logger.debug(f"Invalid GEI dimensions: {arr.shape}")
@@ -176,11 +176,11 @@ class OperationalEvidenceManager:
         session_str = session_id or f"sess_{camera_id}_{track_id}_{int(now // 3600)}"
         condition_meta = dict(condition_metadata or {})
 
-        # Compute SHA-256 of binary array buffer
+
         arr_bytes = arr.tobytes()
         sha256 = hashlib.sha256(arr_bytes).hexdigest()
 
-        # Save to compressed .npz atomically
+
         file_name = f"{ev_id}.npz"
         target_path = self.storage_dir / file_name
         tmp_fd, tmp_path = tempfile.mkstemp(prefix="argus_ev_", suffix=".npz", dir=str(self.storage_dir))
@@ -243,7 +243,7 @@ class OperationalEvidenceManager:
                     arr = data["data"]
                     stored_sha = str(data["sha256"])
 
-                # Check corruption
+
                 actual_sha = hashlib.sha256(arr.tobytes()).hexdigest()
                 if actual_sha != stored_sha or actual_sha != record.sha256_hash:
                     self._logger.error(
@@ -293,7 +293,7 @@ class OperationalEvidenceManager:
     def _enforce_quota_and_cleanup(self) -> None:
         """Evict expired or over-quota unlocked evidence records."""
         now = time.time()
-        # 1. Clean up expired unlocked records
+
         evicted = []
         for eid, rec in list(self._records.items()):
             if rec.expires_at > 0 and now > rec.expires_at and not rec.manifest_locks:
@@ -308,10 +308,10 @@ class OperationalEvidenceManager:
         for eid in evicted:
             self._records.pop(eid, None)
 
-        # 2. Check storage quota; evict oldest unlocked records if exceeded
+
         current_bytes = self.get_total_storage_bytes()
         if current_bytes > self.max_storage_bytes:
-            # Sort unlocked records by creation time (oldest first)
+
             unlocked = [
                 rec for rec in self._records.values()
                 if not rec.manifest_locks

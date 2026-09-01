@@ -58,7 +58,7 @@ def compute_roc_pr_metrics(same_scores, diff_scores):
     if n_pos == 0 or n_neg == 0:
         return {"AUC": 0.0, "EER": 1.0, "threshold_at_EER": 0.0, "AP": 0.0}
 
-    # Rank-based exact AUC
+
     order = np.argsort(y_scores)
     ranks = np.empty_like(order, dtype=float)
     ranks[order] = np.arange(1, len(y_scores) + 1)
@@ -68,7 +68,7 @@ def compute_roc_pr_metrics(same_scores, diff_scores):
     rank_sum_pos = np.sum(ranks[:n_pos])
     auc = float((rank_sum_pos - n_pos * (n_pos + 1) / 2.0) / (n_pos * n_neg))
 
-    # ROC thresholds for EER
+
     all_thresholds = np.sort(np.unique(y_scores))[::-1]
     fpr_list, tpr_list = [0.0], [0.0]
     for t_val in all_thresholds:
@@ -87,7 +87,7 @@ def compute_roc_pr_metrics(same_scores, diff_scores):
     eer = round(float((fpr_np[eer_idx] + fnr_np[eer_idx]) / 2.0), 6)
     eer_thresh = round(float(all_thresholds[min(max(0, eer_idx - 1), len(all_thresholds) - 1)]), 6)
 
-    # Average Precision
+
     rec_list, prec_list = [], []
     for t_val in all_thresholds:
         tp_v = int(np.sum(same_arr >= t_val))
@@ -133,9 +133,9 @@ def run_step_5g():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"[ENV] Device: {device}")
 
-    # =========================================================================
-    # PRE-STEP — DATA HYGIENE CHECK
-    # =========================================================================
+
+
+
     print("\n--- PRE-STEP: DATA HYGIENE CHECK ---")
     person_test_dir = Path("data/new_input/person_test")
     is_person_test_present = person_test_dir.exists()
@@ -143,14 +143,14 @@ def run_step_5g():
     print(f"[DATA HYGIENE] 'person_test' directory found: {is_person_test_present} ({person_test_count} images)")
     print("[DATA HYGIENE] Assessment: 'person_test' is synthetic/test scratch data from auto-enrollment testing.")
     print("[DATA HYGIENE] Action: EXCLUDING 'person_test' from evaluation dataset. Using strictly the 4 genuine production subjects.")
-    
+
     report["pre_step_data_hygiene"] = {
         "person_test_status": "EXCLUDED (test scratch data)",
         "person_test_image_count": person_test_count,
         "evaluation_subjects": ["demo_person_001", "Devhan", "Isuru", "person01"],
     }
 
-    # Initialize extractors
+
     gait_extractor = FeatureExtractionStep()
     OSNetBackbone._instance = None
     reid_extractor = ReIDFeatureExtractionStep(model_path="models/weights/osnet_x0_25.pth", device=device)
@@ -188,9 +188,9 @@ def run_step_5g():
 
     print(f"Total Paired Multimodal Samples: {total_paired_samples}")
 
-    # =========================================================================
-    # STEP 1 — DIAGNOSE WHY FIXED 0.70/0.30 FUSION HURTS/DOES NOT IMPROVE RANK-1
-    # =========================================================================
+
+
+
     print("\n" + "=" * 80)
     print("STEP 1: INDIVIDUAL LOO FAILURE DIAGNOSIS (Fixed 0.70 Gait / 0.30 Appearance)")
     print("=" * 80)
@@ -291,14 +291,14 @@ def run_step_5g():
         "all_failing_records": failing_cases,
     }
 
-    # =========================================================================
-    # STEP 2 — GRID SEARCH OVER FUSION WEIGHTS (0.00 to 1.00 in 0.05 steps)
-    # =========================================================================
+
+
+
     print("\n" + "=" * 80)
     print("STEP 2: EMPIRICAL GRID SEARCH OVER FUSION WEIGHTS (0.00 to 1.00, step 0.05)")
     print("=" * 80)
 
-    # Precompute pairwise similarities
+
     same_g_list, same_a_list = [], []
     for name in subjects:
         n = subject_data[name]["n_samples"]
@@ -326,7 +326,7 @@ def run_step_5g():
     all_diff_a = np.concatenate([v["app"] for v in diff_pairs_data.values()])
 
     grid_results = []
-    weight_steps = [round(w * 0.05, 2) for w in range(21)]  # 0.00 to 1.00
+    weight_steps = [round(w * 0.05, 2) for w in range(21)]
 
     print(f"{'w_gait':>6} | {'w_app':>6} | {'AUC':>7} | {'EER':>7} | {'AP':>7} | {'Rank-1':>7} | {'Dev_Isu Max':>11} | {'Dev_Isu >=.70':>13} | {'Isu_P01 Max':>11} | {'Isu_P01 >=.70':>13}")
     print("-" * 105)
@@ -339,7 +339,7 @@ def run_step_5g():
 
         roc_stats = compute_roc_pr_metrics(fused_same, fused_diff)
 
-        # LOO Rank-1 evaluation
+
         loo_correct = 0
         total_queries = 0
         for query_name in subjects:
@@ -369,7 +369,7 @@ def run_step_5g():
 
         rank1_acc = round(loo_correct / total_queries, 4)
 
-        # Confusion pair statistics
+
         dev_isu_fused = w_g * diff_pairs_data["Devhan_vs_Isuru"]["gait"] + w_a * diff_pairs_data["Devhan_vs_Isuru"]["app"]
         isu_p01_fused = w_g * diff_pairs_data["Isuru_vs_person01"]["gait"] + w_a * diff_pairs_data["Isuru_vs_person01"]["app"]
 
@@ -398,7 +398,7 @@ def run_step_5g():
 
     report["step_2_grid_search"] = grid_results
 
-    # Evaluate Existing Adaptive Weighting vs Fixed
+
     print("\n--- EVALUATING EXISTING ADAPTIVE WEIGHTING MECHANISM ---")
     adaptive_weight_results = {}
     for gei_frames in [1, 5, 10, 15]:
@@ -459,9 +459,9 @@ def run_step_5g():
     opt_w_g = best_config["w_gait"]
     opt_w_a = best_config["w_appearance"]
 
-    # =========================================================================
-    # STEP 3 — RE-DERIVE OPERATING THRESHOLD FROM OPTIMIZED FUSION (0.30 / 0.70)
-    # =========================================================================
+
+
+
     print("\n" + "=" * 80)
     print(f"STEP 3: RE-DERIVING OPERATING THRESHOLD (w_gait={opt_w_g}, w_appearance={opt_w_a})")
     print("=" * 80)
@@ -500,7 +500,7 @@ def run_step_5g():
     report["step_3_diff_stats"] = opt_diff_stats
     report["step_3_threshold_sweep"] = opt_sweep_table
 
-    # Operating Points
+
     opt_op_points = {}
     for label, max_fpr in [("FPR_lte_5pct", 0.05), ("FPR_lte_1pct", 0.01), ("FPR_lte_0.5pct", 0.005), ("FPR_eq_0pct", 0.0)]:
         cand = [r for r in opt_sweep_table if r["fpr"] <= max_fpr]
@@ -508,7 +508,7 @@ def run_step_5g():
             opt_op_points[label] = max(cand, key=lambda r: r["recall"])
     report["step_3_operating_points"] = opt_op_points
 
-    # Re-evaluate All Confusion Pairs
+
     print("\n--- ALL CONFUSION PAIRS SUMMARY WITH OPTIMIZED FUSION (0.30/0.70) ---")
     opt_confusion_stats = {}
     for pair_key, pdata in diff_pairs_data.items():
@@ -529,7 +529,7 @@ def run_step_5g():
 
     report["step_3_confusion_pairs"] = opt_confusion_stats
 
-    # Re-evaluate Unknown Person Rejection
+
     print("\n--- UNKNOWN PERSON REJECTION TEST (person01 as unknown against 3 knowns) ---")
     known_subjs = ["demo_person_001", "Devhan", "Isuru"]
     unknown_subj = "person01"
@@ -567,7 +567,7 @@ def run_step_5g():
 
     report["step_3_unknown_rejection"] = unknown_opt_results
 
-    # Per-Subject LOO Rank-1 with Optimal Weights
+
     print("\n--- PER-SUBJECT LOO RANK-1 ACCURACY WITH OPTIMAL WEIGHTS (0.30 / 0.70) ---")
     per_subj_opt_loo = {}
     for query_name in subjects:
@@ -600,9 +600,9 @@ def run_step_5g():
 
     report["step_3_per_subject_loo"] = per_subj_opt_loo
 
-    cond_a_pass = (opt_confusion_stats["Devhan_vs_Isuru"]["false_matches_ge_070"] == 0 and 
+    cond_a_pass = (opt_confusion_stats["Devhan_vs_Isuru"]["false_matches_ge_070"] == 0 and
                    opt_confusion_stats["Isuru_vs_person01"]["false_matches_ge_070"] == 0)
-    cond_b_pass = best_config["rank1_accuracy"] > 0.8378  # Appearance-alone is 83.78% (31/37), gait-alone is 40.54%
+    cond_b_pass = best_config["rank1_accuracy"] > 0.8378
 
     print("\n--- STEP 3 CONDITION CHECK ---")
     print(f"  Condition (a): 0% False matches on Devhan<->Isuru & Isuru<->person01 at threshold 0.70? -> {'PASSED (0/66 and 0/165)' if cond_a_pass else 'FAILED'}")
@@ -613,9 +613,9 @@ def run_step_5g():
         "condition_b_higher_rank1_than_single_modality": cond_b_pass,
     }
 
-    # =========================================================================
-    # STEP 4 — DETAILED FAILURE CASE ROOT-CAUSE ANALYSIS
-    # =========================================================================
+
+
+
     print("\n" + "=" * 80)
     print("STEP 4: DETAILED ROOT CAUSE FOR REMAINING FAILURE CASES (Optimal 0.30/0.70)")
     print("=" * 80)

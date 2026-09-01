@@ -21,7 +21,7 @@ def test_enhancer_initialization() -> None:
 
 def test_quality_gate_normal_photo() -> None:
     enhancer = DeterministicImageEnhancer()
-    # Create synthetic textured image with good brightness and sharpness
+
     img = np.random.randint(50, 200, (200, 100, 3), dtype=np.uint8)
     cv2.rectangle(img, (20, 20), (80, 180), (255, 255, 255), -1)
     cv2.circle(img, (50, 50), 20, (0, 0, 0), -1)
@@ -34,7 +34,7 @@ def test_quality_gate_normal_photo() -> None:
 
 def test_quality_gate_underexposed_rejection() -> None:
     enhancer = DeterministicImageEnhancer(min_brightness=25.0)
-    # Dark image (mean brightness ~ 10)
+
     dark_img = np.full((256, 128, 3), 10, dtype=np.uint8)
 
     result = enhancer.assess_quality(dark_img)
@@ -45,7 +45,7 @@ def test_quality_gate_underexposed_rejection() -> None:
 
 def test_quality_gate_overexposed_rejection() -> None:
     enhancer = DeterministicImageEnhancer(max_brightness=240.0)
-    # Blown out image (mean brightness ~ 250)
+
     bright_img = np.full((256, 128, 3), 250, dtype=np.uint8)
 
     result = enhancer.assess_quality(bright_img)
@@ -55,7 +55,7 @@ def test_quality_gate_overexposed_rejection() -> None:
 
 def test_quality_gate_blur_rejection() -> None:
     enhancer = DeterministicImageEnhancer(min_blur_score=20.0)
-    # Uniform smooth blurred image
+
     smooth_img = np.full((256, 128, 3), 128, dtype=np.uint8)
 
     result = enhancer.assess_quality(smooth_img)
@@ -86,7 +86,7 @@ def test_deterministic_enhancement_shape_and_range() -> None:
 
 def test_process_and_gate() -> None:
     enhancer = DeterministicImageEnhancer()
-    # Good image
+
     img = np.random.randint(50, 200, (200, 100, 3), dtype=np.uint8)
     cv2.rectangle(img, (20, 20), (80, 180), (255, 255, 255), -1)
 
@@ -95,7 +95,7 @@ def test_process_and_gate() -> None:
     assert enh_img is not None
     assert enh_img.shape[0] >= 200
 
-    # Rejected image
+
     dark_img = np.full((256, 128, 3), 5, dtype=np.uint8)
     accepted_bad, enh_bad, assess_bad = enhancer.process_and_gate(dark_img)
     assert accepted_bad is False

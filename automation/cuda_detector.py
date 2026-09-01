@@ -236,7 +236,7 @@ class CudaDetector:
         stages: list[CudaStageResult] = []
         failures: list[str] = []
 
-        # Stage 1: Hardware GPU presence
+
         hw_passed = gpu_info.present and bool(gpu_info.driver_version)
         stages.append(
             CudaStageResult(
@@ -249,7 +249,7 @@ class CudaDetector:
         if not hw_passed:
             failures.append(f"Hardware GPU not usable: {gpu_info.error or 'No NVIDIA GPU'}")
 
-        # Stage 2: PyTorch CUDA build
+
         pt_inst, pt_ver, pt_cuda, pt_avail, dev_count, pt_err = self.probe_pytorch_cuda_build()
         pt_passed = pt_inst and bool(pt_cuda) and pt_avail and (dev_count > 0)
         stages.append(
@@ -263,7 +263,7 @@ class CudaDetector:
         if not pt_passed:
             failures.append(f"PyTorch CUDA build not ready: {pt_err or 'No CUDA in PyTorch build'}")
 
-        # Stage 3: Tensor MatMul Execution
+
         tensor_passed, tensor_details, tensor_err = self.probe_cuda_tensor_execution()
         stages.append(
             CudaStageResult(
@@ -276,7 +276,7 @@ class CudaDetector:
         if not tensor_passed:
             failures.append(f"CUDA tensor execution failed: {tensor_err}")
 
-        # Stage 4: ByGaitLight Forward Pass on CUDA
+
         bygait_passed, bygait_details, bygait_err = self.probe_bygait_cuda_execution()
         stages.append(
             CudaStageResult(
@@ -289,7 +289,7 @@ class CudaDetector:
         if not bygait_passed:
             failures.append(f"ByGaitLight CUDA inference failed: {bygait_err}")
 
-        # Stage 5: YOLO Runtime Device
+
         yolo_passed, yolo_dev, yolo_details, yolo_err = self.probe_yolo_cuda_execution()
         stages.append(
             CudaStageResult(
@@ -302,7 +302,7 @@ class CudaDetector:
         if not yolo_passed:
             failures.append(f"YOLO CUDA execution not active: {yolo_details}")
 
-        # Stage 6: ONNX Runtime CUDA Execution
+
         onnx_passed, onnx_ver, onnx_sel, onnx_provs, onnx_err = self.probe_onnx_cuda_execution()
         stages.append(
             CudaStageResult(

@@ -33,7 +33,7 @@ import sys
 import time
 from pathlib import Path
 
-# Ensure repo root in sys.path
+
 _repo_root = str(Path(__file__).resolve().parent.parent)
 if _repo_root not in sys.path:
     sys.path.insert(0, _repo_root)
@@ -44,16 +44,16 @@ import torch
 
 from models.architectures.bygait_light import ByGaitLight
 
-# ════════════════════════════════════════════════════════════════
-# CONFIGURATION
-# ════════════════════════════════════════════════════════════════
+
+
+
 
 BYGAIT_CHECKPOINT = "runs/exp_001/best_model.pth"
 CASIA_GEI_DIR = Path("data/casia_processed/gei")
 
-# Subject-disjoint partitions (zero overlap)
-CALIBRATION_SUBJECTS = [f"{i:03d}" for i in range(101, 111)]  # 101-110
-INDEPENDENT_TEST_SUBJECTS = [f"{i:03d}" for i in range(51, 71)]  # 051-070
+
+CALIBRATION_SUBJECTS = [f"{i:03d}" for i in range(101, 111)]
+INDEPENDENT_TEST_SUBJECTS = [f"{i:03d}" for i in range(51, 71)]
 
 BASELINE_THRESHOLD = 0.500
 SWEEP_START = 0.950
@@ -67,9 +67,9 @@ OUTPUT_JSON = Path("outputs/f1_threshold_calibration_independent_validation.json
 OUTPUT_REPORT = Path("ARGUS_F1_THRESHOLD_CALIBRATION_INDEPENDENT_VALIDATION_REPORT.md")
 
 
-# ════════════════════════════════════════════════════════════════
-# MODEL LOADING
-# ════════════════════════════════════════════════════════════════
+
+
+
 
 def load_frozen_model() -> ByGaitLight:
     """Load the frozen production ByGaitLight model. No weight modification."""
@@ -108,9 +108,9 @@ def extract_embedding(model: ByGaitLight, gei_arr: np.ndarray) -> np.ndarray:
         return emb / norm if norm > 1e-6 else emb
 
 
-# ════════════════════════════════════════════════════════════════
-# DATA LOADING
-# ════════════════════════════════════════════════════════════════
+
+
+
 
 def build_gallery_and_probes(model: ByGaitLight, subject_ids: list[str]):
     """
@@ -131,14 +131,14 @@ def build_gallery_and_probes(model: ByGaitLight, subject_ids: list[str]):
             skipped_subjects.append(sid)
             continue
 
-        # Gallery: nm-01 through nm-04
+
         g_files = (
             list(s_dir.glob(f"{sid}_nm-01_*.png"))
             + list(s_dir.glob(f"{sid}_nm-02_*.png"))
             + list(s_dir.glob(f"{sid}_nm-03_*.png"))
             + list(s_dir.glob(f"{sid}_nm-04_*.png"))
         )
-        # Probes: nm-05, nm-06, cl-*, bg-*
+
         p_files = (
             list(s_dir.glob(f"{sid}_nm-05_*.png"))
             + list(s_dir.glob(f"{sid}_nm-06_*.png"))
@@ -146,9 +146,9 @@ def build_gallery_and_probes(model: ByGaitLight, subject_ids: list[str]):
             + list(s_dir.glob(f"{sid}_bg-*.png"))
         )
 
-        # Build averaged gallery embedding
+
         g_imgs = []
-        for gf in g_files[:44]:  # Up to 44 gallery GEIs (4 sequences × 11 angles)
+        for gf in g_files[:44]:
             img = cv2.imread(str(gf), cv2.IMREAD_GRAYSCALE)
             if img is not None:
                 g_imgs.append(img)
@@ -156,7 +156,7 @@ def build_gallery_and_probes(model: ByGaitLight, subject_ids: list[str]):
             g_avg = np.mean(g_imgs, axis=0).astype(np.uint8)
             gallery_embs[sid] = extract_embedding(model, g_avg)
 
-        # Build probe list
+
         for pf in p_files:
             p_img = cv2.imread(str(pf), cv2.IMREAD_GRAYSCALE)
             if p_img is not None:
@@ -199,9 +199,9 @@ def compute_score_pairs(model: ByGaitLight, gallery_embs: dict, probe_list: list
     return genuine_scores, impostor_scores, all_scores
 
 
-# ════════════════════════════════════════════════════════════════
-# EVALUATION METRICS
-# ════════════════════════════════════════════════════════════════
+
+
+
 
 def evaluate_at_threshold(genuine: np.ndarray, impostor: np.ndarray, threshold: float) -> dict:
     """Compute all biometric metrics at a given decision threshold."""
@@ -247,7 +247,7 @@ def compute_eer(genuine: np.ndarray, impostor: np.ndarray) -> tuple[float, float
         if eer_candidate < best_eer:
             best_eer = eer_candidate
             best_th = th
-    # At best_th, EER ≈ average of FAR and FRR
+
     frr_at_th = np.mean(genuine < best_th) * 100.0
     far_at_th = np.mean(impostor >= best_th) * 100.0
     eer = (far_at_th + frr_at_th) / 2.0
@@ -259,7 +259,7 @@ def wilson_ci(successes: int, trials: int, confidence: float = 0.95) -> tuple[fl
     if trials <= 0:
         return (0.0, 0.0)
     p = successes / trials
-    z = 1.95996  # 95% two-sided
+    z = 1.95996
     denom = 1.0 + (z**2) / trials
     centre = p + (z**2) / (2.0 * trials)
     adj_sd = np.sqrt((p * (1.0 - p) + (z**2) / (4.0 * trials)) / trials)
@@ -329,9 +329,9 @@ def score_distribution_stats(scores: np.ndarray) -> dict:
     }
 
 
-# ════════════════════════════════════════════════════════════════
-# THRESHOLD SWEEP (CALIBRATION SET ONLY)
-# ════════════════════════════════════════════════════════════════
+
+
+
 
 def run_calibration_sweep(genuine: np.ndarray, impostor: np.ndarray) -> dict:
     """
@@ -343,7 +343,7 @@ def run_calibration_sweep(genuine: np.ndarray, impostor: np.ndarray) -> dict:
     for th in thresholds:
         results.append(evaluate_at_threshold(genuine, impostor, th))
 
-    # Operating points
+
     max_f1_pt = max(results, key=lambda x: (x["f1"], x["precision"]))
     best_bal_pt = max(results, key=lambda x: (x["balanced_acc"], x["youden_j"]))
     eer_pt = min(results, key=lambda x: abs(x["far"] - x["frr"]))
@@ -362,9 +362,9 @@ def run_calibration_sweep(genuine: np.ndarray, impostor: np.ndarray) -> dict:
     }
 
 
-# ════════════════════════════════════════════════════════════════
-# MAIN EXECUTION
-# ════════════════════════════════════════════════════════════════
+
+
+
 
 def main():
     print("=" * 70)
@@ -372,14 +372,14 @@ def main():
     print("=" * 70)
     t_start = time.monotonic()
 
-    # ── Step 0: Load frozen model & compute integrity hash ──────
+
     print("\n[STEP 0] Loading frozen production model...")
     model = load_frozen_model()
     ckpt_sha256 = compute_checkpoint_sha256()
     print(f"  Checkpoint: {BYGAIT_CHECKPOINT}")
     print(f"  SHA-256:    {ckpt_sha256}")
 
-    # ── Step 1: Verify subject-disjoint partitions ──────────────
+
     print("\n[STEP 1] Verifying subject-disjoint partitions...")
     cal_set = set(CALIBRATION_SUBJECTS)
     ind_set = set(INDEPENDENT_TEST_SUBJECTS)
@@ -389,7 +389,7 @@ def main():
     print(f"  Independent test subjects:  {sorted(INDEPENDENT_TEST_SUBJECTS)}")
     print(f"  Overlap:                    {len(overlap)} (VERIFIED ZERO)")
 
-    # ── Step 2: Build calibration data ──────────────────────────
+
     print("\n[STEP 2] Building calibration gallery & probes...")
     cal_gallery, cal_probes = build_gallery_and_probes(model, CALIBRATION_SUBJECTS)
     cal_genuine, cal_impostor, _ = compute_score_pairs(model, cal_gallery, cal_probes)
@@ -400,7 +400,7 @@ def main():
     print(f"  Genuine trials:       {len(cal_genuine)}")
     print(f"  Impostor trials:      {len(cal_impostor)}")
 
-    # ── Step 3: Threshold sweep on calibration data ONLY ────────
+
     print("\n[STEP 3] Running threshold sweep on CALIBRATION data...")
     cal_sweep = run_calibration_sweep(cal_gen_arr, cal_imp_arr)
     max_f1_pt = cal_sweep["max_f1_point"]
@@ -413,13 +413,13 @@ def main():
         if v:
             print(f"  {k}: threshold={v['threshold']}, TAR={v['tar']}%, FAR={v['far']}%")
 
-    # ── Step 4: Baseline evaluation on calibration set ──────────
+
     print(f"\n[STEP 4] Baseline (threshold={BASELINE_THRESHOLD}) on calibration set...")
     cal_baseline = evaluate_at_threshold(cal_gen_arr, cal_imp_arr, BASELINE_THRESHOLD)
     print(f"  Precision={cal_baseline['precision']}% Recall={cal_baseline['recall']}% "
           f"F1={cal_baseline['f1']}% FAR={cal_baseline['far']}%")
 
-    # ── Step 5: Build independent test data ─────────────────────
+
     print("\n[STEP 5] Building INDEPENDENT TEST gallery & probes...")
     ind_gallery, ind_probes = build_gallery_and_probes(model, INDEPENDENT_TEST_SUBJECTS)
     ind_genuine, ind_impostor, _ = compute_score_pairs(model, ind_gallery, ind_probes)
@@ -430,7 +430,7 @@ def main():
     print(f"  Genuine trials:       {len(ind_genuine)}")
     print(f"  Impostor trials:      {len(ind_impostor)}")
 
-    # ── Step 6: Head-to-head on INDEPENDENT test set ────────────
+
     print("\n[STEP 6] Head-to-head on INDEPENDENT TEST SET:")
     print(f"  Baseline threshold:    {BASELINE_THRESHOLD}")
     print(f"  Calibrated threshold:  {frozen_threshold}")
@@ -438,7 +438,7 @@ def main():
     ind_baseline = evaluate_at_threshold(ind_gen_arr, ind_imp_arr, BASELINE_THRESHOLD)
     ind_calibrated = evaluate_at_threshold(ind_gen_arr, ind_imp_arr, frozen_threshold)
 
-    # Compute deltas
+
     deltas = {}
     for metric in ["precision", "recall", "f1", "tar", "far", "frr", "balanced_acc"]:
         deltas[metric] = round(ind_calibrated[metric] - ind_baseline[metric], 2)
@@ -448,17 +448,17 @@ def main():
     for metric in ["precision", "recall", "f1", "tar", "far", "frr", "balanced_acc"]:
         print(f"  {metric:<18} {ind_baseline[metric]:>9.2f}% {ind_calibrated[metric]:>11.2f}% {deltas[metric]:>+9.2f}%")
 
-    # ── Step 7: EER on independent test set ─────────────────────
+
     print("\n[STEP 7] Computing EER on independent test set...")
     ind_eer, ind_eer_threshold = compute_eer(ind_gen_arr, ind_imp_arr)
     print(f"  EER = {ind_eer}% at threshold = {ind_eer_threshold}")
 
-    # ── Step 8: Wilson CIs for TAR/FAR ──────────────────────────
+
     print("\n[STEP 8] Computing Wilson score CIs (95%) on independent test set...")
-    # Baseline
+
     base_tar_ci = wilson_ci(ind_baseline["tp"], ind_baseline["tp"] + ind_baseline["fn"])
     base_far_ci = wilson_ci(ind_baseline["fp"], ind_baseline["fp"] + ind_baseline["tn"])
-    # Calibrated
+
     cal_tar_ci = wilson_ci(ind_calibrated["tp"], ind_calibrated["tp"] + ind_calibrated["fn"])
     cal_far_ci = wilson_ci(ind_calibrated["fp"], ind_calibrated["fp"] + ind_calibrated["tn"])
 
@@ -467,15 +467,15 @@ def main():
     print(f"  Calibrated TAR CI:   [{cal_tar_ci[0]:.2f}%, {cal_tar_ci[1]:.2f}%]")
     print(f"  Calibrated FAR CI:   [{cal_far_ci[0]:.2f}%, {cal_far_ci[1]:.2f}%]")
 
-    # ── Step 9: Bootstrap CIs for Precision, Recall, F1 ─────────
+
     print("\n[STEP 9] Computing bootstrap CIs (95%) on independent test set...")
 
-    # Baseline bootstrap
+
     base_prec_boot = bootstrap_ci_metric(ind_gen_arr, ind_imp_arr, BASELINE_THRESHOLD, _precision_fn)
     base_rec_boot = bootstrap_ci_metric(ind_gen_arr, ind_imp_arr, BASELINE_THRESHOLD, _recall_fn)
     base_f1_boot = bootstrap_ci_metric(ind_gen_arr, ind_imp_arr, BASELINE_THRESHOLD, _f1_fn)
 
-    # Calibrated bootstrap
+
     cal_prec_boot = bootstrap_ci_metric(ind_gen_arr, ind_imp_arr, frozen_threshold, _precision_fn)
     cal_rec_boot = bootstrap_ci_metric(ind_gen_arr, ind_imp_arr, frozen_threshold, _recall_fn)
     cal_f1_boot = bootstrap_ci_metric(ind_gen_arr, ind_imp_arr, frozen_threshold, _f1_fn)
@@ -487,7 +487,7 @@ def main():
     print(f"  Calibrated — Recall:    {cal_rec_boot[0]:.2f}% [{cal_rec_boot[1]:.2f}, {cal_rec_boot[2]:.2f}]")
     print(f"  Calibrated — F1:        {cal_f1_boot[0]:.2f}% [{cal_f1_boot[1]:.2f}, {cal_f1_boot[2]:.2f}]")
 
-    # ── Step 10: Score distribution analysis ────────────────────
+
     print("\n[STEP 10] Score distribution analysis (independent test set)...")
     gen_stats = score_distribution_stats(ind_gen_arr)
     imp_stats = score_distribution_stats(ind_imp_arr)
@@ -500,7 +500,7 @@ def main():
     print(f"  Impostor — P10={imp_stats['p10']:.4f}, P25={imp_stats['p25']:.4f}, "
           f"P50={imp_stats['p50']:.4f}, P75={imp_stats['p75']:.4f}, P90={imp_stats['p90']:.4f}")
 
-    # Distribution overlap
+
     overlap_lower = max(gen_stats["min"], imp_stats["min"])
     overlap_upper = min(gen_stats["max"], imp_stats["max"])
     has_overlap = overlap_lower < overlap_upper
@@ -513,10 +513,10 @@ def main():
     print(f"  Distribution overlap:   [{round(overlap_lower, 4)}, {round(overlap_upper, 4)}]"
           f"  (overlap={'YES' if has_overlap else 'NO'})")
 
-    # ── Step 11: Operating point recommendations ────────────────
+
     print("\n[STEP 11] Operating point recommendations (independent test set)...")
 
-    # Run sweep on independent set for recommendation purposes
+
     ind_sweep_thresholds = [round(t, 3) for t in np.arange(SWEEP_START, SWEEP_END + SWEEP_STEP / 2, SWEEP_STEP)]
     ind_sweep_results = []
     for th in ind_sweep_thresholds:
@@ -561,7 +561,7 @@ def main():
         else:
             print(f"  {name}: No viable operating point found")
 
-    # ── Step 12: Assemble output JSON ───────────────────────────
+
     elapsed = round(time.monotonic() - t_start, 2)
 
     output = {
@@ -647,13 +647,13 @@ def main():
         "operating_point_recommendations": recommendations,
     }
 
-    # Write JSON output
+
     OUTPUT_JSON.parent.mkdir(parents=True, exist_ok=True)
     with open(OUTPUT_JSON, "w", encoding="utf-8") as f:
         json.dump(output, f, indent=2)
     print(f"\n[OUTPUT] JSON report written to: {OUTPUT_JSON}")
 
-    # ── Step 13: Generate Markdown Report ───────────────────────
+
     report = generate_markdown_report(output)
     with open(OUTPUT_REPORT, "w", encoding="utf-8") as f:
         f.write(report)
@@ -687,14 +687,14 @@ def generate_markdown_report(data: dict) -> str:
     lines.append(f"**Model SHA-256:** `{meta['frozen_model_sha256']}`")
     lines.append("")
 
-    # Critical interpretation warning
+
     lines.append("> [!CAUTION]")
     lines.append("> **CRITICAL INTERPRETATION RULE**")
     lines.append("> ")
     lines.append(f"> {meta['interpretation']}")
     lines.append("")
 
-    # ── Section 1: Partition Verification ──
+
     lines.append("## 1. Subject-Disjoint Partition Verification")
     lines.append("")
     lines.append("| Property | Value |")
@@ -705,7 +705,7 @@ def generate_markdown_report(data: dict) -> str:
     lines.append(f"| Partition Integrity | **{pv['partition_integrity']}** |")
     lines.append("")
 
-    # ── Section 2: Calibration Data Summary ──
+
     lines.append("## 2. Calibration Data Summary")
     lines.append("")
     lines.append("| Metric | Count |")
@@ -716,7 +716,7 @@ def generate_markdown_report(data: dict) -> str:
     lines.append(f"| Impostor Trials | {cal_sum['impostor_trials']} |")
     lines.append("")
 
-    # ── Section 3: Calibration Threshold Sweep ──
+
     lines.append("## 3. Calibration Threshold Sweep (Development Set)")
     lines.append("")
     lines.append(f"**Sweep range:** {cs['sweep_range']} (step {cs['sweep_step']})")
@@ -733,7 +733,7 @@ def generate_markdown_report(data: dict) -> str:
             lines.append(f"| {cname.upper()} | {cpt['threshold']} | {cpt['precision']}% | {cpt['recall']}% | {cpt['f1']}% | {cpt['far']}% | {cpt['frr']}% | {cpt['balanced_acc']}% |")
     lines.append("")
 
-    # ── Section 4: Independent Test Data Summary ──
+
     lines.append("## 4. Independent Test Data Summary")
     lines.append("")
     lines.append("| Metric | Count |")
@@ -744,7 +744,7 @@ def generate_markdown_report(data: dict) -> str:
     lines.append(f"| Impostor Trials | {ind_sum['impostor_trials']} |")
     lines.append("")
 
-    # ── Section 5: Head-to-Head Comparison ──
+
     lines.append("## 5. Head-to-Head: Baseline vs Calibrated (Independent Test Set)")
     lines.append("")
     lines.append("> [!IMPORTANT]")
@@ -760,7 +760,7 @@ def generate_markdown_report(data: dict) -> str:
         lines.append(f"| {metric.upper()} | {bm[metric]}% | {cm[metric]}% | {dt[metric]:+.2f}% |")
     lines.append("")
 
-    # ── Section 6: EER ──
+
     lines.append("## 6. Equal Error Rate (Independent Test Set)")
     lines.append("")
     lines.append("| Metric | Value |")
@@ -769,7 +769,7 @@ def generate_markdown_report(data: dict) -> str:
     lines.append(f"| EER Threshold | {eer_data['eer_threshold']} |")
     lines.append("")
 
-    # ── Section 7: Wilson CIs ──
+
     lines.append("## 7. Wilson Score Confidence Intervals (95%)")
     lines.append("")
     lines.append("| Metric | Lower | Upper |")
@@ -780,7 +780,7 @@ def generate_markdown_report(data: dict) -> str:
     lines.append(f"| Calibrated FAR | {wilson['calibrated_far_ci'][0]}% | {wilson['calibrated_far_ci'][1]}% |")
     lines.append("")
 
-    # ── Section 8: Bootstrap CIs ──
+
     lines.append("## 8. Bootstrap Confidence Intervals (95%)")
     lines.append("")
     lines.append(f"**Iterations:** {boot['n_iterations']} | **Seed:** {boot['seed']}")
@@ -793,7 +793,7 @@ def generate_markdown_report(data: dict) -> str:
             lines.append(f"| {condition.upper()} | {metric.upper()} | {d['point']}% | {d['ci_lower']}% | {d['ci_upper']}% |")
     lines.append("")
 
-    # ── Section 9: Score Distribution Analysis ──
+
     lines.append("## 9. Score Distribution Analysis")
     lines.append("")
     gen_d = dist["genuine_distribution"]
@@ -811,7 +811,7 @@ def generate_markdown_report(data: dict) -> str:
         lines.append(f"**Overlap range:** [{dist['overlap_range'][0]}, {dist['overlap_range'][1]}]")
     lines.append("")
 
-    # ── Section 10: Operating Point Recommendations ──
+
     lines.append("## 10. Operating Point Recommendations (Independent Test Set)")
     lines.append("")
     lines.append("| Recommendation | Threshold | F1 | Precision | Recall | FAR | FRR |")
@@ -824,7 +824,7 @@ def generate_markdown_report(data: dict) -> str:
             lines.append(f"| **{name}** | N/A | N/A | N/A | N/A | N/A | N/A |")
     lines.append("")
 
-    # ── Section 11: Conclusion ──
+
     lines.append("## 11. Conclusion")
     lines.append("")
     lines.append("> [!NOTE]")

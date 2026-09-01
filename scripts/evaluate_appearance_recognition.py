@@ -67,15 +67,15 @@ def run_evaluation():
     print(f"[ENV] PyTorch: {torch.__version__}")
     print(f"[ENV] CUDA available: {torch.cuda.is_available()}")
 
-    # Reset singleton
+
     OSNetBackbone._instance = None
 
     extractor = ReIDFeatureExtractionStep(model_path="models/weights/osnet_x0_25.pth", device=device)
     detector = PersonDetector()
 
-    # =====================================================================
-    # DATASET DISCOVERY
-    # =====================================================================
+
+
+
     print("\n" + "=" * 80)
     print("DATASET DISCOVERY & FEATURE EXTRACTION")
     print("=" * 80)
@@ -125,9 +125,9 @@ def run_evaluation():
         for name, embs in subject_embeddings.items()
     }
 
-    # =====================================================================
-    # SECTION 1: COMPLETE PAIR EVALUATION
-    # =====================================================================
+
+
+
     print("\n" + "=" * 80)
     print("SECTION 1: COMPLETE PAIR EVALUATION")
     print("=" * 80)
@@ -163,13 +163,13 @@ def run_evaluation():
     same_stats = percentile_stats(same_arr)
     diff_stats = percentile_stats(diff_arr)
 
-    # Per-subject same-person stats
+
     same_by_subject_stats = {}
     for name, scores in same_person_by_subject.items():
         if scores:
             same_by_subject_stats[name] = percentile_stats(np.array(scores))
 
-    # Per-pair different-person stats
+
     diff_by_pair_stats = {}
     for pair, scores in diff_person_by_pair.items():
         if scores:
@@ -191,9 +191,9 @@ def run_evaluation():
     print("\nDifferent-Person Statistics:")
     print(json.dumps(diff_stats, indent=2))
 
-    # =====================================================================
-    # SECTION 2: COMPLETE THRESHOLD SWEEP (0.40 to 0.90 step 0.01)
-    # =====================================================================
+
+
+
     print("\n" + "=" * 80)
     print("SECTION 2: COMPLETE THRESHOLD SWEEP")
     print("=" * 80)
@@ -224,9 +224,9 @@ def run_evaluation():
 
     report["section_2_threshold_sweep"] = sweep_results
 
-    # =====================================================================
-    # SECTION 3: OPERATING POINTS
-    # =====================================================================
+
+
+
     print("\n" + "=" * 80)
     print("SECTION 3: OPERATING POINTS")
     print("=" * 80)
@@ -253,9 +253,9 @@ def run_evaluation():
 
     report["section_3_operating_points"] = operating_points
 
-    # =====================================================================
-    # SECTION 4: UNKNOWN PERSON TEST
-    # =====================================================================
+
+
+
     print("\n" + "=" * 80)
     print("SECTION 4: UNKNOWN PERSON TEST")
     print("=" * 80)
@@ -320,9 +320,9 @@ def run_evaluation():
         report["section_4_unknown_person"] = {"status": "Insufficient unseen-person data."}
         print("Insufficient unseen-person data.")
 
-    # =====================================================================
-    # SECTION 5: LEAVE-ONE-OUT IDENTIFICATION
-    # =====================================================================
+
+
+
     print("\n" + "=" * 80)
     print("SECTION 5: LEAVE-ONE-OUT IDENTIFICATION")
     print("=" * 80)
@@ -404,9 +404,9 @@ def run_evaluation():
     print(f"Rank-1 Accuracy: {rank1_accuracy} ({total_correct}/{total_queries})")
     print(json.dumps(report["section_5_leave_one_out"], indent=2))
 
-    # =====================================================================
-    # SECTION 6: CROSS-PERSON GALLERY TEST
-    # =====================================================================
+
+
+
     print("\n" + "=" * 80)
     print("SECTION 6: CROSS-PERSON GALLERY TEST")
     print("=" * 80)
@@ -458,33 +458,33 @@ def run_evaluation():
     for cs in cross_results_sorted[:5]:
         print(f"  {cs['query_person']} -> {cs['wrong_gallery']}: {cs['highest_similarity']}")
 
-    # =====================================================================
-    # SECTION 7: ROC / AUC
-    # =====================================================================
-    # SECTION 7: ROC / AUC
-    # =====================================================================
+
+
+
+
+
     print("\n" + "=" * 80)
     print("SECTION 7: ROC / AUC")
     print("=" * 80)
 
     y_scores = np.concatenate([same_arr, diff_arr])
 
-    # Rank-based exact AUC (Mann-Whitney U statistic)
+
     n_pos = len(same_arr)
     n_neg = len(diff_arr)
     order = np.argsort(y_scores)
     ranks = np.empty_like(order, dtype=float)
     ranks[order] = np.arange(1, len(y_scores) + 1)
 
-    # Handle tied ranks if any
+
     _unique_scores, inverse_indices, counts = np.unique(y_scores, return_inverse=True, return_counts=True)
     tied_ranks = np.bincount(inverse_indices, weights=ranks) / counts
     ranks = tied_ranks[inverse_indices]
-    
+
     rank_sum_pos = np.sum(ranks[:n_pos])
     auc = float((rank_sum_pos - n_pos * (n_pos + 1) / 2.0) / (n_pos * n_neg))
 
-    # Detailed ROC curve for EER calculation
+
     all_thresholds = np.sort(np.unique(y_scores))[::-1]
     fpr_list, tpr_list = [0.0], [0.0]
     for t_val in all_thresholds:
@@ -513,14 +513,14 @@ def run_evaluation():
     print(f"AUC: {auc:.6f}")
     print(f"EER: {eer:.6f} at threshold {eer_threshold:.6f}")
 
-    # =====================================================================
-    # SECTION 8: PRECISION-RECALL / AVERAGE PRECISION
-    # =====================================================================
+
+
+
     print("\n" + "=" * 80)
     print("SECTION 8: PRECISION-RECALL / AVERAGE PRECISION")
     print("=" * 80)
 
-    # Calculate PR curve and Average Precision across all unique thresholds
+
     rec_list, prec_list, f1_list, thresh_pr_list = [], [], [], []
     for t_val in all_thresholds:
         tp_v = int(np.sum(same_arr >= t_val))
@@ -538,12 +538,12 @@ def run_evaluation():
     prec_np = np.array(prec_list)
     f1_np = np.array(f1_list)
 
-    # Average Precision (area under PR curve via trapezoidal / step integration)
-    # Sort by recall ascending
+
+
     sort_idx = np.argsort(rec_np)
     r_sorted = np.concatenate([[0.0], rec_np[sort_idx]])
     p_sorted = np.concatenate([[1.0], prec_np[sort_idx]])
-    # Step AP: sum of (R_k - R_{k-1}) * P_k
+
     ap = float(np.sum((r_sorted[1:] - r_sorted[:-1]) * p_sorted[1:]))
 
     best_f1_idx = int(np.argmax(f1_np))
@@ -559,9 +559,9 @@ def run_evaluation():
     print(f"Average Precision: {ap:.6f}")
     print(f"Best F1: {best_f1_val:.6f} at threshold {best_f1_thresh:.6f}")
 
-    # =====================================================================
-    # SECTION 9: PER-PERSON ANALYSIS
-    # =====================================================================
+
+
+
     print("\n" + "=" * 80)
     print("SECTION 9: PER-PERSON ANALYSIS")
     print("=" * 80)
@@ -604,9 +604,9 @@ def run_evaluation():
 
     report["section_9_per_person"] = per_person
 
-    # =====================================================================
-    # SECTION 10: VIDEO VALIDATION
-    # =====================================================================
+
+
+
     print("\n" + "=" * 80)
     print("SECTION 10: VIDEO VALIDATION")
     print("=" * 80)
@@ -679,9 +679,9 @@ def run_evaluation():
     }
     print(json.dumps(report["section_10_video"], indent=2))
 
-    # =====================================================================
-    # SECTION 11: TEMPORAL IDENTITY STABILITY
-    # =====================================================================
+
+
+
     print("\n" + "=" * 80)
     print("SECTION 11: TEMPORAL IDENTITY STABILITY")
     print("=" * 80)
@@ -759,9 +759,9 @@ def run_evaluation():
         print(f"  {dk}: {tr['total_frames']} frames, {tr['identity_switches']} switches, "
               f"score={tr['score_mean']:.4f}+/-{tr['score_std']:.4f}")
 
-    # =====================================================================
-    # SECTION 12: 512D EMBEDDING VALIDATION
-    # =====================================================================
+
+
+
     print("\n" + "=" * 80)
     print("SECTION 12: 512D EMBEDDING VALIDATION")
     print("=" * 80)
@@ -787,9 +787,9 @@ def run_evaluation():
     for c in embedding_checks:
         print(f"  {c['subject']}[{c['index']}]: shape={c['shape']}, dtype={c['dtype']}, L2={c['L2_norm']:.8f}, valid={c['valid']}")
 
-    # =====================================================================
-    # SECTION 13: GAIT ISOLATION CHECK
-    # =====================================================================
+
+
+
     print("\n" + "=" * 80)
     print("SECTION 13: GAIT ISOLATION CHECK")
     print("=" * 80)
@@ -807,9 +807,9 @@ def run_evaluation():
     report["section_13_gait_isolation"] = gait_isolation
     print(json.dumps(gait_isolation, indent=2))
 
-    # =====================================================================
-    # SECTION 15: DATASET LIMITATION CHECK
-    # =====================================================================
+
+
+
     print("\n" + "=" * 80)
     print("SECTION 15: DATASET LIMITATION CHECK")
     print("=" * 80)
@@ -834,9 +834,9 @@ def run_evaluation():
     report["section_15_dataset_limitations"] = dataset_limitations
     print(json.dumps(dataset_limitations, indent=2))
 
-    # =====================================================================
-    # SAVE REPORT
-    # =====================================================================
+
+
+
     out_dir = Path("outputs/reports")
     out_dir.mkdir(parents=True, exist_ok=True)
     report_file = out_dir / "step_5e_postfix_evaluation_report.json"

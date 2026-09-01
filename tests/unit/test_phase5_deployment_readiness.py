@@ -45,9 +45,9 @@ from streaming.production_runtime import (
     ProductionSurveillanceRuntime,
 )
 
-# =====================================================================
-# Task 1 — Hardware Capability Discovery Tests
-# =====================================================================
+
+
+
 
 
 class TestHardwareCapabilityDiscovery:
@@ -77,9 +77,9 @@ class TestHardwareCapabilityDiscovery:
         assert "network" in d
 
 
-# =====================================================================
-# Task 2 — Dynamic System Profile Engine Tests
-# =====================================================================
+
+
+
 
 
 class TestSystemProfileEngine:
@@ -125,9 +125,9 @@ class TestSystemProfileEngine:
         assert params.worker_count == 1
 
 
-# =====================================================================
-# Task 3 — Production Capacity Estimator Tests
-# =====================================================================
+
+
+
 
 
 class TestProductionCapacityEstimator:
@@ -154,7 +154,7 @@ class TestProductionCapacityEstimator:
         res = estimator.estimate_capacity(
             measured_throughput_fps=200.0,
             current_active_cameras=10,
-            cpu_percent=95.0,  # Extreme CPU load
+            cpu_percent=95.0,
             vram_allocated_mb=500.0,
             vram_total_mb=4000.0,
             p95_latency_ms=15.0,
@@ -171,7 +171,7 @@ class TestProductionCapacityEstimator:
             current_active_cameras=5,
             cpu_percent=30.0,
             vram_allocated_mb=5800.0,
-            vram_total_mb=6000.0,  # ~96% VRAM load
+            vram_total_mb=6000.0,
             p95_latency_ms=15.0,
             drop_rate=0.0,
         )
@@ -179,9 +179,9 @@ class TestProductionCapacityEstimator:
         assert res["constraints_met"] is False
 
 
-# =====================================================================
-# Task 4 — Camera Admission Controller Tests
-# =====================================================================
+
+
+
 
 
 class TestCameraAdmissionController:
@@ -225,7 +225,7 @@ class TestCameraAdmissionController:
             cpu_percent=30.0,
             ram_percent=40.0,
             vram_allocated_mb=5800.0,
-            vram_total_mb=6000.0,  # >96%
+            vram_total_mb=6000.0,
         )
         assert res.admitted is False
         assert res.decision == AdmissionDecision.REJECTED_VRAM_CAPACITY
@@ -250,7 +250,7 @@ class TestCameraAdmissionController:
         res = adm.evaluate_admission(
             camera_id="cam_degraded",
             current_active_cameras=10,
-            sustainable_capacity=10,  # at limit
+            sustainable_capacity=10,
             cpu_percent=50.0,
             ram_percent=50.0,
             vram_allocated_mb=2000.0,
@@ -269,7 +269,7 @@ class TestCameraAdmissionController:
         rt.connect_camera("cam_A")
 
         adm = CameraAdmissionController()
-        # Cam B rejected
+
         res = adm.evaluate_admission(
             camera_id="cam_B",
             current_active_cameras=10,
@@ -281,14 +281,14 @@ class TestCameraAdmissionController:
         )
         assert res.admitted is False
 
-        # Cam A is still CONNECTED and intact
+
         cam_a = rt.camera_state_machine.get_camera("cam_A")
         assert cam_a.connection_state == CameraState.CONNECTED
 
 
-# =====================================================================
-# Task 5 — Adaptive Inference Quality Policy Tests
-# =====================================================================
+
+
+
 
 
 class TestAdaptiveInferencePolicy:
@@ -311,16 +311,16 @@ class TestAdaptiveInferencePolicy:
 
     def test_automatic_recovery(self):
         policy = AdaptiveInferencePolicy()
-        # Escalate to aggressive
+
         policy.evaluate_quality_mode(cpu_percent=95.0, vram_percent=95.0, p95_latency_ms=400.0)
-        # Drop back to normal
+
         mode = policy.evaluate_quality_mode(cpu_percent=30.0, vram_percent=30.0, p95_latency_ms=10.0)
         assert mode == InferenceQualityMode.AUTOMATIC_RECOVERY
 
 
-# =====================================================================
-# Task 6 — GPU Memory Guard Tests
-# =====================================================================
+
+
+
 
 
 class TestGPUMemoryGuard:
@@ -339,13 +339,13 @@ class TestGPUMemoryGuard:
         fake_oom = RuntimeError("CUDA out of memory. Tried to allocate 2.00 GiB")
         recovered = guard.handle_cuda_oom(fake_oom, context="OSNet_inference_batch")
         assert guard.oom_recoveries_count == 1
-        # Returns True if torch/cuda cache was emptied or handled
+
         assert isinstance(recovered, bool)
 
 
-# =====================================================================
-# Task 7 & 16 — Network Bandwidth Estimator Tests
-# =====================================================================
+
+
+
 
 
 class TestNetworkBandwidthEstimator:
@@ -374,9 +374,9 @@ class TestNetworkBandwidthEstimator:
         assert eval_res["headroom_pct"] > 90.0
 
 
-# =====================================================================
-# Task 8 & 9 — Model Profile Registry Tests
-# =====================================================================
+
+
+
 
 
 class TestModelProfileRegistry:
@@ -413,9 +413,9 @@ class TestModelProfileRegistry:
         assert reg.get_profile("CustomCNN") is not None
 
 
-# =====================================================================
-# Task 17 — Storage Safety Auditor Tests
-# =====================================================================
+
+
+
 
 
 class TestStorageSafetyAuditor:
@@ -429,9 +429,9 @@ class TestStorageSafetyAuditor:
         assert res["status"] in ("HEALTHY", "DEGRADED")
 
 
-# =====================================================================
-# Task 20 — Security Auditor Tests
-# =====================================================================
+
+
+
 
 
 class TestSecurityAuditor:
@@ -448,9 +448,9 @@ class TestSecurityAuditor:
         assert "PROHIBITED" in sec["face_recognition_prohibited"]
 
 
-# =====================================================================
-# Task 11 & 21 — DeploymentReadinessManager End-to-End Tests
-# =====================================================================
+
+
+
 
 
 class TestDeploymentReadinessManager:
@@ -467,9 +467,9 @@ class TestDeploymentReadinessManager:
         assert "models" in summary
 
 
-# =====================================================================
-# MANDATORY WEBCAM REGRESSION & PROBING TESTS
-# =====================================================================
+
+
+
 
 
 class TestWebcamRegressionAndProbing:
@@ -478,10 +478,10 @@ class TestWebcamRegressionAndProbing:
     def test_camera_source_resolver_probing(self):
         """Webcam device index probe using Windows CAP_DSHOW and safe fallback."""
         resolver = CameraSourceResolver()
-        # Probe index 0 (physical probe on dev machine)
+
         is_index_0 = resolver.probe_usb_webcam(0)
         assert isinstance(is_index_0, bool)
-        # Reservation prevents re-probing
+
         resolver.reserve_source("usb:0", "cam_owner")
         assert resolver.probe_usb_webcam(0) is False
         resolver.release_source_by_camera_id("cam_owner")
@@ -506,9 +506,9 @@ class TestWebcamRegressionAndProbing:
         assert cam.connection_state == CameraState.STOPPED
 
 
-# =====================================================================
-# Task 14 — Scale Simulation Tests (1 to 128 streams)
-# =====================================================================
+
+
+
 
 
 @pytest.mark.parametrize("num_cameras", [1, 2, 4, 8, 16, 32, 64, 128])
@@ -529,7 +529,7 @@ def test_simulated_stream_scaling_1_to_128(num_cameras):
     assert health["cameras"]["total"] == num_cameras
     assert health["cameras"]["connected"] == num_cameras
 
-    # Clean shutdown
+
     for i in range(num_cameras):
         rt.stop_camera(f"scale_cam_{i:03d}")
 

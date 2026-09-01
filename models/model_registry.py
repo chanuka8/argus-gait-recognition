@@ -25,9 +25,9 @@ class ModelVersionRecord:
     """Represents a specific model/calibration version and its complete audit lineage."""
 
     model_version: str
-    model_type: str  # "bygait_light", "osnet", "dual_modal_fusion"
+    model_type: str
     architecture: str
-    embedding_dim: int  # 256 for gait, 512 for reid
+    embedding_dim: int
     artifact_path: str
     checksum_sha256: str = ""
     parent_version: str | None = None
@@ -382,11 +382,11 @@ class ModelRegistry:
         if target_idx is None:
             raise RuntimeError(f"Recorded previous model version '{target_version}' not found in registry")
 
-        # Mark current active as ROLLED_BACK
+
         active_rec["deployment_status"] = ModelDeploymentStatus.ROLLED_BACK.value
         active_rec["rejection_reason"] = f"Rolled back: {reason}"
 
-        # Restore target as ACTIVE
+
         target_rec = data["models"][target_idx]
         target_rec["deployment_status"] = ModelDeploymentStatus.ACTIVE.value
         target_rec["promotion_timestamp"] = time.time()

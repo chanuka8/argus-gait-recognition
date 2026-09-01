@@ -30,7 +30,7 @@ class DriftReport:
     low_confidence_ratio: float = 0.0
     mean_gallery_similarity: float = 0.0
     drift_detected: bool = False
-    drift_severity: str = "NONE"  # "NONE", "LOW", "MODERATE", "HIGH"
+    drift_severity: str = "NONE"
     recommendations: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
@@ -73,7 +73,7 @@ class DriftDetector:
         low_conf_count = sum(1 for c in confidences if c < self.confidence_threshold)
         low_conf_ratio = float(low_conf_count / len(observations))
 
-        # Check cosine similarity against enrolled gallery centroids
+
         gallery_data = self.gait_store.load()
         mean_sim = 0.0
 
@@ -84,13 +84,13 @@ class DriftDetector:
                 for obs in observations:
                     if obs.embedding_dim == 256:
                         vec = np.asarray(obs.vector, dtype=np.float32)
-                        # Cosine similarity against max gallery match
+
                         dot_prods = np.dot(g_features, vec)
                         sims.append(float(np.max(dot_prods)))
                 if sims:
                     mean_sim = float(np.mean(sims))
 
-        # Determine drift status
+
         drift_detected = False
         severity = "NONE"
         recommendations = []

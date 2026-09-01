@@ -2,7 +2,7 @@ import json
 import sys
 from pathlib import Path
 
-# Ensure repo root in sys.path
+
 _repo_root = str(Path(__file__).resolve().parent.parent)
 if _repo_root not in sys.path:
     sys.path.insert(0, _repo_root)
@@ -107,15 +107,15 @@ def run_fine_sweep():
             "youden_j": youden_j,
         })
 
-    # Find key operating points
+
     max_f1_pt = max(results, key=lambda x: (x["f1"], x["precision"]))
     best_bal_pt = max(results, key=lambda x: (x["balanced_acc"], x["youden_j"]))
     eer_pt = min(results, key=lambda x: abs(x["far"] - x["frr"]))
-    
-    # FAR-constrained points
+
+
     far_10_pts = [r for r in results if r["far"] <= 10.0]
     far_10_pt = max(far_10_pts, key=lambda x: x["tar"]) if far_10_pts else None
-    
+
     far_5_pts = [r for r in results if r["far"] <= 5.0]
     far_5_pt = max(far_5_pts, key=lambda x: x["tar"]) if far_5_pts else None
 

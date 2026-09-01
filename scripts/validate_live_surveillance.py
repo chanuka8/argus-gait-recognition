@@ -22,7 +22,7 @@ import sys
 import time
 from typing import Any
 
-# Ensure workspace root is in sys.path
+
 sys.path.insert(0, os.path.abspath("."))
 
 import cv2
@@ -45,25 +45,25 @@ def run_live_validation(num_frames: int = 45) -> dict[str, Any]:
     print("ARGUS AI — REAL PHYSICAL END-TO-END RUNTIME VALIDATION")
     print("=" * 70)
 
-    # 1. System & Hardware Telemetry
+
     process = psutil.Process(os.getpid())
     cpu_cores = psutil.cpu_count(logical=True)
     ram_total_gb = psutil.virtual_memory().total / (1024 ** 3)
     cuda_available = torch.cuda.is_available()
     device_name = torch.cuda.get_device_name(0) if cuda_available else "CPU (Hardware Agnostic)"
-    
+
     print(f"[HARDWARE] Logical CPU Cores: {cpu_cores}")
     print(f"[HARDWARE] Total System RAM:  {ram_total_gb:.2f} GB")
     print(f"[HARDWARE] Inference Engine:  {device_name} (CUDA: {cuda_available})")
 
-    # 2. CameraSourceResolver Probing
+
     resolver = CameraSourceResolver()
     probe_success = resolver.probe_usb_webcam(0)
     print(f"\n[REAL PHYSICAL VALIDATION] CameraSourceResolver.probe_usb_webcam(0): {probe_success}")
 
-    # 3. DirectShow Physical Webcam Acquisition
+
     cap = cv2.VideoCapture(0, cv2.CAP_DSHOW) if sys.platform == "win32" else cv2.VideoCapture(0)
-    
+
     webcam_opened = cap.isOpened()
     print(f"[REAL PHYSICAL VALIDATION] Physical VideoCapture.isOpened(): {webcam_opened}")
 
@@ -72,16 +72,16 @@ def run_live_validation(num_frames: int = 45) -> dict[str, Any]:
         cap.release()
         return {"error": "Physical webcam device not accessible"}
 
-    # Set standard resolution
+
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-    
+
     actual_w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     actual_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     actual_fps = cap.get(cv2.CAP_PROP_FPS)
     print(f"[REAL PHYSICAL VALIDATION] Active Resolution: {actual_w}x{actual_h} @ {actual_fps:.1f} FPS (Backend: CAP_DSHOW)")
 
-    # 4. Pipeline Initializations
+
     print("\n[PIPELINE] Initializing YOLOv8, ByteTrack, TrackManager, Appearance, and Display Renderer...")
     detector = PersonDetector()
     tracker = PersonTracker()
@@ -91,7 +91,7 @@ def run_live_validation(num_frames: int = 45) -> dict[str, Any]:
     appearance_extractor = AppearanceEmbeddingExtractor()
     renderer = DetectionDisplayRenderer()
 
-    # Metrics Accumulator
+
     metrics = {
         "frames_captured": 0,
         "total_detections": 0,
@@ -111,7 +111,7 @@ def run_live_validation(num_frames: int = 45) -> dict[str, Any]:
     start_time = time.monotonic()
 
     print(f"\n[LIVE RUNTIME] Capturing and processing {num_frames} live physical webcam frames...")
-    
+
     for frame_idx in range(num_frames):
         ret, frame = cap.read()
         if not ret or frame is None:
@@ -120,14 +120,14 @@ def run_live_validation(num_frames: int = 45) -> dict[str, Any]:
 
         metrics["frames_captured"] += 1
 
-        # Stage 1: Person Detection
+
         d_start = time.monotonic()
         raw_detections = detector.detect(frame)
         d_elapsed = (time.monotonic() - d_start) * 1000.0
         metrics["detection_times_ms"].append(d_elapsed)
         metrics["total_detections"] += len(raw_detections)
 
-        # Stage 2: Tracking
+
         t_start = time.monotonic()
         tracked_objects = tracker.update(raw_detections, frame.shape)
         t_elapsed = (time.monotonic() - t_start) * 1000.0
@@ -136,7 +136,7 @@ def run_live_validation(num_frames: int = 45) -> dict[str, Any]:
         active_tids = set()
         annotated_frame = frame.copy()
 
-        # Stage 3-8: Assessment, Biometrics, and Overlay
+
         for obj in tracked_objects:
             track_id = int(obj["track_id"])
             bbox = [int(b) for b in obj["bbox"]]
@@ -151,7 +151,7 @@ def run_live_validation(num_frames: int = 45) -> dict[str, Any]:
                 frame_index=frame_idx,
             )
 
-            # Stage 3 & 4: Assessment & Eligibility
+
             _is_val, mob_state, gait_elig, app_elig, val_reason = validator.assess_detection(
                 bbox=bbox,
                 confidence=conf,
@@ -162,14 +162,14 @@ def run_live_validation(num_frames: int = 45) -> dict[str, Any]:
             ctx.appearance_eligible = app_elig
             ctx.gait_usability_reason = val_reason
 
-            # Stage 5: Gait (StreamGEI)
+
             if gait_elig:
-                # Synthetic/real silhouette mask for live frame
+
                 sil = np.zeros((128, 64), dtype=np.uint8)
                 sil[20:110, 15:50] = 255
                 gei_builder.add_silhouette(track_id, sil)
 
-            # Stage 6: Appearance (OSNet 512D)
+
             h, w = frame.shape[:2]
             x1, y1, x2, y2 = max(0, bbox[0]), max(0, bbox[1]), min(w, bbox[2]), min(h, bbox[3])
             crop = frame[y1:y2, x1:x2] if (x2 > x1 and y2 > y1) else None
@@ -182,10 +182,10 @@ def run_live_validation(num_frames: int = 45) -> dict[str, Any]:
                 if app_emb is not None:
                     ctx.appearance_embedding = app_emb
 
-            # Stage 7 & 8: State Decision & Display
+
             display_state = ctx.evaluate_display_state()
 
-            # Record display color stats
+
             if display_state == "CONFIRMED":
                 metrics["red_overlays"] += 1
             elif display_state == "SPECIAL_ATTENTION":
@@ -193,7 +193,7 @@ def run_live_validation(num_frames: int = 45) -> dict[str, Any]:
             else:
                 metrics["green_overlays"] += 1
 
-            # Render overlay
+
             r_start = time.monotonic()
             renderer.draw(
                 frame=annotated_frame,
@@ -217,10 +217,10 @@ def run_live_validation(num_frames: int = 45) -> dict[str, Any]:
                 "frames_observed": ctx.frame_count,
             }
 
-        # Track management cleanup
+
         track_manager.mark_missing_tracks("cam_physical_01", active_tids)
 
-        # Performance measurements
+
         metrics["memory_rss_mb"].append(process.memory_info().rss / (1024 * 1024))
         metrics["cpu_percent"].append(process.cpu_percent())
 
@@ -250,7 +250,7 @@ def run_live_validation(num_frames: int = 45) -> dict[str, Any]:
     print(f"[REAL PHYSICAL VALIDATION] Overlays: RED={metrics['red_overlays']}, GREEN={metrics['green_overlays']}, YELLOW={metrics['yellow_overlays']}")
     print(f"[REAL PHYSICAL VALIDATION] Unique Tracks Observed:   {len(metrics['observed_tracks'])}")
 
-    # Save validation metrics artifact
+
     out_dir = "outputs/validation"
     os.makedirs(out_dir, exist_ok=True)
     report_file = os.path.join(out_dir, "live_physical_validation_metrics.json")

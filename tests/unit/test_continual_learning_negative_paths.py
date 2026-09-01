@@ -138,7 +138,7 @@ class TestContinualLearningNegativePaths:
             modality="gait",
         )
         col.verify_observation(obs.observation_id, verified_identity="SubOutlier")
-        # Quality < 0.70 must keep state at VERIFIED and reject TRAINING_ELIGIBLE
+
         assert obs.state == ObservationState.VERIFIED
         assert obs.state != ObservationState.TRAINING_ELIGIBLE
 
@@ -221,7 +221,7 @@ class TestContinualLearningNegativePaths:
             media_array=gei,
         )
         assert rec is not None
-        # Corrupt file content
+
         with open(rec.file_path, "wb") as f:
             f.write(b"CORRUPTED_BYTES_HERE")
 

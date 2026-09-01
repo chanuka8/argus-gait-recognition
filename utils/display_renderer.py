@@ -27,22 +27,22 @@ import cv2
 import numpy as np
 import yaml
 
-# Assessment & Display State Constants
-DISPLAY_STATE_CONFIRMED = "CONFIRMED"                      # RED (0, 0, 255)
-DISPLAY_STATE_UNCONFIRMED = "UNCONFIRMED"                  # GREEN (0, 255, 0)
-DISPLAY_STATE_SPECIAL_ATTENTION = "SPECIAL_ATTENTION"      # YELLOW (0, 255, 255) - Reserved Operational Attention
 
-# Descriptive state aliases (all unconfirmed states map to GREEN)
-DISPLAY_STATE_ASSESSING = "ASSESSING"                      # GREEN (0, 255, 0)
-DISPLAY_STATE_INAPPLICABLE = "BIOMETRIC_INAPPLICABLE"      # GREEN (0, 255, 0)
-DISPLAY_STATE_EVIDENCE_COLLECTING = "EVIDENCE_COLLECTING"  # GREEN (0, 255, 0)
-DISPLAY_STATE_PENDING = "PENDING"                          # GREEN (0, 255, 0)
-DISPLAY_STATE_UNKNOWN = "UNKNOWN"                          # GREEN (0, 255, 0)
+DISPLAY_STATE_CONFIRMED = "CONFIRMED"
+DISPLAY_STATE_UNCONFIRMED = "UNCONFIRMED"
+DISPLAY_STATE_SPECIAL_ATTENTION = "SPECIAL_ATTENTION"
 
-# BGR Color Constants
-COLOR_RED_BGR = (0, 0, 255)        # Confirmed Match / Recognized Person
-COLOR_GREEN_BGR = (0, 255, 0)      # Detected/Tracked but Unconfirmed (Default for all non-confirmed)
-COLOR_YELLOW_BGR = (0, 255, 255)    # Explicit Special Operational Attention Only (Reserved)
+
+DISPLAY_STATE_ASSESSING = "ASSESSING"
+DISPLAY_STATE_INAPPLICABLE = "BIOMETRIC_INAPPLICABLE"
+DISPLAY_STATE_EVIDENCE_COLLECTING = "EVIDENCE_COLLECTING"
+DISPLAY_STATE_PENDING = "PENDING"
+DISPLAY_STATE_UNKNOWN = "UNKNOWN"
+
+
+COLOR_RED_BGR = (0, 0, 255)
+COLOR_GREEN_BGR = (0, 255, 0)
+COLOR_YELLOW_BGR = (0, 255, 255)
 
 
 def load_display_config() -> dict:
@@ -60,16 +60,16 @@ def load_display_config() -> dict:
         "line_thickness": 2,
         "font_scale": 0.6,
         "colors": {
-            "confirmed": [0, 0, 255],            # Red (BGR) — Confirmed match
-            "unconfirmed": [0, 255, 0],          # Green (BGR) — Default detected/tracked unconfirmed
-            "special_attention": [0, 255, 255],  # Yellow (BGR) — Explicit operational attention only
-            "assessing": [0, 255, 0],            # Green (BGR)
-            "inapplicable": [0, 255, 0],         # Green (BGR)
-            "tracking": [0, 255, 0],             # Green (BGR)
-            "unknown": [0, 255, 0],              # Green (BGR)
-            "uncertain": [0, 255, 0],            # Green (BGR)
-            "non_valid": [0, 255, 0],            # Green (BGR)
-            "detection": [0, 255, 0],            # Green (BGR)
+            "confirmed": [0, 0, 255],
+            "unconfirmed": [0, 255, 0],
+            "special_attention": [0, 255, 255],
+            "assessing": [0, 255, 0],
+            "inapplicable": [0, 255, 0],
+            "tracking": [0, 255, 0],
+            "unknown": [0, 255, 0],
+            "uncertain": [0, 255, 0],
+            "non_valid": [0, 255, 0],
+            "detection": [0, 255, 0],
         },
     }
 
@@ -128,25 +128,25 @@ def map_to_display_state(
             return DISPLAY_STATE_ASSESSING
         return DISPLAY_STATE_UNCONFIRMED
 
-    # 1. Explicit Special Attention (YELLOW)
+
     if is_special_attention:
         return DISPLAY_STATE_SPECIAL_ATTENTION
 
-    # 2. Confirmed Match (RED)
+
     if (
         status in ("CONFIRMED", "MATCH", "VERIFIED_MATCH")
         or decision in ("CONFIRMED", "CONFIRMED_MATCH", "MATCH", "VERIFIED_MATCH")
     ) and identity not in ("UNKNOWN", "UNKNOWN_PERSON", ""):
         return DISPLAY_STATE_CONFIRMED
 
-    # 3. Specific descriptive non-confirmed states (all render GREEN)
+
     if mobility_state in ("WHEELCHAIR", "CRUTCHES_AID", "STATIONARY_SEATED", "NON_STANDARD_GAIT"):
         return DISPLAY_STATE_INAPPLICABLE
 
     if not gait_eligible and decision in ("BIOMETRIC_INAPPLICABLE", "GAIT_UNAVAILABLE", "INAPPLICABLE"):
         return DISPLAY_STATE_INAPPLICABLE
 
-    # 4. Default: GREEN for all detected and tracked persons whose identity is not confirmed
+
     return DISPLAY_STATE_UNCONFIRMED
 
 
@@ -247,7 +247,7 @@ class DetectionDisplayRenderer:
 
         x1, y1, x2, y2 = map(int, box[:4])
 
-        # Derive visual assessment state
+
         state = map_to_display_state(
             status=decision,
             decision=decision,
@@ -261,7 +261,7 @@ class DetectionDisplayRenderer:
 
         box_color = self.get_color_for_state(state)
 
-        # Draw bounding box
+
         cv2.rectangle(frame, (x1, y1), (x2, y2), box_color, self._thickness)
 
         label = self._build_label(
@@ -301,20 +301,20 @@ class DetectionDisplayRenderer:
             else:
                 parts.append("DET")
 
-        # Display State
+
         parts.append(display_state)
 
-        # Mobility annotation if non-standard
+
         if mobility_state == "WHEELCHAIR":
             parts.append("WHEELCHAIR")
         elif mobility_state == "CRUTCHES_AID":
             parts.append("CRUTCHES")
 
-        # Identity
+
         clean_id = identity if identity and identity not in ("UNKNOWN_PERSON", "UNKNOWN") else "UNKNOWN"
         parts.append(clean_id)
 
-        # Score
+
         if self._show_score and score > 0.0 and clean_id != "UNKNOWN":
             parts.append(f"{score:.2f}")
 
@@ -345,7 +345,7 @@ class DetectionDisplayRenderer:
         cv2.rectangle(overlay, (bg_x1, bg_y1), (bg_x2, bg_y2), (20, 20, 20), -1)
         cv2.addWeighted(overlay, 0.70, frame, 0.30, 0, frame)
 
-        # Text color matches box color or white for high contrast
+
         text_color = color if color != (0, 0, 0) else (255, 255, 255)
         cv2.putText(
             frame,

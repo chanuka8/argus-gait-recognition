@@ -34,7 +34,7 @@ def run_process_streaming(
     proc_env = os.environ.copy()
     if env:
         proc_env.update(env)
-    # Ensure Python child processes do not buffer output
+
     proc_env["PYTHONUNBUFFERED"] = "1"
 
     try:

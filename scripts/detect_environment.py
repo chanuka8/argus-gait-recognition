@@ -190,7 +190,7 @@ def detect_environment() -> dict[str, Any]:
             action_required = "NONE"
             pipeline_status = "FULL_CUDA_ACCELERATION_READY"
         elif pytorch_cuda_ready and not onnx_cuda_ready:
-            is_healthy = True  # Application operational with ONNX CPU fallback
+            is_healthy = True
             action_required = "INSTALL_ONNX_GPU"
             pipeline_status = "PARTIAL_CUDA_ACCELERATION (PyTorch/YOLO on CUDA, ONNX on CPU)"
         else:

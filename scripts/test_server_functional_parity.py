@@ -53,7 +53,7 @@ def main():
     proc = subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     try:
-        # 1. Wait for server readiness
+
         ready = False
         health_data = None
         for _ in range(60):
@@ -71,14 +71,14 @@ def main():
         assert ready, "Server failed to reach READY state"
         print(f"[PASS] Server reachable at /health in {startup_time:.3f}s: {health_data}")
 
-        # 2. Check root /status
+
         req = urllib.request.Request(f"{BASE_URL}/status")
         with urllib.request.urlopen(req, timeout=2.0) as resp:
             status_data = json.loads(resp.read().decode("utf-8"))
             assert resp.status == 200
             print(f"[PASS] /status responded 200 OK: {status_data}")
 
-        # 3. Check root /metrics
+
         req = urllib.request.Request(f"{BASE_URL}/metrics")
         with urllib.request.urlopen(req, timeout=2.0) as resp:
             metrics_data = json.loads(resp.read().decode("utf-8"))
@@ -86,7 +86,7 @@ def main():
             assert "people" in metrics_data
             print(f"[PASS] /metrics responded 200 OK: {metrics_data}")
 
-        # 4. Check /api/v1/health
+
         req = urllib.request.Request(f"{BASE_URL}/api/v1/health")
         with urllib.request.urlopen(req, timeout=2.0) as resp:
             v1_health = json.loads(resp.read().decode("utf-8"))
@@ -94,7 +94,7 @@ def main():
             assert v1_health.get("status") == "healthy"
             print(f"[PASS] /api/v1/health responded 200 OK: {v1_health}")
 
-        # 5. Check /api/v1/status
+
         req = urllib.request.Request(f"{BASE_URL}/api/v1/status")
         with urllib.request.urlopen(req, timeout=30.0) as resp:
             v1_status = json.loads(resp.read().decode("utf-8"))
@@ -102,14 +102,14 @@ def main():
             assert "compute" in v1_status
             print(f"[PASS] /api/v1/status responded 200 OK: compute={v1_status['compute']['backend']}")
 
-        # 6. Test Image Identification (/api/v1/identify/image)
-        # Create a test image
+
+
         img = np.zeros((240, 320, 3), dtype=np.uint8)
         cv2.rectangle(img, (100, 40), (220, 200), (255, 255, 255), -1)
         _, img_buf = cv2.imencode(".jpg", img)
         img_bytes = img_buf.tobytes()
 
-        # Send multipart form
+
         boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW"
         body = (
             f"--{boundary}\r\n"
@@ -129,7 +129,7 @@ def main():
             assert "confidence" in ident_res
             print(f"[PASS] /api/v1/identify/image identified: identity={ident_res['identity']}, decision={ident_res.get('decision')}, conf={ident_res['confidence']}")
 
-        # 7. Check Root /
+
         req = urllib.request.Request(f"{BASE_URL}/")
         with urllib.request.urlopen(req, timeout=2.0) as resp:
             resp.read()

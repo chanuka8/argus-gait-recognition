@@ -37,16 +37,16 @@ class FirebaseEmbeddingDocument:
 
     embedding_id: str
     person_id: str
-    modality: str  # "gait" or "appearance"
-    embedding_dim: int  # 256 for gait, 512 for appearance
+    modality: str
+    embedding_dim: int
     vector: list[float]
     model_version: str
     embedding_version: int = 1
     observation_date: str = ""
     created_at: float = field(default_factory=time.time)
     quality_score: float = 1.0
-    verification_status: str = "ACTIVE"  # ACTIVE, DISABLED, ARCHIVED
-    training_eligibility: str = "NOT_ELIGIBLE"  # NOT_ELIGIBLE, TRAINING_ELIGIBLE
+    verification_status: str = "ACTIVE"
+    training_eligibility: str = "NOT_ELIGIBLE"
     source_session_id: str = ""
     source_camera_id: str = ""
     candidate_training_job_id: str = ""
@@ -131,7 +131,7 @@ class FirebaseEmbeddingStore:
         self._lock = threading.RLock()
         self._offline_data: dict[str, Any] = {}
 
-        # Resolve mode
+
         if mode == "auto":
             self.mode = self._detect_mode()
         else:
@@ -214,16 +214,16 @@ class FirebaseEmbeddingStore:
                 self._logger.error(f"Failed to save offline store: {err}")
                 return False
 
-    # ──────────────────────────────────────────────────────────────────────
-    # CORE PERSISTENCE
-    # ──────────────────────────────────────────────────────────────────────
+
+
+
 
     def persist_embedding(self, doc: FirebaseEmbeddingDocument) -> PersistenceResult:
         """
         Persist a single embedding document to Firebase/offline store.
         Validates dimensions and model version before writing.
         """
-        # Validate dimensions
+
         if doc.modality == "gait" and doc.embedding_dim != 256:
             return PersistenceResult(
                 success=False,
@@ -237,7 +237,7 @@ class FirebaseEmbeddingStore:
                 error_message=f"Appearance embedding dimension mismatch: expected 512, got {doc.embedding_dim}",
             )
 
-        # Validate vector length matches declared dimension
+
         if len(doc.vector) != doc.embedding_dim:
             return PersistenceResult(
                 success=False,
@@ -245,7 +245,7 @@ class FirebaseEmbeddingStore:
                 error_message=f"Vector length {len(doc.vector)} != declared dim {doc.embedding_dim}",
             )
 
-        # Validate vector is finite
+
         vec_arr = np.asarray(doc.vector, dtype=np.float32)
         if not np.isfinite(vec_arr).all():
             return PersistenceResult(
@@ -271,7 +271,7 @@ class FirebaseEmbeddingStore:
             return PersistenceResult(
                 success=True,
                 embedding_id=doc.embedding_id,
-                firebase_verified=False,  # Caller must explicitly verify
+                firebase_verified=False,
             )
         except Exception as err:  # noqa: BLE001
             self._logger.warning(
@@ -289,7 +289,7 @@ class FirebaseEmbeddingStore:
         """Persist to local JSON offline store (deterministic, for testing)."""
         with self._lock:
             self._offline_data.setdefault("embeddings", {})[doc.embedding_id] = doc.to_dict()
-            # Track per-person index
+
             self._offline_data.setdefault("persons", {}).setdefault(doc.person_id, [])
             if doc.embedding_id not in self._offline_data["persons"][doc.person_id]:
                 self._offline_data["persons"][doc.person_id].append(doc.embedding_id)
@@ -306,9 +306,9 @@ class FirebaseEmbeddingStore:
         """Persist multiple embedding documents. Returns individual results."""
         return [self.persist_embedding(doc) for doc in docs]
 
-    # ──────────────────────────────────────────────────────────────────────
-    # VERIFICATION
-    # ──────────────────────────────────────────────────────────────────────
+
+
+
 
     def verify_persistence(self, embedding_id: str) -> tuple[bool, str]:
         """
@@ -353,9 +353,9 @@ class FirebaseEmbeddingStore:
             return False, "Stored vector contains non-finite values"
         return True, "Persistence verified"
 
-    # ──────────────────────────────────────────────────────────────────────
-    # QUERY
-    # ──────────────────────────────────────────────────────────────────────
+
+
+
 
     def get_embeddings_by_person(
         self, person_id: str, modality: str | None = None
@@ -456,9 +456,9 @@ class FirebaseEmbeddingStore:
                     for d in self._offline_data.get("embeddings", {}).values()
                 ]
 
-    # ──────────────────────────────────────────────────────────────────────
-    # RETRY QUEUE
-    # ──────────────────────────────────────────────────────────────────────
+
+
+
 
     def _enqueue_retry(self, doc: FirebaseEmbeddingDocument) -> None:
         """Queue a failed write for async retry."""
@@ -492,7 +492,7 @@ class FirebaseEmbeddingStore:
             doc = FirebaseEmbeddingDocument.from_dict(item["doc"])
             result = self.persist_embedding(doc)
             if not result.success and result.retry_queued:
-                # Re-increment retry count
+
                 with self._lock:
                     if self._retry_queue:
                         last = self._retry_queue[-1]
@@ -506,9 +506,9 @@ class FirebaseEmbeddingStore:
         with self._lock:
             return len(self._retry_queue)
 
-    # ──────────────────────────────────────────────────────────────────────
-    # FIREBASE STORAGE CLEANUP
-    # ──────────────────────────────────────────────────────────────────────
+
+
+
 
     def delete_temporary_media(self, case_id: str) -> tuple[bool, str]:
         """
@@ -535,9 +535,9 @@ class FirebaseEmbeddingStore:
             self._logger.warning(f"[FIREBASE_STORAGE_CLEANUP_FAILED] case={case_id}: {err}")
             return False, str(err)
 
-    # ──────────────────────────────────────────────────────────────────────
-    # DISASTER RECOVERY
-    # ──────────────────────────────────────────────────────────────────────
+
+
+
 
     def rebuild_local_from_firebase(self) -> dict[str, Any]:
         """
@@ -591,9 +591,9 @@ class FirebaseEmbeddingStore:
         )
         return persons
 
-    # ──────────────────────────────────────────────────────────────────────
-    # SYNC STATUS
-    # ──────────────────────────────────────────────────────────────────────
+
+
+
 
     def get_persisted_embedding_ids(self) -> set[str]:
         """Return the set of embedding IDs currently persisted in the store."""

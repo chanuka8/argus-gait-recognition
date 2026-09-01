@@ -43,7 +43,7 @@ def demonstrate_safe_enrollment_lifecycle():
         appearance_gallery_dir=str(app_gal),
     )
 
-    # 1. Simulate Uploaded Raw Media
+
     person_dir = input_dir / "MP_JohnDoe_001"
     person_dir.mkdir(parents=True, exist_ok=True)
     raw_photo = person_dir / "reference_photo.jpg"
@@ -55,7 +55,7 @@ def demonstrate_safe_enrollment_lifecycle():
     print(f"    - {raw_photo.name} (exists: {raw_photo.exists()})")
     print(f"    - {raw_gei.name} (exists: {raw_gei.exists()})")
 
-    # 2. Mock Extractors with valid normalized 256D gait and 512D appearance vectors
+
     class MockGaitExtractor:
         def extract(self, path):
             v = np.random.randn(256).astype(np.float32)
@@ -88,7 +88,7 @@ def demonstrate_safe_enrollment_lifecycle():
     print(f"    - Raw Photo Exists After Cleanup: {raw_photo.exists()}")
     print(f"    - Raw GEI Exists After Cleanup: {raw_gei.exists()}")
 
-    # Verify Database State
+
     person = db.get_person("MP_JohnDoe_001")
     assert person is not None
     print("\n[+] Verified Durable State: Subject 'MP_JohnDoe_001' is in EMBEDDING_ONLY state.")
@@ -119,13 +119,13 @@ def demonstrate_continuous_improvement_and_rollback():
         drift_detector=detector,
     )
 
-    # 1. Initial State: Baseline Production Model
+
     active_init = reg.get_active_model("dual_modal_fusion")
     print(f"[*] Initial Active Production Model: {active_init.model_version} ({active_init.architecture})")
     print(f"    - Baseline TAR: {active_init.validation_metrics.get('out_of_fold_tar', 67.57):.2f}%")
     print(f"    - Baseline FAR: {active_init.validation_metrics.get('out_of_fold_far', 2.70):.2f}%")
 
-    # 2. Process Operational CCTV Observations
+
     print("\n[*] Recording Operational CCTV Observations...")
     for i in range(15):
         obs = collector.record_observation(
@@ -142,7 +142,7 @@ def demonstrate_continuous_improvement_and_rollback():
     eligible = collector.get_training_eligible()
     print(f"[+] Total Verified Training-Eligible Observations Collected: {len(eligible)}")
 
-    # 3. Evaluate an Inferior Candidate (Security Regression)
+
     print("\n[*] Evaluating Candidate 'v1.1.0-uncalibrated' (Simulating Elevated FAR)...")
     passed_inf, val_inf, _ = engine.process_candidate(
         candidate_version="v1.1.0-uncalibrated",
@@ -156,7 +156,7 @@ def demonstrate_continuous_improvement_and_rollback():
     print(f"    - Rejection Reasons: {val_inf.rejection_reasons}")
     print(f"    - Active Model Remains: {reg.get_active_model('dual_modal_fusion').model_version}")
 
-    # 4. Evaluate a Superior Candidate (Passes All Security & Accuracy Gates)
+
     print("\n[*] Evaluating Candidate 'v2.0.0-calibrated' (Simulating Improved TAR and Lower FAR)...")
     passed_sup, _, rec_sup = engine.process_candidate(
         candidate_version="v2.0.0-calibrated",
@@ -171,7 +171,7 @@ def demonstrate_continuous_improvement_and_rollback():
     print(f"    - New Active Production Model: {reg.get_active_model('dual_modal_fusion').model_version}")
     print(f"    - Previous Version Retained for Rollback: {rec_sup.previous_production_version}")
 
-    # 5. Simulate Post-Deployment Regression & Automatic Rollback
+
     print("\n[*] Simulating Production Drift Regression Alert -> Triggering Automatic Rollback...")
     restored = engine.trigger_runtime_regression_rollback(
         model_type="dual_modal_fusion",

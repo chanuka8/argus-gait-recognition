@@ -19,7 +19,7 @@ FRONTEND_DIST_DIR = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 async def lifespan(app: FastAPI):
     gait_service = GaitService()
     app.state.gait_service = gait_service
-    # Non-blocking async background warmup for instantaneous server readiness
+
     asyncio.create_task(gait_service.warmup_async())
     print("[*] ARGUS Gait Recognition Service initialized on FastAPI startup.")
     yield

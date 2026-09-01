@@ -82,7 +82,7 @@ class EnvironmentValidator:
         errors: list[str] = []
         cpu_ok = True
 
-        # 1. PyTorch CPU tensor
+
         try:
             import torch
 
@@ -98,7 +98,7 @@ class EnvironmentValidator:
             cpu_ok = False
             errors.append(f"PyTorch CPU tensor failed: {e}")
 
-        # 2. ByGaitLight CPU
+
         try:
             import torch
 
@@ -123,7 +123,7 @@ class EnvironmentValidator:
             cpu_ok = False
             errors.append(f"ByGaitLight CPU forward pass failed: {e}")
 
-        # 3. ONNX CPU
+
         try:
             import numpy as np
             import onnxruntime as ort
@@ -188,7 +188,7 @@ class EnvironmentValidator:
                 errors=errors,
             )
 
-        # Host has NVIDIA GPU -> Run full CUDA pipeline probe
+
         cuda_report = self.cuda_detector.run_full_detection(gpu_info=hw.gpu)
 
         if cuda_report.all_cuda_stages_passed:
@@ -208,10 +208,10 @@ class EnvironmentValidator:
                 errors=[],
             )
 
-        # CUDA stages failed. Analyze why and decide: Repair vs Graceful CPU fallback
+
         errors.extend(cuda_report.failure_reasons)
 
-        # Check if PyTorch CUDA build is missing or incompatible
+
         needs_pytorch_repair = not (
             cuda_report.pytorch_installed and cuda_report.pytorch_cuda_build and cuda_report.cuda_is_available
         )
@@ -234,7 +234,7 @@ class EnvironmentValidator:
                 errors=errors,
             )
 
-        # PyTorch/ONNX installed but runtime execution failed -> CPU Fallback
+
         cpu_ok, cpu_details, cpu_errors = self.validate_cpu_pipeline()
         details.extend(cpu_details)
         errors.extend(cpu_errors)

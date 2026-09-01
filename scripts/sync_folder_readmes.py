@@ -587,7 +587,7 @@ def _generate_metadata_table(folder_path: Path, root_dir: Path) -> str:
     active_files = get_active_files_for_folder(folder_path)
     lines = [
         "| Script | Category | CLI | Auto | Used by CI | Used by Hook | Description |",
-        "|---|---|---|---|---|---|---|",
+        "| --- | --- | --- | --- | --- | --- | --- |",
     ]
     for name in active_files:
         script_path = folder_path / name
@@ -630,7 +630,7 @@ def _generate_cli_reference(folder_path: Path) -> str:
             block.extend(
                 [
                     "| Flag / Argument | Type | Required | Default | Description |",
-                    "|---|---|---|---|---|",
+                    "| --- | --- | --- | --- | --- |",
                 ]
             )
             for arg in args:
@@ -687,7 +687,7 @@ def _generate_cli_reference(folder_path: Path) -> str:
 def _generate_command_index(folder_path: Path) -> str:
     """Generate index of all runnable commands with descriptions."""
     active_files = get_active_files_for_folder(folder_path)
-    lines = ["| Command | Description |", "|---|---|"]
+    lines = ["| Command | Description |", "| --- | --- |"]
     for name in active_files:
         script_path = folder_path / name
         usage = get_script_primary_usage(script_path)
@@ -769,7 +769,7 @@ def _generate_execution_order(folder_path: Path) -> str:
 def _generate_change_impact(folder_path: Path) -> str:
     """Generate change impact table showing script outputs."""
     active_files = get_active_files_for_folder(folder_path)
-    lines = ["| Script | Generated / Modified Outputs |", "|---|---|"]
+    lines = ["| Script | Generated / Modified Outputs |", "| --- | --- |"]
     for name in active_files:
         script_path = folder_path / name
         outputs = _detect_generated_outputs(name, script_path)
@@ -788,7 +788,7 @@ def _generate_safety_classification_section(folder_path: Path) -> str:
         safety = _get_safety_classification(name, script_path)
         classifications.setdefault(safety, []).append(name)
 
-    lines = ["| Classification | Scripts |", "|---|---|"]
+    lines = ["| Classification | Scripts |", "| --- | --- |"]
     for classification in sorted(classifications.keys()):
         scripts = sorted(classifications[classification])
         script_links = ", ".join(f"[{s}]({s})" for s in scripts)
@@ -937,7 +937,7 @@ def _atomic_write_file(target_path: Path, new_content: str, max_retries: int = 5
     """Atomically write new content to target_path with Windows retry and line-ending preservation."""
     target_path = Path(target_path).resolve()
 
-    # Detect original line ending convention if target file exists
+
     newline = "\n"
     if target_path.exists():
         try:
@@ -963,7 +963,7 @@ def _atomic_write_file(target_path: Path, new_content: str, max_retries: int = 5
             except OSError:
                 pass
 
-        # Windows-safe atomic replacement with bounded exponential backoff
+
         for attempt in range(max_retries):
             try:
                 os.replace(str(tmp_path), str(target_path))
@@ -1007,6 +1007,9 @@ def update_folder_readme(folder_path: Path, root_dir: Path | None = None) -> boo
             and not line.startswith("| Module")
             and not line.startswith("| Script")
             and not line.startswith("|---")
+            and not line.startswith("| ---")
+            and not line.startswith("|:---")
+            and not line.startswith("| :---")
         ):
             cols = [c.strip() for c in line.split("|")[1:-1]]
             if len(cols) >= 2:
@@ -1019,7 +1022,7 @@ def update_folder_readme(folder_path: Path, root_dir: Path | None = None) -> boo
                     usage_map[key] = cols[2]
 
     if folder_path.name == "scripts":
-        new_lines = ["| Script | Purpose | Primary Usage |", "|---|---|---|"]
+        new_lines = ["| Script | Purpose | Primary Usage |", "| --- | --- | --- |"]
         for f in active_files:
             file_p = folder_path / f
             desc = extract_script_description(file_p)
@@ -1029,7 +1032,7 @@ def update_folder_readme(folder_path: Path, root_dir: Path | None = None) -> boo
             link = f"[{f}]({f})"
             new_lines.append(f"| {link} | {desc} | {usage} |")
     else:
-        new_lines = ["| Module | Purpose |", "|---|---|"]
+        new_lines = ["| Module | Purpose |", "| --- | --- |"]
         for f in active_files:
             desc = desc_map.get(f, f"Module/resource file {f}")
             if "/" in f and not f.endswith("/"):

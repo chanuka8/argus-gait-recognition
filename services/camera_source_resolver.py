@@ -167,7 +167,7 @@ class CameraSourceResolver:
                         except (cv2.error, OSError):
                             pass
                     self._retained_captures[source_key] = (capture, frame)
-                # Keep capture open for worker handover
+
                 capture = None
 
             return is_valid

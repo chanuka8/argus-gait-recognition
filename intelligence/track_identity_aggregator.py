@@ -110,13 +110,13 @@ class TrackIdentityAggregator:
             stats["total_frames"] += 1
             frame_idx = stats["total_frames"]
 
-            # Count votes for valid identities
+
             valid_votes = [r["identity"] for r in window if self._is_valid_identity(r["identity"])]
             counts = Counter(valid_votes)
 
             window_len = len(window)
             if not counts or window_len < self.min_frames_for_decision:
-                # Insufficient evidence
+
                 return {
                     "track_id": track_id,
                     "decision": "UNKNOWN",
@@ -134,13 +134,13 @@ class TrackIdentityAggregator:
             best_candidate, vote_count = counts.most_common(1)[0]
             consensus_fraction = vote_count / window_len
 
-            # Compute average score of agreeing frames
+
             agreeing_scores = [r["score"] for r in window if r["identity"] == best_candidate]
             avg_score = float(sum(agreeing_scores) / len(agreeing_scores)) if agreeing_scores else 0.0
 
-            # 1. Check CONFIRMED condition
+
             if consensus_fraction >= self.consensus_threshold and avg_score >= self.confirm_threshold:
-                # Step 5N: Check if candidate belongs to a high-risk confusion pair
+
                 is_confusion_risk = False
                 for group in self.high_risk_confusion_groups:
                     if best_candidate in group:
@@ -186,7 +186,7 @@ class TrackIdentityAggregator:
                     "is_aggregated": True,
                 }
 
-            # 2. Check Near-Miss REVIEW_REQUIRED condition
+
             review_lower_bound = self.confirm_threshold - self.near_miss_margin
             if consensus_fraction >= self.consensus_threshold and avg_score >= review_lower_bound:
                 return {
@@ -204,7 +204,7 @@ class TrackIdentityAggregator:
                     "alert_reason": f"Score {avg_score:.4f} within near-miss margin of threshold {self.confirm_threshold:.2f}",
                 }
 
-            # 3. Check LOW_CONFIDENCE condition (consistent candidate but well below threshold)
+
             if consensus_fraction >= self.consensus_threshold:
                 return {
                     "track_id": track_id,
@@ -220,7 +220,7 @@ class TrackIdentityAggregator:
                     "is_aggregated": True,
                 }
 
-            # 4. Inconclusive / split votes
+
             return {
                 "track_id": track_id,
                 "decision": "UNKNOWN",

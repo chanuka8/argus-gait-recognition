@@ -33,7 +33,7 @@ def tmp_nn_env():
     cand_dir.mkdir(parents=True, exist_ok=True)
     registry_file = tmp_dir / "model_registry.json"
 
-    # Create dummy initial active ByGaitLight model
+
     init_bygait = ByGaitLight(embedding_dim=256, part_bins=4)
     active_bygait_path = tmp_dir / "active_bygait.pth"
     torch.save(init_bygait.state_dict(), str(active_bygait_path))
@@ -57,7 +57,7 @@ def test_bygait_light_fine_tuning_success(tmp_nn_env):
         batch_size=4,
     )
 
-    # 4 samples per identity for 2 identities
+
     training_data = [
         {"image": np.random.rand(64, 128).astype(np.float32), "label": "Person_A"}
         for _ in range(4)
@@ -85,7 +85,7 @@ def test_bygait_light_fine_tuning_success(tmp_nn_env):
     assert res["metrics"]["total_samples"] == 10
     assert res["metrics"]["num_classes"] == 2
 
-    # Verify candidate can be loaded as ByGaitLight backbone
+
     candidate_model = ByGaitLight(embedding_dim=256, part_bins=4)
     state = torch.load(res["artifact_path"], map_location="cpu", weights_only=True)
     candidate_model.load_state_dict(state)
@@ -155,7 +155,7 @@ def test_active_model_weights_not_overwritten(tmp_nn_env):
         candidate_version="vSafeCand01",
     )
 
-    # Active file must remain byte-for-byte identical
+
     current_bytes = active_path.read_bytes()
     current_sha = hashlib.sha256(current_bytes).hexdigest()
     assert current_sha == initial_sha
@@ -166,7 +166,7 @@ def test_candidate_validator_nn_gates():
     """Test CandidateValidator evaluates NN-specific gates (dimension, checksum, rank1)."""
     validator = CandidateValidator()
 
-    # Valid candidate
+
     valid_metrics = {
         "tar": 94.5,
         "far": 0.0,
@@ -183,7 +183,7 @@ def test_candidate_validator_nn_gates():
     assert res_valid.passed is True
     assert res_valid.gate_evaluations.get("embedding_dim_gate") is True
 
-    # Bad dimension (e.g. 128 instead of 256)
+
     bad_dim_metrics = {
         "tar": 94.5,
         "far": 0.0,

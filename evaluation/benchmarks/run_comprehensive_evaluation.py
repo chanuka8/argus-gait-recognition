@@ -212,7 +212,7 @@ def main():
 
     gait_extractor = FeatureExtractionStep(model_path="runs/exp_001/best_model.pth")
 
-    # Feature extraction helper
+
     def extract_gei_feat(gei_img_path: Path) -> np.ndarray:
         return gait_extractor.extract(gei_img_path)
 
@@ -229,9 +229,9 @@ def main():
         enh_crop = enhancer.enhance(crop)
         return osnet_backbone.extract(enh_crop)
 
-    # -------------------------------------------------------------------------
-    # PART 1: LOAD SAME MULTIMODAL TEST DATASET (37 SAMPLES ACROSS 4 SUBJECTS)
-    # -------------------------------------------------------------------------
+
+
+
     subjects = ["demo_person_001", "Devhan", "Isuru", "person01"]
     base_gei = Path("data/auto_enrollment/gei")
     base_photos = Path("data/auto_enrollment/photos")
@@ -253,9 +253,9 @@ def main():
     for s in subjects:
         print(f"  - {s:15}: {data[s]['n']} synchronized GEI + Photo samples")
 
-    # -------------------------------------------------------------------------
-    # PART 2: LEAVE-ONE-OUT MULTIMODAL EVALUATION (GAIT vs APPEARANCE vs FUSED)
-    # -------------------------------------------------------------------------
+
+
+
     print("\n" + "=" * 90)
     print("PART 2: LEAVE-ONE-OUT (LOO) EVALUATION ON IDENTICAL TEST DATASET")
     print("=" * 90)
@@ -361,9 +361,9 @@ def main():
     print(f"{'TAR @ FAR = 1.0%':<30} | {roc_gait['tar_at_1pct_far']*100:>13.2f}% | {roc_app['tar_at_1pct_far']*100:>15.2f}% | {roc_fused['tar_at_1pct_far']*100:>23.2f}%")
     print(f"{'TAR @ FAR = 0.1%':<30} | {roc_gait['tar_at_01pct_far']*100:>13.2f}% | {roc_app['tar_at_01pct_far']*100:>15.2f}% | {roc_fused['tar_at_01pct_far']*100:>23.2f}%")
 
-    # -------------------------------------------------------------------------
-    # PART 3: FUSION WEIGHT SWEEP (w_gait in [0.0..1.0])
-    # -------------------------------------------------------------------------
+
+
+
     print("\n" + "=" * 90)
     print("PART 3: FUSION WEIGHT SWEEP (w_gait in [0.0..1.0])")
     print("=" * 90)
@@ -411,9 +411,9 @@ def main():
         marker = " <-- Production Split" if r["w_gait"] == 0.30 else (" <-- App-Alone" if r["w_gait"] == 0.0 else (" <-- Gait-Alone" if r["w_gait"] == 1.0 else ""))
         print(f"{r['w_gait']:>8.2f} | {r['w_app']:>8.2f} | {r['rank1']:>11.2f}% | {r['map']:>7.2f}% | {r['auc']:>9.4f} | {r['eer']:>7.2f}% | {r['avg_margin']:>12.4f}{marker}")
 
-    # -------------------------------------------------------------------------
-    # PART 4: NESTED 5-FOLD CROSS-VALIDATION THRESHOLD CALIBRATION AUDIT
-    # -------------------------------------------------------------------------
+
+
+
     print("\n" + "=" * 90)
     print("PART 4: NESTED 5-FOLD CROSS-VALIDATION THRESHOLD CALIBRATION AUDIT")
     print("=" * 90)
@@ -474,9 +474,9 @@ def main():
     print(f"  Out-of-Sample Known Recall: {np.mean(cv_test_recalls)*100:.2f}% (Std: {np.std(cv_test_recalls)*100:.2f}%)")
     print(f"  Out-of-Sample Known FAR   : {np.mean(cv_test_far_scores)*100:.2f}% (0.00% across all 5 folds)")
 
-    # -------------------------------------------------------------------------
-    # PART 5: LARGE-SCALE DISJOINT GAIT BENCHMARK (CASIA-B, 5,466 TEST SEQUENCES)
-    # -------------------------------------------------------------------------
+
+
+
     print("\n" + "=" * 90)
     print("PART 5: LARGE-SCALE DISJOINT GAIT BENCHMARK (CASIA-B 5,466 TEST SEQUENCES)")
     print("=" * 90)
@@ -552,9 +552,9 @@ def main():
         c_acc = c_res["correct"] / max(c_res["total"], 1) * 100
         print(f"  - {c_type:15}: {c_acc:>6.2f}% ({c_res['correct']}/{c_res['total']})")
 
-    # -------------------------------------------------------------------------
-    # PART 6: OPEN-SET / OUT-OF-GALLERY (OOG) DEGRADATION (123 INTRUDER SUBJECTS)
-    # -------------------------------------------------------------------------
+
+
+
     print("\n" + "=" * 90)
     print("PART 6: OUT-OF-GALLERY (OOG) HELD-OUT INTRUDER EVALUATION")
     print("=" * 90)
@@ -583,9 +583,9 @@ def main():
     print(f"  - Mean Intruder Score           : {np.mean(intruder_max_scores):.4f} (Std: {np.std(intruder_max_scores):.4f})")
     print(f"  - Open-Set FAR at gate 0.89     : {intruder_false_accepts}/{len(intruder_gei_embs)} ({intruder_false_accepts/len(intruder_gei_embs)*100:.2f}% FAR)")
 
-    # -------------------------------------------------------------------------
-    # PART 7: INFERENCE EFFICIENCY & LATENCY BENCHMARK
-    # -------------------------------------------------------------------------
+
+
+
     print("\n" + "=" * 90)
     print("PART 7: EFFICIENCY, LATENCY & MODEL PARAMETER FOOTPRINT BENCHMARK")
     print("=" * 90)
@@ -616,8 +616,8 @@ def main():
     dummy_rgb_cpu = torch.randn(1, 3, 256, 128, device="cpu")
 
     osnet_model = osnet_backbone._ensure_model()
-    
-    # 1. Benchmark OSNet on GPU (if CUDA available)
+
+
     if torch.cuda.is_available():
         osnet_model.to("cuda").eval()
         for _ in range(20):
@@ -631,7 +631,7 @@ def main():
     else:
         lat_app_gpu = 0.0
 
-    # 2. Benchmark OSNet on CPU
+
     osnet_model.to("cpu").eval()
     for _ in range(10):
         _ = osnet_model(dummy_rgb_cpu)
@@ -652,14 +652,14 @@ def main():
     print(f"{'Appearance (OSNet-x0.25)':<25} | {params_app/1e6:>10.3f}M | {size_app_mb:>10.2f}MB | {lat_app_gpu:>11.2f}ms | {lat_app_cpu:>11.2f}ms")
     print(f"{'Total Dual-Modal Pipeline':<25} | {(params_gait+params_app)/1e6:>10.3f}M | {size_gait_mb+size_app_mb:>10.2f}MB | {lat_gait_gpu+lat_app_gpu:>11.2f}ms | {lat_gait_cpu+lat_app_cpu:>11.2f}ms")
 
-    # -------------------------------------------------------------------------
-    # PART 8: GENERATE PUBLICATION-QUALITY PLOTS
-    # -------------------------------------------------------------------------
+
+
+
     print("\n" + "=" * 90)
     print("PART 8: GENERATING VISUAL EVALUATION PLOTS")
     print("=" * 90)
 
-    # 1. CMC Curves Plot
+
     plt.figure(figsize=(8, 6), dpi=300)
     ks = np.arange(1, 11)
     plt.plot(ks, [v * 100 for v in cmc_gait[:10]], "r--o", linewidth=2, label=f"Gait-Only (Rank-1: {rank_gait[1]*100:.1f}%)")
@@ -677,7 +677,7 @@ def main():
     plt.close()
     print("Saved: evaluation/results/cmc_curves.png")
 
-    # 2. ROC Curves Plot
+
     plt.figure(figsize=(8, 6), dpi=300)
     plt.plot(roc_gait["far_curve"], roc_gait["tar_curve"], "r--", linewidth=2, label=f"Gait-Only (AUC: {roc_gait['auc']:.4f}, EER: {roc_gait['eer']*100:.1f}%)")
     plt.plot(roc_app["far_curve"], roc_app["tar_curve"], "b-", linewidth=2, label=f"Appearance-Only (AUC: {roc_app['auc']:.4f}, EER: {roc_app['eer']*100:.1f}%)")
@@ -693,7 +693,7 @@ def main():
     plt.close()
     print("Saved: evaluation/results/roc_curves.png")
 
-    # 3. Fusion Weight Sweep Plot
+
     plt.figure(figsize=(8, 6), dpi=300)
     w_gaits = [r["w_gait"] for r in sweep_records]
     rank1s = [r["rank1"] for r in sweep_records]
@@ -714,7 +714,7 @@ def main():
     plt.close()
     print("Saved: evaluation/results/fusion_weight_sweep.png")
 
-    # 4. Confusion Matrices Heatmap
+
     _fig, axes = plt.subplots(1, 3, figsize=(16, 5), dpi=300)
     titles = ["Gait-Only", "Appearance-Only", "Dual-Modal Fused"]
     matrices = [cls_gait["confusion_matrix"], cls_app["confusion_matrix"], cls_fused["confusion_matrix"]]

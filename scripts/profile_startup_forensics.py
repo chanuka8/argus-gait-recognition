@@ -21,7 +21,7 @@ import time
 import urllib.request
 from pathlib import Path
 
-# Ensure workspace root is in sys.path
+
 WORKSPACE_ROOT = Path(__file__).resolve().parent.parent
 if str(WORKSPACE_ROOT) not in sys.path:
     sys.path.insert(0, str(WORKSPACE_ROOT))
@@ -44,7 +44,7 @@ def run_stage_profiling() -> dict:
 
     timings = {}
 
-    # 1. Stdlib & Lightweight imports
+
     _, timings["import_yaml_json_pathlib"] = time_block(
         "1. import yaml, json, pathlib",
         lambda: (__import__("yaml"), __import__("json"), __import__("pathlib")),
@@ -57,13 +57,13 @@ def run_stage_profiling() -> dict:
     _, timings["import_torchvision"] = time_block("7. import torchvision", lambda: __import__("torchvision"))
     _, timings["import_ultralytics"] = time_block("8. import ultralytics", lambda: __import__("ultralytics"))
 
-    # 2. Config & Logging
+
     _, timings["logging_and_config_init"] = time_block(
         "9. logging and configs init",
         lambda: __import__("monitoring.logging_config"),
     )
 
-    # 3. Model Subsystem Imports
+
     _, timings["import_bygait_extractor"] = time_block(
         "10. import ByGaitLight extraction step",
         lambda: __import__("pipeline.steps.feature_extraction"),
@@ -101,7 +101,7 @@ def run_stage_profiling() -> dict:
         lambda: __import__("services.camera_source_resolver"),
     )
 
-    # 4. Component Instantiations & Model Weights Loading
+
     from pipeline.steps.feature_extraction import FeatureExtractionStep
 
     _, timings["init_bygait_light"] = time_block(
@@ -175,7 +175,7 @@ def run_stage_profiling() -> dict:
         lambda: CameraSourceResolver(),
     )
 
-    # 5. Full GaitService Instantiation
+
     from services.gait_service import GaitService
 
     _, timings["init_full_gait_service"] = time_block(
@@ -183,7 +183,7 @@ def run_stage_profiling() -> dict:
         lambda: GaitService(),
     )
 
-    # 6. App & Routers Assembly
+
     _, timings["import_app_and_routers"] = time_block(
         "29. Import api.server & build routers",
         lambda: __import__("api.server"),

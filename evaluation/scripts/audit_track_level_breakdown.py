@@ -36,7 +36,7 @@ def audit_track_clarifications():
     base_gei = Path("data/auto_enrollment/gei")
     base_photos = Path("data/auto_enrollment/photos")
 
-    # 1. COMPOSITION BREAKDOWN
+
     print("\n--- ITEM 1: EXACT COMPOSITION BREAKDOWN (37 Production Samples) ---")
     query_gait, query_app, query_labels = [], [], []
     per_subject_counts = {}
@@ -70,7 +70,7 @@ def audit_track_clarifications():
     print(f"  - Safe Identity Pool  : {per_subject_counts['demo_person_001']} samples (13.51%)")
     print(f"  - Confusion Group Pool: {sum(per_subject_counts[s] for s in ['Devhan', 'Isuru', 'person01'])} samples (86.49%)")
 
-    # 2. MATCHED POPULATION BENCHMARK: EXACT 1-TO-1 COMPARISON (N=37 Matched Probes)
+
     print("\n" + "=" * 100)
     print("--- ITEM 2: MATCHED POPULATION (37 Matched Probes: Single-Frame vs 12-Frame Track) ---")
     print("=" * 100)
@@ -84,9 +84,9 @@ def audit_track_clarifications():
 
     np.random.seed(42)
 
-    # For each of the 37 samples, evaluate under identical degradation:
-    # (a) Single-frame decision
-    # (b) 12-frame multi-frame track decision
+
+
+
     single_frame_res = {"SAFE": {"CONFIRMED": 0, "REVIEW": 0, "UNKNOWN": 0}, "CONFUSION": {"CONFIRMED": 0, "REVIEW": 0, "UNKNOWN": 0}}
     track_level_res = {"SAFE": {"CONFIRMED": 0, "REVIEW": 0, "UNKNOWN": 0}, "CONFUSION": {"CONFIRMED": 0, "REVIEW": 0, "UNKNOWN": 0}}
 
@@ -104,7 +104,7 @@ def audit_track_clarifications():
         gal_a = [query_app[j] for j in range(N) if i != j]
         gal_lbl = [query_labels[j] for j in range(N) if i != j]
 
-        # Single-frame degraded probe
+
         clean_g_sims = [float(np.dot(q_g, g)) for g in gal_g]
         clean_a_sims = [float(np.dot(q_a, a)) for a in gal_a]
 
@@ -130,7 +130,7 @@ def audit_track_clarifications():
         else:
             single_frame_res[grp_key]["UNKNOWN"] += 1
 
-        # Multi-frame 12-frame track on this EXACT sample
+
         aggregator = TrackIdentityAggregator(
             window_size=8,
             consensus_threshold=0.60,
@@ -153,7 +153,7 @@ def audit_track_clarifications():
                 appearance_threshold=0.72,
             )
 
-            # Count cross-matching impostor attempts against other identities
+
             for gal_k in range(len(gal_lbl)):
                 if gal_lbl[gal_k] != q_lbl:
                     cross_impostor_attempts += 1
@@ -177,21 +177,21 @@ def audit_track_clarifications():
     print("\nMATCHED 37-SAMPLE BREAKDOWN: SINGLE-FRAME vs TRACK-LEVEL")
     print(f"{'Population Subgroup':<30} | {'Decision State':<18} | {'Single-Frame (Degraded)':<25} | {'12-Frame Track (Degraded)'}")
     print("-" * 105)
-    
-    # Safe Identity
+
+
     n_safe = per_subject_counts["demo_person_001"]
     print(f"{'Safe Identity (demo_person_001)':<30} | {'Auto-CONFIRMED':<18} | {single_frame_res['SAFE']['CONFIRMED']:>2} / {n_safe} ({single_frame_res['SAFE']['CONFIRMED']/n_safe*100:5.1f}%)         | {track_level_res['SAFE']['CONFIRMED']:>2} / {n_safe} ({track_level_res['SAFE']['CONFIRMED']/n_safe*100:5.1f}%)")
     print(f"{'':<30} | {'REVIEW_REQUIRED':<18} | {single_frame_res['SAFE']['REVIEW']:>2} / {n_safe} ({single_frame_res['SAFE']['REVIEW']/n_safe*100:5.1f}%)         | {track_level_res['SAFE']['REVIEW']:>2} / {n_safe} ({track_level_res['SAFE']['REVIEW']/n_safe*100:5.1f}%)")
     print(f"{'':<30} | {'UNKNOWN (Lost)':<18} | {single_frame_res['SAFE']['UNKNOWN']:>2} / {n_safe} ({single_frame_res['SAFE']['UNKNOWN']/n_safe*100:5.1f}%)         | {track_level_res['SAFE']['UNKNOWN']:>2} / {n_safe} ({track_level_res['SAFE']['UNKNOWN']/n_safe*100:5.1f}%)")
     print("-" * 105)
 
-    # Confusion Group
+
     n_conf = N - n_safe
     print(f"{'Confusion Group (Dev/Isu/p01)':<30} | {'Auto-CONFIRMED':<18} | {single_frame_res['CONFUSION']['CONFIRMED']:>2} / {n_conf} ({single_frame_res['CONFUSION']['CONFIRMED']/n_conf*100:5.1f}%)         | {track_level_res['CONFUSION']['CONFIRMED']:>2} / {n_conf} ({track_level_res['CONFUSION']['CONFIRMED']/n_conf*100:5.1f}%)")
     print(f"{'':<30} | {'REVIEW_REQUIRED':<18} | {single_frame_res['CONFUSION']['REVIEW']:>2} / {n_conf} ({single_frame_res['CONFUSION']['REVIEW']/n_conf*100:5.1f}%)         | {track_level_res['CONFUSION']['REVIEW']:>2} / {n_conf} ({track_level_res['CONFUSION']['REVIEW']/n_conf*100:5.1f}%)")
     print(f"{'':<30} | {'UNKNOWN (Lost)':<18} | {single_frame_res['CONFUSION']['UNKNOWN']:>2} / {n_conf} ({single_frame_res['CONFUSION']['UNKNOWN']/n_conf*100:5.1f}%)         | {track_level_res['CONFUSION']['UNKNOWN']:>2} / {n_conf} ({track_level_res['CONFUSION']['UNKNOWN']/n_conf*100:5.1f}%)")
 
-    # 3. FAR TEST DESIGN CONFIRMATION
+
     print("\n" + "=" * 100)
     print("--- ITEM 3: CROSS-MATCHING FAR AUDIT DETAILS ---")
     print("=" * 100)
@@ -199,12 +199,12 @@ def audit_track_clarifications():
     print(f"Total False Confirmations Across Any Cross-Identity Probe: {cross_impostor_false_confirms}")
     print(f"Empirical Cross-Subject False Accept Rate (FAR)          : 0.00% (0 / {cross_impostor_attempts:,})")
 
-    # 4. RETROACTIVE CHECK OF RISK THRESHOLDS (T_gait=0.85, T_app=0.65)
+
     print("\n" + "=" * 100)
     print("--- ITEM 4: RETROACTIVE SANITY CHECK OF PROPOSED RISK THRESHOLDS ---")
     print("=" * 100)
     detector = RuntimeConfusionDetector(gait_risk_thresh=0.85, app_risk_thresh=0.65)
-    
+
     gal_gait_dict = {s: [] for s in subjects}
     gal_app_dict = {s: [] for s in subjects}
     for i, s in enumerate(query_labels):
@@ -225,7 +225,7 @@ def audit_track_clarifications():
     ]
 
     for s1, s2 in known_pairs:
-        # Compute max pairwise similarity
+
         g_sims = [float(np.dot(g1, g2)) for g1 in gal_gait_dict[s1] for g2 in gal_gait_dict[s2]]
         a_sims = [float(np.dot(a1, a2)) for a1 in gal_app_dict[s1] for a2 in gal_app_dict[s2]]
         max_g = float(np.max(g_sims))

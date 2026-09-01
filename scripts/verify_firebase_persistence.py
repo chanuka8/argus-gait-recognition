@@ -18,7 +18,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-# Ensure root directory in sys.path
+
 root_dir = Path(__file__).resolve().parent.parent
 if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
@@ -54,9 +54,9 @@ def run_verification() -> int:
         reg_file = tmp_dir / "model_registry.json"
         fb_offline = tmp_dir / "fb_store.json"
 
-        # ---------------------------------------------------------------------
-        # 1. Firebase Store Init & Mode
-        # ---------------------------------------------------------------------
+
+
+
         fb_store = FirebaseEmbeddingStore(
             mode="auto",
             offline_store_path=str(fb_offline),
@@ -65,9 +65,9 @@ def run_verification() -> int:
         print(f"[CHECK 1] Firebase Store Mode: {mode.upper()}")
         results.append(("Firebase Store Mode", "VERIFIED", f"Running in {mode} mode"))
 
-        # ---------------------------------------------------------------------
-        # 2. Persistence & Read-after-Write Verification
-        # ---------------------------------------------------------------------
+
+
+
         gait_vec = list(np.random.randn(256).astype(float))
         app_vec = list(np.random.randn(512).astype(float))
 
@@ -101,14 +101,14 @@ def run_verification() -> int:
         print("[CHECK 2] Multimodal Persistence (256D Gait + 512D Appearance) & Verification: OK")
         results.append(("Multimodal Persistence & Read-after-Write", "VERIFIED", "256D/512D stored and verified"))
 
-        # ---------------------------------------------------------------------
-        # 3. Dimension Isolation & Rejection
-        # ---------------------------------------------------------------------
+
+
+
         bad_doc = FirebaseEmbeddingDocument(
             embedding_id="bad-dim-01",
             person_id="Sub_Bad",
             modality="gait",
-            embedding_dim=512,  # Invalid: 512 for gait
+            embedding_dim=512,
             vector=app_vec,
             model_version="v1.0.0",
         )
@@ -117,9 +117,9 @@ def run_verification() -> int:
         print("[CHECK 3] Dimension Isolation: OK (rejected mismatched dimension)")
         results.append(("Dimension Isolation", "VERIFIED", "Mismatched dimensions strictly rejected"))
 
-        # ---------------------------------------------------------------------
-        # 4. Disaster Recovery Rebuild
-        # ---------------------------------------------------------------------
+
+
+
         db = EmbeddingDatabase(
             db_dir=str(db_dir),
             gait_gallery_dir=str(gait_gal),
@@ -134,9 +134,9 @@ def run_verification() -> int:
         print("[CHECK 4] Disaster Recovery Rebuild: OK (restored local galleries from Firebase)")
         results.append(("Disaster Recovery Rebuild", "VERIFIED", "Reconstructed local VectorStores from Firebase"))
 
-        # ---------------------------------------------------------------------
-        # 5. Full Enrollment Lifecycle & Safe Deletion
-        # ---------------------------------------------------------------------
+
+
+
         import cv2
 
         gei_file = tmp_dir / "test_gei.png"
@@ -153,9 +153,9 @@ def run_verification() -> int:
         print("[CHECK 5] Enrollment Lifecycle & Safe Raw-Data Cleanup: OK")
         results.append(("Enrollment 7-Step Invariant", "VERIFIED", "EMBEDDING_ONLY reached, raw media cleaned"))
 
-        # ---------------------------------------------------------------------
-        # 6. Date-Aware NN Fine-Tuning (ByGaitLight)
-        # ---------------------------------------------------------------------
+
+
+
         tuner = NNFineTuner(
             candidate_dir=str(cand_dir),
             max_epochs=1,
@@ -179,9 +179,9 @@ def run_verification() -> int:
         print(f"[CHECK 6] Date-Aware ByGaitLight NN Fine-Tuning: OK (Rank-1: {nn_res['metrics']['val_rank1_accuracy']}%)")
         results.append(("ByGaitLight NN Fine-Tuning", "VERIFIED", "Candidate .pth generated with SHA-256 checksum"))
 
-        # ---------------------------------------------------------------------
-        # 7. Candidate Promotion & Rollback Invariants
-        # ---------------------------------------------------------------------
+
+
+
         registry = ModelRegistry(registry_file=str(reg_file))
         cand_ver = "vVerifyCand01"
         registry.register_candidate(

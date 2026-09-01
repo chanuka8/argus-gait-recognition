@@ -88,9 +88,9 @@ def tmp_env():
     shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
-# =============================================================================
-# REQUIREMENT A: Successful persistence to Firebase/offline store
-# =============================================================================
+
+
+
 def test_a_firebase_embedding_persistence_success(tmp_env):
     fb_store = FirebaseEmbeddingStore(
         mode="offline",
@@ -110,18 +110,18 @@ def test_a_firebase_embedding_persistence_success(tmp_env):
     assert res.success is True
     assert res.embedding_id == "emb-001"
 
-    # Query back
+
     retrieved = fb_store.get_embeddings_by_person("Subject_01")
     assert len(retrieved) == 1
     assert retrieved[0].embedding_id == "emb-001"
     assert len(retrieved[0].vector) == 256
 
 
-# =============================================================================
-# REQUIREMENT B: Firebase write failure isolates from inference
-# =============================================================================
+
+
+
 def test_b_firebase_failure_isolation(tmp_env):
-    # Construct store pointing to an un-writable path to trigger write error
+
     fb_store = FirebaseEmbeddingStore(
         mode="offline",
         offline_store_path=tmp_env["offline_fb_store"],
@@ -134,7 +134,7 @@ def test_b_firebase_failure_isolation(tmp_env):
     )
 
     vec = np.random.randn(256).astype(np.float32)
-    # Local persistence should succeed even if we pass bad vectors to mock error
+
     res = db.add_embeddings(
         person_id="Subject_Iso",
         gait_embeddings=[vec],
@@ -143,15 +143,15 @@ def test_b_firebase_failure_isolation(tmp_env):
     assert res["success"] is True
     assert res["persistence_verified"] is True
 
-    # Vector store contains the embedding for inference
+
     _, labels, _ = db.gait_store.load()
     assert len(labels) == 1
     assert labels[0] == "Subject_Iso"
 
 
-# =============================================================================
-# REQUIREMENT C: Idempotency of duplicate embedding writes
-# =============================================================================
+
+
+
 def test_c_idempotent_duplicate_writes(tmp_env):
     fb_store = FirebaseEmbeddingStore(
         mode="offline",
@@ -172,19 +172,19 @@ def test_c_idempotent_duplicate_writes(tmp_env):
     assert res2.success is True
 
     all_embs = fb_store.get_embeddings_by_person("Subject_Dup")
-    # Person index should have unique ID
+
     assert len(all_embs) == 1
 
 
-# =============================================================================
-# REQUIREMENT D: 256D (gait) and 512D (appearance) dimension isolation
-# =============================================================================
+
+
+
 def test_d_dimension_isolation_and_rejection(tmp_env):
     fb_store = FirebaseEmbeddingStore(
         mode="offline",
         offline_store_path=tmp_env["offline_fb_store"],
     )
-    # Invalid: 512D declared for gait (expected 256)
+
     bad_gait = FirebaseEmbeddingDocument(
         embedding_id="emb-bad-1",
         person_id="Sub_Dim",
@@ -197,7 +197,7 @@ def test_d_dimension_isolation_and_rejection(tmp_env):
     assert res_bad.success is False
     assert "Gait embedding dimension mismatch" in res_bad.error_message
 
-    # Invalid: 256D declared for appearance (expected 512)
+
     bad_app = FirebaseEmbeddingDocument(
         embedding_id="emb-bad-2",
         person_id="Sub_Dim",
@@ -210,7 +210,7 @@ def test_d_dimension_isolation_and_rejection(tmp_env):
     assert res_bad2.success is False
     assert "Appearance embedding dimension mismatch" in res_bad2.error_message
 
-    # Valid: 256D gait
+
     good_gait = FirebaseEmbeddingDocument(
         embedding_id="emb-good-gait",
         person_id="Sub_Dim",
@@ -219,7 +219,7 @@ def test_d_dimension_isolation_and_rejection(tmp_env):
         vector=list(np.random.randn(256).astype(float)),
         model_version="v1.0.0",
     )
-    # Valid: 512D appearance
+
     good_app = FirebaseEmbeddingDocument(
         embedding_id="emb-good-app",
         person_id="Sub_Dim",
@@ -232,9 +232,9 @@ def test_d_dimension_isolation_and_rejection(tmp_env):
     assert fb_store.persist_embedding(good_app).success is True
 
 
-# =============================================================================
-# REQUIREMENT E: Model-version lineage preservation in documents
-# =============================================================================
+
+
+
 def test_e_model_version_lineage_preservation(tmp_env):
     fb_store = FirebaseEmbeddingStore(
         mode="offline",
@@ -259,9 +259,9 @@ def test_e_model_version_lineage_preservation(tmp_env):
     assert docs[0].case_id == "Case-1234"
 
 
-# =============================================================================
-# REQUIREMENT F: Date-aware learning job creation for dates with eligible data
-# =============================================================================
+
+
+
 def test_f_date_aware_job_creation(tmp_env):
     collector = OperationalEmbeddingCollector(output_dir=tmp_env["obs_dir"])
     db = EmbeddingDatabase(
@@ -277,7 +277,7 @@ def test_f_date_aware_job_creation(tmp_env):
         min_identities=2,
     )
 
-    # Ingest 4 verified observations for 2 identities on date 2026-08-27
+
     obs1 = collector.record_observation(
         camera_id="cam-1",
         track_id=1,
@@ -328,9 +328,9 @@ def test_f_date_aware_job_creation(tmp_env):
     assert jobs[0].identities_count == 2
 
 
-# =============================================================================
-# REQUIREMENT G: Zero jobs created for dates with no new eligible embeddings
-# =============================================================================
+
+
+
 def test_g_zero_jobs_for_empty_date(tmp_env):
     collector = OperationalEmbeddingCollector(output_dir=tmp_env["obs_dir"])
     db = EmbeddingDatabase(
@@ -343,14 +343,14 @@ def test_g_zero_jobs_for_empty_date(tmp_env):
         collector=collector,
         db=db,
     )
-    # No data ingested
+
     jobs = scheduler.check_and_schedule_new_dates(model_type="dual_modal_fusion")
     assert len(jobs) == 0
 
 
-# =============================================================================
-# REQUIREMENT H: Duplicate date does not produce duplicate jobs
-# =============================================================================
+
+
+
 def test_h_duplicate_date_idempotency(tmp_env):
     collector = OperationalEmbeddingCollector(output_dir=tmp_env["obs_dir"])
     db = EmbeddingDatabase(
@@ -366,7 +366,7 @@ def test_h_duplicate_date_idempotency(tmp_env):
         min_identities=2,
     )
 
-    # Ingest data
+
     obs1 = collector.record_observation(
         camera_id="cam-1",
         track_id=1,
@@ -391,17 +391,17 @@ def test_h_duplicate_date_idempotency(tmp_env):
     jobs1 = scheduler.check_and_schedule_new_dates(model_type="dual_modal_fusion")
     assert len(jobs1) == 1
 
-    # Second call should schedule zero new jobs (idempotent skip)
+
     jobs2 = scheduler.check_and_schedule_new_dates(model_type="dual_modal_fusion")
     assert len(jobs2) == 0
 
 
-# =============================================================================
-# REQUIREMENT I: Only TRAINING_ELIGIBLE observations enter training set
-# =============================================================================
+
+
+
 def test_i_only_training_eligible_enter_training(tmp_env):
     collector = OperationalEmbeddingCollector(output_dir=tmp_env["obs_dir"])
-    # Unverified predicted observation
+
     obs_unverified = collector.record_observation(
         camera_id="cam-1",
         track_id=1,
@@ -411,7 +411,7 @@ def test_i_only_training_eligible_enter_training(tmp_env):
         modality="gait",
         observation_date="2026-08-29",
     )
-    # Verified observation
+
     obs_verified = collector.record_observation(
         camera_id="cam-1",
         track_id=2,
@@ -429,9 +429,9 @@ def test_i_only_training_eligible_enter_training(tmp_env):
     assert obs_unverified.observation_id not in eligible_ids
 
 
-# =============================================================================
-# REQUIREMENT J: Historical baseline replay data included in training
-# =============================================================================
+
+
+
 def test_j_historical_replay_data_included(tmp_env):
     collector = OperationalEmbeddingCollector()
     db = EmbeddingDatabase(
@@ -439,7 +439,7 @@ def test_j_historical_replay_data_included(tmp_env):
         gait_gallery_dir=tmp_env["gait_gal"],
         appearance_gallery_dir=tmp_env["app_gal"],
     )
-    # Seed historical baseline for Subject_Base on earlier date
+
     db.add_embeddings(
         person_id="Subject_Base",
         gait_embeddings=[np.random.randn(256).astype(np.float32) for _ in range(3)],
@@ -460,16 +460,16 @@ def test_j_historical_replay_data_included(tmp_env):
     assert len(labels) > 0
 
 
-# =============================================================================
-# REQUIREMENT K: Candidate model generation (.pth/.json) without overwriting
-# =============================================================================
+
+
+
 def test_k_candidate_model_artifact_generation(tmp_env):
     tuner = NNFineTuner(
         candidate_dir=tmp_env["candidates_dir"],
         max_epochs=1,
         learning_rate=1e-5,
     )
-    # Synthesize GEI samples for 2 subjects
+
     gei_data = [
         {"image": np.random.rand(64, 128).astype(np.float32), "label": "Sub1"}
         for _ in range(4)
@@ -494,13 +494,13 @@ def test_k_candidate_model_artifact_generation(tmp_env):
     assert res["embedding_dim"] == 256
 
 
-# =============================================================================
-# REQUIREMENT L: Candidate validation rejects regressed candidate
-# =============================================================================
+
+
+
 def test_l_candidate_validation_rejects_regression():
     validator = CandidateValidator(max_allowed_far_increase=0.0)
     baseline_metrics = {"tar": 92.0, "far": 0.5, "eer": 4.0}
-    # Candidate with security regression (FAR increased to 2.5%)
+
     regressed_metrics = {"tar": 95.0, "far": 2.5, "eer": 5.0}
 
     val_res = validator.validate_candidate(
@@ -513,9 +513,9 @@ def test_l_candidate_validation_rejects_regression():
     assert any("Security Regression" in r for r in val_res.rejection_reasons)
 
 
-# =============================================================================
-# REQUIREMENT M: Candidate promotion activates new version atomically
-# =============================================================================
+
+
+
 def test_m_candidate_promotion_atomic(tmp_env):
     registry = ModelRegistry(registry_file=tmp_env["registry_file"])
 
@@ -545,9 +545,9 @@ def test_m_candidate_promotion_atomic(tmp_env):
     assert registry.get_active_model("dual_modal_fusion").model_version == cand_ver
 
 
-# =============================================================================
-# REQUIREMENT N: Safety rollback restores previous known-good version
-# =============================================================================
+
+
+
 def test_n_safety_rollback_restores_previous(tmp_env):
     registry = ModelRegistry(registry_file=tmp_env["registry_file"])
     v1_rec = registry.get_active_model("dual_modal_fusion")
@@ -572,15 +572,15 @@ def test_n_safety_rollback_restores_previous(tmp_env):
     registry.promote_version("v2.0.0-temp", "dual_modal_fusion")
     assert registry.get_active_model("dual_modal_fusion").model_version == "v2.0.0-temp"
 
-    # Execute rollback
+
     rolled_back = registry.rollback("dual_modal_fusion", reason="Runtime regression detected")
     assert rolled_back.model_version == v1_ver
     assert registry.get_active_model("dual_modal_fusion").model_version == v1_ver
 
 
-# =============================================================================
-# REQUIREMENT O: Training failure leaves active production model intact
-# =============================================================================
+
+
+
 def test_o_training_failure_preserves_active_model(tmp_env):
     registry = ModelRegistry(registry_file=tmp_env["registry_file"])
     active_before = registry.get_active_model("bygait_light")
@@ -598,7 +598,7 @@ def test_o_training_failure_preserves_active_model(tmp_env):
         db=db,
         candidate_artifacts_dir=tmp_env["candidates_dir"],
     )
-    # Execute NN job with empty training dataset -> triggers ValueError
+
     job = LearningJobRecord(
         job_id="job-fail-safe",
         training_date="2026-08-27",
@@ -608,16 +608,16 @@ def test_o_training_failure_preserves_active_model(tmp_env):
     assert result_job.status == LearningJobStatus.FAILED
 
     active_after = registry.get_active_model("bygait_light")
-    # Active model untouched
+
     if active_before:
         assert active_before.model_version == active_after.model_version
 
 
-# =============================================================================
-# REQUIREMENT P: Firebase unavailable does not block local inference
-# =============================================================================
+
+
+
 def test_p_firebase_unavailable_inference_safe(tmp_env):
-    # Store with bad offline path will queue retries but never raise into caller
+
     fb_store = FirebaseEmbeddingStore(
         mode="offline",
         offline_store_path=tmp_env["offline_fb_store"],
@@ -635,14 +635,14 @@ def test_p_firebase_unavailable_inference_safe(tmp_env):
         gait_embeddings=[vec],
     )
     assert res["success"] is True
-    # Gallery query works immediately
+
     _, labels, _ = db.gait_store.load()
     assert "Sub_Safe_01" in labels
 
 
-# =============================================================================
-# REQUIREMENT Q: Enrollment lifecycle reaches EMBEDDING_ONLY state
-# =============================================================================
+
+
+
 def test_q_enrollment_lifecycle_embedding_only(tmp_env):
     fb_store = FirebaseEmbeddingStore(
         mode="offline",
@@ -659,7 +659,7 @@ def test_q_enrollment_lifecycle_embedding_only(tmp_env):
         firebase_store=fb_store,
     )
 
-    # Create dummy GEI image file
+
     import cv2
 
     gei_file = Path(tmp_env["root"]) / "dummy_gei.png"
@@ -671,13 +671,13 @@ def test_q_enrollment_lifecycle_embedding_only(tmp_env):
         auto_delete_raw=True,
     )
     assert res.status == EnrollmentStatus.EMBEDDING_ONLY
-    assert not gei_file.exists()  # Raw file safely cleaned up
+    assert not gei_file.exists()
     assert res.gait_embeddings_count == 1
 
 
-# =============================================================================
-# REQUIREMENT R: Persistence failure retains raw media files
-# =============================================================================
+
+
+
 def test_r_persistence_failure_retains_raw_media(tmp_env):
     class FailingDB:
         def add_embeddings(self, *args, **kwargs):
@@ -695,16 +695,16 @@ def test_r_persistence_failure_retains_raw_media(tmp_env):
         auto_delete_raw=True,
     )
     assert res.status == EnrollmentStatus.PERSISTENCE_FAILED
-    assert raw_photo.exists()  # Raw media RETAINED for safety
+    assert raw_photo.exists()
     assert str(raw_photo) in res.raw_files_retained
 
 
-# =============================================================================
-# REQUIREMENT S: Interrupted job recovery upon restart
-# =============================================================================
+
+
+
 def test_s_interrupted_job_recovery(tmp_env):
     scheduler = DateAwareLearningScheduler(jobs_file=tmp_env["jobs_file"])
-    # Write a simulated RUNNING job left by a crashed process
+
     crashed_job = LearningJobRecord(
         job_id="job-crashed-01",
         training_date="2026-08-25",
@@ -712,16 +712,16 @@ def test_s_interrupted_job_recovery(tmp_env):
     )
     scheduler.update_job(crashed_job)
 
-    # Re-instantiate scheduler (simulates application restart)
+
     new_scheduler = DateAwareLearningScheduler(jobs_file=tmp_env["jobs_file"])
     recovered = new_scheduler.get_job("job-crashed-01")
     assert recovered.status == LearningJobStatus.INTERRUPTED
     assert "interrupted" in recovered.error_message.lower()
 
 
-# =============================================================================
-# REQUIREMENT T: Read-after-write verification validates vector integrity
-# =============================================================================
+
+
+
 def test_t_read_after_write_verification(tmp_env):
     fb_store = FirebaseEmbeddingStore(
         mode="offline",
@@ -742,20 +742,20 @@ def test_t_read_after_write_verification(tmp_env):
     assert verified is True
     assert "verified" in msg.lower()
 
-    # Non-existent ID returns false
+
     bad_verified, _ = fb_store.verify_persistence("emb-nonexistent")
     assert bad_verified is False
 
 
-# =============================================================================
-# REQUIREMENT U: Disaster recovery rebuild from Firebase
-# =============================================================================
+
+
+
 def test_u_disaster_recovery_rebuild(tmp_env):
     fb_store = FirebaseEmbeddingStore(
         mode="offline",
         offline_store_path=tmp_env["offline_fb_store"],
     )
-    # Populate Firebase store with 2 subjects
+
     vec1 = list(np.random.randn(256).astype(float))
     vec2 = list(np.random.randn(512).astype(float))
     fb_store.persist_embedding(
@@ -779,7 +779,7 @@ def test_u_disaster_recovery_rebuild(tmp_env):
         )
     )
 
-    # Empty local database
+
     db = EmbeddingDatabase(
         db_dir=tmp_env["db_dir"],
         gait_gallery_dir=tmp_env["gait_gal"],

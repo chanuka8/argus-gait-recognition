@@ -43,7 +43,7 @@ def test_recognition_worker_modality_state_safety():
     cache = RecognitionResultCache(ttl_seconds=5.0)
     now = time.monotonic()
 
-    # Test cache put and get with fresh timestamp
+
     res = RecognitionResult(
         camera_id="test_cam",
         track_id=1,
@@ -72,21 +72,21 @@ def test_embedding_database_dimension_and_nan_safeguards(tmp_path):
         appearance_gallery_dir=str(tmp_path / "app_gallery"),
     )
 
-    # Invalid gait dimension (255 instead of 256)
+
     with pytest.raises(ValueError, match="Gait embedding dimension mismatch"):
         db.add_embeddings(
             person_id="person_fail",
             gait_embeddings=[np.ones(255, dtype=np.float32)],
         )
 
-    # Invalid appearance dimension (511 instead of 512)
+
     with pytest.raises(ValueError, match="Appearance embedding dimension mismatch"):
         db.add_embeddings(
             person_id="person_fail",
             appearance_embeddings=[np.ones(511, dtype=np.float32)],
         )
 
-    # NaN in vector
+
     nan_vec = np.ones(256, dtype=np.float32)
     nan_vec[5] = np.nan
     with pytest.raises(ValueError, match="contains non-finite values"):
@@ -95,7 +95,7 @@ def test_embedding_database_dimension_and_nan_safeguards(tmp_path):
             gait_embeddings=[nan_vec],
         )
 
-    # Valid insertion
+
     valid_gait = np.random.randn(256).astype(np.float32)
     valid_app = np.random.randn(512).astype(np.float32)
     result = db.add_embeddings(
@@ -123,7 +123,7 @@ def test_osnet_backbone_no_future_warnings():
         model = backbone._ensure_model()
         assert model is not None
 
-        # Check that no torch.load FutureWarning was emitted
+
         future_warnings = [
             w for w in recorded_warnings
             if issubclass(w.category, FutureWarning) and "torch.load" in str(w.message)

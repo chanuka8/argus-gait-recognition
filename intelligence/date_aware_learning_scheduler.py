@@ -44,7 +44,7 @@ class LearningJobRecord:
     """Represents a date-driven continuous learning job and its audit trail."""
 
     job_id: str
-    training_date: str  # YYYY-MM-DD
+    training_date: str
     created_at: float = field(default_factory=time.time)
     started_at: float | None = None
     completed_at: float | None = None
@@ -119,7 +119,7 @@ class DateAwareLearningScheduler:
         self._jobs_cache: dict[str, LearningJobRecord] | None = None
         self._last_mtime: float = 0.0
 
-        # Recover any interrupted jobs from previous shutdown/crash
+
         self.recover_interrupted_jobs()
 
     def _load_jobs(self) -> dict[str, LearningJobRecord]:
@@ -249,7 +249,7 @@ class DateAwareLearningScheduler:
         with self._lock:
             date_data: dict[str, dict[str, Any]] = {}
 
-            # 1. Scan Operational Observations (CCTV Inference -> Verified Ground Truth)
+
             eligible_obs = self.collector.get_training_eligible()
             for obs in eligible_obs:
                 d = obs.observation_date or time.strftime("%Y-%m-%d", time.gmtime(obs.created_at))
@@ -264,7 +264,7 @@ class DateAwareLearningScheduler:
                 if ident and ident != "UNKNOWN":
                     date_data[d]["identities"].add(ident)
 
-            # 2. Scan Enrolled / Verified Database Embeddings
+
             for person in self.db.list_all_persons():
                 if person.status != "ACTIVE":
                     continue
@@ -281,7 +281,7 @@ class DateAwareLearningScheduler:
                     date_data[d]["embeddings"].append(emb)
                     date_data[d]["identities"].add(person.person_id)
 
-            # Format result
+
             result = {}
             for d, val in sorted(date_data.items()):
                 obs_list = val["observations"]
@@ -322,7 +322,7 @@ class DateAwareLearningScheduler:
         with self._lock:
             jobs = self._load_jobs()
 
-            # Check existing jobs for this date AND model_type
+
             if not force:
                 for j in jobs.values():
                     if (
@@ -342,7 +342,7 @@ class DateAwareLearningScheduler:
                         )
                         return j
 
-            # Query data for this date
+
             all_dates = self.scan_for_eligible_data()
             date_info = all_dates.get(training_date)
             if not date_info and not force:
@@ -352,7 +352,7 @@ class DateAwareLearningScheduler:
             count = date_info["total_count"] if date_info else 0
             identities = date_info["identities"] if date_info else []
 
-            # Check minimum data gate
+
             if not force and (count < self.min_training_embeddings or len(identities) < self.min_identities):
                 skip_id = f"CL-SKIP-{training_date.replace('-', '')}-{model_type[:4]}-{uuid.uuid4().hex[:4]}"
                 skip_job = LearningJobRecord(
@@ -379,7 +379,7 @@ class DateAwareLearningScheduler:
                 )
                 return skip_job
 
-            # Create PENDING job
+
             type_tag = model_type[:4].upper()
             job_id = f"CL-{training_date.replace('-', '')}-{type_tag}-{uuid.uuid4().hex[:6]}"
             job = LearningJobRecord(

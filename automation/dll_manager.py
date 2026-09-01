@@ -37,7 +37,7 @@ def setup_cuda_dll_paths() -> list[str]:
 
     candidate_paths: list[Path] = []
 
-    # 1. PyTorch /lib directory
+
     try:
         import torch
 
@@ -47,19 +47,19 @@ def setup_cuda_dll_paths() -> list[str]:
     except (ImportError, AttributeError, OSError):
         pass
 
-    # 2. CUDA_PATH environment variable if set
+
     cuda_path_env = os.environ.get("CUDA_PATH")
     if cuda_path_env:
         cuda_bin = Path(cuda_path_env) / "bin"
         if cuda_bin.exists():
             candidate_paths.append(cuda_bin)
 
-    # 3. Standard NVIDIA System path
+
     system_nv = Path(r"C:\Windows\System32")
     if system_nv.exists():
         candidate_paths.append(system_nv)
 
-    # Apply candidates to PATH and os.add_dll_directory
+
     current_path = os.environ.get("PATH", "")
     path_entries = current_path.split(os.pathsep)
 

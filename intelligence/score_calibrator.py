@@ -24,7 +24,7 @@ class PlattScoreCalibrator:
     def fit(self, scores: np.ndarray | list[float], labels: np.ndarray | list[int]) -> "PlattScoreCalibrator":
         """
         Fit Platt scaling parameters (A, B) via maximum likelihood logistic regression.
-        
+
         Args:
             scores: Array of raw similarity scores.
             labels: Binary array (1 for genuine same-person, 0 for impostor).
@@ -35,24 +35,24 @@ class PlattScoreCalibrator:
         if len(s_arr) == 0 or len(y_arr) == 0:
             return self
 
-        # Target smoothing to prevent overfitting on small sample sizes (Platt 1999 standard)
+
         n_pos = np.sum(y_arr == 1.0)
         n_neg = np.sum(y_arr == 0.0)
         t_pos = (n_pos + 1.0) / (n_pos + 2.0)
         t_neg = 1.0 / (n_neg + 2.0)
         targets = np.where(y_arr == 1.0, t_pos, t_neg)
 
-        # Simple Newton-Raphson or gradient descent for (A, B)
+
         a, b = 5.0, -2.5
         lr = 0.05
         for _ in range(200):
             logits = a * s_arr + b
             logits = np.clip(logits, -20.0, 20.0)
             probs = 1.0 / (1.0 + np.exp(-logits))
-            
+
             grad_a = np.mean((probs - targets) * s_arr)
             grad_b = np.mean(probs - targets)
-            
+
             a -= lr * grad_a
             b -= lr * grad_b
 

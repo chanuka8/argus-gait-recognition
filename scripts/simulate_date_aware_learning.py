@@ -92,9 +92,9 @@ def run_simulation():
 
     print(f"[*] Initial Active Model: {reg.get_active_model('dual_modal_fusion').model_version}")
 
-    # -------------------------------------------------------------------------
-    # SCENARIO 1: DAY 1 (2026-08-26) - No New Embeddings
-    # -------------------------------------------------------------------------
+
+
+
     print("\n" + "-" * 70)
     print("DAY 1 (2026-08-26): No new training-eligible embeddings exist.")
     print("-" * 70)
@@ -103,9 +103,9 @@ def run_simulation():
     print("    -> ZERO GPU/CPU learning resources consumed.")
     assert len(jobs_day1) == 0
 
-    # -------------------------------------------------------------------------
-    # SCENARIO 2: DAY 2 (2026-08-27) - New Verified Embeddings Arrive
-    # -------------------------------------------------------------------------
+
+
+
     print("\n" + "-" * 70)
     print("DAY 2 (2026-08-27): 6 new verified observations arrive (Subjects: Devhan, Isuru).")
     print("-" * 70)
@@ -123,13 +123,13 @@ def run_simulation():
             )
             collector.verify_observation(obs.observation_id, verified_identity=sid)
 
-    # Trigger scheduler
+
     jobs_day2 = scheduler.check_and_schedule_new_dates()
     print(f"[+] Date scan detected new data: Scheduled {len(jobs_day2)} job for date 2026-08-27.")
     assert len(jobs_day2) == 1
     job_record = jobs_day2[0]
 
-    # Execute background learning
+
     print(f"[*] Executing Background Learning Worker for job '{job_record.job_id}'...")
     res_job = worker.execute_job_synchronous(job_record)
     print(f"[+] Outcome: {res_job.status.value}")
@@ -141,14 +141,14 @@ def run_simulation():
     assert res_job.status == LearningJobStatus.PROMOTED
     assert reg.get_active_model("dual_modal_fusion").model_version == res_job.candidate_version
 
-    # Duplicate prevention check on same day
+
     dup_jobs = scheduler.check_and_schedule_new_dates()
     print(f"[+] Duplicate check on same date: {len(dup_jobs)} new jobs scheduled (Idempotency verified).")
     assert len(dup_jobs) == 0
 
-    # -------------------------------------------------------------------------
-    # SCENARIO 3: DAY 3 (2026-08-28) - No New Embeddings
-    # -------------------------------------------------------------------------
+
+
+
     print("\n" + "-" * 70)
     print("DAY 3 (2026-08-28): No new training-eligible embeddings exist.")
     print("-" * 70)
@@ -156,9 +156,9 @@ def run_simulation():
     print(f"[+] Date scan result: {len(jobs_day3)} jobs scheduled.")
     assert len(jobs_day3) == 0
 
-    # -------------------------------------------------------------------------
-    # SCENARIO 4: DAY 4 (2026-08-29) - New Data on New Date
-    # -------------------------------------------------------------------------
+
+
+
     print("\n" + "-" * 70)
     print("DAY 4 (2026-08-29): New verified observations arrive (Subjects: Subject_42, Subject_99).")
     print("-" * 70)
@@ -182,9 +182,9 @@ def run_simulation():
     res_job4 = worker.execute_job_synchronous(jobs_day4[0])
     print(f"[+] Outcome for 2026-08-29: {res_job4.status.value}")
 
-    # -------------------------------------------------------------------------
-    # SCENARIO 5: SAFETY ROLLBACK DEMO
-    # -------------------------------------------------------------------------
+
+
+
     print("\n" + "-" * 70)
     print("SAFETY DEMO: Runtime Regression Detected -> Atomic Rollback Triggered")
     print("-" * 70)

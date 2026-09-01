@@ -37,9 +37,9 @@ from models.reid.osnet_backbone import OSNetBackbone
 from pipeline.detection.person_detector import PersonDetector
 from pipeline.steps.feature_extraction import FeatureExtractionStep
 
-# -----------------------------------------------------------------------------
-# Metric Definitions & Algorithms
-# -----------------------------------------------------------------------------
+
+
+
 
 def compute_map_minp(similarity_matrix: np.ndarray, query_labels: list[str], gallery_labels: list[str]) -> tuple[float, float]:
     num_queries = len(query_labels)
@@ -205,9 +205,9 @@ def main():
     osnet_backbone = OSNetBackbone(model_path="models/weights/osnet_x0_25.pth", device=device)
     fusion_engine = DualModalFusion(default_gait_weight=0.30, default_reid_weight=0.70, enabled=True)
 
-    # -------------------------------------------------------------------------
-    # PART 1: LOAD RAW MULTIMODAL TEST DATASET (37 SAMPLES ACROSS 4 SUBJECTS)
-    # -------------------------------------------------------------------------
+
+
+
     subjects = ["demo_person_001", "Devhan", "Isuru", "person01"]
     base_gei = Path("data/auto_enrollment/gei")
     base_photos = Path("data/auto_enrollment/photos")
@@ -238,7 +238,7 @@ def main():
     for s in subjects:
         print(f"  - {s:15}: {data[s]['n']} synchronized GEI + Photo samples")
 
-    # Flatten query samples
+
     query_gait = []
     query_app = []
     query_labels = []
@@ -253,7 +253,7 @@ def main():
 
     N = len(query_labels)
 
-    # Pre-build Leave-One-Out similarity matrices (Shape: N x (N - 1))
+
     sim_matrix_gait = np.zeros((N, N - 1), dtype=np.float32)
     sim_matrix_app = np.zeros((N, N - 1), dtype=np.float32)
     sim_matrix_fused = np.zeros((N, N - 1), dtype=np.float32)
@@ -285,14 +285,14 @@ def main():
             sim_matrix_app[i, gal_idx] = a_sim
             sim_matrix_fused[i, gal_idx] = f_sim
 
-    # -------------------------------------------------------------------------
-    # PART 2: CLOSED-SET VS THRESHOLD-GATED VERIFICATION RECONCILIATION
-    # -------------------------------------------------------------------------
+
+
+
     print("\n" + "=" * 100)
     print("PART 2: RECONCILIATION — CLOSED-SET RANK-1 VS THRESHOLD-GATED VERIFICATION (N=37)")
     print("=" * 100)
 
-    # 1. Closed-Set Ranking (Forced Top-1 Match, No Threshold)
+
     rank1_gait_hits = sum(1 for i in range(N) if loo_gallery_labels[int(np.argmax(sim_matrix_gait[i]))] == query_labels[i])
     rank1_app_hits = sum(1 for i in range(N) if loo_gallery_labels[int(np.argmax(sim_matrix_app[i]))] == query_labels[i])
     rank1_fused_hits = sum(1 for i in range(N) if loo_gallery_labels[int(np.argmax(sim_matrix_fused[i]))] == query_labels[i])
@@ -301,8 +301,8 @@ def main():
     rank1_app_acc = rank1_app_hits / N
     rank1_fused_acc = rank1_fused_hits / N
 
-    # 2. Production Threshold-Gated Verification (decide_identity at gait=0.89, app=0.72)
-    # For every query, find best gait candidate and best app candidate in gallery
+
+
     gated_correct = {"gait": 0, "app": 0, "fused": 0}
     gated_false = {"gait": 0, "app": 0, "fused": 0}
     gated_unknown = {"gait": 0, "app": 0, "fused": 0}
@@ -317,7 +317,7 @@ def main():
         a_score = float(sim_matrix_app[i, best_a_idx])
         a_id = loo_gallery_labels[best_a_idx]
 
-        # Gait-Only Gate (0.89)
+
         if g_score >= 0.89:
             if g_id == q_lbl:
                 gated_correct["gait"] += 1
@@ -326,7 +326,7 @@ def main():
         else:
             gated_unknown["gait"] += 1
 
-        # App-Only Gate (0.72)
+
         if a_score >= 0.72:
             if a_id == q_lbl:
                 gated_correct["app"] += 1
@@ -335,7 +335,7 @@ def main():
         else:
             gated_unknown["app"] += 1
 
-        # Dual-Modal Production Decision Function
+
         dec = fusion_engine.decide_identity(
             gait_identity=g_id,
             gait_score=g_score,
@@ -353,9 +353,9 @@ def main():
         else:
             gated_unknown["fused"] += 1
 
-    # False Rejection Rate (FRR) = (Total Genuine - Genuine Confirmed) / Total Genuine
-    # Genuine Accept Rate (TAR) = Genuine Confirmed / Total Genuine
-    # False Accept Rate (FAR) = Impostor Confirmed / Total Impostor (or 0 for zero false accepts on LOO)
+
+
+
     frr_gait = gated_unknown["gait"] / N
     tar_gait = gated_correct["gait"] / N
     far_gait = gated_false["gait"] / N
@@ -377,9 +377,9 @@ def main():
     print(f"{'False Acceptance Rate (FAR)':<35} | {far_gait*100:>13.2f}% | {far_app*100:>15.2f}% | {far_fused*100:>23.2f}%")
     print(f"{'Total Unknown/Rejected Count':<35} | {gated_unknown['gait']:>11}/37   | {gated_unknown['app']:>13}/37   | {gated_unknown['fused']:>21}/37")
 
-    # -------------------------------------------------------------------------
-    # PART 3: THRESHOLD CALIBRATION LEAKAGE CHECK (NESTED 5-FOLD CV)
-    # -------------------------------------------------------------------------
+
+
+
     print("\n" + "=" * 100)
     print("PART 3: THRESHOLD CALIBRATION AUDIT — NESTED 5-FOLD STRATIFIED CROSS-VALIDATION")
     print("=" * 100)
@@ -398,7 +398,7 @@ def main():
         test_idx = folds[fold_idx]
         train_idx = np.concatenate([folds[f] for f in range(5) if f != fold_idx])
 
-        # Calibration on training fold: Find max cross-identity score in train pairs
+
         train_diff_scores = []
         for i_idx in train_idx:
             for j_idx in train_idx:
@@ -410,7 +410,7 @@ def main():
         fold_calib_thresh = float(np.max(train_diff_scores) + 0.001) if train_diff_scores else 0.72
         calibrated_thresholds.append(fold_calib_thresh)
 
-        # Evaluate on untouched test fold
+
         test_correct = 0
         test_false = 0
         test_unknown = 0
@@ -448,9 +448,9 @@ def main():
     print(f"  Out-of-Sample Gated FRR   : {np.mean(cv_test_frr_scores)*100:.2f}% (Std: {np.std(cv_test_frr_scores)*100:.2f}%)")
     print(f"  Out-of-Sample Gated FAR   : {np.mean(cv_test_far_scores)*100:.2f}% (0.00% across all 5 folds)")
 
-    # -------------------------------------------------------------------------
-    # PART 4: FUSION WEIGHT SWEEP WITH RANK-1 AND FRR (0.0 TO 1.0)
-    # -------------------------------------------------------------------------
+
+
+
     print("\n" + "=" * 100)
     print("PART 4: FUSION WEIGHT SWEEP ABLATION WITH RANK-1 AND FRR")
     print("=" * 100)
@@ -480,14 +480,14 @@ def main():
         _, sw_rank = compute_cmc(sweep_sim_matrix, query_labels, loo_gallery_labels, max_k=5)
         sw_map, _sw_minp = compute_map_minp(sweep_sim_matrix, query_labels, loo_gallery_labels)
 
-        # Pairwise ROC
+
         sw_same = [w_g * sg + w_a * sa for sg, sa in zip(same_g, same_a)]
         sw_diff = [w_g * dg + w_a * da for dg, da in zip(diff_g, diff_a)]
         sw_roc = compute_roc_eer_tar_at_far(sw_same, sw_diff)
 
-        # Compute threshold at zero training false accept for this weight
+
         th_zero_far = float(np.max(sw_diff) + 0.001)
-        # Compute Gated TAR & FRR at this threshold
+
         hits = 0
         unknowns = 0
         for i in range(N):
@@ -503,7 +503,7 @@ def main():
         gated_tar = hits / N * 100
         gated_frr = unknowns / N * 100
 
-        # Margin
+
         correct_margins = []
         for i in range(N):
             sims = sweep_sim_matrix[i]
@@ -532,9 +532,9 @@ def main():
         marker = " <-- Production Split" if r["w_gait"] == 0.30 else (" <-- App-Alone" if r["w_gait"] == 0.0 else (" <-- Gait-Alone" if r["w_gait"] == 1.0 else ""))
         print(f"{r['w_gait']:>8.2f} | {r['w_app']:>8.2f} | {r['rank1']:>10.2f}% | {r['gated_tar']:>9.2f}% | {r['gated_frr']:>9.2f}% | {r['map']:>7.2f}% | {r['auc']:>9.4f} | {r['eer']:>7.2f}% | {r['avg_margin']:>10.4f}{marker}")
 
-    # -------------------------------------------------------------------------
-    # PART 5: FULL MULTIMODAL COMPARISON TABLE (IDENTICAL 37 SAMPLES)
-    # -------------------------------------------------------------------------
+
+
+
     print("\n" + "=" * 100)
     print("PART 5: PRIMARY MULTIMODAL COMPARISON TABLE (IDENTICAL 37 MULTIMODAL SAMPLES)")
     print("=" * 100)
@@ -577,9 +577,9 @@ def main():
     print(f"{'Classification (Top-1)':<25} | {'Macro F1-Score':<28} | {cls_gait['macro_f1']*100:>13.2f}% | {cls_app['macro_f1']*100:>13.2f}% | {cls_fused['macro_f1']*100:>23.2f}%")
     print(f"{'Classification (Top-1)':<25} | {'Weighted F1-Score':<28} | {cls_gait['weighted_f1']*100:>13.2f}% | {cls_app['weighted_f1']*100:>13.2f}% | {cls_fused['weighted_f1']*100:>23.2f}%")
 
-    # -------------------------------------------------------------------------
-    # PART 6: LARGE-SCALE DISJOINT GAIT BENCHMARK & 11-VIEW ANGLE MATRIX (CASIA-B)
-    # -------------------------------------------------------------------------
+
+
+
     print("\n" + "=" * 100)
     print("PART 6: LARGE-SCALE DISJOINT GAIT BENCHMARK & 11-VIEW ANGLE MATRIX (CASIA-B 5,466 SEQS)")
     print("=" * 100)
@@ -670,9 +670,9 @@ def main():
         mean_acc = float(np.mean(row_vals))
         print(f"{c_type:<12} | " + " | ".join([f"{v:>7.1f}%" for v in row_vals]) + f" | {mean_acc:>6.1f}%")
 
-    # -------------------------------------------------------------------------
-    # PART 7: OPEN-SET OUT-OF-GALLERY (OOG) INTRUDER EVALUATION
-    # -------------------------------------------------------------------------
+
+
+
     print("\n" + "=" * 100)
     print("PART 7: OPEN-SET OUT-OF-GALLERY (OOG) HELD-OUT INTRUDER EVALUATION")
     print("=" * 100)
@@ -701,9 +701,9 @@ def main():
     print(f"  - Mean Intruder Score           : {np.mean(intruder_max_scores):.4f} (Std: {np.std(intruder_max_scores):.4f})")
     print(f"  - Open-Set FAR at gate 0.89     : {intruder_false_accepts}/{len(intruder_gei_embs)} ({intruder_false_accepts/len(intruder_gei_embs)*100:.2f}% FAR)")
 
-    # -------------------------------------------------------------------------
-    # PART 8: EFFICIENCY & LATENCY BENCHMARK
-    # -------------------------------------------------------------------------
+
+
+
     print("\n" + "=" * 100)
     print("PART 8: EFFICIENCY, LATENCY & MODEL PARAMETER FOOTPRINT BENCHMARK")
     print("=" * 100)
@@ -767,14 +767,14 @@ def main():
     print(f"{'Appearance (OSNet-x0.25)':<25} | {params_app/1e6:>10.3f}M | {size_app_mb:>10.2f}MB | {lat_app_gpu:>11.2f}ms | {lat_app_cpu:>11.2f}ms")
     print(f"{'Total Dual-Modal Pipeline':<25} | {(params_gait+params_app)/1e6:>10.3f}M | {size_gait_mb+size_app_mb:>10.2f}MB | {lat_gait_gpu+lat_app_gpu:>11.2f}ms | {lat_gait_cpu+lat_app_cpu:>11.2f}ms")
 
-    # -------------------------------------------------------------------------
-    # PART 9: GENERATE PUBLICATION-QUALITY PLOTS
-    # -------------------------------------------------------------------------
+
+
+
     print("\n" + "=" * 100)
     print("PART 9: GENERATING VISUAL EVALUATION PLOTS")
     print("=" * 100)
 
-    # 1. CMC Curves Plot
+
     plt.figure(figsize=(8, 6), dpi=300)
     ks = np.arange(1, 11)
     plt.plot(ks, [v * 100 for v in cmc_gait[:10]], "r--o", linewidth=2, label=f"Gait-Only (Rank-1: {rank_gait[1]*100:.1f}%)")
@@ -792,7 +792,7 @@ def main():
     plt.close()
     print("Saved: evaluation/results/cmc_curves.png")
 
-    # 2. ROC Curves Plot
+
     plt.figure(figsize=(8, 6), dpi=300)
     plt.plot(roc_gait["far_curve"], roc_gait["tar_curve"], "r--", linewidth=2, label=f"Gait-Only (AUC: {roc_gait['auc']:.4f}, EER: {roc_gait['eer']*100:.1f}%)")
     plt.plot(roc_app["far_curve"], roc_app["tar_curve"], "b-", linewidth=2, label=f"Appearance-Only (AUC: {roc_app['auc']:.4f}, EER: {roc_app['eer']*100:.1f}%)")
@@ -808,7 +808,7 @@ def main():
     plt.close()
     print("Saved: evaluation/results/roc_curves.png")
 
-    # 3. Fusion Weight Sweep Plot
+
     plt.figure(figsize=(8, 6), dpi=300)
     w_gaits = [r["w_gait"] for r in sweep_records]
     rank1s = [r["rank1"] for r in sweep_records]
@@ -831,7 +831,7 @@ def main():
     plt.close()
     print("Saved: evaluation/results/fusion_weight_sweep.png")
 
-    # 4. Confusion Matrices Heatmap
+
     _fig, axes = plt.subplots(1, 3, figsize=(16, 5), dpi=300)
     titles = ["Gait-Only", "Appearance-Only", "Dual-Modal Fused"]
     matrices = [cls_gait["confusion_matrix"], cls_app["confusion_matrix"], cls_fused["confusion_matrix"]]
@@ -854,7 +854,7 @@ def main():
     plt.close()
     print("Saved: evaluation/results/confusion_matrices.png")
 
-    # Save comprehensive JSON report
+
     report_dict = {
         "dataset_summary": {
             "num_subjects": len(subjects),

@@ -18,7 +18,7 @@ import numpy as np
 from monitoring.logging_config import get_logger
 from storage.vector_store import VectorStore
 
-# Lazy import to avoid circular dependency and allow offline-only operation
+
 _FirebaseEmbeddingStore = None
 _FirebaseEmbeddingDocument = None
 
@@ -43,12 +43,12 @@ class EmbeddingRecord:
 
     embedding_id: str
     person_id: str
-    modality: str  # "gait" (256D) or "appearance" (512D)
+    modality: str
     embedding_dim: int
-    vector: list[float]  # L2-normalized float values
-    model_version: str  # e.g., "v1.0.0"
+    vector: list[float]
+    model_version: str
     embedding_version: int = 1
-    status: str = "ACTIVE"  # "ACTIVE", "DISABLED", "ARCHIVED"
+    status: str = "ACTIVE"
     quality_score: float = 1.0
     source_session_id: str = ""
     created_at: float = field(default_factory=time.time)
@@ -206,7 +206,7 @@ class EmbeddingDatabase:
         now = created_at if created_at is not None else time.time()
         obs_date = observation_date or time.strftime("%Y-%m-%d", time.gmtime(now))
 
-        # 1. Process and validate Gait Embeddings (Expected: 256D)
+
         if gait_embeddings:
             for i, raw_vec in enumerate(gait_embeddings):
                 vec = np.asarray(raw_vec, dtype=np.float32).ravel()
@@ -237,7 +237,7 @@ class EmbeddingDatabase:
                 person.gait_embeddings.append(rec)
                 added_gait += 1
 
-        # 2. Process and validate Appearance Embeddings (Expected: 512D)
+
         if appearance_embeddings:
             for i, raw_vec in enumerate(appearance_embeddings):
                 vec = np.asarray(raw_vec, dtype=np.float32).ravel()
@@ -267,15 +267,15 @@ class EmbeddingDatabase:
                 person.appearance_embeddings.append(rec)
                 added_app += 1
 
-        # 3. Persist Person Record
+
         saved = self.save_person(person)
         if not saved:
             raise RuntimeError(f"Failed to write person database record for {person_id}")
 
-        # 4. Synchronize with VectorStore Galleries
+
         self._sync_vector_stores()
 
-        # 5. Verify Persistence Integrity
+
         verified, msg = self.verify_persistence(
             person_id=person_id,
             expected_gait_count=len(person.gait_embeddings),
@@ -285,7 +285,7 @@ class EmbeddingDatabase:
         if not verified:
             raise RuntimeError(f"Persistence verification failed for {person_id}: {msg}")
 
-        # 6. Async Firebase Durable Persistence (non-blocking; failure never fails local op)
+
         firebase_results = []
         if self.firebase_store is not None:
             firebase_results = self._persist_to_firebase(
@@ -338,7 +338,7 @@ class EmbeddingDatabase:
                 f"Appearance embedding count mismatch: expected {expected_app_count}, found {len(person.appearance_embeddings)}",
             )
 
-        # Verify VectorStore contains person_id
+
         if person.gait_embeddings:
             g_data = self.gait_store.load()
             if g_data is None:
@@ -361,7 +361,7 @@ class EmbeddingDatabase:
         """Re-index all active person records into fast-path VectorStore numpy files."""
         all_persons = self.list_all_persons()
 
-        # 1. Sync Gait Gallery (256D)
+
         gait_feats = []
         gait_lbls = []
         gait_meta = {}
@@ -388,7 +388,7 @@ class EmbeddingDatabase:
                 gait_meta,
             )
 
-        # 2. Sync Appearance Gallery (512D)
+
         app_feats = []
         app_lbls = []
         app_meta = {}
@@ -459,9 +459,9 @@ class EmbeddingDatabase:
             return False
         return not (modality == "appearance" and expected_dim != 512)
 
-    # ──────────────────────────────────────────────────────────────────────
-    # FIREBASE INTEGRATION
-    # ──────────────────────────────────────────────────────────────────────
+
+
+
 
     def _persist_to_firebase(
         self,

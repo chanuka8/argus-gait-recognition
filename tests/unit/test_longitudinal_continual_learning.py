@@ -100,7 +100,7 @@ class TestOperationalEvidenceManager:
         assert rec.sha256_hash != ""
         assert Path(rec.file_path).exists()
 
-        # Load back
+
         loaded = mgr.load_evidence(rec.evidence_id)
         assert loaded is not None
         assert np.array_equal(loaded, gei)
@@ -120,7 +120,7 @@ class TestOperationalEvidenceManager:
         )
         assert rec is not None
 
-        # Corrupt file on disk
+
         with open(rec.file_path, "wb") as f:
             f.write(b"corrupted_binary_data")
 
@@ -128,7 +128,7 @@ class TestOperationalEvidenceManager:
         assert loaded is None
 
     def test_manifest_locking_prevents_eviction(self, temp_env):
-        # Set quota enough for 1 record (e.g. 1500 bytes) but not 2 records
+
         small_mgr = OperationalEvidenceManager(
             storage_dir=str(Path(temp_env["tmp_dir"]) / "evidence_small"),
             max_storage_bytes=3000,
@@ -138,12 +138,12 @@ class TestOperationalEvidenceManager:
 
         rec1 = small_mgr.store_evidence("obs_1", "c1", 1, "P1", "gait", gei1)
         assert rec1 is not None
-        # Lock rec1 to manifest
+
         small_mgr.lock_manifest_evidence([rec1.evidence_id], "manifest_locked_01")
 
         small_mgr.store_evidence("obs_2", "c2", 2, "P2", "gait", gei2)
 
-        # rec1 is locked so it must NOT be evicted even if quota exceeded
+
         assert rec1.evidence_id in small_mgr._records
 
 
@@ -152,7 +152,7 @@ class TestTrackLevelDatasetSplitting:
         collector: OperationalEmbeddingCollector = temp_env["collector"]
         date_str = "2026-08-31"
 
-        # Create 3 distinct walking tracks for P001 and 3 for P002
+
         for p in ["P001", "P002"]:
             for track_id in [10, 20, 30]:
                 for frame_idx in range(3):
@@ -186,7 +186,7 @@ class TestTrackLevelDatasetSplitting:
         val_tracks = {f"{s.person_id}_{s.session_id}_{s.track_id}" for s in val}
         test_tracks = {f"{s.person_id}_{s.session_id}_{s.track_id}" for s in test}
 
-        # Assert ZERO track/session leakage across splits
+
         assert len(train_tracks.intersection(test_tracks)) == 0
         assert len(train_tracks.intersection(val_tracks)) == 0
         assert len(val_tracks.intersection(test_tracks)) == 0
@@ -201,7 +201,7 @@ class TestStatisticalAccuracyValidator:
 
     def test_mcnemar_paired_test(self):
         val = StatisticalAccuracyValidator()
-        # Candidate fixes 15 mistakes that baseline made, baseline never beats candidate
+
         b_hits = [True] * 50 + [False] * 20
         c_hits = [True] * 50 + [True] * 15 + [False] * 5
         _chi2, p_val, is_sig = val.evaluate_mcnemar_test(b_hits, c_hits)
@@ -215,7 +215,7 @@ class TestStatisticalAccuracyValidator:
         base_metrics = {"rank1_accuracy": 50.0, "tar": 50.0, "far": 0.0}
         cand_metrics = {"rank1_accuracy": 60.0, "tar": 60.0, "far": 0.0}
 
-        # With 2 genuine trials (< 8), must classify as INSUFFICIENT_REAL_WORLD_EVIDENCE
+
         res = val.validate_statistical_evidence(
             baseline_metrics=base_metrics,
             candidate_metrics=cand_metrics,
@@ -266,7 +266,7 @@ class TestLongitudinalAccuracyEvaluator:
         assert rec.timepoint_id.startswith("T0")
         assert len(evaluator.list_history()) == 1
 
-        # Check restart recovery
+
         evaluator2 = LongitudinalAccuracyEvaluator(
             history_file=str(temp_env["history_file"])
         )
@@ -283,7 +283,7 @@ class TestEndToEndWorkerLongitudinalAccuracy:
         registry: ModelRegistry = temp_env["registry"]
         date_str = "2026-08-31"
 
-        # Ensure active baseline exists
+
         active_base = registry.get_active_model("bygait_light")
         if not active_base:
             init_model = ByGaitLight(embedding_dim=256)
@@ -308,7 +308,7 @@ class TestEndToEndWorkerLongitudinalAccuracy:
                 reason="Initial production baseline",
             )
 
-        # Record operational observations
+
         for p in ["Person_A", "Person_B"]:
             for tid in [101, 102, 103]:
                 for f_idx in range(2):
@@ -356,7 +356,7 @@ class TestEndToEndWorkerLongitudinalAccuracy:
         )
         assert completed_job.candidate_version != ""
 
-        # Verify longitudinal evaluator recorded the timepoint
+
         history = worker.longitudinal_evaluator.list_history()
         assert len(history) >= 1
         assert history[-1].candidate_version == completed_job.candidate_version

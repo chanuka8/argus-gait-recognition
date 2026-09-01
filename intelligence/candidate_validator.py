@@ -62,7 +62,7 @@ class CandidateValidator:
         rejection_reasons = []
         gates = {}
 
-        # 1. FAR Gate
+
         base_far = baseline_metrics.get("far", baseline_metrics.get("out_of_fold_far", 0.0))
         cand_far = candidate_metrics.get("far", candidate_metrics.get("out_of_fold_far", 0.0))
         far_passed = cand_far <= (base_far + self.max_allowed_far_increase)
@@ -72,7 +72,7 @@ class CandidateValidator:
                 f"Security Regression: Candidate FAR ({cand_far:.2f}%) exceeds baseline FAR ({base_far:.2f}%)"
             )
 
-        # 2. Confusion-Pair Protection Gate
+
         confusion_passed = True
         if confusion_pair_eval is not None:
             confusion_far = confusion_pair_eval.get("confusion_pair_far", 0.0)
@@ -83,10 +83,10 @@ class CandidateValidator:
                 )
         gates["confusion_pair_gate"] = confusion_passed
 
-        # 3. TAR / Accuracy Gate
+
         base_tar = baseline_metrics.get("tar", baseline_metrics.get("out_of_fold_tar", 0.0))
         cand_tar = candidate_metrics.get("tar", candidate_metrics.get("out_of_fold_tar", 0.0))
-        # Allow at most 0.5% tolerance if EER or mAP improved significantly
+
         tar_passed = cand_tar >= (base_tar - 0.5)
         gates["tar_performance_gate"] = tar_passed
         if not tar_passed:
@@ -94,14 +94,14 @@ class CandidateValidator:
                 f"Accuracy Regression: Candidate TAR ({cand_tar:.2f}%) degraded below baseline ({base_tar:.2f}%)"
             )
 
-        # 4. Numerical Stability Gate
+
         cand_eer = candidate_metrics.get("eer", 0.0)
         stability_passed = np.isfinite(cand_tar) and np.isfinite(cand_far) and np.isfinite(cand_eer)
         gates["stability_gate"] = bool(stability_passed)
         if not stability_passed:
             rejection_reasons.append("Stability Failure: Non-finite metric values encountered in candidate evaluation")
 
-        # 5. Embedding Dimensionality Gate (NN candidates)
+
         if model_type in ("bygait_light", "osnet_reid"):
             expected_dim = 256 if model_type == "bygait_light" else 512
             actual_dim = candidate_metrics.get("embedding_dim", expected_dim)
@@ -112,16 +112,16 @@ class CandidateValidator:
                     f"Dimension Mismatch: {model_type} expects {expected_dim}D but candidate outputs {actual_dim}D"
                 )
 
-        # 6. Artifact Checksum Gate (NN candidates)
+
         if model_type in ("bygait_light", "osnet_reid"):
             checksum = candidate_metrics.get("checksum_sha256", "")
             checksum_passed = bool(checksum) and len(checksum) == 64
             gates["artifact_checksum_gate"] = checksum_passed
             if not checksum_passed:
-                # Allow pass if checksum not provided (e.g. calibration models)
+
                 gates["artifact_checksum_gate"] = True
 
-        # 7. Minimum Benchmark Gate (NN candidates must have val_rank1_accuracy)
+
         if model_type in ("bygait_light", "osnet_reid"):
             rank1 = candidate_metrics.get("val_rank1_accuracy", candidate_metrics.get("tar", 0.0))
             benchmark_passed = rank1 > 0.0 or not baseline_metrics

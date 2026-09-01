@@ -40,7 +40,7 @@ def test_bounded_queue_overflow_and_backpressure():
     q = StreamIngestionQueue(camera_id="cam_test_01", maxsize=3, max_stale_age_seconds=1.0)
     dummy = np.zeros((10, 10, 3), dtype=np.uint8)
 
-    # Push 5 packets into size-3 queue
+
     for i in range(5):
         p = FramePacket(camera_id="cam_test_01", frame_id=i, capture_time=time.monotonic(), frame=dummy)
         success = q.put(p)
@@ -50,7 +50,7 @@ def test_bounded_queue_overflow_and_backpressure():
     assert q.frames_enqueued == 5
     assert q.frames_dropped_overflow == 2
 
-    # Oldest frames (0, 1) should have been dropped; newest should be (2, 3, 4)
+
     p_first = q.get()
     assert p_first is not None
     assert p_first.frame_id == 2
@@ -83,7 +83,7 @@ def test_fair_stream_scheduler_starvation_prevention():
     q1 = scheduler.register_stream("cam_high_fps", priority=10, maxsize=10)
     q2 = scheduler.register_stream("cam_low_priority", priority=1, maxsize=10)
 
-    # Feed both
+
     for i in range(5):
         q1.put(FramePacket("cam_high_fps", i, time.monotonic(), dummy))
         q2.put(FramePacket("cam_low_priority", i, time.monotonic(), dummy))
@@ -94,7 +94,7 @@ def test_fair_stream_scheduler_starvation_prevention():
         if pkt:
             served.append(pkt.camera_id)
 
-    # Both cameras must have been served at least once (no starvation)
+
     assert "cam_high_fps" in served
     assert "cam_low_priority" in served
 
@@ -116,7 +116,7 @@ def test_unbounded_camera_registration(num_cams):
     assert telemetry["registered_cameras_count"] == num_cams
     assert len(telemetry["cameras"]) == num_cams
 
-    # Clean unregister
+
     for i in range(num_cams):
         engine.unregister_camera(f"cam_scale_{i:03d}")
 
@@ -135,10 +135,10 @@ def test_camera_stream_isolation():
     engine.put_frame("cam_B", dummy)
     engine.put_frame("cam_C", dummy)
 
-    # Disconnect cam_B
+
     engine.unregister_camera("cam_B")
 
-    # cam_A and cam_C continue normally
+
     assert engine.put_frame("cam_A", dummy) is True
     assert engine.put_frame("cam_C", dummy) is True
     assert engine.scheduler.get_queue("cam_B") is None
@@ -151,7 +151,7 @@ def test_continual_learning_observation_integration():
     engine = ProductionMultiCameraEngine(operational_collector=collector)
     engine.register_camera("cam_live_01")
 
-    # Put a frame packet directly through processing
+
     dummy_frame = np.zeros((120, 160, 3), dtype=np.uint8)
     pkt = FramePacket(
         camera_id="cam_live_01",
@@ -191,10 +191,10 @@ def test_process_single_frame_tracking_and_caching():
         frame=dummy_frame,
     )
 
-    # Process frame
+
     engine._process_single_frame(pkt)
 
-    # Verify cache entry exists and is properly populated
+
     res = engine.cache.get("cam_cache_test", 42)
     assert res is not None
     assert res.track_id == 42

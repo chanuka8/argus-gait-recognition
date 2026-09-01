@@ -58,9 +58,9 @@ def temp_environment():
     shutil.rmtree(temp_dir, ignore_errors=True)
 
 
-# =============================================================================
-# TEST A: Successful Enrollment, Persistence Verification & Raw Media Deletion
-# =============================================================================
+
+
+
 def test_a_successful_enrollment_and_raw_cleanup(temp_environment):
     env = temp_environment
     db = EmbeddingDatabase(
@@ -69,7 +69,7 @@ def test_a_successful_enrollment_and_raw_cleanup(temp_environment):
         appearance_gallery_dir=env["app_gal"],
     )
 
-    # Create dummy raw photo and GEI files
+
     person_dir = Path(env["input_dir"]) / "Subject01"
     person_dir.mkdir(parents=True, exist_ok=True)
     dummy_photo = person_dir / "photo1.jpg"
@@ -77,7 +77,7 @@ def test_a_successful_enrollment_and_raw_cleanup(temp_environment):
     dummy_gei = person_dir / "gei1.png"
     dummy_gei.write_bytes(b"dummy_gei_data")
 
-    # Mock extractors returning valid 256D / 512D vectors
+
     mock_gait_ext = MagicMock()
     mock_gait_ext.extract.return_value = np.ones((256,), dtype=np.float32)
     mock_app_ext = MagicMock()
@@ -96,14 +96,14 @@ def test_a_successful_enrollment_and_raw_cleanup(temp_environment):
         auto_delete_raw=True,
     )
 
-    # Assertions
+
     assert result.status == EnrollmentStatus.EMBEDDING_ONLY
     assert result.gait_embeddings_count == 1
     assert result.appearance_embeddings_count == 1
     assert not dummy_photo.exists(), "Raw photo must be deleted after persistence verification"
     assert not dummy_gei.exists(), "Raw GEI must be deleted after persistence verification"
 
-    # Verify database and VectorStore states
+
     person_rec = db.get_person("Subject01")
     assert person_rec is not None
     assert len(person_rec.gait_embeddings) == 1
@@ -114,9 +114,9 @@ def test_a_successful_enrollment_and_raw_cleanup(temp_environment):
     assert "Subject01" in list(lbls)
 
 
-# =============================================================================
-# TEST B: Embedding Generation Failure -> Raw Media Preserved
-# =============================================================================
+
+
+
 def test_b_embedding_generation_failure_preserves_raw_media(temp_environment):
     env = temp_environment
     db = EmbeddingDatabase(
@@ -147,15 +147,15 @@ def test_b_embedding_generation_failure_preserves_raw_media(temp_environment):
         auto_delete_raw=True,
     )
 
-    # Assertions: State must be FAILED, raw file must be preserved
+
     assert result.status == EnrollmentStatus.PROCESSING_FAILED
     assert corrupt_photo.exists(), "SAFETY INVARIANT: Raw media MUST be preserved on generation failure"
     assert str(corrupt_photo) in result.raw_files_retained
 
 
-# =============================================================================
-# TEST C: Storage Failure -> Raw Media Preserved
-# =============================================================================
+
+
+
 def test_c_storage_failure_preserves_raw_media(temp_environment):
     env = temp_environment
     db = EmbeddingDatabase(
@@ -180,7 +180,7 @@ def test_c_storage_failure_preserves_raw_media(temp_environment):
         appearance_extractor=mock_app_ext,
     )
 
-    # Simulate database disk full / permission error during persistence
+
     with patch.object(db, "add_embeddings", side_effect=OSError("Disk write failure")):
         result = manager.enroll_from_media(
             person_id="Subject03",
@@ -188,14 +188,14 @@ def test_c_storage_failure_preserves_raw_media(temp_environment):
             auto_delete_raw=True,
         )
 
-    # Assertions
+
     assert result.status == EnrollmentStatus.PERSISTENCE_FAILED
     assert raw_photo.exists(), "SAFETY INVARIANT: Raw media MUST be preserved if persistence fails"
 
 
-# =============================================================================
-# TEST D: Deletion Failure -> Status CLEANUP_FAILED, Data Retained
-# =============================================================================
+
+
+
 def test_d_deletion_failure_handled_gracefully(temp_environment):
     env = temp_environment
     db = EmbeddingDatabase(
@@ -219,7 +219,7 @@ def test_d_deletion_failure_handled_gracefully(temp_environment):
         appearance_extractor=mock_app_ext,
     )
 
-    # Simulate locked file / deletion permission error
+
     with patch.object(
         EnrollmentLifecycleManager,
         "safe_delete_raw_file",
@@ -233,13 +233,13 @@ def test_d_deletion_failure_handled_gracefully(temp_environment):
 
     assert result.status == EnrollmentStatus.CLEANUP_FAILED
     assert "Permission denied" in result.error_message
-    # Embeddings were already durably persisted
+
     assert db.get_person("Subject04") is not None
 
 
-# =============================================================================
-# TEST E: Duplicate / Idempotent Cleanup
-# =============================================================================
+
+
+
 def test_e_duplicate_cleanup_is_idempotent(temp_environment):
     p = Path(temp_environment["input_dir"]) / "already_deleted.jpg"
     assert not p.exists()
@@ -249,18 +249,18 @@ def test_e_duplicate_cleanup_is_idempotent(temp_environment):
     assert err is None
 
 
-# =============================================================================
-# TEST F: Candidate Model Worse Than Baseline -> REJECT
-# =============================================================================
+
+
+
 def test_f_inferior_candidate_rejected(temp_environment):
     reg = ModelRegistry(registry_file=temp_environment["reg_file"])
     validator = CandidateValidator()
     engine = ContinuousImprovementEngine(registry=reg, validator=validator)
 
-    # Baseline active is v1.0.0 (TAR 67.57%, FAR 2.70%)
+
     inferior_metrics = {
-        "tar": 50.00,  # Regressed TAR
-        "far": 8.50,  # Increased FAR (Security regression!)
+        "tar": 50.00,
+        "far": 8.50,
         "eer": 35.00,
     }
 
@@ -276,22 +276,22 @@ def test_f_inferior_candidate_rejected(temp_environment):
     assert passed is False
     assert val_res.passed is False
     assert rec.deployment_status == ModelDeploymentStatus.REJECTED
-    # Active model must remain v1.0.0
+
     active = reg.get_active_model("dual_modal_fusion")
     assert active.model_version == "v1.0.0"
 
 
-# =============================================================================
-# TEST G: Superior Candidate Model -> VALIDATED & PROMOTED
-# =============================================================================
+
+
+
 def test_g_superior_candidate_promoted(temp_environment):
     reg = ModelRegistry(registry_file=temp_environment["reg_file"])
     validator = CandidateValidator()
     engine = ContinuousImprovementEngine(registry=reg, validator=validator)
 
     superior_metrics = {
-        "tar": 75.00,  # Improved TAR
-        "far": 1.50,  # Lower FAR (Security improvement)
+        "tar": 75.00,
+        "far": 1.50,
         "eer": 20.00,
     }
 
@@ -309,14 +309,14 @@ def test_g_superior_candidate_promoted(temp_environment):
     assert rec.deployment_status == ModelDeploymentStatus.ACTIVE
     assert rec.previous_production_version == "v1.0.0"
 
-    # Active model is now v2.0.0
+
     active = reg.get_active_model("dual_modal_fusion")
     assert active.model_version == "v2.0.0-superior"
 
 
-# =============================================================================
-# TEST H: Confusion-Pair Regression -> REJECT
-# =============================================================================
+
+
+
 def test_h_confusion_pair_regression_rejected(temp_environment):
     reg = ModelRegistry(registry_file=temp_environment["reg_file"])
     validator = CandidateValidator()
@@ -327,7 +327,7 @@ def test_h_confusion_pair_regression_rejected(temp_environment):
         "far": 2.00,
         "eer": 18.00,
     }
-    # Confusion pair violation: False Accept on similar gait subjects
+
     confusion_eval = {"confusion_pair_far": 4.50}
 
     passed, val_res, rec = engine.process_candidate(
@@ -346,15 +346,15 @@ def test_h_confusion_pair_regression_rejected(temp_environment):
     assert rec.deployment_status == ModelDeploymentStatus.REJECTED
 
 
-# =============================================================================
-# TEST I: Rollback Mechanism
-# =============================================================================
+
+
+
 def test_i_rollback_restores_previous_active_version(temp_environment):
     reg = ModelRegistry(registry_file=temp_environment["reg_file"])
     validator = CandidateValidator()
     engine = ContinuousImprovementEngine(registry=reg, validator=validator)
 
-    # 1. Promote v2
+
     engine.process_candidate(
         candidate_version="v2.0.0",
         model_type="dual_modal_fusion",
@@ -365,13 +365,13 @@ def test_i_rollback_restores_previous_active_version(temp_environment):
     )
     assert reg.get_active_model("dual_modal_fusion").model_version == "v2.0.0"
 
-    # 2. Trigger Rollback due to runtime regression
+
     restored = engine.trigger_runtime_regression_rollback(
         model_type="dual_modal_fusion",
         reason="Elevated false accept rate in production CCTV zone 3",
     )
 
-    # 3. Assertions
+
     assert restored.model_version == "v1.0.0"
     assert restored.deployment_status == ModelDeploymentStatus.ACTIVE
 
@@ -379,9 +379,9 @@ def test_i_rollback_restores_previous_active_version(temp_environment):
     assert rolled_back_v2.deployment_status == ModelDeploymentStatus.ROLLED_BACK
 
 
-# =============================================================================
-# TEST J: Non-blocking Operational Embedding Collection
-# =============================================================================
+
+
+
 def test_j_operational_observation_lifecycle(temp_environment):
     collector = OperationalEmbeddingCollector(output_dir=temp_environment["obs_dir"])
 
@@ -398,20 +398,20 @@ def test_j_operational_observation_lifecycle(temp_environment):
     assert obs.state == ObservationState.PREDICTED
     assert obs.verified_identity is None
 
-    # Verify non-automatic promotion: Predictions stay PREDICTED
+
     eligible_before = collector.get_training_eligible()
     assert len(eligible_before) == 0
 
-    # Explicit human/operator verification
+
     collector.verify_observation(obs.observation_id, verified_identity="SubjectA")
     eligible_after = collector.get_training_eligible()
     assert len(eligible_after) == 1
     assert eligible_after[0].verified_identity == "SubjectA"
 
 
-# =============================================================================
-# TEST K: Drift Detection Monitoring
-# =============================================================================
+
+
+
 def test_k_drift_detector_flags_degradation(temp_environment):
     collector = OperationalEmbeddingCollector(output_dir=temp_environment["obs_dir"])
     detector = DriftDetector(
@@ -420,14 +420,14 @@ def test_k_drift_detector_flags_degradation(temp_environment):
         confidence_threshold=0.85,
     )
 
-    # Simulate low-confidence observations (drifting environment)
+
     for i in range(20):
         collector.record_observation(
             camera_id="cam-drift",
             track_id=i,
             vector=np.random.randn(256),
             predicted_identity="UNKNOWN",
-            confidence=0.45,  # low confidence
+            confidence=0.45,
         )
 
     report = detector.evaluate_drift(window_size=20)

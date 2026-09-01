@@ -53,7 +53,7 @@ class NNFineTuner:
         self.historical_replay_ratio = float(historical_replay_ratio)
         self.timeout_seconds = float(timeout_seconds)
 
-        # Resolve device
+
         if device is None:
             try:
                 import torch
@@ -64,9 +64,9 @@ class NNFineTuner:
         else:
             self.device = device
 
-    # ──────────────────────────────────────────────────────────────────────
-    # BYGAITLIGHT FINE-TUNING
-    # ──────────────────────────────────────────────────────────────────────
+
+
+
 
     def fine_tune_bygait_light(
         self,
@@ -103,12 +103,12 @@ class NNFineTuner:
 
             from models.architectures.bygait_light import ByGaitLight
 
-            # 1. Merge training + historical replay data
+
             all_data = list(training_gei_data) + list(historical_gei_data)
             if len(all_data) < 4:
                 raise ValueError(f"Insufficient training samples: {len(all_data)} (minimum 4)")
 
-            # Build label mapping
+
             unique_labels = sorted({d["label"] for d in all_data})
             label_map = {lbl: idx for idx, lbl in enumerate(unique_labels)}
             num_classes = len(unique_labels)
@@ -116,24 +116,24 @@ class NNFineTuner:
             if num_classes < 2:
                 raise ValueError(f"Insufficient identities: {num_classes} (minimum 2)")
 
-            # Prepare tensors
+
             images = []
             labels = []
             for d in all_data:
                 img = np.asarray(d["image"], dtype=np.float32)
                 if img.ndim == 2:
-                    img = img[np.newaxis, :, :]  # Add channel dim
+                    img = img[np.newaxis, :, :]
                 elif img.ndim == 3 and img.shape[2] == 1:
                     img = img.transpose(2, 0, 1)
                 elif img.ndim == 3:
-                    img = img[:1, :, :]  # Take first channel
+                    img = img[:1, :, :]
                 images.append(img)
                 labels.append(label_map[d["label"]])
 
             X = torch.from_numpy(np.array(images, dtype=np.float32))
             y = torch.tensor(labels, dtype=torch.long)
 
-            # Train/val split (80/20)
+
             n = len(X)
             n_val = max(1, n // 5)
             indices = torch.randperm(n)
@@ -146,16 +146,16 @@ class NNFineTuner:
             train_loader = DataLoader(train_ds, batch_size=self.batch_size, shuffle=True, drop_last=drop_last)
             val_loader = DataLoader(val_ds, batch_size=self.batch_size, shuffle=False)
 
-            # 2. Build model with transfer learning
+
             backbone = ByGaitLight(embedding_dim=256, part_bins=part_bins)
 
-            # Load ACTIVE weights (backbone only)
+
             if active_weights_path:
                 active_path = Path(active_weights_path)
                 if active_path.is_file():
                     try:
                         state_dict = torch.load(str(active_path), map_location="cpu", weights_only=True)
-                        # Filter to backbone keys only
+
                         backbone_keys = {k for k in backbone.state_dict()}
                         filtered = {}
                         for k, v in state_dict.items():
@@ -174,7 +174,7 @@ class NNFineTuner:
                             f"Training from scratch."
                         )
 
-            # Record initial parameter state
+
             initial_params = {
                 name: param.clone().detach()
                 for name, param in backbone.named_parameters()
@@ -182,7 +182,7 @@ class NNFineTuner:
             }
             total_trainable_params = sum(p.numel() for p in backbone.parameters() if p.requires_grad)
 
-            # Classification head for fine-tuning
+
             classifier = nn.Linear(256, num_classes)
             model = nn.Sequential(backbone, classifier).to(self.device)
 
@@ -192,12 +192,12 @@ class NNFineTuner:
                 optimizer, T_max=self.max_epochs, eta_min=1e-7
             )
 
-            # 3. Training loop
+
             best_val_acc = 0.0
             training_history = []
 
             for epoch in range(1, self.max_epochs + 1):
-                # Check timeout
+
                 elapsed = time.time() - start_time
                 if elapsed > self.timeout_seconds:
                     self._logger.warning(
@@ -206,7 +206,7 @@ class NNFineTuner:
                     )
                     break
 
-                # Train
+
                 model.train()
                 train_loss = 0.0
                 train_correct = 0
@@ -226,7 +226,7 @@ class NNFineTuner:
 
                 scheduler.step()
 
-                # Validate
+
                 model.eval()
                 val_embeddings = []
                 val_labels_list = []
@@ -243,7 +243,7 @@ class NNFineTuner:
                     all_lbls = torch.cat(val_labels_list, dim=0)
                     N = all_embs.size(0)
 
-                    # Rank-1 nearest-neighbor accuracy
+
                     sim_matrix = torch.mm(all_embs, all_embs.t())
                     sim_matrix.fill_diagonal_(-1.0)
                     nn_indices = torch.argmax(sim_matrix, dim=1)
@@ -268,7 +268,7 @@ class NNFineTuner:
 
                 best_val_acc = max(best_val_acc, val_acc)
 
-            # 4. Measure parameter mutation
+
             changed_tensors = 0
             max_delta = 0.0
             for name, param in backbone.named_parameters():
@@ -278,12 +278,12 @@ class NNFineTuner:
                         changed_tensors += 1
                         max_delta = max(max_delta, diff)
 
-            # 5. Save candidate artifact (backbone only — no classifier head)
+
             candidate_path = self.candidate_dir / f"bygait_candidate_{candidate_version}.pth"
             torch.save(backbone.state_dict(), str(candidate_path))
             checksum = self._calculate_checksum(candidate_path)
 
-            # 6. Compute final validation metrics
+
             metrics = {
                 "val_rank1_accuracy": round(best_val_acc * 100, 2),
                 "train_samples": len(training_gei_data),
@@ -334,9 +334,9 @@ class NNFineTuner:
                 "duration": duration,
             }
 
-    # ──────────────────────────────────────────────────────────────────────
-    # OSNET FINE-TUNING
-    # ──────────────────────────────────────────────────────────────────────
+
+
+
 
     def fine_tune_osnet(
         self,
@@ -370,7 +370,7 @@ class NNFineTuner:
             from torch import nn
             from torch.utils.data import DataLoader, TensorDataset
 
-            # 1. Merge training + historical replay data
+
             all_data = list(training_crop_data) + list(historical_crop_data)
             if len(all_data) < 4:
                 raise ValueError(f"Insufficient training samples: {len(all_data)} (minimum 4)")
@@ -382,7 +382,7 @@ class NNFineTuner:
             if num_classes < 2:
                 raise ValueError(f"Insufficient identities: {num_classes} (minimum 2)")
 
-            # Preprocess person crops to 256x128 RGB tensors
+
             images = []
             labels = []
             mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
@@ -402,7 +402,7 @@ class NNFineTuner:
             X = torch.stack(images)
             y = torch.tensor(labels, dtype=torch.long)
 
-            # Train/val split
+
             n = len(X)
             n_val = max(1, n // 5)
             indices = torch.randperm(n)
@@ -415,12 +415,12 @@ class NNFineTuner:
             train_loader = DataLoader(train_ds, batch_size=self.batch_size, shuffle=True, drop_last=drop_last)
             val_loader = DataLoader(val_ds, batch_size=self.batch_size, shuffle=False)
 
-            # 2. Build OSNet model with transfer learning
+
             from models.reid.osnet_backbone import _build_osnet_x0_25
 
             osnet_backbone = _build_osnet_x0_25()
 
-            # Load ACTIVE weights
+
             if active_weights_path:
                 active_path = Path(active_weights_path)
                 if active_path.is_file():
@@ -435,7 +435,7 @@ class NNFineTuner:
                             f"[TRANSFER_LEARNING] Could not load active OSNet weights: {load_err}."
                         )
 
-            # Record initial parameter state
+
             initial_params = {
                 name: param.clone().detach()
                 for name, param in osnet_backbone.named_parameters()
@@ -445,7 +445,7 @@ class NNFineTuner:
 
             osnet_backbone = osnet_backbone.to(self.device)
 
-            # Classification head
+
             classifier = nn.Linear(512, num_classes).to(self.device)
             criterion = nn.CrossEntropyLoss()
             optimizer = torch.optim.Adam(
@@ -456,7 +456,7 @@ class NNFineTuner:
                 optimizer, T_max=self.max_epochs, eta_min=1e-7
             )
 
-            # 3. Training loop
+
             best_val_acc = 0.0
             training_history = []
 
@@ -490,7 +490,7 @@ class NNFineTuner:
 
                 scheduler.step()
 
-                # Validate — Rank-1 nearest neighbor
+
                 osnet_backbone.eval()
                 val_embs = []
                 val_lbls = []
@@ -533,7 +533,7 @@ class NNFineTuner:
 
                 best_val_acc = max(best_val_acc, val_acc)
 
-            # 4. Measure parameter mutation
+
             changed_tensors = 0
             max_delta = 0.0
             for name, param in osnet_backbone.named_parameters():
@@ -543,7 +543,7 @@ class NNFineTuner:
                         changed_tensors += 1
                         max_delta = max(max_delta, diff)
 
-            # 5. Save candidate artifact (backbone only)
+
             candidate_path = self.candidate_dir / f"osnet_candidate_{candidate_version}.pth"
             torch.save(osnet_backbone.state_dict(), str(candidate_path))
             checksum = self._calculate_checksum(candidate_path)
@@ -596,9 +596,9 @@ class NNFineTuner:
                 "duration": duration,
             }
 
-    # ──────────────────────────────────────────────────────────────────────
-    # UTILITIES
-    # ──────────────────────────────────────────────────────────────────────
+
+
+
 
     @staticmethod
     def _calculate_checksum(file_path: Path | str) -> str:

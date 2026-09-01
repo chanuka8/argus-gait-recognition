@@ -22,7 +22,7 @@ def temp_gallery_dir():
 
 @pytest.fixture
 def sample_crop():
-    # 256x128x3 BGR synthetic image
+
     return np.random.randint(0, 256, (256, 128, 3), dtype=np.uint8)
 
 
@@ -36,7 +36,7 @@ def test_photo_to_512d_appearance_embedding(sample_crop):
     assert embedding.shape == (512,)
     assert embedding.dtype == np.float32
 
-    # L2 Norm check
+
     norm = float(np.linalg.norm(embedding))
     assert np.isclose(norm, 1.0, atol=1e-5)
 
@@ -62,7 +62,7 @@ def test_appearance_gallery_single_person_enrollment(temp_gallery_dir, sample_cr
     emb = extractor.extract(sample_crop)
     updater.add_person("Person_001", [emb])
 
-    # Validate storage persistence
+
     store = VectorStore(gallery_dir=temp_gallery_dir)
     loaded = store.load()
     assert loaded is not None
@@ -129,11 +129,11 @@ def test_appearance_matching_unknown_below_threshold(temp_gallery_dir):
     """Requirement 8: Explicit UNKNOWN_PERSON return when score is below threshold."""
     updater = AppearanceGalleryUpdater(gallery_dir=temp_gallery_dir)
 
-    # Unit vector 1
+
     v1 = np.zeros((512,), dtype=np.float32)
     v1[0] = 1.0
 
-    # Orthogonal unit vector 2
+
     v2 = np.zeros((512,), dtype=np.float32)
     v2[1] = 1.0
 
@@ -199,11 +199,11 @@ def test_dimension_isolation_rejection(temp_gallery_dir):
     vec_256 = np.random.randn(256).astype(np.float32)
     vec_512 = np.random.randn(512).astype(np.float32)
 
-    # Adding 256D vector to AppearanceGalleryUpdater must fail
+
     with pytest.raises(ValueError, match=r"512-dimensional"):
         appearance_updater.add_person("TestPerson", [vec_256])
 
-    # Adding 512D vector to Gait GalleryUpdater must fail
+
     with pytest.raises(ValueError, match=r"256-dimensional"):
         gait_updater.add_person("TestPerson", [vec_512])
 
@@ -213,7 +213,7 @@ def test_enrollment_manager_appearance_flow(tmp_path, temp_gallery_dir):
     person_folder = tmp_path / "Subject_42"
     person_folder.mkdir()
 
-    # Create 2 synthetic photos
+
     img1 = np.random.randint(0, 256, (200, 100, 3), dtype=np.uint8)
     img2 = np.random.randint(0, 256, (200, 100, 3), dtype=np.uint8)
     cv2.imwrite(str(person_folder / "p1.jpg"), img1)
@@ -227,7 +227,7 @@ def test_enrollment_manager_appearance_flow(tmp_path, temp_gallery_dir):
     assert res["gallery"] == "appearance"
     assert res["embeddings_added"] == 2
 
-    # Validate vector store files
+
     valid, _, count = validate_gallery_files(temp_gallery_dir, expected_dim=512)
     assert valid is True
     assert count == 2

@@ -28,13 +28,13 @@ def test_appearance_embedding_normalization_and_gating():
     emb2 = extractor.extract(crop, track_id=1, frame_index=2)
     assert emb2 is not None
     assert np.allclose(emb1, emb2)
-    # Gating prevents re-extraction within update_interval
+
     assert mock_backbone.extract.call_count == 1
 
     emb_unreliable = extractor.extract(crop, track_id=1, frame_index=10, track_reliable=False)
     assert emb_unreliable is not None
     assert np.allclose(emb1, emb_unreliable)
-    # Unreliable track does not trigger new extraction
+
     assert mock_backbone.extract.call_count == 1
 
     extractor.clear_track(1)

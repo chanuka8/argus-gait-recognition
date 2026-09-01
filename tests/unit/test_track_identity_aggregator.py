@@ -28,14 +28,14 @@ def test_track_identity_aggregator_confirmed_decision() -> None:
         high_risk_confusion_groups=[["Devhan", "Isuru", "person01"]],
     )
 
-    # First 2 frames: under min_frames
+
     r1 = aggregator.update(track_id=1, identity="demo_person_001", score=0.75)
     assert r1["decision"] == "UNKNOWN"
 
     r2 = aggregator.update(track_id=1, identity="demo_person_001", score=0.74)
     assert r2["decision"] == "UNKNOWN"
 
-    # 3rd frame: 3/3 = 100% consensus, avg score = 0.75 >= 0.72 -> CONFIRMED
+
     r3 = aggregator.update(track_id=1, identity="demo_person_001", score=0.76)
     assert r3["decision"] == "CONFIRMED"
     assert r3["status"] == "CONFIRMED"
@@ -68,7 +68,7 @@ def test_track_identity_aggregator_near_miss_review() -> None:
         window_size=5,
         consensus_threshold=0.60,
         confirm_threshold=0.72,
-        near_miss_margin=0.05,  # review window: [0.67, 0.72)
+        near_miss_margin=0.05,
         min_frames_for_decision=3,
     )
 
@@ -117,7 +117,7 @@ def test_track_identity_aggregator_track_lost_reset() -> None:
     assert summary["final_candidate"] == "demo_person_001"
     assert summary["total_frames"] == 4
 
-    # New track with same ID starts fresh
+
     r_new = aggregator.update(track_id=4, identity="demo_person_001", score=0.78)
     assert r_new["window_size"] == 1
-    assert r_new["decision"] == "UNKNOWN"  # Needs min_frames again
+    assert r_new["decision"] == "UNKNOWN"

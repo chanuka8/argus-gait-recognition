@@ -71,7 +71,7 @@ def detect_hardware_profile() -> HardwareProfile:
         else 0.0
     )
 
-    # Dynamic batch size based on available VRAM
+
     if is_cuda and vram_mb >= 12000:
         rec_batch = 32
         wait_ms = 8.0
@@ -126,7 +126,7 @@ class StreamIngestionQueue:
         self._queue: Queue[FramePacket] = Queue(maxsize=self.maxsize)
         self._lock = threading.Lock()
 
-        # Telemetry counters
+
         self.frames_enqueued = 0
         self.frames_dropped_overflow = 0
         self.frames_dropped_stale = 0
@@ -140,7 +140,7 @@ class StreamIngestionQueue:
                 self._queue.put_nowait(packet)
                 return True
             except Full:
-                # Drop oldest frame to ensure fresh real-time ingestion
+
                 try:
                     _ = self._queue.get_nowait()
                     self.frames_dropped_overflow += 1
@@ -354,7 +354,7 @@ class ProductionMultiCameraEngine:
         self._lock = threading.RLock()
         self._running = False
 
-        # Per-camera track state and metrics
+
         self._camera_trackers: dict[str, Any] = {}
         self._camera_last_rec_times: dict[str, dict[int, float]] = {}
         self._camera_metrics: dict[str, dict[str, Any]] = {}
@@ -376,7 +376,7 @@ class ProductionMultiCameraEngine:
                 max_stale_age_seconds=max_stale_age_seconds,
             )
 
-            # Lazy tracker creation per camera
+
             if camera_id not in self._camera_trackers:
                 try:
                     from pipeline.tracking.tracker import PersonTracker
@@ -424,7 +424,7 @@ class ProductionMultiCameraEngine:
 
         q = self.scheduler.get_queue(camera_id)
         if q is None:
-            # Auto-register if camera submitted frame dynamically
+
             q = self.register_camera(camera_id)
 
         packet = FramePacket(
@@ -507,13 +507,13 @@ class ProductionMultiCameraEngine:
         frame = packet.frame
         iso_now = datetime.now(timezone.utc).isoformat()
 
-        # Update metrics
+
         with self._lock:
             if cid in self._camera_metrics:
                 self._camera_metrics[cid]["processed_frames"] += 1
             frame_idx = self._camera_metrics[cid]["processed_frames"] if cid in self._camera_metrics else 0
 
-        # 1. Detection
+
         detections = []
         if self.detector is not None:
             try:
@@ -521,7 +521,7 @@ class ProductionMultiCameraEngine:
             except (RuntimeError, ValueError, TypeError, KeyError, AttributeError, OSError) as det_err:
                 self.logger.debug(f"Detector error for {cid}: {det_err}")
 
-        # 2. Tracking
+
         tracker = self._camera_trackers.get(cid)
         tracked_objects = []
         if tracker is not None and detections:
@@ -530,7 +530,7 @@ class ProductionMultiCameraEngine:
             except (RuntimeError, ValueError, TypeError, KeyError, AttributeError, OSError) as trk_err:
                 self.logger.debug(f"Tracker error for {cid}: {trk_err}")
 
-        # 3. Concurrent Track Contexts (Unbounded Dynamic Allocation)
+
         active_tids: set[int] = set()
         track_contexts: list[tuple[dict[str, Any], PersonTrackContext]] = []
         h, w = frame.shape[:2]
@@ -548,7 +548,7 @@ class ProductionMultiCameraEngine:
                     frame_index=frame_idx,
                 )
 
-                # Assess per-person mobility & biometric eligibility
+
                 _is_val, mob_state, gait_elig, app_elig, val_reason = self.detection_validator.assess_detection(
                     bbox=bbox,
                     confidence=conf,
@@ -570,7 +570,7 @@ class ProductionMultiCameraEngine:
             if cid in self._camera_metrics:
                 self._camera_metrics[cid]["active_tracks"] = len(tracked_objects)
 
-        # 4. Adaptive Policy Evaluation
+
         sched_stats = self.scheduler.get_stats()
         q_depth = sched_stats.get("streams", {}).get(cid, {}).get("queue_depth", 0)
         policy_params = self.person_scheduler.policy_engine.evaluate_policy(
@@ -578,7 +578,7 @@ class ProductionMultiCameraEngine:
             active_tracks_count=len(self.track_manager.get_active_tracks()),
         )
 
-        # 5. Branch B: Gait silhouette & GEI accumulation (gated on gait_eligible)
+
         for _, ctx in track_contexts:
             if not ctx.gait_eligible:
                 continue
@@ -599,7 +599,7 @@ class ProductionMultiCameraEngine:
                 except (RuntimeError, ValueError, TypeError, KeyError, AttributeError, OSError) as sil_err:
                     self.logger.debug(f"Silhouette error for track {track_id}: {sil_err}")
 
-        # 6. Branch A: Batched OSNet Appearance Feature Extraction (512D)
+
         candidate_items = []
         for _, ctx in track_contexts:
             if not ctx.appearance_eligible:
@@ -646,7 +646,7 @@ class ProductionMultiCameraEngine:
                         for c, tid in zip(batch_crops, batch_tids)
                     ]
 
-                # Match each extracted embedding against appearance gallery
+
                 for item, emb in zip(selected_batch, batch_embs):
                     if emb is not None and self.appearance_matcher is not None:
                         app_id, app_score = self.appearance_matcher.match(
@@ -660,7 +660,7 @@ class ProductionMultiCameraEngine:
                             score=float(app_score),
                             frame_index=frame_idx,
                         )
-                        # Record continual learning observation (P0)
+
                         if self.operational_collector is not None:
                             try:
                                 self.operational_collector.record_observation(
@@ -680,7 +680,7 @@ class ProductionMultiCameraEngine:
             except (RuntimeError, ValueError, TypeError, KeyError, AttributeError, OSError) as app_batch_err:
                 self.logger.debug(f"Appearance batch extraction error: {app_batch_err}")
 
-        # 7. Gait Extraction & Matching for ready GEIs
+
         for _, ctx in track_contexts:
             track_id = ctx.track_id
             bbox = ctx.bbox
@@ -725,7 +725,7 @@ class ProductionMultiCameraEngine:
                     except (RuntimeError, ValueError, TypeError, OSError) as gait_err:
                         self.logger.debug(f"Gait extraction error for {track_id}: {gait_err}")
 
-        # 8. DualModalFusion, Temporal Aggregation & Result Publishing per track
+
         for _, ctx in track_contexts:
             track_id = ctx.track_id
             bbox = ctx.bbox
@@ -791,7 +791,7 @@ class ProductionMultiCameraEngine:
 
             ctx.update_fusion(final_identity, final_score, decision, status, fusion_details)
 
-            # Derive 3-state visual assessment for tracked context
+
             if status == "CONFIRMED" and final_identity not in ("UNKNOWN_PERSON", "UNKNOWN", ""):
                 display_state = "CONFIRMED"
             elif not ctx.gait_eligible and ctx.mobility_state in ("WHEELCHAIR", "CRUTCHES_AID", "STATIONARY_SEATED", "NON_STANDARD_GAIT") and app_id == "UNKNOWN_PERSON":
@@ -866,12 +866,12 @@ class ProductionMultiCameraEngine:
                 except (RuntimeError, ValueError, TypeError, OSError) as cb_err:
                     self.logger.debug(f"Event callback error: {cb_err}")
 
-        # 8b. Retain and publish all untracked/tentative/non-valid detections for visual overlay
+
         tracked_boxes = [obj["bbox"] for obj in tracked_objects]
         untracked_idx = 0
         for det in detections:
             det_box = det.get("bbox", [0, 0, 0, 0])
-            # Check if this detection was associated with an active track
+
             is_associated = any(
                 abs(det_box[0] - tb[0]) <= 5 and abs(det_box[1] - tb[1]) <= 5
                 for tb in tracked_boxes
@@ -909,7 +909,7 @@ class ProductionMultiCameraEngine:
                 )
                 self.cache.put(untracked_result)
 
-        # 9. Periodic Non-Blocking Garbage Collection for Expired Tracks
+
         now_mono = time.monotonic()
         if (now_mono - self._last_gc_time) >= self._gc_interval:
             self._last_gc_time = now_mono

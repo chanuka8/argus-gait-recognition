@@ -20,7 +20,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-# --- OSNet Architecture Components ---
+
 
 
 class _ConvLayer(nn.Module):
@@ -338,7 +338,7 @@ class _OSNet(nn.Module):
 
         self.feature_dim = feature_dim
 
-        # Stem
+
         self.conv1 = _ConvLayer(
             3,
             channels[0],
@@ -353,7 +353,7 @@ class _OSNet(nn.Module):
             padding=1,
         )
 
-        # Body
+
         self.conv2 = self._make_layer(
             blocks[0],
             layers[0],
@@ -378,7 +378,7 @@ class _OSNet(nn.Module):
             reduce_spatial_size=False,
         )
 
-        # Head
+
         self.conv5 = _Conv1x1(
             channels[3],
             channels[3],
@@ -450,13 +450,13 @@ def _build_osnet_x0_25() -> _OSNet:
     )
 
 
-# --- ImageNet normalization ---
+
 
 _IMAGENET_MEAN = [0.485, 0.456, 0.406]
 _IMAGENET_STD = [0.229, 0.224, 0.225]
 
 
-# --- Public API ---
+
 
 
 class OSNetBackbone:
@@ -542,7 +542,7 @@ class OSNetBackbone:
                         weights_only=False,
                     )
 
-                # Handle different checkpoint formats
+
                 if isinstance(checkpoint, dict):
                     if "state_dict" in checkpoint:
                         state_dict = checkpoint["state_dict"]
@@ -553,8 +553,8 @@ class OSNetBackbone:
                 else:
                     state_dict = checkpoint
 
-                # Clean keys: strip DataParallel prefix,
-                # skip classifier weights
+
+
                 cleaned = {}
 
                 for key, value in state_dict.items():
@@ -581,7 +581,7 @@ class OSNetBackbone:
             self._mean = self._mean.to(self.device)
             self._std = self._std.to(self.device)
 
-            # CUDA Warmup
+
             try:
                 with torch.inference_mode():
                     dummy = torch.zeros((1, 3, 256, 128), device=self.device, dtype=torch.float32)

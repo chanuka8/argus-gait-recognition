@@ -23,7 +23,7 @@ class RuntimeConfusionDetector:
         app_risk_thresh: float = 0.65,
         app_co_risk_thresh: float = 0.55,
         enabled: bool = False,
-        mode: str = "advisory",  # "advisory" (log/flag only) or "enforce" (auto-mutate safeguard groups)
+        mode: str = "advisory",
     ) -> None:
         self.gait_risk_thresh = float(gait_risk_thresh)
         self.app_risk_thresh = float(app_risk_thresh)
@@ -50,7 +50,7 @@ class RuntimeConfusionDetector:
             if existing_subj == new_subject or not ex_g_list:
                 continue
 
-            # Pairwise Gait Similarity
+
             g_sims = []
             for ng in new_gait_embs:
                 ng_norm = np.linalg.norm(ng)
@@ -64,7 +64,7 @@ class RuntimeConfusionDetector:
             max_g = float(np.max(g_sims)) if g_sims else 0.0
             max_g_sims[existing_subj] = round(max_g, 4)
 
-            # Pairwise Appearance Similarity
+
             ex_a_list = gallery_app.get(existing_subj, [])
             a_sims = []
             for na in new_app_embs:
@@ -79,9 +79,9 @@ class RuntimeConfusionDetector:
             max_a = float(np.max(a_sims)) if a_sims else 0.0
             max_a_sims[existing_subj] = round(max_a, 4)
 
-            # Dual-Modal Co-Risk Rule:
-            # High risk if Appearance is visually confusable (A >= 0.65) OR
-            # Dual-Modal Co-Risk (Gait >= 0.92 AND Appearance >= 0.55)
+
+
+
             is_pair_risk = (max_a >= self.app_risk_thresh) or (max_g >= 0.92 and max_a >= 0.55)
 
             if is_pair_risk:

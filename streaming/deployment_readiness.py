@@ -30,9 +30,9 @@ import psutil
 from monitoring.logging_config import get_logger
 from security_layer.credentials import sanitize_rtsp_url
 
-# ---------------------------------------------------------------------------
-# Task 1 — Hardware Capability Discovery
-# ---------------------------------------------------------------------------
+
+
+
 
 
 @dataclass
@@ -145,7 +145,7 @@ class HardwareCapabilityDetector:
         tot = vm.total / (1024 * 1024)
         avail = vm.available / (1024 * 1024)
         used = vm.used / (1024 * 1024)
-        # Usable runtime budget: reserve 1.5 GB for OS/other tasks
+
         budget = max(512.0, avail - 1536.0)
         return RAMInfo(
             total_mb=round(tot, 1),
@@ -224,7 +224,7 @@ class HardwareCapabilityDetector:
             used = usage.used / (1024 * 1024 * 1024)
             pct = (used / tot * 100.0) if tot > 0 else 0.0
 
-            # Test write ability
+
             test_file = os.path.join(target, f".write_test_{os.getpid()}")
             writable = True
             try:
@@ -268,9 +268,9 @@ class HardwareCapabilityDetector:
         )
 
 
-# ---------------------------------------------------------------------------
-# Task 2 & 10 — Dynamic System Profiles & Deployment Modes
-# ---------------------------------------------------------------------------
+
+
+
 
 
 class SystemProfile(enum.Enum):
@@ -325,7 +325,7 @@ class SystemProfileEngine:
         cpu = report.cpu
         ram = report.ram
 
-        # Determine effective profile
+
         if explicit_profile != SystemProfile.AUTO:
             chosen = explicit_profile
         elif not gpu.available or gpu.vram_total_mb < 2000.0:
@@ -342,7 +342,7 @@ class SystemProfileEngine:
         else:
             chosen = SystemProfile.SERVER
 
-        # Derive parameters
+
         if chosen == SystemProfile.LOW_RESOURCE:
             return RuntimeParameters(
                 profile_name="LOW_RESOURCE",
@@ -375,7 +375,7 @@ class SystemProfileEngine:
                 device_name="CPU",
             )
         elif chosen == SystemProfile.GPU_SMALL:
-            # e.g., 4GB–6GB VRAM (like RTX 3050 6GB)
+
             workers = max(2, min(4, cpu.logical_cores // 2))
             return RuntimeParameters(
                 profile_name="GPU_SMALL",
@@ -392,7 +392,7 @@ class SystemProfileEngine:
                 device_name=gpu.model,
             )
         elif chosen == SystemProfile.GPU_STANDARD:
-            # e.g., 8GB–16GB VRAM (like RTX 3080 / 4080 / T4)
+
             workers = max(2, min(8, cpu.logical_cores // 2))
             return RuntimeParameters(
                 profile_name="GPU_STANDARD",
@@ -409,7 +409,7 @@ class SystemProfileEngine:
                 device_name=gpu.model,
             )
         elif chosen == SystemProfile.GPU_HIGH:
-            # e.g., 16GB–24GB VRAM (like RTX 3090 / 4090 / A10)
+
             workers = max(4, min(12, cpu.logical_cores // 2))
             return RuntimeParameters(
                 profile_name="GPU_HIGH",
@@ -425,8 +425,8 @@ class SystemProfileEngine:
                 enable_gpu=True,
                 device_name=gpu.model,
             )
-        else:  # SERVER
-            # e.g., A100 / H100 / Dual GPU
+        else:
+
             workers = max(4, min(16, cpu.logical_cores // 2))
             return RuntimeParameters(
                 profile_name="SERVER",
@@ -444,9 +444,9 @@ class SystemProfileEngine:
             )
 
 
-# ---------------------------------------------------------------------------
-# Task 9 — Model Resource Profiles
-# ---------------------------------------------------------------------------
+
+
+
 
 
 @dataclass
@@ -520,15 +520,15 @@ class ModelProfileRegistry:
         return {k: asdict(v) for k, v in self._profiles.items()}
 
 
-# ---------------------------------------------------------------------------
-# Task 16 — Network Bandwidth Model
-# ---------------------------------------------------------------------------
+
+
+
 
 
 class NetworkBandwidthEstimator:
     """Estimates camera stream network ingress requirements and link headroom."""
 
-    # Reference bitrates in Mbps for H.264 @ 15 FPS
+
     CODEC_BITRATES_MBPS: ClassVar[dict[str, dict[str, float]]] = {
         "h264": {
             "480p": 0.8,
@@ -596,9 +596,9 @@ class NetworkBandwidthEstimator:
         }
 
 
-# ---------------------------------------------------------------------------
-# Task 3 — Production Capacity Estimator
-# ---------------------------------------------------------------------------
+
+
+
 
 
 class ProductionCapacityEstimator:
@@ -630,22 +630,22 @@ class ProductionCapacityEstimator:
                 "constraints_met": False,
             }
 
-        # Raw capacity from throughput
+
         raw_cams = measured_throughput_fps / self.target_camera_fps
 
-        # Apply multi-factorial bottlenecks
+
         limiting_factor = "none"
         confidence = "HIGH"
         scale_factor = 1.0
 
-        # CPU factor
+
         if cpu_percent > 85.0:
             scale_factor *= (85.0 / max(1.0, cpu_percent))
             limiting_factor = "cpu"
         elif cpu_percent > 70.0:
             scale_factor *= 0.90
 
-        # VRAM factor
+
         if vram_total_mb > 0:
             vram_pct = (vram_allocated_mb / vram_total_mb) * 100.0
             if vram_pct > 90.0:
@@ -654,17 +654,17 @@ class ProductionCapacityEstimator:
             elif vram_pct > 80.0:
                 scale_factor *= 0.92
 
-        # Latency factor
+
         if p95_latency_ms > 200.0:
             scale_factor *= (200.0 / max(1.0, p95_latency_ms))
             limiting_factor = "latency"
 
-        # Drop rate factor
+
         if drop_rate > 0.05:
             scale_factor *= (1.0 - drop_rate)
             limiting_factor = "drop_rate"
 
-        # Network factor
+
         if network_headroom_pct < 15.0:
             scale_factor *= (network_headroom_pct / 15.0)
             limiting_factor = "network"
@@ -703,11 +703,11 @@ class ProductionCapacityEstimator:
         """
         total_active_persons = max(1, camera_count * persons_per_camera)
 
-        # Estimate memory per track in KB (context + features + sliding window)
+
         kb_per_track = 128.0
         total_track_memory_mb = (total_active_persons * kb_per_track) / 1024.0
 
-        # Determine capacity state
+
         if cpu_percent > 88.0 or (vram_total_mb > 0 and (vram_allocated_mb / vram_total_mb) > 0.90) or p95_latency_ms > 100.0:
             capacity_state = "CAPACITY_REACHED"
             recommended_tier = "DEGRADED_MODE"
@@ -734,9 +734,9 @@ class ProductionCapacityEstimator:
         }
 
 
-# ---------------------------------------------------------------------------
-# Task 4 — Camera Admission Controller
-# ---------------------------------------------------------------------------
+
+
+
 
 
 class AdmissionDecision(enum.Enum):
@@ -794,7 +794,7 @@ class CameraAdmissionController:
     ) -> AdmissionResult:
         """Evaluate whether a camera can be admitted safely."""
         with self._lock:
-            # 1. Check system resource saturation
+
             if cpu_percent >= self.max_cpu_percent:
                 msg = f"CPU saturated ({cpu_percent:.1f}% >= {self.max_cpu_percent:.1f}%)"
                 self._logger.warning(f"Admission REJECTED for '{camera_id}': {msg}")
@@ -819,7 +819,7 @@ class CameraAdmissionController:
                     current_active_count=current_active_cameras,
                 )
 
-            # 2. Check VRAM capacity
+
             if vram_total_mb > 0:
                 vram_pct = (vram_allocated_mb / vram_total_mb) * 100.0
                 if vram_pct >= self.max_vram_percent:
@@ -834,7 +834,7 @@ class CameraAdmissionController:
                         current_active_count=current_active_cameras,
                     )
 
-            # 3. Check network bandwidth
+
             if network_headroom_pct < self.min_network_headroom_pct:
                 msg = f"Network headroom exhausted ({network_headroom_pct:.1f}% < {self.min_network_headroom_pct:.1f}%)"
                 self._logger.warning(f"Admission REJECTED for '{camera_id}': {msg}")
@@ -847,9 +847,9 @@ class CameraAdmissionController:
                     current_active_count=current_active_cameras,
                 )
 
-            # 4. Check compute capacity headroom
+
             if current_active_cameras >= sustainable_capacity:
-                # If close to capacity, admit in degraded mode with reduced FPS
+
                 if current_active_cameras < int(sustainable_capacity * 1.25):
                     degraded_fps = max(2.0, target_fps * 0.5)
                     msg = f"Admitted in DEGRADED mode (active={current_active_cameras}, cap={sustainable_capacity})"
@@ -874,7 +874,7 @@ class CameraAdmissionController:
                         current_active_count=current_active_cameras,
                     )
 
-            # 5. Full admission
+
             msg = f"Admitted successfully (headroom={sustainable_capacity - current_active_cameras})"
             self._logger.info(f"Camera '{camera_id}' {msg}")
             return AdmissionResult(
@@ -887,9 +887,9 @@ class CameraAdmissionController:
             )
 
 
-# ---------------------------------------------------------------------------
-# Task 5 — Adaptive Inference Quality
-# ---------------------------------------------------------------------------
+
+
+
 
 
 class InferenceQualityMode(enum.Enum):
@@ -939,9 +939,9 @@ class AdaptiveInferencePolicy:
             return self._mode
 
 
-# ---------------------------------------------------------------------------
-# Task 6 — GPU Memory Safety & OOM Recovery
-# ---------------------------------------------------------------------------
+
+
+
 
 
 class GPUMemoryGuard:
@@ -992,9 +992,9 @@ class GPUMemoryGuard:
             return False
 
 
-# ---------------------------------------------------------------------------
-# Task 17 — Storage Safety Auditor
-# ---------------------------------------------------------------------------
+
+
+
 
 
 class StorageSafetyAuditor:
@@ -1011,7 +1011,7 @@ class StorageSafetyAuditor:
         disk_usage = shutil.disk_usage(abs_path if exists else ".")
         free_gb = disk_usage.free / (1024 * 1024 * 1024)
 
-        # Test atomic write capability
+
         test_file = os.path.join(abs_path if exists else ".", f".atomic_test_{os.getpid()}")
         atomic_ok = False
         try:
@@ -1034,9 +1034,9 @@ class StorageSafetyAuditor:
         }
 
 
-# ---------------------------------------------------------------------------
-# Task 20 — Security Auditor
-# ---------------------------------------------------------------------------
+
+
+
 
 
 class SecurityAuditor:
@@ -1065,9 +1065,9 @@ class SecurityAuditor:
         }
 
 
-# ---------------------------------------------------------------------------
-# Top-level Orchestrator: DeploymentReadinessManager
-# ---------------------------------------------------------------------------
+
+
+
 
 
 class DeploymentReadinessManager:
@@ -1096,7 +1096,7 @@ class DeploymentReadinessManager:
         storage = self.storage_auditor.audit_storage()
         security = self.security_auditor.audit_system_security()
 
-        # Capacity estimate based on runtime profile
+
         cap = self.capacity_estimator.estimate_capacity(
             measured_throughput_fps=self.runtime_params.max_processing_fps * 15.0,
             current_active_cameras=1,

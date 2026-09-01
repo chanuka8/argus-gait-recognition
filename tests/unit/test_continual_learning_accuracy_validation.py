@@ -81,9 +81,9 @@ def isolated_cl_env():
     shutil.rmtree(temp_dir, ignore_errors=True)
 
 
-# =============================================================================
-# 1. DATASET BUILDER & LEAKAGE ISOLATION TESTS
-# =============================================================================
+
+
+
 
 class TestTrainingDatasetBuilder:
     def test_strict_train_val_test_isolation(self, isolated_cl_env):
@@ -91,7 +91,7 @@ class TestTrainingDatasetBuilder:
         collector = OperationalEmbeddingCollector(output_dir=env["obs_dir"])
         db = EmbeddingDatabase(db_dir=env["db_dir"])
 
-        # Seed 4 observations per identity for 3 identities on Date 2026-08-31
+
         date_str = "2026-08-31"
         for ident in ["Subject_01", "Subject_02", "Subject_03"]:
             for i in range(4):
@@ -126,7 +126,7 @@ class TestTrainingDatasetBuilder:
         assert len(val) > 0
         assert len(test) > 0
 
-        # Verify zero leakage across splits
+
         train_ids = {s.sample_id for s in train}
         val_ids = {s.sample_id for s in val}
         test_ids = {s.sample_id for s in test}
@@ -135,7 +135,7 @@ class TestTrainingDatasetBuilder:
         assert len(train_ids.intersection(val_ids)) == 0, "Train and Val sample IDs intersect!"
         assert len(val_ids.intersection(test_ids)) == 0, "Val and Test sample IDs intersect!"
 
-        # Verify manifest cryptographic integrity
+
         assert manifest.manifest_sha256 != ""
         assert len(manifest.manifest_sha256) == 64
         manifest_file = Path(env["manifests_dir"]) / f"{manifest.dataset_id}.json"
@@ -147,7 +147,7 @@ class TestTrainingDatasetBuilder:
         db = EmbeddingDatabase(db_dir=env["db_dir"])
         date_str = "2026-08-31"
 
-        # 1. Unverified observation (PREDICTED state)
+
         vec1 = np.random.randn(256).astype(np.float32)
         collector.record_observation(
             camera_id="cam_01",
@@ -159,7 +159,7 @@ class TestTrainingDatasetBuilder:
             observation_date=date_str,
         )
 
-        # 2. Corrupted vector with NaN
+
         vec_nan = np.random.randn(256).astype(np.float32)
         vec_nan[10] = np.nan
         obs_nan = collector.record_observation(
@@ -182,9 +182,9 @@ class TestTrainingDatasetBuilder:
         assert manifest.total_samples == 0
 
 
-# =============================================================================
-# 2. INDEPENDENT ACCURACY EVALUATOR TESTS
-# =============================================================================
+
+
+
 
 class TestContinualLearningEvaluator:
     def test_metric_calculation_and_deltas(self):
@@ -248,9 +248,9 @@ class TestContinualLearningEvaluator:
         assert metrics.evidence_class == "INSUFFICIENT_EVIDENCE"
 
 
-# =============================================================================
-# 3. ACCURACY VALIDATION GATE & ANTI-CHURN TESTS
-# =============================================================================
+
+
+
 
 class TestAccuracyValidationGate:
     def test_catastrophic_forgetting_blocks_promotion(self):
@@ -264,7 +264,7 @@ class TestAccuracyValidationGate:
         )
         cand_metrics = EvaluationMetrics(
             rank1_accuracy=85.0, tar=88.0, far=0.5, frr=12.0, eer=6.25, auc=0.92,
-            historical_retention_tar=80.0,  # Dropped from 95% -> 80% (-15%)
+            historical_retention_tar=80.0,
             new_condition_tar=96.0,
             genuine_trials=20, impostor_trials=40, sample_count=10, identities_count=2,
             evidence_class="SUFFICIENT_EVIDENCE",
@@ -347,8 +347,8 @@ class TestAccuracyValidationGate:
         )
         cand_metrics = EvaluationMetrics(
             rank1_accuracy=86.0, tar=90.0, far=0.8, frr=10.0, eer=5.4, auc=0.94,
-            historical_retention_tar=86.0,  # Preserved historical (+1%)
-            new_condition_tar=90.0,          # Improved new condition (+10%)
+            historical_retention_tar=86.0,
+            new_condition_tar=90.0,
             genuine_trials=20, impostor_trials=40, sample_count=10, identities_count=2,
             evidence_class="SUFFICIENT_EVIDENCE",
         )
@@ -380,9 +380,9 @@ class TestAccuracyValidationGate:
         assert len(decision.rejection_reasons) == 0
 
 
-# =============================================================================
-# 4. AUDIT TRAIL PERSISTENCE TESTS
-# =============================================================================
+
+
+
 
 class TestContinualLearningAuditTrail:
     def test_event_recording_and_restart_recovery(self, isolated_cl_env):
@@ -406,7 +406,7 @@ class TestContinualLearningAuditTrail:
 
         assert event.event_id != ""
 
-        # Restart audit trail and read from disk
+
         trail_reloaded = ContinualLearningAuditTrail(audit_file=env["audit_file"])
         events = trail_reloaded.list_events()
         assert len(events) == 1
@@ -415,9 +415,9 @@ class TestContinualLearningAuditTrail:
         assert events[0].promotion_status == "PROMOTED"
 
 
-# =============================================================================
-# 5. END-TO-END WORKER & ACCURACY INTEGRATION TEST
-# =============================================================================
+
+
+
 
 class TestEndToEndWorkerAccuracyValidation:
     def test_full_worker_cycle_with_dataset_builder_and_evaluation(self, isolated_cl_env):
@@ -442,7 +442,7 @@ class TestEndToEndWorkerAccuracyValidation:
             timeout_seconds=60.0,
         )
 
-        # Seed verified observations for 2 identities (4 samples each = 8 total) with spatial media
+
         date_str = "2026-08-31"
         for ident in ["Subject_Alpha", "Subject_Beta"]:
             for i in range(4):
@@ -464,18 +464,18 @@ class TestEndToEndWorkerAccuracyValidation:
         job = scheduler.create_learning_job(training_date=date_str, model_type="bygait_light")
         assert job is not None
 
-        # Execute worker synchronously
+
         executed_job = worker.execute_job_synchronous(job)
         assert executed_job.status in (LearningJobStatus.PROMOTED, LearningJobStatus.REJECTED)
 
-        # Verify candidate was registered in ModelRegistry
+
         cand_models = [m for m in registry.list_models("bygait_light") if m.model_version == executed_job.candidate_version]
         assert len(cand_models) == 1
         cand_rec = cand_models[0]
         assert "dataset_id" in cand_rec.metadata
         assert "manifest_sha256" in cand_rec.metadata
 
-        # Verify audit trail event was written
+
         audit_events = worker.audit_trail.list_events()
         assert len(audit_events) >= 1
         assert audit_events[-1].candidate_version == executed_job.candidate_version
@@ -502,7 +502,7 @@ class TestEndToEndWorkerAccuracyValidation:
             timeout_seconds=60.0,
         )
 
-        # Seed verified appearance observations (512D) with spatial crops for 2 identities
+
         date_str = "2026-08-31"
         for ident in ["Subject_Gamma", "Subject_Delta"]:
             for i in range(4):
@@ -524,11 +524,11 @@ class TestEndToEndWorkerAccuracyValidation:
         job = scheduler.create_learning_job(training_date=date_str, model_type="osnet_reid")
         assert job is not None
 
-        # Execute worker synchronously
+
         executed_job = worker.execute_job_synchronous(job)
         assert executed_job.status in (LearningJobStatus.PROMOTED, LearningJobStatus.REJECTED)
 
-        # Verify candidate in registry
+
         cand_models = [m for m in registry.list_models("osnet_reid") if m.model_version == executed_job.candidate_version]
         assert len(cand_models) == 1
         assert cand_models[0].embedding_dim == 512
@@ -541,11 +541,11 @@ class TestEndToEndWorkerAccuracyValidation:
         assert active_before is not None
         assert active_before.model_version == "v1.0.0"
 
-        # Create dummy candidate artifact file
+
         cand_path = Path(env["candidates_dir"]) / "bygait_v2.pth"
         cand_path.write_bytes(b"dummy_weights_v2")
 
-        # Promote v2.0.0
+
         registry.register_candidate(
             model_version="v2.0.0",
             model_type="bygait_light",
@@ -560,12 +560,12 @@ class TestEndToEndWorkerAccuracyValidation:
         assert active_after is not None
         assert active_after.model_version == "v2.0.0"
 
-        # Execute Rollback
+
         rolled_back = registry.rollback("bygait_light")
         assert rolled_back.model_version == "v1.0.0"
         assert rolled_back.deployment_status == ModelDeploymentStatus.ACTIVE
 
-        # Active is now back to v1.0.0
+
         active_restored = registry.get_active_model("bygait_light")
         assert active_restored is not None
         assert active_restored.model_version == "v1.0.0"

@@ -116,6 +116,38 @@
     "venv/**",
     ".venv/**"
   ],
+  "markdownlint.config": {
+    "default": true,
+    "MD013": false,
+    "MD033": {
+      "allowed_elements": [
+        "details",
+        "summary",
+        "strong",
+        "em",
+        "br",
+        "img",
+        "sub",
+        "sup",
+        "kbd",
+        "div",
+        "span",
+        "p",
+        "table",
+        "thead",
+        "tbody",
+        "tr",
+        "th",
+        "td",
+        "a",
+        "code",
+        "pre"
+      ]
+    },
+    "MD024": {
+      "siblings_only": true
+    }
+  },
   "problems.decorations.enabled": true,
   "problems.showCurrentInStatus": true
 }

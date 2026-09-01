@@ -75,7 +75,7 @@ def test_1_live_cctv_to_collector_and_persistence(target_env):
     )
     cache = RecognitionResultCache(ttl_seconds=2.0)
 
-    # Mock components for live pipeline
+
     mock_detector = MagicMock()
     mock_detector.detect.return_value = [{"bbox": [50, 50, 150, 200], "confidence": 0.95, "class_id": 0}]
 
@@ -126,7 +126,7 @@ def test_1_live_cctv_to_collector_and_persistence(target_env):
 
     worker.start()
 
-    # Feed frames to trigger appearance crop and gait GEI
+
     frame = np.zeros((480, 640, 3), dtype=np.uint8)
     for _ in range(25):
         worker.put_frame(frame)
@@ -142,13 +142,13 @@ def test_1_live_cctv_to_collector_and_persistence(target_env):
     assert "appearance" in modalities, "Appearance observations must be recorded"
     assert "gait" in modalities, "Gait observations must be recorded"
 
-    # Verify provenance and schema
+
     app_obs = next(o for o in recent if o.modality == "appearance")
     assert app_obs.camera_id == "cam_cctv_01"
     assert app_obs.embedding_dim == 512
     assert app_obs.model_name == "OSNet-x0.25"
     assert app_obs.state == ObservationState.PREDICTED
-    assert len(app_obs.observation_date) == 10  # YYYY-MM-DD
+    assert len(app_obs.observation_date) == 10
 
     gait_obs = next(o for o in recent if o.modality == "gait")
     assert gait_obs.camera_id == "cam_cctv_01"
@@ -156,11 +156,11 @@ def test_1_live_cctv_to_collector_and_persistence(target_env):
     assert gait_obs.model_name == "ByGaitLight"
     assert gait_obs.state == ObservationState.PREDICTED
 
-    # Test Restart Persistence
+
     obs_file = Path(target_env["obs_dir"]) / "recent_observations.json"
     assert obs_file.exists(), "recent_observations.json must be persisted to disk"
 
-    # Reload in fresh collector instance
+
     new_collector = OperationalEmbeddingCollector(output_dir=target_env["obs_dir"])
     reloaded = new_collector.get_recent_observations()
     assert len(reloaded) == len(recent), "All observations must survive collector restart"
@@ -177,7 +177,7 @@ def test_2_deduplication_and_rate_limiting(target_env):
     base_vec = np.random.randn(256).astype(np.float32)
     base_vec /= np.linalg.norm(base_vec)
 
-    # 1st call: recorded
+
     obs1 = collector.record_observation(
         camera_id="cam-01",
         track_id=10,
@@ -188,7 +188,7 @@ def test_2_deduplication_and_rate_limiting(target_env):
     )
     assert obs1 is not None
 
-    # 2nd call with identical vector 0.05s later: deduplicated
+
     obs2 = collector.record_observation(
         camera_id="cam-01",
         track_id=10,
@@ -199,7 +199,7 @@ def test_2_deduplication_and_rate_limiting(target_env):
     )
     assert obs2.observation_id == obs1.observation_id, "Deduplication must return existing observation"
 
-    # Buffer count must still be 1
+
     assert len(collector.get_recent_observations()) == 1
 
 
@@ -219,7 +219,7 @@ def test_3_ground_truth_verification_and_scheduling(target_env):
         min_identities=2,
     )
 
-    # Record 6 observations across 2 identities on date 2026-08-29
+
     obs_ids = []
     for i in range(3):
         v = np.random.randn(256).astype(np.float32)
@@ -247,11 +247,11 @@ def test_3_ground_truth_verification_and_scheduling(target_env):
         )
         obs_ids.append((obs.observation_id, "Bob"))
 
-    # Before verification: 0 eligible
+
     assert len(collector.get_training_eligible()) == 0
     assert len(scheduler.scan_for_eligible_data()) == 0
 
-    # Operator verifies observations
+
     for oid, true_ident in obs_ids:
         collector.verify_observation(oid, verified_identity=true_ident)
 
@@ -259,14 +259,14 @@ def test_3_ground_truth_verification_and_scheduling(target_env):
     unprocessed = scheduler.get_unprocessed_dates()
     assert "2026-08-29" in unprocessed
 
-    # Create learning job
+
     job = scheduler.create_learning_job(training_date="2026-08-29", model_type="bygait_light")
     assert job is not None
     assert job.status == LearningJobStatus.PENDING
     assert job.new_embeddings_count == 6
     assert job.identities_count == 2
 
-    # Idempotency check: duplicate call does not duplicate job
+
     job2 = scheduler.create_learning_job(training_date="2026-08-29", model_type="bygait_light")
     assert job2.job_id == job.job_id
 
@@ -276,13 +276,13 @@ def test_4_model_registry_validation_and_rollback(target_env):
     registry = ModelRegistry(registry_file=target_env["reg_file"])
     validator = CandidateValidator()
 
-    # Initial production baseline
+
     base_ver = "v1.0.0"
     base_rec = registry.get_active_model("bygait_light")
     assert base_rec is not None
     assert base_rec.model_version == base_ver
 
-    # Candidate registration
+
     cand_ver = "v2.0.0-candidate"
     cand_artifact = str(Path(target_env["cand_dir"]) / "bygait_cand_v2.pth")
     with open(cand_artifact, "w") as f:
@@ -297,11 +297,11 @@ def test_4_model_registry_validation_and_rollback(target_env):
         metadata={"training_date": "2026-08-29"},
     )
 
-    # Unvalidated promotion must be rejected
+
     with pytest.raises(RuntimeError):
         registry.promote_version(cand_ver, model_type="bygait_light")
 
-    # Validate candidate against baseline
+
     metrics = {"tar": 92.0, "far": 0.2, "val_rank1_accuracy": 92.0}
     val_res = validator.validate_candidate(
         candidate_version=cand_ver,
@@ -318,13 +318,13 @@ def test_4_model_registry_validation_and_rollback(target_env):
         metrics=metrics,
     )
 
-    # Promote to ACTIVE
+
     promoted = registry.promote_version(cand_ver, model_type="bygait_light")
     assert promoted.deployment_status == ModelDeploymentStatus.ACTIVE
     assert promoted.previous_production_version == base_ver
     assert registry.get_active_model("bygait_light").model_version == cand_ver
 
-    # Rollback to baseline
+
     rolled_back = registry.rollback(model_type="bygait_light", reason="Regression test")
     assert rolled_back.model_version == base_ver
     assert registry.get_active_model("bygait_light").model_version == base_ver

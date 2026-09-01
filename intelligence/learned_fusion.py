@@ -63,12 +63,12 @@ class LearnedLogisticFusion:
         if len(g_arr) == 0:
             return self
 
-        # 1. Fit individual Platt calibrators
+
         self.gait_calibrator.fit(g_arr, y_arr)
         self.app_calibrator.fit(a_arr, y_arr)
 
         if loss_type == "ranking_auc":
-            # Direct Wilcoxon-Mann-Whitney surrogate loss for global ROC-AUC maximization
+
             pos_mask = y_arr == 1.0
             neg_mask = y_arr == 0.0
 
@@ -96,7 +96,7 @@ class LearnedLogisticFusion:
             self.is_fitted = True
             return self
 
-        # Fallback to BCE
+
         self.use_raw_scores = False
         g_prob = np.array([self.gait_calibrator.calibrate(s) for s in g_arr], dtype=np.float64)
         a_prob = np.array([self.app_calibrator.calibrate(s) for s in a_arr], dtype=np.float64)

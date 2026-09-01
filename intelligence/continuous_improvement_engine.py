@@ -134,8 +134,8 @@ class ContinuousImprovementEngine:
             f"[MODEL_RELOAD] Triggering production reload: type={model_type} "
             f"version={new_version} artifact={artifact_path}"
         )
-        # The reload is handled via the worker's promotion callback
-        # which is wired to GaitService in the application startup
+
+
 
     def get_learning_history(self) -> list[LearningJobRecord]:
         """Return the complete history of all date learning jobs."""
@@ -165,7 +165,7 @@ class ContinuousImprovementEngine:
         5. If passed, atomically PROMOTE to ACTIVE production status.
         """
         with self._lock:
-            # 1. Register Candidate
+
             candidate_rec = self.registry.register_candidate(
                 model_version=candidate_version,
                 model_type=model_type,
@@ -175,11 +175,11 @@ class ContinuousImprovementEngine:
                 metadata=metadata or {},
             )
 
-            # 2. Get Active Baseline
+
             active_base = self.registry.get_active_model(model_type)
             baseline_metrics = active_base.validation_metrics if active_base else {}
 
-            # 3. Validate Candidate
+
             val_result = self.validator.validate_candidate(
                 candidate_version=candidate_version,
                 model_type=model_type,
@@ -188,7 +188,7 @@ class ContinuousImprovementEngine:
                 confusion_pair_eval=confusion_pair_eval,
             )
 
-            # 4. Record Gate Outcome
+
             rejection_str = "; ".join(val_result.rejection_reasons) if not val_result.passed else None
             candidate_rec = self.registry.record_validation_result(
                 model_version=candidate_version,
@@ -198,7 +198,7 @@ class ContinuousImprovementEngine:
                 rejection_reason=rejection_str,
             )
 
-            # 5. Promote if Passed
+
             if val_result.passed:
                 promoted_rec = self.registry.promote_version(
                     model_version=candidate_version,

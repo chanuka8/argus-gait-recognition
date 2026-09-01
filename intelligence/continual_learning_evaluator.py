@@ -46,7 +46,7 @@ class EvaluationMetrics:
     sample_count: int = 0
     identities_count: int = 0
     confidence_interval_95: tuple[float, float] = (0.0, 0.0)
-    evidence_class: str = "INSUFFICIENT_EVIDENCE"  # 'SUFFICIENT_EVIDENCE' or 'INSUFFICIENT_EVIDENCE'
+    evidence_class: str = "INSUFFICIENT_EVIDENCE"
     per_identity_metrics: dict[str, float] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -74,7 +74,7 @@ class ModelComparisonResult:
     is_improved: bool
     is_regressed: bool
     is_statistically_significant: bool
-    verdict: str  # 'CONTINUAL_LEARNING_IMPROVEMENT_VERIFIED', 'NO_GENERALIZATION_PROOF', 'DEGRADATION', 'INSUFFICIENT_EVIDENCE'
+    verdict: str
     evaluated_at: float = field(default_factory=time.time)
 
     def to_dict(self) -> dict[str, Any]:
@@ -126,7 +126,7 @@ class ContinualLearningEvaluator:
                 evidence_class="INSUFFICIENT_EVIDENCE",
             )
 
-        # 1. Compute/Extract normalized embeddings
+
         embeddings: list[np.ndarray] = []
         labels: list[str] = []
         cameras: list[str] = []
@@ -171,10 +171,10 @@ class ContinualLearningEvaluator:
         N = len(X)
         unique_identities = sorted(set(labels))
 
-        # 2. Pairwise similarity matrix
+
         sim_matrix = np.dot(X, X.T)
 
-        # 3. Nearest-neighbor Rank-1 identification accuracy (leave-one-out)
+
         rank1_correct = 0
         same_cam_correct = 0
         same_cam_total = 0
@@ -183,7 +183,7 @@ class ContinualLearningEvaluator:
 
         for i in range(N):
             sims = sim_matrix[i].copy()
-            sims[i] = -1.0  # Exclude self-match
+            sims[i] = -1.0
             top_idx = int(np.argmax(sims))
             if labels[top_idx] == labels[i]:
                 rank1_correct += 1
@@ -201,7 +201,7 @@ class ContinualLearningEvaluator:
         same_cam_acc = round(float((same_cam_correct / max(1, same_cam_total)) * 100.0), 2)
         cross_cam_acc = round(float((cross_cam_correct / max(1, cross_cam_total)) * 100.0), 2)
 
-        # 4. Genuine and Impostor verification trials
+
         genuine_scores: list[float] = []
         impostor_scores: list[float] = []
         hist_genuine: list[float] = []
@@ -230,35 +230,35 @@ class ContinualLearningEvaluator:
                     else:
                         new_impostor.append(score)
 
-        # Verification metrics
+
         tar = round(float(np.mean([s >= threshold for s in genuine_scores]) * 100.0), 2) if genuine_scores else 0.0
         far = round(float(np.mean([s >= threshold for s in impostor_scores]) * 100.0), 2) if impostor_scores else 0.0
         frr = round(float(100.0 - tar), 2)
         eer = round(float((far + frr) / 2.0), 2)
 
-        # Historical Retention Metrics
+
         hist_tar = round(float(np.mean([s >= threshold for s in hist_genuine]) * 100.0), 2) if hist_genuine else tar
         hist_far = round(float(np.mean([s >= threshold for s in hist_impostor]) * 100.0), 2) if hist_impostor else far
 
-        # New Condition Metrics
+
         new_tar = round(float(np.mean([s >= threshold for s in new_genuine]) * 100.0), 2) if new_genuine else tar
         new_far = round(float(np.mean([s >= threshold for s in new_impostor]) * 100.0), 2) if new_impostor else far
 
-        # ROC-AUC approximation via Mann-Whitney U / trapezoidal integration
+
         auc = 0.5
         if genuine_scores and impostor_scores:
             u_stat = sum(1.0 if g > imp else 0.5 if g == imp else 0.0 for g in genuine_scores for imp in impostor_scores)
             auc = round(float(u_stat / (len(genuine_scores) * len(impostor_scores))), 4)
 
-        # 95% Confidence Interval for Rank-1 (Wilson score / standard error)
+
         se = np.sqrt((rank1_acc * (100.0 - rank1_acc)) / max(N, 1))
         ci_low = max(0.0, round(rank1_acc - 1.96 * se, 2))
         ci_high = min(100.0, round(rank1_acc + 1.96 * se, 2))
 
-        # Evidence classification
+
         evidence_class = "SUFFICIENT_EVIDENCE" if len(genuine_scores) >= self.min_statistical_trials and len(impostor_scores) >= self.min_statistical_trials else "INSUFFICIENT_EVIDENCE"
 
-        # Per identity summary
+
         per_id_summary = {
             ident: round(float(np.mean(hits) * 100.0), 2) if hits else 0.0
             for ident, hits in per_id_correct.items()
@@ -311,20 +311,20 @@ class ContinualLearningEvaluator:
         hist_tar_delta = round(candidate_metrics.historical_retention_tar - baseline_metrics.historical_retention_tar, 2)
         new_tar_delta = round(candidate_metrics.new_condition_tar - baseline_metrics.new_condition_tar, 2)
 
-        # Regressed if FAR increased, or Historical TAR dropped > 1.0%, or Rank-1 dropped > 2.0%
+
         is_regressed = delta_far > 0.0 or hist_tar_delta < -1.0 or delta_rank1 < -2.0
 
-        # Improved if TAR improved or Rank-1 improved without regression
+
         is_improved = not is_regressed and (delta_rank1 >= self.significance_threshold_delta or delta_tar >= self.significance_threshold_delta or new_tar_delta >= self.significance_threshold_delta)
 
-        # Statistical significance
+
         is_stat_sig = (
             baseline_metrics.evidence_class == "SUFFICIENT_EVIDENCE"
             and candidate_metrics.evidence_class == "SUFFICIENT_EVIDENCE"
             and (abs(delta_rank1) >= 2.0 or abs(delta_tar) >= 2.0)
         )
 
-        # Verdict classification
+
         if is_regressed:
             verdict = "DEGRADATION"
         elif not is_stat_sig and (baseline_metrics.evidence_class == "INSUFFICIENT_EVIDENCE" or candidate_metrics.evidence_class == "INSUFFICIENT_EVIDENCE"):

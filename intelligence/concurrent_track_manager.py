@@ -36,11 +36,11 @@ class TrackLifecycleState(str, enum.Enum):
 class PersonAssessmentState(str, enum.Enum):
     """System assessment state for person display overlay."""
 
-    CONFIRMED = "CONFIRMED"                      # RED (0, 0, 255)
-    UNCONFIRMED = "UNCONFIRMED"                  # GREEN (0, 255, 0)
-    SPECIAL_ATTENTION = "SPECIAL_ATTENTION"      # YELLOW (0, 255, 255) — Reserved explicit operational attention
-    ASSESSING = "ASSESSING"                      # GREEN (0, 255, 0) — Alias for unconfirmed assessment
-    BIOMETRIC_INAPPLICABLE = "BIOMETRIC_INAPPLICABLE"  # GREEN (0, 255, 0)
+    CONFIRMED = "CONFIRMED"
+    UNCONFIRMED = "UNCONFIRMED"
+    SPECIAL_ATTENTION = "SPECIAL_ATTENTION"
+    ASSESSING = "ASSESSING"
+    BIOMETRIC_INAPPLICABLE = "BIOMETRIC_INAPPLICABLE"
 
 
 class MobilityState(str, enum.Enum):
@@ -82,25 +82,25 @@ class PersonTrackContext:
     occlusion_level: str = "LOW"
     consecutive_missing_frames: int = 0
 
-    # Appearance (OSNet 512D)
+
     appearance_embedding: np.ndarray | None = None
     appearance_identity: str = "UNKNOWN_PERSON"
     appearance_score: float = 0.0
     appearance_last_frame: int = 0
 
-    # Gait (ByGaitLight 256D)
+
     gait_embedding: np.ndarray | None = None
     gait_identity: str = "UNKNOWN_PERSON"
     gait_score: float = 0.0
     gait_last_frame: int = 0
 
-    # Biometric Fusion & Consensus
+
     fused_identity: str = "UNKNOWN_PERSON"
     fused_score: float = 0.0
     decision: str = "UNKNOWN"
     status: str = "UNKNOWN"
 
-    # Diagnostics & History
+
     details: dict[str, Any] = field(default_factory=dict)
     identity_history: list[str] = field(default_factory=list)
 
@@ -125,7 +125,7 @@ class PersonTrackContext:
         - SPECIAL_ATTENTION (YELLOW): Reserved explicit operational attention
         - UNCONFIRMED / BIOMETRIC_INAPPLICABLE (GREEN): Default for all detected, tracked, assessing, unknown, or inapplicable subjects
         """
-        # 1. Confirmed identity (RED)
+
         if (
             self.status in ("CONFIRMED", "MATCH", "VERIFIED_MATCH")
             or self.decision in ("CONFIRMED", "CONFIRMED_MATCH", "MATCH", "VERIFIED_MATCH")
@@ -137,12 +137,12 @@ class PersonTrackContext:
             self.assessment_state = PersonAssessmentState.CONFIRMED
             return PersonAssessmentState.CONFIRMED.value
 
-        # 2. Explicit Special Attention (YELLOW)
+
         if self.details.get("special_attention", False) or self.details.get("security_alert", False):
             self.assessment_state = PersonAssessmentState.SPECIAL_ATTENTION
             return PersonAssessmentState.SPECIAL_ATTENTION.value
 
-        # 3. Biometric Inapplicable (GREEN) - Non-standard mobility or biometrics unusable
+
         if not self.gait_eligible and (
             self.mobility_state in (
                 MobilityState.WHEELCHAIR,
@@ -155,7 +155,7 @@ class PersonTrackContext:
             self.assessment_state = PersonAssessmentState.BIOMETRIC_INAPPLICABLE
             return PersonAssessmentState.BIOMETRIC_INAPPLICABLE.value
 
-        # 4. Default: All other detected, tracked, assessing, unknown, or pending persons (GREEN)
+
         self.assessment_state = PersonAssessmentState.UNCONFIRMED
         return PersonAssessmentState.UNCONFIRMED.value
 
@@ -239,7 +239,7 @@ class ConcurrentTrackManager:
         self._recently_lost_tracks: dict[tuple[str, int], PersonTrackContext] = {}
         self._logger = get_logger("concurrent_track_manager")
 
-        # Telemetry metrics
+
         self._total_created_tracks = 0
         self._total_recovered_tracks = 0
         self._total_expired_tracks = 0
@@ -286,7 +286,7 @@ class ConcurrentTrackManager:
         with self._lock:
             track = self._tracks.get(key)
             if track is None:
-                # Check for recovery candidate from recently lost tracks
+
                 recovered_ctx = self._attempt_recovery(camera_id, int(track_id), bbox, now)
                 if recovered_ctx is not None:
                     track = recovered_ctx
@@ -306,7 +306,7 @@ class ConcurrentTrackManager:
                     )
                     return track
 
-                # New track initialization (unbounded allocation)
+
                 track = PersonTrackContext(
                     camera_id=camera_id,
                     track_id=int(track_id),
@@ -324,7 +324,7 @@ class ConcurrentTrackManager:
                 self._total_created_tracks += 1
                 return track
 
-            # Update existing active track
+
             track.bbox = [int(b) for b in bbox]
             track.detection_confidence = float(confidence)
             track.track_confidence = float(quality)
@@ -361,7 +361,7 @@ class ConcurrentTrackManager:
                     track.state = TrackLifecycleState.TEMPORARILY_MISSING
                     missing_tracks.append(track)
 
-                    # Also buffer in recently lost tracks for spatial recovery
+
                     self._recently_lost_tracks[(cid, tid)] = track
 
         return missing_tracks
@@ -390,7 +390,7 @@ class ConcurrentTrackManager:
 
         if best_candidate_key is not None:
             candidate = self._recently_lost_tracks.pop(best_candidate_key)
-            # Remove old key from active tracks if present
+
             self._tracks.pop(best_candidate_key, None)
             return candidate
 
@@ -413,7 +413,7 @@ class ConcurrentTrackManager:
         expired_keys: list[tuple[str, int]] = []
 
         with self._lock:
-            # 1. Clean active/missing tracks
+
             for key, track in list(self._tracks.items()):
                 if (now - track.last_seen) > idle_threshold or track.consecutive_missing_frames > self.max_missing_frames:
                     track.state = TrackLifecycleState.EXPIRED
@@ -421,12 +421,12 @@ class ConcurrentTrackManager:
                     self._tracks.pop(key, None)
                     self._total_expired_tracks += 1
 
-            # 2. Clean recently lost tracks buffer
+
             for key, lost_track in list(self._recently_lost_tracks.items()):
                 if (now - lost_track.last_seen) > self.recovery_time_window_seconds:
                     self._recently_lost_tracks.pop(key, None)
 
-        # 3. Trigger subsystem cleanup callbacks outside the lock
+
         if cleanup_callbacks and expired_keys:
             for cid, tid in expired_keys:
                 for cb in cleanup_callbacks:

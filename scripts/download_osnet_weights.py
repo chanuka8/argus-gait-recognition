@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 
-# Add project root to sys.path
+
 ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
@@ -38,8 +38,8 @@ def download_and_verify():
             print(f"Download failed for {name}: {exc}")
 
     if not downloaded:
-        # Fallback to Google Drive stream with confirm
-        gdrive_id = "1KkxK1eqSg_P-P3bnoGswcfsp8-Xm_ZtW" # MSMT17
+
+        gdrive_id = "1KkxK1eqSg_P-P3bnoGswcfsp8-Xm_ZtW"
         print(f"Trying Google Drive direct download for ID {gdrive_id}...")
         session = requests.Session()
         g_url = f"https://drive.google.com/uc?export=download&id={gdrive_id}"
@@ -53,7 +53,7 @@ def download_and_verify():
     if not dest_path.exists():
         raise RuntimeError("Failed to obtain OSNet pretrained weights checkpoint.")
 
-    # Verification: Load with torch
+
     print("\n--- Verifying Checkpoint Structure ---")
     ckpt = torch.load(dest_path, map_location="cpu")
     if isinstance(ckpt, dict):
@@ -68,7 +68,7 @@ def download_and_verify():
 
     print(f"Checkpoint contains {len(state_dict)} tensor keys")
 
-    # Load into OSNet-x0.25
+
     model = _build_osnet_x0_25()
     cleaned = {}
     for key, value in state_dict.items():
@@ -80,8 +80,8 @@ def download_and_verify():
     missing, unexpected = model.load_state_dict(cleaned, strict=False)
     print(f"Missing keys: {len(missing)} ({missing[:5]}...)")
     print(f"Unexpected keys: {len(unexpected)} ({unexpected[:5]}...)")
-    
-    # Check that core conv weights loaded (non-zero, non-default)
+
+
     first_conv_weight = model.conv1.conv.weight.data
     weight_mean = float(first_conv_weight.mean())
     weight_std = float(first_conv_weight.std())

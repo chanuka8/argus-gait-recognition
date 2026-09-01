@@ -108,10 +108,10 @@ class TestPersonAssessmentOverlay:
             display_state="CONFIRMED",
         )
 
-        # Bottom border of bounding box (y=200, x=50) should be RED (BGR: [0, 0, 255])
-        assert frame[200, 50, 2] == 255  # Red channel
-        assert frame[200, 50, 1] == 0    # Green channel
-        assert frame[200, 50, 0] == 0    # Blue channel
+
+        assert frame[200, 50, 2] == 255
+        assert frame[200, 50, 1] == 0
+        assert frame[200, 50, 0] == 0
 
     def test_unknown_person_renders_green(self) -> None:
         """Verify UNKNOWN person renders GREEN (0, 255, 0), NEVER RED or YELLOW."""
@@ -136,10 +136,10 @@ class TestPersonAssessmentOverlay:
             display_state=state,
         )
 
-        # Bottom border of bounding box should be GREEN (BGR: [0, 255, 0])
-        assert frame[200, 50, 1] == 255  # Green channel
-        assert frame[200, 50, 2] == 0    # Red channel
-        assert frame[200, 50, 0] == 0    # Blue channel
+
+        assert frame[200, 50, 1] == 255
+        assert frame[200, 50, 2] == 0
+        assert frame[200, 50, 0] == 0
 
     def test_pending_and_assessing_person_renders_green(self) -> None:
         """Verify person in PENDING or ASSESSING state renders GREEN (0, 255, 0)."""
@@ -156,16 +156,16 @@ class TestPersonAssessmentOverlay:
             display_state="ASSESSING",
         )
 
-        assert frame[200, 50, 1] == 255  # Green channel
-        assert frame[200, 50, 2] == 0    # Red channel
-        assert frame[200, 50, 0] == 0    # Blue channel
+        assert frame[200, 50, 1] == 255
+        assert frame[200, 50, 2] == 0
+        assert frame[200, 50, 0] == 0
 
     def test_walking_person_before_and_during_evidence_collection_renders_green(self) -> None:
         """Verify walking person accumulating evidence renders GREEN until confirmed."""
         renderer = DetectionDisplayRenderer()
         frame = np.zeros((300, 300, 3), dtype=np.uint8)
 
-        # 1. Silhouettes accumulating, GEI not ready -> GREEN
+
         renderer.draw(
             frame=frame,
             box=[40, 60, 100, 200],
@@ -177,7 +177,7 @@ class TestPersonAssessmentOverlay:
         )
         assert frame[200, 50, 1] == 255 and frame[200, 50, 2] == 0
 
-        # 2. GEI built, ByGaitLight executed, but score unconfirmed -> GREEN
+
         frame.fill(0)
         renderer.draw(
             frame=frame,
@@ -195,16 +195,16 @@ class TestPersonAssessmentOverlay:
         renderer = DetectionDisplayRenderer()
         frame = np.zeros((300, 300, 3), dtype=np.uint8)
 
-        # No embeddings
+
         renderer.draw(frame=frame, box=[20, 20, 80, 140], track_id=6, display_state="UNCONFIRMED")
         assert frame[140, 30, 1] == 255 and frame[140, 30, 2] == 0
 
-        # Only appearance available, but unconfirmed
+
         frame.fill(0)
         renderer.draw(frame=frame, box=[20, 20, 80, 140], track_id=6, identity="UNKNOWN", score=0.40, display_state="UNCONFIRMED")
         assert frame[140, 30, 1] == 255 and frame[140, 30, 2] == 0
 
-        # Only gait available, but unconfirmed
+
         frame.fill(0)
         renderer.draw(frame=frame, box=[20, 20, 80, 140], track_id=6, identity="UNKNOWN", score=0.50, display_state="UNCONFIRMED")
         assert frame[140, 30, 1] == 255 and frame[140, 30, 2] == 0
@@ -212,7 +212,7 @@ class TestPersonAssessmentOverlay:
     def test_wheelchair_crutches_and_nonstandard_gait_render_green_unless_confirmed(self) -> None:
         """Verify wheelchair, crutches, and non-standard gait render GREEN unless appearance confirms identity."""
         validator = DetectionValidator()
-        wheelchair_bbox = [100, 100, 260, 200]  # Width=160, Height=100, h/w = 0.625
+        wheelchair_bbox = [100, 100, 260, 200]
 
         is_val, mob_state, gait_elig, app_elig, reason = validator.assess_detection(
             bbox=wheelchair_bbox,
@@ -241,7 +241,7 @@ class TestPersonAssessmentOverlay:
         renderer = DetectionDisplayRenderer()
         frame = np.zeros((300, 300, 3), dtype=np.uint8)
 
-        # Unconfirmed wheelchair -> GREEN
+
         renderer.draw(
             frame=frame,
             box=wheelchair_bbox,
@@ -252,7 +252,7 @@ class TestPersonAssessmentOverlay:
         )
         assert frame[200, 110, 1] == 255 and frame[200, 110, 2] == 0
 
-        # Confirmed wheelchair via appearance -> RED
+
         frame.fill(0)
         ctx.status = "CONFIRMED"
         ctx.fused_identity = "David_Seated"
@@ -304,7 +304,7 @@ class TestPersonAssessmentOverlay:
         renderer = DetectionDisplayRenderer()
         frame = np.zeros((300, 300, 3), dtype=np.uint8)
 
-        # Explicit special attention -> YELLOW (0, 255, 255)
+
         renderer.draw(
             frame=frame,
             box=[40, 60, 100, 200],
@@ -314,9 +314,9 @@ class TestPersonAssessmentOverlay:
             is_special_attention=True,
         )
 
-        assert frame[200, 50, 2] == 255  # Red channel
-        assert frame[200, 50, 1] == 255  # Green channel
-        assert frame[200, 50, 0] == 0    # Blue channel
+        assert frame[200, 50, 2] == 255
+        assert frame[200, 50, 1] == 255
+        assert frame[200, 50, 0] == 0
 
     def test_multi_person_concurrent_distinct_states(self) -> None:
         """Verify multi-person frame displays ALL 5 persons simultaneously with their correct independent colors."""
@@ -324,11 +324,11 @@ class TestPersonAssessmentOverlay:
         frame = np.zeros((600, 600, 3), dtype=np.uint8)
 
         persons = [
-            {"box": [20, 40, 80, 180], "tid": 1, "id": "Alice", "score": 0.92, "state": "CONFIRMED"},               # Person A (Confirmed): RED
-            {"box": [100, 40, 160, 180], "tid": 2, "id": "UNKNOWN", "score": 0.30, "state": "UNCONFIRMED"},          # Person B (Unknown): GREEN
-            {"box": [180, 40, 300, 120], "tid": 3, "id": "UNKNOWN", "score": 0.0, "state": "BIOMETRIC_INAPPLICABLE"}, # Person C (Wheelchair): GREEN
-            {"box": [320, 40, 380, 180], "tid": 4, "id": "UNKNOWN", "score": 0.15, "state": "ASSESSING"},          # Person D (Assessing): GREEN
-            {"box": [400, 40, 460, 180], "tid": 5, "id": "Bob", "score": 0.89, "state": "CONFIRMED"},                 # Person E (Confirmed): RED
+            {"box": [20, 40, 80, 180], "tid": 1, "id": "Alice", "score": 0.92, "state": "CONFIRMED"},
+            {"box": [100, 40, 160, 180], "tid": 2, "id": "UNKNOWN", "score": 0.30, "state": "UNCONFIRMED"},
+            {"box": [180, 40, 300, 120], "tid": 3, "id": "UNKNOWN", "score": 0.0, "state": "BIOMETRIC_INAPPLICABLE"},
+            {"box": [320, 40, 380, 180], "tid": 4, "id": "UNKNOWN", "score": 0.15, "state": "ASSESSING"},
+            {"box": [400, 40, 460, 180], "tid": 5, "id": "Bob", "score": 0.89, "state": "CONFIRMED"},
         ]
 
         for p in persons:
@@ -341,15 +341,15 @@ class TestPersonAssessmentOverlay:
                 display_state=p["state"],
             )
 
-        # Person 1 (Alice, Confirmed) -> RED at bottom border (y=180, x=30)
+
         assert frame[180, 30, 2] == 255 and frame[180, 30, 1] == 0
-        # Person 2 (Unknown) -> GREEN at bottom border (y=180, x=110)
+
         assert frame[180, 110, 1] == 255 and frame[180, 110, 2] == 0
-        # Person 3 (Wheelchair, Inapplicable) -> GREEN at bottom border (y=120, x=190)
+
         assert frame[120, 190, 1] == 255 and frame[120, 190, 2] == 0
-        # Person 4 (Assessing) -> GREEN at bottom border (y=180, x=330)
+
         assert frame[180, 330, 1] == 255 and frame[180, 330, 2] == 0
-        # Person 5 (Bob, Confirmed) -> RED at bottom border (y=180, x=410)
+
         assert frame[180, 410, 2] == 255 and frame[180, 410, 1] == 0
 
     def test_single_person_inference_failure_containment(self) -> None:
@@ -360,8 +360,8 @@ class TestPersonAssessmentOverlay:
 
         dets = [
             {"bbox": [20, 20, 80, 180], "confidence": 0.85},
-            {"bbox": None, "confidence": 0.0},  # Corrupted bbox
-            {"bbox": [100, 20, 260, 100], "confidence": 0.80}, # Wheelchair
+            {"bbox": None, "confidence": 0.0},
+            {"bbox": [100, 20, 260, 100], "confidence": 0.80},
         ]
 
         assessed = []
@@ -375,9 +375,9 @@ class TestPersonAssessmentOverlay:
                 assessed.append((False, "ERROR", False, False, "EXCEPTION_CAUGHT"))
 
         assert len(assessed) == 3
-        assert assessed[0][0] is True   # Standard walking person
-        assert assessed[1][0] is False  # Corrupted bbox handled safely
-        assert assessed[2][0] is True   # Wheelchair detected safely
+        assert assessed[0][0] is True
+        assert assessed[1][0] is False
+        assert assessed[2][0] is True
         assert assessed[2][1] == "WHEELCHAIR"
 
     def test_camera_worker_renders_all_assessment_overlays(self) -> None:
@@ -448,11 +448,11 @@ class TestPersonAssessmentOverlay:
         rendered = worker._render_preview_overlays(raw_frame)
 
         assert rendered is not None
-        # Track 1 (Confirmed) -> RED at bottom border (y=180, x=30)
+
         assert rendered[180, 30, 2] == 255 and rendered[180, 30, 1] == 0
-        # Track 2 (Assessing) -> GREEN at bottom border (y=180, x=110)
+
         assert rendered[180, 110, 1] == 255 and rendered[180, 110, 2] == 0
-        # Track 3 (Wheelchair, Inapplicable) -> GREEN at bottom border (y=120, x=190)
+
         assert rendered[120, 190, 1] == 255 and rendered[120, 190, 2] == 0
 
     def test_walking_person_biometric_gait_and_appearance_continuity(self) -> None:

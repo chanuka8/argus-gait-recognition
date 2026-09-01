@@ -49,9 +49,9 @@ from streaming.production_runtime import (
     StructuredEventLogger,
 )
 
-# =====================================================================
-# Task 1 — Camera State Machine Tests
-# =====================================================================
+
+
+
 
 
 class TestCameraStateMachine:
@@ -98,7 +98,7 @@ class TestCameraStateMachine:
         sm.transition("cam_rc", CameraState.CONNECTING)
         sm.transition("cam_rc", CameraState.CONNECTED)
         cam = sm.get_camera("cam_rc")
-        assert cam.reconnect_attempts == 0  # Reset on connect
+        assert cam.reconnect_attempts == 0
 
     def test_degraded_state(self):
         """CONNECTED → DEGRADED → CONNECTED recovery."""
@@ -152,9 +152,9 @@ class TestCameraStateMachine:
         assert sm.get_camera("cam_unreg") is None
 
 
-# =====================================================================
-# Task 2 — Reconnect Engine Tests
-# =====================================================================
+
+
+
 
 
 class TestReconnectEngine:
@@ -195,7 +195,7 @@ class TestReconnectEngine:
             jitter_range=0.5,
         ))
         delays = [engine._compute_delay(3) for _ in range(20)]
-        # With 50% jitter on delay=8.0, range should be ~[4.0, 12.0]
+
         assert max(delays) > min(delays)
 
     def test_max_retry_limit(self):
@@ -229,16 +229,16 @@ class TestReconnectEngine:
         engine = ReconnectEngine(ReconnectConfig(min_retry_interval=0.1))
         called = threading.Event()
         engine.schedule_reconnect("cam1", called.set)
-        # Should not block
+
         assert not called.is_set()
         called.wait(timeout=1.0)
         assert called.is_set()
         engine.cancel_all()
 
 
-# =====================================================================
-# Task 3 — Camera Failure Isolation Tests
-# =====================================================================
+
+
+
 
 
 class TestCameraFailureIsolation:
@@ -253,11 +253,11 @@ class TestCameraFailureIsolation:
             sm.transition(cid, CameraState.CONNECTING)
             sm.transition(cid, CameraState.CONNECTED)
 
-        # A fails
+
         sm.transition("A", CameraState.RECONNECTING, error="network_timeout")
         assert sm.get_camera("A").connection_state == CameraState.RECONNECTING
 
-        # B, C, D remain connected
+
         for cid in ["B", "C", "D"]:
             assert sm.get_camera(cid).connection_state == CameraState.CONNECTED
 
@@ -271,18 +271,18 @@ class TestCameraFailureIsolation:
             sm.transition(cid, CameraState.CONNECTING)
             sm.transition(cid, CameraState.CONNECTED)
 
-        # Half fail
+
         for i in range(0, 8, 2):
             sm.transition(f"cam_{i}", CameraState.RECONNECTING, error="fail")
 
-        # Other half still connected
+
         for i in range(1, 8, 2):
             assert sm.get_camera(f"cam_{i}").connection_state == CameraState.CONNECTED
 
 
-# =====================================================================
-# Task 4 — Inference Worker Resilience Tests
-# =====================================================================
+
+
+
 
 
 class TestInferenceWorkerResilience:
@@ -325,9 +325,9 @@ class TestInferenceWorkerResilience:
         assert len(info) == 2
 
 
-# =====================================================================
-# Task 5 — Adaptive Resource Management Tests
-# =====================================================================
+
+
+
 
 
 class TestAdaptiveResourceManagement:
@@ -362,21 +362,21 @@ class TestAdaptiveResourceManagement:
     def test_gradual_recovery(self):
         """Processing rate recovers gradually, not abruptly."""
         mgr = AdaptiveResourceManager()
-        # Drive into critical
+
         mgr.evaluate(ResourceSnapshot(cpu_percent=95.0, vram_percent=95.0))
         low_factor = mgr.processing_rate_factor
 
-        # Recover
+
         mgr.evaluate(ResourceSnapshot(cpu_percent=20.0, vram_percent=10.0))
         recovered_factor = mgr.processing_rate_factor
-        # Should recover but not jump to 1.0 instantly
+
         assert recovered_factor > low_factor
         assert recovered_factor <= 1.0
 
 
-# =====================================================================
-# Task 6 — Frame Quality & Staleness Control Tests
-# =====================================================================
+
+
+
 
 
 class TestFrameQualityControl:
@@ -441,9 +441,9 @@ class TestFrameQualityControl:
         assert len(h1) > 0
 
 
-# =====================================================================
-# Task 7 — FPS Governor Tests
-# =====================================================================
+
+
+
 
 
 class TestFPSGovernor:
@@ -459,9 +459,9 @@ class TestFPSGovernor:
     def test_target_fps_rate_limiting(self):
         """TARGET_FPS limits processing frequency."""
         gov = FPSGovernor(policy=FPSPolicy.TARGET_FPS, target_inference_fps=5.0)
-        # First call always succeeds
+
         assert gov.should_process("cam1") is True
-        # Immediate second call should be rejected (1/5 = 200ms interval)
+
         assert gov.should_process("cam1") is False
 
     def test_adaptive_fps_resource_factor(self):
@@ -472,7 +472,7 @@ class TestFPSGovernor:
             adaptive_min_fps=2.0,
             adaptive_max_fps=30.0,
         )
-        # Under low resource pressure (factor=1.0), effective FPS = 10
+
         assert gov.should_process("cam1", resource_factor=1.0) is True
         eff = gov.get_effective_fps("cam1")
         assert eff == pytest.approx(10.0, abs=0.5)
@@ -482,13 +482,13 @@ class TestFPSGovernor:
         gov = FPSGovernor(policy=FPSPolicy.TARGET_FPS, target_inference_fps=5.0)
         assert gov.should_process("cam1") is True
         assert gov.should_process("cam2") is True
-        # cam1 rate-limited, cam2 still ok
+
         assert gov.should_process("cam1") is False
 
 
-# =====================================================================
-# Task 13 — Model Lifecycle Safety Tests
-# =====================================================================
+
+
+
 
 
 class TestModelLifecycleSafety:
@@ -557,9 +557,9 @@ class TestModelLifecycleSafety:
         assert len(reg) == 5
 
 
-# =====================================================================
-# Task 15 — Data Poisoning Protection Tests
-# =====================================================================
+
+
+
 
 
 class TestDataPoisoningProtection:
@@ -593,7 +593,7 @@ class TestDataPoisoningProtection:
     def test_outlier_rejected(self):
         """Embedding far from cluster centroid is rejected."""
         guard = DataPoisoningGuard(min_confidence=0.5, max_embedding_distance=0.5, min_temporal_gap_seconds=0.0)
-        # Build a tight cluster
+
         base = np.ones(512, dtype=np.float32)
         base /= np.linalg.norm(base)
         now = time.monotonic()
@@ -602,8 +602,8 @@ class TestDataPoisoningProtection:
             slight_noise /= np.linalg.norm(slight_noise)
             guard.validate_observation("person_B", 0.9, slight_noise, now + i * 0.1)
 
-        # Now submit an outlier
-        outlier = -base  # opposite direction
+
+        outlier = -base
         ok, reason = guard.validate_observation("person_B", 0.9, outlier, now + 10.0)
         assert ok is False
         assert "outlier" in reason
@@ -629,9 +629,9 @@ class TestDataPoisoningProtection:
         assert stats["accepted"] >= 1
 
 
-# =====================================================================
-# Task 16 — Structured Logging Tests
-# =====================================================================
+
+
+
 
 
 class TestStructuredEventLogging:
@@ -675,9 +675,9 @@ class TestStructuredEventLogging:
         assert record["extra"]["previous_version"] == "v1.0"
 
 
-# =====================================================================
-# Task 17 — Graceful Shutdown Tests
-# =====================================================================
+
+
+
 
 
 class TestGracefulShutdown:
@@ -719,9 +719,9 @@ class TestGracefulShutdown:
         assert mgr.is_shutting_down is True
 
 
-# =====================================================================
-# Task 20 — Capacity Estimation Tests
-# =====================================================================
+
+
+
 
 
 class TestCapacityEstimation:
@@ -775,9 +775,9 @@ class TestCapacityEstimation:
         assert result["estimated_sustainable_cameras"] == 0
 
 
-# =====================================================================
-# Integration — ProductionSurveillanceRuntime Tests
-# =====================================================================
+
+
+
 
 
 class TestProductionSurveillanceRuntime:
@@ -849,9 +849,9 @@ class TestProductionSurveillanceRuntime:
         assert results["stop_camera_ingestion"] == "SUCCESS"
 
 
-# =====================================================================
-# Task 3+21 — Failure Isolation Integration Tests
-# =====================================================================
+
+
+
 
 
 class TestFailureIsolation:
@@ -879,7 +879,7 @@ class TestFailureIsolation:
         rt.connect_camera("cam_w1")
         rt.fail_camera("cam_w1", error="crash")
 
-        # Worker pool should still be functional
+
         health = rt.get_system_health()
         assert health["cameras"]["total"] == 1
 
@@ -891,15 +891,15 @@ class TestFailureIsolation:
         rt.connect_camera("cam_cl")
         rt.fail_camera("cam_cl", error="disconnected")
 
-        # Poisoning guard still functional
+
         emb = np.random.randn(512).astype(np.float32)
         ok, _ = rt.poisoning_guard.validate_observation("test", 0.9, emb, time.monotonic())
         assert ok is True
 
 
-# =====================================================================
-# Task 18 — Crash Recovery Tests
-# =====================================================================
+
+
+
 
 
 class TestCrashRecovery:
@@ -913,12 +913,12 @@ class TestCrashRecovery:
         rt.connect_camera("cam_rs")
         rt.stop_camera("cam_rs")
 
-        # Camera resource still exists
+
         cam = rt.camera_state_machine.get_camera("cam_rs")
         assert cam is not None
         assert cam.fps_target == 20
 
-        # Can be restarted
+
         rt.start_camera("cam_rs")
         cam = rt.camera_state_machine.get_camera("cam_rs")
         assert cam.connection_state == CameraState.CONNECTING
@@ -943,7 +943,7 @@ class TestCrashRecovery:
         engine = ReconnectEngine()
         engine.schedule_reconnect("cam1", lambda: None)
         engine.cancel_all()
-        # Create new engine (simulates restart)
+
         engine2 = ReconnectEngine()
         called = threading.Event()
         result = engine2.schedule_reconnect("cam1", called.set)
@@ -958,15 +958,15 @@ class TestCrashRecovery:
         emb = np.random.randn(512).astype(np.float32)
         guard1.validate_observation("p", 0.9, emb, time.monotonic())
 
-        # Simulate restart
+
         guard2 = DataPoisoningGuard(min_confidence=0.5)
         ok, _ = guard2.validate_observation("p", 0.9, emb, time.monotonic())
-        assert ok is True  # Fresh state
+        assert ok is True
 
 
-# =====================================================================
-# Task 19 — Multi-Camera Simulated Load Tests
-# =====================================================================
+
+
+
 
 
 @pytest.mark.parametrize("num_cameras", [1, 2, 4, 8, 16, 32, 64])
@@ -990,12 +990,12 @@ def test_multicamera_simulation_scaling(num_cameras):
     cam_health = rt.get_camera_health()
     assert len(cam_health) == num_cameras
 
-    # All cameras connected
+
     for cid, info in cam_health.items():
         assert info["connection_state"] == "CONNECTED"
         assert info["health_score"] > 0.5
 
-    # Stop all cleanly
+
     for i in range(num_cameras):
         rt.stop_camera(f"sim_cam_{i:03d}")
 
@@ -1003,9 +1003,9 @@ def test_multicamera_simulation_scaling(num_cameras):
     assert health["cameras"]["connected"] == 0
 
 
-# =====================================================================
-# Task 22 — Architecture Invariant Verification
-# =====================================================================
+
+
+
 
 
 class TestArchitectureInvariants:
@@ -1044,6 +1044,5 @@ class TestArchitectureInvariants:
             "person", 0.9, emb, time.monotonic(),
             verification_state="PREDICTED",
         )
-        # Accepted for persistence, but verification_state remains PREDICTED
+
         assert ok is True
-        # The guard does NOT change verification_state — that requires operator action

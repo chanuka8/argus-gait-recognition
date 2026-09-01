@@ -15,16 +15,16 @@ def test_video_quality_gate_initialization() -> None:
 
 def test_video_quality_gate_assess_clean_clip() -> None:
     gate = DeterministicVideoQualityGate(min_frames=3)
-    
-    # Generate 5 clean dummy frames and silhouettes
+
+
     frames = [np.full((128, 64, 3), 120, dtype=np.uint8) for _ in range(5)]
-    # Add high frequency edges for blur test
+
     for f in frames:
         f[::4, ::4] = 255
-    
+
     silhouettes = [np.zeros((128, 64), dtype=np.uint8) for _ in range(5)]
     for i, s in enumerate(silhouettes):
-        # Full body silhouette from y=10 to y=120, x=10+i to x=50+i (moving)
+
         s[10:120, (10 + i * 2):(50 + i * 2)] = 255
 
     res = gate.assess_video_clip(frames, silhouettes)
@@ -36,8 +36,8 @@ def test_video_quality_gate_assess_clean_clip() -> None:
 
 def test_video_quality_gate_rejects_blurry_and_dark() -> None:
     gate = DeterministicVideoQualityGate(min_frames=3)
-    
-    # Extremely dark and blurred frames
+
+
     dark_frames = [np.full((128, 64, 3), 5, dtype=np.uint8) for _ in range(5)]
     silhouettes = [np.zeros((128, 64), dtype=np.uint8) for _ in range(5)]
     for s in silhouettes:

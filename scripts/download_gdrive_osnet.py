@@ -22,21 +22,21 @@ def download_from_gdrive(file_id: str, dest: Path) -> bool:
 
     try:
         response = session.get(url, params={"id": file_id, "confirm": "t"}, headers=headers, stream=True, timeout=30)
-        
-        # Check for Google Drive virus warning token
+
+
         token = None
         for key, val in response.cookies.items():
             if key.startswith("download_warning"):
                 token = val
                 break
-        
+
         if token:
             params = {"id": file_id, "confirm": token}
             response = session.get(url, params=params, headers=headers, stream=True, timeout=30)
 
         content_type = response.headers.get("content-type", "")
         if "text/html" in content_type:
-            # Check if there's a confirm link in html
+
             import re
             match = re.search(r'confirm=([0-9A-Za-z_]+)', response.text)
             if match:
@@ -44,7 +44,7 @@ def download_from_gdrive(file_id: str, dest: Path) -> bool:
                 params = {"id": file_id, "confirm": token}
                 response = session.get(url, params=params, headers=headers, stream=True, timeout=30)
 
-        # Write chunks
+
         temp_dest = dest.with_suffix(".tmp")
         bytes_written = 0
         with open(temp_dest, "wb") as f:
@@ -54,8 +54,8 @@ def download_from_gdrive(file_id: str, dest: Path) -> bool:
                     bytes_written += len(chunk)
 
         print(f"Downloaded {bytes_written} bytes (content-type: {response.headers.get('content-type')})")
-        
-        # Verify it is a valid PyTorch checkpoint
+
+
         try:
             ckpt = torch.load(temp_dest, map_location="cpu")
             if isinstance(ckpt, dict) and any(k in ckpt for k in ("state_dict", "model", "conv1.conv.weight")):

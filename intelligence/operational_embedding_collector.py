@@ -26,9 +26,9 @@ class OperationalObservation:
     observation_id: str
     camera_id: str
     track_id: int
-    modality: str  # "gait", "appearance", "dual"
+    modality: str
     embedding_dim: int
-    vector: list[float]  # L2-normalized feature representation (NO raw video stored)
+    vector: list[float]
     predicted_identity: str
     confidence: float
     state: ObservationState = ObservationState.PREDICTED
@@ -160,7 +160,7 @@ class OperationalEmbeddingCollector:
         """
         vec_arr = np.asarray(vector, dtype=np.float32).ravel() if vector is not None else np.array([], dtype=np.float32)
 
-        # Quality & validity gate check
+
         is_finite = bool(np.isfinite(vec_arr).all()) if vec_arr.size > 0 else False
         is_valid_dim = bool(vec_arr.size in (256, 512))
         norm = float(np.linalg.norm(vec_arr)) if is_finite and vec_arr.size > 0 else 0.0
@@ -174,7 +174,7 @@ class OperationalEmbeddingCollector:
         obs_date = observation_date or time.strftime("%Y-%m-%d", time.gmtime(now))
 
         with self._lock:
-            # Deduplication check for valid vectors
+
             if quality_score > 0.0 and vec_arr.size > 0:
                 for past_obs in reversed(self._buffer[-50:]):
                     if (
@@ -192,7 +192,7 @@ class OperationalEmbeddingCollector:
                                     past_obs.metadata.update(metadata)
                                 return past_obs
 
-            # Enrich metadata with condition and viewpoint tags
+
             meta_dict = dict(metadata or {})
             if "bbox" in meta_dict and isinstance(meta_dict["bbox"], (list, tuple)) and len(meta_dict["bbox"]) >= 4:
                 b = meta_dict["bbox"]
@@ -253,7 +253,7 @@ class OperationalEmbeddingCollector:
             if len(self._buffer) > self.max_buffer_size:
                 self._buffer.pop(0)
 
-            # Periodic or immediate persistence flush
+
             if len(self._buffer) % 10 == 0 or len(self._buffer) <= 5:
                 self._flush()
 

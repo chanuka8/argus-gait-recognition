@@ -27,7 +27,7 @@ def temp_gallery_dir():
 def mock_detector_and_tracker():
     """Mock detector and tracker generating 2 simultaneous tracks."""
     detector = MagicMock()
-    # Return 2 detections: [x1, y1, x2, y2, conf, cls]
+
     detector.detect.return_value = np.array([
         [10, 10, 60, 120, 0.95, 0],
         [80, 10, 130, 120, 0.90, 0],
@@ -44,7 +44,7 @@ def mock_detector_and_tracker():
 
 def test_live_person_crop_to_appearance_matching(temp_gallery_dir):
     """Requirement 1, 2, 7: Live frame -> person crop -> appearance embedding -> gallery match with track_id."""
-    # Build synthetic appearance gallery with known person "Alice"
+
     v_alice = np.zeros((512,), dtype=np.float32)
     v_alice[0] = 1.0
 
@@ -52,7 +52,7 @@ def test_live_person_crop_to_appearance_matching(temp_gallery_dir):
     app_store.save([v_alice.tolist()], ["Alice"], {"Alice": {"status": "ACTIVE", "enabled": True}})
     features, labels, metadata = app_store.load()
 
-    # Create worker with mock appearance extractor returning v_alice for track 1
+
     extractor_mock = MagicMock()
     extractor_mock.extract.return_value = v_alice
 
@@ -69,16 +69,16 @@ def test_live_person_crop_to_appearance_matching(temp_gallery_dir):
         appearance_metadata=metadata,
     )
 
-    # Synthetic frame (200x200x3)
+
     frame = np.ones((200, 200, 3), dtype=np.uint8) * 100
 
-    # Mock detector returning 1 person
+
     worker.detector.detect = MagicMock(return_value=np.array([[10, 10, 60, 120, 0.95, 0]]))
     worker.tracker.update = MagicMock(return_value=[{"track_id": 42, "bbox": [10, 10, 60, 120]}])
 
-    # Put frame and execute 1 iteration of loop manually
+
     worker._input_queue.put(frame)
-    # Run loop body once
+
     frame_item = worker._input_queue.get()
     worker._frame_count += 1
 
@@ -126,7 +126,7 @@ def test_live_person_crop_to_appearance_matching(temp_gallery_dir):
     assert cached_res.appearance_identity == "Alice"
     assert cached_res.appearance_score == 1.0
     assert cached_res.appearance_status == "MATCH"
-    # Gait identity remains UNKNOWN (unfused)
+
     assert cached_res.identity == "UNKNOWN"
 
 
@@ -135,15 +135,15 @@ def test_per_track_appearance_caching():
     extractor = AppearanceEmbeddingExtractor(update_interval=5)
     crop = np.random.randint(0, 256, (128, 64, 3), dtype=np.uint8)
 
-    # Frame 1: Computes new embedding
+
     emb1 = extractor.extract(crop, track_id=10, frame_index=1, track_reliable=True)
     assert emb1 is not None
 
-    # Frame 2-4: Returns cached embedding without re-running OSNet backbone
+
     with patch.object(extractor.backbone, "extract") as mock_backbone:
         emb2 = extractor.extract(crop, track_id=10, frame_index=2, track_reliable=True)
         emb3 = extractor.extract(crop, track_id=10, frame_index=3, track_reliable=True)
-        # Backbone was NOT called because frame_index < 1 + 5
+
         mock_backbone.assert_not_called()
         assert np.array_equal(emb1, emb2)
         assert np.array_equal(emb1, emb3)
@@ -162,20 +162,20 @@ def test_appearance_failure_does_not_break_gait():
     )
 
     frame = np.ones((200, 200, 3), dtype=np.uint8) * 50
-    # Simulate single tracked object
+
     _obj = {"track_id": 99, "bbox": [10, 10, 50, 100]}
 
-    # Extract crop
+
     crop = frame[10:100, 10:50]
 
-    # Process appearance safely with exception fallback
+
     app_identity = "UNKNOWN_PERSON"
     app_score = 0.0
     app_status = "UNKNOWN"
     try:
         failing_extractor.extract(crop=crop, track_id=99, frame_index=1)
     except Exception:  # noqa: BLE001, S110
-        pass  # Gracefully handled
+        pass
 
     res = RecognitionResult(
         camera_id="cam_02",
@@ -220,7 +220,7 @@ def test_empty_appearance_gallery_operating_in_gait_only_mode():
     emb = worker.appearance_extractor.extract(crop=crop, track_id=1, frame_index=1)
     assert emb is not None
 
-    # Matching with empty gallery returns UNKNOWN_PERSON
+
     matched_id, score = worker.appearance_matcher.match(
         query_feature=emb,
         gallery_features=worker.appearance_gallery_features,
@@ -247,7 +247,7 @@ def test_multiple_simultaneous_tracks(mock_detector_and_tracker):
     gallery_lbls = ["Person_A", "Person_B"]
 
     extractor = MagicMock()
-    # Return v_p1 for track 1, v_p2 for track 2
+
     def side_effect_extract(crop, track_id, *args, **kwargs):
         return v_p1 if track_id == 1 else v_p2
 
@@ -307,14 +307,14 @@ def test_update_appearance_gallery_runtime_safe():
     """Verify that update_appearance_gallery safely updates appearance gallery without corrupting worker state."""
     worker = RecognitionWorker(camera_id="cam_update_test")
 
-    # Store references to initial worker state objects
+
     initial_queue = worker._input_queue
     initial_stop_event = worker._stop_event
     initial_lock = worker._lock
     initial_frame_count = 123
     worker._frame_count = initial_frame_count
 
-    # Prepare new gallery
+
     new_features = np.ones((2, 512), dtype=np.float32)
     new_labels = ["Subject_X", "Subject_Y"]
     new_meta = {
@@ -322,19 +322,19 @@ def test_update_appearance_gallery_runtime_safe():
         "Subject_Y": {"status": "ACTIVE", "enabled": True},
     }
 
-    # Exercise update_appearance_gallery (must not raise NameError or reset state)
+
     worker.update_appearance_gallery(
         gallery_features=new_features,
         gallery_labels=new_labels,
         metadata=new_meta,
     )
 
-    # Verify appearance gallery state was updated
+
     assert np.array_equal(worker.appearance_gallery_features, new_features)
     assert worker.appearance_gallery_labels == new_labels
     assert worker.appearance_metadata == new_meta
 
-    # Verify worker internals were NOT reset
+
     assert worker._input_queue is initial_queue
     assert worker._stop_event is initial_stop_event
     assert worker._lock is initial_lock

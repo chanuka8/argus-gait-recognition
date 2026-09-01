@@ -184,7 +184,7 @@ class RecognitionWorker:
         self.matcher = matcher or MatchingStep(threshold=self.threshold)
         self.open_set_recognizer = open_set_recognizer or OpenSetRecognizer(known_threshold=self.threshold)
 
-        # Appearance Branch Components
+
         self.appearance_extractor = appearance_extractor
         if self.appearance_extractor is None:
             try:
@@ -229,7 +229,7 @@ class RecognitionWorker:
                 self._logger.debug(f"Dual-Modal Fusion init skipped: {exc}")
                 self.fusion_engine = None
 
-        # Temporal Track Aggregation Component
+
         self.track_aggregator = track_aggregator
         if self.track_aggregator is None:
             try:
@@ -242,7 +242,7 @@ class RecognitionWorker:
                 self._logger.debug(f"TrackIdentityAggregator init skipped: {exc}")
                 self.track_aggregator = None
 
-        # Operational Observation Collector Component
+
         self.operational_collector = operational_collector
         if self.operational_collector is None:
             try:
@@ -412,14 +412,14 @@ class RecognitionWorker:
                     bbox = [int(b) for b in obj["bbox"]]
                     obj_conf = float(obj.get("confidence", 0.85))
 
-                    # 3. Assess per-person mobility & biometric eligibility
+
                     is_val, mob_state, gait_elig, app_elig, val_reason = self.detection_validator.assess_detection(
                         bbox=bbox,
                         confidence=obj_conf,
                         frame_shape=frame.shape,
                     )
 
-                    # Safely crop person for Branch A (Appearance) and silhouette
+
                     h, w = frame.shape[:2]
                     x1 = max(0, min(w - 1, bbox[0]))
                     y1 = max(0, min(h - 1, bbox[1]))
@@ -427,13 +427,13 @@ class RecognitionWorker:
                     y2 = max(0, min(h, bbox[3]))
                     crop = frame[y1:y2, x1:x2] if (x2 > x1 and y2 > y1) else None
 
-                    # Branch B (Gait): Silhouette & GEI accumulation (only when gait is eligible)
+
                     if gait_elig:
                         silhouette = self.silhouette_extractor.extract_from_frame(frame, bbox)
                         if silhouette is not None:
                             self.gei_builder.add_silhouette(track_id, silhouette)
 
-                    # Branch A (Appearance): Gated 512D appearance embedding extraction & matching
+
                     app_identity = "UNKNOWN_PERSON"
                     app_score = 0.0
                     app_status = "UNKNOWN"
@@ -467,7 +467,7 @@ class RecognitionWorker:
                                 else:
                                     app_status = "UNKNOWN"
 
-                            # P0 Target Continual-Learning Hook: Record valid appearance observation
+
                             if self.operational_collector is not None and app_emb is not None:
                                 try:
                                     self.operational_collector.record_observation(
@@ -536,7 +536,7 @@ class RecognitionWorker:
                             final_status = gait_status
                             fusion_details = None
 
-                            # P0 Target Continual-Learning Hook: Record valid gait observation
+
                             if self.operational_collector is not None and gait_embedding is not None:
                                 try:
                                     self.operational_collector.record_observation(
@@ -596,7 +596,7 @@ class RecognitionWorker:
                                     final_status = agg_res["status"]
                                     temporal_details = agg_res
 
-                            # Derive 3-state display classification
+
                             if final_status == "CONFIRMED" and final_identity not in ("UNKNOWN_PERSON", "UNKNOWN", ""):
                                 display_state = "CONFIRMED"
                             elif not gait_elig and mob_state in ("WHEELCHAIR", "CRUTCHES_AID", "STATIONARY_SEATED", "NON_STANDARD_GAIT") and app_status != "MATCH":
@@ -726,7 +726,7 @@ class RecognitionWorker:
                             final_prov_status = agg_res["status"]
                             temporal_prov_details = agg_res
 
-                    # Derive 3-state display classification for provisional tracking result
+
                     if final_prov_status == "CONFIRMED" and final_prov_identity not in ("UNKNOWN_PERSON", "UNKNOWN", ""):
                         prov_display_state = "CONFIRMED"
                     elif not gait_elig and mob_state in ("WHEELCHAIR", "CRUTCHES_AID", "STATIONARY_SEATED", "NON_STANDARD_GAIT") and app_status != "MATCH":
@@ -774,7 +774,7 @@ class RecognitionWorker:
                     )
                     self.cache.put(res)
 
-                # Publish all untracked/tentative/non-valid detections for visual overlay
+
                 tracked_boxes = [obj["bbox"] for obj in tracked_objects]
                 untracked_idx = 0
                 for det in raw_detections:

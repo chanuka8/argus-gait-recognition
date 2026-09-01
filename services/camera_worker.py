@@ -214,7 +214,7 @@ class CameraWorker:
             safe_source = sanitize_rtsp_url(str(source))
             self._logger.info(f"Opening camera source: {safe_source}")
 
-            # Adopt pre-verified capture handle from source resolution if available
+
             if self._existing_capture is not None and getattr(self._existing_capture, "isOpened", lambda: False)():
                 self._capture = self._existing_capture
                 self._existing_capture = None
@@ -228,7 +228,7 @@ class CameraWorker:
                 except (cv2.error, OSError):
                     pass
 
-                # If initial frame was already acquired during resolution probe, encode immediately
+
                 if self._initial_frame is not None and getattr(self._initial_frame, "size", 0) > 0:
                     init_f = self._initial_frame
                     self._initial_frame = None

@@ -22,12 +22,12 @@ import sys
 import time
 from pathlib import Path
 
-# Ensure repo root in sys.path
+
 _repo_root = str(Path(__file__).resolve().parent.parent)
 if _repo_root not in sys.path:
     sys.path.insert(0, _repo_root)
 
-# Set unbuffered stdout
+
 sys.stdout.reconfigure(line_buffering=True)
 
 import cv2
@@ -74,30 +74,30 @@ def bootstrap_ci(gen_scores: list[float], imp_scores: list[float], threshold: fl
     np.random.seed(42)
     gen_arr = np.array(gen_scores)
     imp_arr = np.array(imp_scores)
-    
+
     prec_list = []
     rec_list = []
     f1_list = []
-    
+
     n_gen = len(gen_arr)
     n_imp = len(imp_arr)
-    
+
     for _ in range(n_boot):
         b_gen = np.random.choice(gen_arr, size=n_gen, replace=True)
         b_imp = np.random.choice(imp_arr, size=n_imp, replace=True)
-        
+
         tp = np.sum(b_gen >= threshold)
         fn = n_gen - tp
         fp = np.sum(b_imp >= threshold)
-        
+
         prec = tp / max(tp + fp, 1)
         rec = tp / max(tp + fn, 1)
         f1 = 2 * (prec * rec) / max(prec + rec, 1e-8)
-        
+
         prec_list.append(prec * 100.0)
         rec_list.append(rec * 100.0)
         f1_list.append(f1 * 100.0)
-        
+
     return {
         "precision_ci_95": (round(float(np.percentile(prec_list, 2.5)), 2), round(float(np.percentile(prec_list, 97.5)), 2)),
         "recall_ci_95": (round(float(np.percentile(rec_list, 2.5)), 2), round(float(np.percentile(rec_list, 97.5)), 2)),
@@ -110,7 +110,7 @@ def run_f1_diagnostic():
     print("ARGUS AI: TARGETED F1 SCORE FORENSIC DIAGNOSTIC AUDIT")
     print("=" * 70)
 
-    # 1. Freeze current evaluation state
+
     print("\n[1] Freezing Current Evaluation State & Hashes...")
     bygait_path = "runs/exp_001/best_model.pth"
     osnet_path = "models/weights/osnet_x0_25.pth"
@@ -146,7 +146,7 @@ def run_f1_diagnostic():
     print(f"  OSNet-x0.25 SHA-256: {osnet_hash[:16]}...")
     print("  Current Operating Threshold: 0.50")
 
-    # 2. Extract Raw Matching Scores
+
     print("\n[2] Extracting Raw Similarity Matching Scores (600 Trials)...")
     casia_gei_dir = Path("data/casia_processed/gei")
     eval_subjects = ["101", "102", "103", "104", "105", "106", "107", "108", "109", "110"]
@@ -192,20 +192,20 @@ def run_f1_diagnostic():
     print(f"  Loaded Gallery: {len(gallery_embs)} identities")
     print(f"  Loaded Probes: {len(probe_list)} sequences")
 
-    # Generate all 600 comparison trials
+
     raw_trials = []
     genuine_scores = []
     impostor_scores = []
 
     for probe_idx, (p_sid, pf_name, p_img) in enumerate(probe_list):
         p_emb = extract_bygait_emb(p_img)
-        
-        # Match against all 10 gallery identities
+
+
         trial_scores = {}
         for g_sid, g_emb in gallery_embs.items():
             sim = float(np.dot(p_emb, g_emb))
             trial_scores[g_sid] = sim
-            
+
             is_genuine = (p_sid == g_sid)
             if is_genuine:
                 genuine_scores.append(sim)
@@ -228,7 +228,7 @@ def run_f1_diagnostic():
     print(f"  Genuine Trials (P): {len(genuine_scores)}")
     print(f"  Impostor Trials (N): {len(impostor_scores)}")
 
-    # 3. Genuine vs Impostor Score Distribution
+
     print("\n[3] Calculating Score Distribution Statistics & Percentiles...")
     genuine_stats = compute_percentiles(genuine_scores)
     impostor_stats = compute_percentiles(impostor_scores)
@@ -238,7 +238,7 @@ def run_f1_diagnostic():
     print(f"  Impostor Scores: Mean={impostor_stats['mean']:.4f}, Median={impostor_stats['median']:.4f}, Min={impostor_stats['min']:.4f}, Max={impostor_stats['max']:.4f}, Std={impostor_stats['std']:.4f}")
     print(f"    Percentiles: P1={impostor_stats['P1']}, P5={impostor_stats['P5']}, P10={impostor_stats['P10']}, P25={impostor_stats['P25']}, P50={impostor_stats['P50']}, P75={impostor_stats['P75']}, P90={impostor_stats['P90']}, P95={impostor_stats['P95']}, P99={impostor_stats['P99']}")
 
-    # Check key finding: Min impostor score vs Current Threshold
+
     min_imp = impostor_stats["min"]
     min_gen = genuine_stats["min"]
     print("\n  CRITICAL THRESHOLD OBSERVATION:")
@@ -248,15 +248,15 @@ def run_f1_diagnostic():
     print(f"    --> Every single impostor score ({len(impostor_scores)}/540) is GREATER than 0.50 (min={min_imp})!")
     print("    --> At threshold=0.50, FP=540, TN=0, FAR=100.0%, Precision=10.0%, F1=18.18% mathematically guaranteed.")
 
-    # 4. Diagnostic Threshold Sweep
+
     print("\n[4] Performing Full Diagnostic Threshold Sweep (0.00 to 1.00)...")
     threshold_sweep_table = []
-    
-    # Comprehensive threshold sweep: macro steps from 0.00 to 0.90 + fine steps in active range [0.900, 1.000]
+
+
     macro_th = [0.00, 0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.85, 0.90, 0.92, 0.94]
     fine_th = [round(t, 4) for t in np.linspace(0.950, 0.998, 25)] + [1.00]
     thresholds = sorted(set(macro_th + fine_th))
-    
+
     best_f1 = -1.0
     best_f1_row = None
     eer_row = None
@@ -278,7 +278,7 @@ def run_f1_diagnostic():
         tar = round(tp / N_gen * 100.0, 2)
         frr = round(fn / N_gen * 100.0, 2)
         far = round(fp / N_imp * 100.0, 2)
-        
+
         prec = round(tp / max(tp + fp, 1) * 100.0, 2) if (tp + fp) > 0 else 0.0
         rec = round(tp / N_gen * 100.0, 2)
         f1 = round(2 * (prec * rec) / max(prec + rec, 1e-8), 2) if (prec + rec) > 0 else 0.0
@@ -319,10 +319,10 @@ def run_f1_diagnostic():
     print(f"  EER Operating Threshold: {eer_row['threshold']} -> EER={(eer_row['far'] + eer_row['frr'])/2.0:.2f}%, FAR={eer_row['far']}%, FRR={eer_row['frr']}%, F1={eer_row['f1']}%")
     print(f"  Best Balanced Acc Threshold: {balanced_acc_row['threshold']} -> BalancedAcc={balanced_acc_row['balanced_accuracy']}%, Acc={balanced_acc_row['accuracy']}%, F1={balanced_acc_row['f1']}%")
 
-    # 5. Confusion Matrices (Current 0.50 vs Best Diagnostic 0.88)
+
     print("\n[5] Computing Confusion Matrices...")
     cur_row = next(r for r in threshold_sweep_table if math.isclose(r["threshold"], 0.50, abs_tol=1e-3))
-    
+
     cm_current = {
         "threshold": 0.50,
         "tp": cur_row["tp"],
@@ -353,12 +353,12 @@ def run_f1_diagnostic():
         "accuracy": best_f1_row["accuracy"],
     }
 
-    # 6. Precision-Recall Analysis
+
     print("\n[6] Precision-Recall Curve & Target Recall Operating Points...")
-    # Find precision at recall targets: 100%, 95%, 90%, 85%, 80%
+
     pr_targets = {}
     for target_rec in [100.0, 95.0, 90.0, 85.0, 80.0, 70.0, 60.0, 50.0]:
-        # Find threshold where recall >= target_rec with maximum precision
+
         candidates = [r for r in threshold_sweep_table if r["recall"] >= target_rec]
         if candidates:
             best_cand = max(candidates, key=lambda x: (x["precision"], x["threshold"]))
@@ -370,16 +370,16 @@ def run_f1_diagnostic():
                 "far": best_cand["far"],
             }
 
-    # 7. ROC Analysis
+
     print("\n[7] ROC Curve & EER Operating Points...")
     all_scores = [(s, 1) for s in genuine_scores] + [(s, 0) for s in impostor_scores]
     all_scores.sort(key=lambda x: x[0], reverse=True)
-    
+
     tp_count = 0
     fp_count = 0
     roc_points = []
     pr_points = []
-    
+
     auc_roc = 0.0
     auc_pr = 0.0
     for s_val, label in all_scores:
@@ -388,18 +388,18 @@ def run_f1_diagnostic():
         else:
             fp_count += 1
             auc_roc += tp_count
-            
+
         tpr = tp_count / N_gen
         fpr = fp_count / N_imp
         prec = tp_count / (tp_count + fp_count)
         rec = tp_count / N_gen
-        
+
         roc_points.append({"threshold": round(s_val, 4), "tpr": round(tpr * 100.0, 2), "fpr": round(fpr * 100.0, 2)})
         pr_points.append({"threshold": round(s_val, 4), "precision": round(prec * 100.0, 2), "recall": round(rec * 100.0, 2)})
 
     auc_roc = round(auc_roc / (N_gen * N_imp), 4)
 
-    # Compute PR-AUC (trapezoidal on recall steps)
+
     pr_points_sorted = sorted(pr_points, key=lambda x: x["recall"])
     for i in range(1, len(pr_points_sorted)):
         d_rec = (pr_points_sorted[i]["recall"] - pr_points_sorted[i-1]["recall"]) / 100.0
@@ -410,7 +410,7 @@ def run_f1_diagnostic():
     print(f"  ROC-AUC: {auc_roc}")
     print(f"  PR-AUC:  {auc_pr}")
 
-    # 8. Bootstrap Confidence Intervals
+
     print("\n[8] Calculating Bootstrap 95% Confidence Intervals...")
     ci_current = bootstrap_ci(genuine_scores, impostor_scores, threshold=0.50)
     ci_optimal = bootstrap_ci(genuine_scores, impostor_scores, threshold=best_f1_row["threshold"])
@@ -418,12 +418,12 @@ def run_f1_diagnostic():
     print(f"  Current Threshold (0.50): F1={cur_row['f1']}% CI={ci_current['f1_ci_95']}, Prec={cur_row['precision']}% CI={ci_current['precision_ci_95']}, Rec={cur_row['recall']}% CI={ci_current['recall_ci_95']}")
     print(f"  Optimal Diagnostic ({best_f1_row['threshold']}): F1={best_f1_row['f1']}% CI={ci_optimal['f1_ci_95']}, Prec={best_f1_row['precision']}% CI={ci_optimal['precision_ci_95']}, Rec={best_f1_row['recall']}% CI={ci_optimal['recall_ci_95']}")
 
-    # 9. Generate Diagnostic Visualization Plots
+
     print("\n[9] Generating Diagnostic Artifact Visualizations (PNG)...")
     out_dir = Path("outputs")
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    # Plot 1: Score Distributions
+
     fig1, ax1 = plt.subplots(figsize=(8, 5))
     ax1.hist(impostor_scores, bins=35, alpha=0.6, color="#ef4444", density=True, label=f"Impostor Scores (N={N_imp})")
     ax1.hist(genuine_scores, bins=25, alpha=0.6, color="#10b981", density=True, label=f"Genuine Scores (N={N_gen})")
@@ -440,7 +440,7 @@ def run_f1_diagnostic():
     fig1.savefig(p1_path, dpi=150)
     plt.close(fig1)
 
-    # Plot 2: Threshold Sweep (Precision, Recall, F1, FAR)
+
     fig2, ax2 = plt.subplots(figsize=(8, 5))
     sw_th = [r["threshold"] for r in threshold_sweep_table]
     sw_prec = [r["precision"] for r in threshold_sweep_table]
@@ -464,7 +464,7 @@ def run_f1_diagnostic():
     fig2.savefig(p2_path, dpi=150)
     plt.close(fig2)
 
-    # Plot 3: ROC Curve
+
     fig3, ax3 = plt.subplots(figsize=(7, 6))
     fpr_vals = [p["fpr"] for p in roc_points]
     tpr_vals = [p["tpr"] for p in roc_points]
@@ -483,10 +483,10 @@ def run_f1_diagnostic():
     fig3.savefig(p3_path, dpi=150)
     plt.close(fig3)
 
-    # Plot 4: Confusion Matrix Comparison
+
     fig4, (ax4a, ax4b) = plt.subplots(1, 2, figsize=(10, 4.5))
-    
-    # Current CM
+
+
     cm1_arr = np.array([[cur_row["tp"], cur_row["fn"]], [cur_row["fp"], cur_row["tn"]]])
     ax4a.imshow(cm1_arr, cmap="Blues", interpolation="nearest")
     ax4a.set_title("Current Thresh (0.50)\nPrec: 10.0%, Rec: 100.0%, F1: 18.2%", fontsize=11)
@@ -500,7 +500,7 @@ def run_f1_diagnostic():
         for j in range(2):
             ax4a.text(j, i, f"{cm1_arr[i, j]}", ha="center", va="center", color="black" if cm1_arr[i, j] < 300 else "white", fontsize=14, fontweight="bold")
 
-    # Optimal CM
+
     cm2_arr = np.array([[best_f1_row["tp"], best_f1_row["fn"]], [best_f1_row["fp"], best_f1_row["tn"]]])
     ax4b.imshow(cm2_arr, cmap="Greens", interpolation="nearest")
     ax4b.set_title(f"Diagnostic Optimal Thresh ({best_f1_row['threshold']})\nPrec: {best_f1_row['precision']}%, Rec: {best_f1_row['recall']}%, F1: {best_f1_row['f1']}%", fontsize=11)
@@ -525,7 +525,7 @@ def run_f1_diagnostic():
     print(f"    3. {p3_path}")
     print(f"    4. {p4_path}")
 
-    # 10. Construct Diagnostic Evidence JSON
+
     evidence_payload = {
         "diagnostic_timestamp": time.time(),
         "diagnostic_scope": "TARGETED F1 SCORE AND FAR FORENSIC DIAGNOSTIC",

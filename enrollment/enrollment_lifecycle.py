@@ -134,17 +134,17 @@ class EnrollmentLifecycleManager:
         gait_embeddings: list[np.ndarray] = []
         appearance_embeddings: list[np.ndarray] = []
 
-        # ---------------------------------------------------------------------
-        # STEP 1: EMBEDDING EXTRACTION & MATHEMATICAL VALIDATION
-        # ---------------------------------------------------------------------
+
+
+
         try:
-            # A. Process direct GEI images (if pre-generated)
+
             for g_path in g_paths:
                 emb = self.gait_extractor.extract(g_path)
                 if emb is not None and len(emb) == 256 and np.isfinite(emb).all():
                     gait_embeddings.append(emb)
 
-            # B. Process Photos for Appearance Embedding (OSNet 512D)
+
             for p_path in p_paths:
                 img = cv2.imread(str(p_path))
                 crop = img
@@ -185,9 +185,9 @@ class EnrollmentLifecycleManager:
             )
             return result
 
-        # ---------------------------------------------------------------------
-        # STEP 2: DURABLE PERSISTENCE & VERIFICATION (LOCAL + FIREBASE)
-        # ---------------------------------------------------------------------
+
+
+
         try:
             persist_res = self.db.add_embeddings(
                 person_id=person_id,
@@ -200,7 +200,7 @@ class EnrollmentLifecycleManager:
             if not persist_res.get("persistence_verified", False):
                 raise RuntimeError("Database reported unverified persistence state")
 
-            # Check Firebase persistence status
+
             fb_results = persist_res.get("firebase_results", [])
             fb_all_verified = False
             if fb_results:
@@ -230,15 +230,15 @@ class EnrollmentLifecycleManager:
             )
             return result
 
-        # ---------------------------------------------------------------------
-        # STEP 3: AUTOMATIC & TRANSACTIONAL RAW MEDIA CLEANUP
-        # ---------------------------------------------------------------------
+
+
+
         if auto_delete_raw:
             deleted_files = []
             retained_files = []
             cleanup_errors = []
 
-            # 1. Clean local raw files
+
             for f_path in all_input_paths:
                 success, err = self.safe_delete_raw_file(f_path)
                 if success:
@@ -247,7 +247,7 @@ class EnrollmentLifecycleManager:
                     retained_files.append(str(f_path))
                     cleanup_errors.append(err)
 
-            # 2. Clean Firebase temporary media if case_id provided
+
             if case_id and self.firebase_store is not None:
                 try:
                     self.firebase_store.delete_temporary_media(case_id)

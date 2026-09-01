@@ -35,7 +35,7 @@ from monitoring.logging_config import get_logger
 class LongitudinalTimepointRecord:
     """Immutable evaluation record for a specific continual learning lifecycle timepoint."""
 
-    timepoint_id: str  # e.g., 'T0_baseline', 'T1_candidate_20260831'
+    timepoint_id: str
     timestamp: float
     model_type: str
     baseline_version: str
@@ -48,7 +48,7 @@ class LongitudinalTimepointRecord:
     condition_breakdown: dict[str, Any] = field(default_factory=dict)
     future_holdout_evaluation: dict[str, Any] = field(default_factory=dict)
     statistical_validation: dict[str, Any] = field(default_factory=dict)
-    decision: str = "REJECTED"  # 'PROMOTED', 'REJECTED', 'HELD'
+    decision: str = "REJECTED"
     rejection_reasons: list[str] = field(default_factory=list)
     verdict: str = "ACCURACY_IMPROVEMENT_NOT_YET_PROVEN"
 
@@ -98,7 +98,7 @@ class LongitudinalAccuracyEvaluator:
         future_holdout_samples = future_holdout_samples or []
         all_eval_samples = operational_test_samples + historical_test_samples
 
-        # 1. Tri-modal evaluation on operational & historical test sets
+
         base_metrics = self.evaluator.evaluate_test_samples(
             test_samples=operational_test_samples,
             historical_test_samples=historical_test_samples,
@@ -117,11 +117,11 @@ class LongitudinalAccuracyEvaluator:
             model_type=model_type,
         )
 
-        # 2. Condition-specific Breakdown
+
         same_cam_rank1 = cand_metrics.same_camera_rank1
         cross_cam_rank1 = cand_metrics.cross_camera_rank1
 
-        # Viewpoint & clothing breakdown
+
         viewpoint_metrics = self._evaluate_by_condition(all_eval_samples, "viewpoint")
         clothing_metrics = self._evaluate_by_condition(all_eval_samples, "clothing")
         carrying_metrics = self._evaluate_by_condition(all_eval_samples, "carrying")
@@ -135,7 +135,7 @@ class LongitudinalAccuracyEvaluator:
             "carrying_breakdown": carrying_metrics,
         }
 
-        # 3. Future Holdout Evaluation (E)
+
         future_eval_summary = {}
         if future_holdout_samples:
             fut_base = self.evaluator.evaluate_test_samples(test_samples=future_holdout_samples)
@@ -150,7 +150,7 @@ class LongitudinalAccuracyEvaluator:
             )
             future_eval_summary = fut_comp.to_dict()
 
-        # 4. Statistical Hypothesis Testing
+
         unique_identities = len({s.person_id for s in all_eval_samples})
         unique_tracks = len({s.track_id for s in all_eval_samples})
         unique_sessions = len({s.condition_tags.get("session_id", s.camera_id) for s in all_eval_samples})
@@ -166,7 +166,7 @@ class LongitudinalAccuracyEvaluator:
             sample_count=len(all_eval_samples),
         )
 
-        # 5. Determine Decision
+
         rejection_reasons = list(stat_result.rejection_reasons)
         if comparison.historical_tar_delta < -0.5:
             rejection_reasons.append(
@@ -178,7 +178,7 @@ class LongitudinalAccuracyEvaluator:
         passed = len(rejection_reasons) == 0 and stat_result.is_statistically_significant
         decision = "PROMOTED" if passed else "REJECTED"
 
-        # Construct timepoint record
+
         t_id = f"T{len(self.list_history())}_{int(time.time())}"
         record = LongitudinalTimepointRecord(
             timepoint_id=t_id,

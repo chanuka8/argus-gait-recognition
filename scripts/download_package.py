@@ -188,7 +188,7 @@ def download_file(
                             )
                             last_render_time = now
 
-                # Final 100% progress render
+
                 final_total = part_path.stat().st_size
                 render_progress_bar(
                     pkg_name,
@@ -202,7 +202,7 @@ def download_file(
                     sys.stdout.write("\n")
                 sys.stdout.flush()
 
-                # Validate SHA-256 if provided
+
                 if expected_sha256:
                     print("[ARGUS DOWNLOAD] Validating SHA-256 checksum...", flush=True)
                     hasher = hashlib.sha256()
@@ -218,7 +218,7 @@ def download_file(
                         return False
                     print("[ARGUS DOWNLOAD] Checksum: VERIFIED (PASS)", flush=True)
 
-                # Atomically replace part file to target destination
+
                 if output_path.exists():
                     try:
                         output_path.unlink()

@@ -41,8 +41,8 @@ class StatisticalValidationResult:
 
     is_statistically_significant: bool
     is_sufficient_evidence: bool
-    evidence_class: str  # 'SUFFICIENT_REAL_WORLD_EVIDENCE' or 'INSUFFICIENT_REAL_WORLD_EVIDENCE'
-    verdict: str  # 'ACCURACY_IMPROVEMENT_VERIFIED', 'ACCURACY_IMPROVEMENT_NOT_YET_PROVEN', 'DEGRADATION'
+    evidence_class: str
+    verdict: str
     p_value: float
     test_method: str
     effect_size: float
@@ -80,7 +80,7 @@ class StatisticalAccuracyValidator:
         if trials <= 0:
             return (0.0, 0.0)
         p = successes / trials
-        z = 1.95996  # 95% two-sided normal quantile
+        z = 1.95996
 
         denominator = 1.0 + (z**2) / trials
         centre_adjusted_probability = p + (z**2) / (2.0 * trials)
@@ -139,24 +139,24 @@ class StatisticalAccuracyValidator:
         b_arr = np.asarray(baseline_correct, dtype=bool)
         c_arr = np.asarray(candidate_correct, dtype=bool)
 
-        # Discordant pairs:
-        # b: baseline correct, candidate incorrect (regression)
-        # c: baseline incorrect, candidate correct (improvement)
+
+
+
         b = int(np.sum(b_arr & ~c_arr))
         c = int(np.sum(~b_arr & c_arr))
 
         if b + c == 0:
             return (0.0, 1.0, False)
 
-        # McNemar statistic with Edward's continuity correction
+
         chi2 = ((abs(b - c) - 1.0) ** 2) / float(b + c)
-        # 1-degree of freedom chi2 survival function approximation
+
         from scipy.stats import chi2 as chi2_dist  # type: ignore
 
         try:
             p_val = float(chi2_dist.sf(chi2, df=1))
         except (ImportError, ValueError):
-            # Normal distribution approximation if scipy is not available
+
             z = np.sqrt(chi2)
             p_val = float(2.0 * (1.0 - 0.5 * (1.0 + np.math.erf(z / np.sqrt(2.0)))))
 
@@ -182,7 +182,7 @@ class StatisticalAccuracyValidator:
         """
         rejection_reasons = []
 
-        # 1. Minimum Evidence Policy Gate
+
         if identities_count < self.policy.min_identities:
             rejection_reasons.append(
                 f"Insufficient Identities: {identities_count} < required {self.policy.min_identities}"
@@ -215,14 +215,14 @@ class StatisticalAccuracyValidator:
             else "INSUFFICIENT_REAL_WORLD_EVIDENCE"
         )
 
-        # 2. Wilson Confidence Intervals
+
         b_hits = sum(baseline_hits) if baseline_hits else int(baseline_metrics.get("rank1_accuracy", 0) * sample_count / 100.0)
         c_hits = sum(candidate_hits) if candidate_hits else int(candidate_metrics.get("rank1_accuracy", 0) * sample_count / 100.0)
 
         b_ci = self.calculate_wilson_ci(b_hits, max(1, sample_count))
         c_ci = self.calculate_wilson_ci(c_hits, max(1, sample_count))
 
-        # 3. Paired Hypothesis Test
+
         p_val = 1.0
         is_stat_sig = False
         test_method = "McNemars_Paired_Test"
@@ -237,10 +237,10 @@ class StatisticalAccuracyValidator:
         delta_tar = candidate_metrics.get("tar", 0.0) - baseline_metrics.get("tar", 0.0)
         delta_far = candidate_metrics.get("far", 0.0) - baseline_metrics.get("far", 0.0)
 
-        # Check for degradation
+
         is_degraded = delta_far > 0.0 or delta_rank1 < -1.0 or delta_tar < -1.0
 
-        # Verdict assignment
+
         if is_degraded:
             verdict = "DEGRADATION"
         elif not is_sufficient_evidence:

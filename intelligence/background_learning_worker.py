@@ -81,7 +81,7 @@ class BackgroundLearningWorker:
         self._lock = threading.RLock()
         self._current_job: LearningJobRecord | None = None
 
-        # Production dataset builder & independent accuracy evaluator
+
         self.dataset_builder = dataset_builder or TrainingDatasetBuilder(
             collector=self.collector,
             db=self.db,
@@ -97,14 +97,14 @@ class BackgroundLearningWorker:
             evaluator=self.evaluator
         )
 
-        # NN Fine-tuner for actual weight updates (bygait_light and osnet_reid)
+
         self.nn_fine_tuner = NNFineTuner(
             candidate_dir=str(self.candidate_artifacts_dir),
             timeout_seconds=self.timeout_seconds,
             historical_replay_ratio=self.historical_replay_ratio,
         )
 
-        # Callback for post-promotion model reload
+
         self._on_promotion_callback = None
 
     def start(self) -> None:
@@ -175,12 +175,12 @@ class BackgroundLearningWorker:
         )
 
         try:
-            # Dispatch based on model_type
+
             if job.model_type in ("bygait_light", "osnet_reid"):
                 return self._execute_nn_job(job, start_time)
 
-            # Otherwise: calibration path (dual_modal_fusion)
-            # 1. Collect Date Training Data + Historical Replay Dataset (Anti-Catastrophic Forgetting)
+
+
             gait_samples, app_samples, sample_labels, confusion_pairs = self._prepare_training_data(job)
 
             if len(gait_samples) < 2 or len(sample_labels) < 2:
@@ -188,7 +188,7 @@ class BackgroundLearningWorker:
                     f"Insufficient prepared samples ({len(gait_samples)} samples) to train candidate model"
                 )
 
-            # 2. Build Candidate Model / Calibration Version
+
             candidate_version = f"v{int(time.time())}-{job.training_date.replace('-', '')}"
             job.candidate_version = candidate_version
             artifact_file = self.candidate_artifacts_dir / f"candidate_{candidate_version}.json"
@@ -201,7 +201,7 @@ class BackgroundLearningWorker:
                 artifact_path=artifact_file,
             )
 
-            # 3. Register Candidate in ModelRegistry
+
             self._logger.info(
                 f"[CANDIDATE_CREATED] Candidate version '{candidate_version}' registered in ModelRegistry."
             )
@@ -219,7 +219,7 @@ class BackgroundLearningWorker:
                 },
             )
 
-            # 4. Automated Regression Validation Gate
+
             job.status = LearningJobStatus.VALIDATING
             self.scheduler.update_job(job)
             self._logger.info(f"[CANDIDATE_VALIDATING] Validating candidate '{candidate_version}'...")
@@ -237,16 +237,16 @@ class BackgroundLearningWorker:
 
             job.validation_metrics = candidate_metrics
 
-            # 5. Record Outcome & Promote or Reject
+
             if val_result.passed:
-                # Record VALIDATED
+
                 self.registry.record_validation_result(
                     model_version=candidate_version,
                     model_type=job.model_type,
                     passed=True,
                     metrics=candidate_metrics,
                 )
-                # Atomically PROMOTE
+
                 promoted_rec = self.registry.promote_version(
                     model_version=candidate_version,
                     model_type=job.model_type,
@@ -303,12 +303,12 @@ class BackgroundLearningWorker:
         Combine new date's training-eligible data with historical validated baseline data.
         Generates genuine and impostor pair similarity scores for candidate calibration.
         """
-        # 1. Gather new date embeddings
+
         new_gait: list[np.ndarray] = []
         new_app: list[np.ndarray] = []
         new_labels: list[str] = []
 
-        # From Operational Collector
+
         for obs in self.collector.get_eligible_by_date(job.training_date):
             ident = obs.verified_identity or obs.predicted_identity
             vec = np.asarray(obs.vector, dtype=np.float32)
@@ -318,7 +318,7 @@ class BackgroundLearningWorker:
             elif obs.modality == "appearance" and vec.size == 512:
                 new_app.append(vec)
 
-        # From Embedding Database
+
         for emb in self.db.get_embeddings_by_date(job.training_date):
             vec = np.asarray(emb.vector, dtype=np.float32)
             if emb.modality == "gait" and vec.size == 256:
@@ -327,7 +327,7 @@ class BackgroundLearningWorker:
             elif emb.modality == "appearance" and vec.size == 512:
                 new_app.append(vec)
 
-        # 2. Gather Historical Baseline Data (Anti-Catastrophic Forgetting)
+
         hist_gait: list[np.ndarray] = []
         hist_labels: list[str] = []
 
@@ -337,18 +337,18 @@ class BackgroundLearningWorker:
             active_gait = [
                 e for e in p.gait_embeddings if e.status == "ACTIVE" and e.observation_date != job.training_date
             ]
-            for e in active_gait[:4]:  # Preserve up to 4 historical vectors per baseline person
+            for e in active_gait[:4]:
                 vec = np.asarray(e.vector, dtype=np.float32)
                 if vec.size == 256:
                     hist_gait.append(vec)
                     hist_labels.append(p.person_id)
 
-        # Merge new and historical
+
         all_gait = new_gait + hist_gait
         all_labels = new_labels + hist_labels
 
         if not all_gait:
-            # Fallback synthetic genuine/impostor generation for demonstration/testing
+
             np.random.seed(42)
             genuine_gait = np.random.uniform(0.70, 0.95, size=20)
             genuine_app = np.random.uniform(0.65, 0.90, size=20)
@@ -360,7 +360,7 @@ class BackgroundLearningWorker:
             labels = np.array([1] * 20 + [0] * 20, dtype=np.int32)
             return g_scores, a_scores, labels, {"confusion_pair_far": 0.0}
 
-        # Build genuine and impostor pairwise scores
+
         g_scores_list = []
         a_scores_list = []
         pair_labels = []
@@ -370,13 +370,13 @@ class BackgroundLearningWorker:
             for j in range(i + 1, n):
                 is_same = 1 if all_labels[i] == all_labels[j] else 0
                 sim_g = float(np.dot(all_gait[i], all_gait[j]))
-                sim_a = sim_g * 0.90 + 0.05  # Simulated appearance correlation if no direct pair
+                sim_a = sim_g * 0.90 + 0.05
                 g_scores_list.append(sim_g)
                 a_scores_list.append(sim_a)
                 pair_labels.append(is_same)
 
         if not pair_labels or sum(pair_labels) == 0:
-            # Ensure at least some genuine pairs exist
+
             g_scores_list.extend([0.88, 0.92, 0.85, 0.20, 0.15, 0.25])
             a_scores_list.extend([0.82, 0.90, 0.80, 0.18, 0.12, 0.22])
             pair_labels.extend([1, 1, 1, 0, 0, 0])
@@ -408,7 +408,7 @@ class BackgroundLearningWorker:
             loss_type="ranking_auc",
         )
 
-        # Compute validation metrics
+
         fused_scores = []
         for g, a in zip(gait_samples, app_samples, strict=False):
             sc = fusion.fuse(float(g), float(a))
@@ -429,7 +429,7 @@ class BackgroundLearningWorker:
         far = round(float((false_accepts / neg_count) * 100.0), 2)
         eer = round(float((far + (100.0 - tar)) / 2.0), 2)
 
-        # Ensure TAR meets minimum baseline (e.g. 70.0%+)
+
         tar = max(tar, 75.0)
         far = min(far, 1.5)
         eer = min(eer, 15.0)
@@ -446,7 +446,7 @@ class BackgroundLearningWorker:
             "w_inter": round(fusion.w_inter, 4),
         }
 
-        # Save candidate profile
+
         candidate_data = {
             "w_gait": fusion.w_gait,
             "w_app": fusion.w_app,
@@ -459,9 +459,9 @@ class BackgroundLearningWorker:
 
         return metrics, confusion_pairs
 
-    # ──────────────────────────────────────────────────────────────────────
-    # NEURAL NETWORK FINE-TUNING PATH
-    # ──────────────────────────────────────────────────────────────────────
+
+
+
 
     def set_on_promotion_callback(self, callback) -> None:
         """Set a callback invoked after successful model promotion (for live reload)."""
@@ -474,7 +474,7 @@ class BackgroundLearningWorker:
         enforces accuracy & anti-churn gates, and promotes if passing.
         """
         try:
-            # 1. Build Isolated Dataset & Manifest using TrainingDatasetBuilder
+
             train_samples, _val_samples, test_samples, hist_replay, hist_test, future_holdout, manifest = (
                 self.dataset_builder.build_dataset_for_date(
                     training_date=job.training_date,
@@ -483,7 +483,7 @@ class BackgroundLearningWorker:
                 )
             )
 
-            # Lock evidence in evidence manager if present
+
             if self.evidence_manager is not None:
                 evidence_ids = [
                     rec.evidence_id
@@ -492,7 +492,7 @@ class BackgroundLearningWorker:
                 ]
                 self.evidence_manager.lock_manifest_evidence(evidence_ids, manifest.dataset_id)
 
-            # Format training_data and historical_data for NNFineTuner (GENUINE SPATIAL MEDIA ONLY)
+
             training_data = []
             for s in train_samples:
                 if s.image_data is not None and s.training_media_status != "TRAINING_MEDIA_UNAVAILABLE":
@@ -513,13 +513,13 @@ class BackgroundLearningWorker:
                         f"{len(historical_data)} historical (minimum 4 total). Synthetic surrogates prohibited by policy."
                     )
 
-            # 2. Snapshot ACTIVE production baseline model
+
             active_model = self.registry.get_active_model(job.model_type)
             active_weights_path = active_model.artifact_path if active_model else ""
             baseline_version = active_model.model_version if active_model else "v1.0.0"
             baseline_sha = active_model.checksum_sha256 if active_model else ""
 
-            # 3. Fine-tune isolated candidate model
+
             candidate_version = f"v{int(time.time())}-{job.model_type[:4]}-{job.training_date.replace('-', '')}"
             job.candidate_version = candidate_version
 
@@ -547,7 +547,7 @@ class BackgroundLearningWorker:
             candidate_sha = result.get("checksum_sha256", "")
             candidate_train_metrics = result.get("metrics", {})
 
-            # 4. Independent Held-Out Evaluation (Baseline vs Candidate)
+
             base_eval_metrics = self.evaluator.evaluate_test_samples(
                 test_samples=test_samples if test_samples else train_samples,
                 historical_test_samples=hist_test if hist_test else hist_replay,
@@ -557,7 +557,7 @@ class BackgroundLearningWorker:
                 historical_test_samples=hist_test if hist_test else hist_replay,
             )
 
-            # Compare baseline vs candidate
+
             comparison = self.evaluator.compare_models(
                 baseline_metrics=base_eval_metrics,
                 candidate_metrics=cand_eval_metrics,
@@ -567,7 +567,7 @@ class BackgroundLearningWorker:
                 model_type=job.model_type,
             )
 
-            # 5. Longitudinal Cycle Evaluation
+
             longitudinal_record = self.longitudinal_evaluator.evaluate_longitudinal_cycle(
                 baseline_version=baseline_version,
                 candidate_version=candidate_version,
@@ -579,10 +579,10 @@ class BackgroundLearningWorker:
                 future_holdout_samples=future_holdout,
             )
 
-            # 6. Production Accuracy Validation & Anti-Churn Gate
+
             gate_decision = self.accuracy_gate.evaluate_promotion(comparison)
 
-            # 6. Record in Durable Audit Trail
+
             self.audit_trail.create_and_record(
                 event_type="EVALUATION_COMPLETED",
                 trigger_date=job.training_date,
@@ -610,7 +610,7 @@ class BackgroundLearningWorker:
                 verdict=comparison.verdict,
             )
 
-            # 7. Register candidate in ModelRegistry
+
             self.registry.register_candidate(
                 model_version=candidate_version,
                 model_type=job.model_type,
@@ -639,7 +639,7 @@ class BackgroundLearningWorker:
                 },
             )
 
-            # 8. Promote or Reject
+
             validator_format_metrics = {
                 "tar": cand_eval_metrics.tar,
                 "far": cand_eval_metrics.far,
@@ -723,7 +723,7 @@ class BackgroundLearningWorker:
         training_data = []
         historical_data = []
 
-        # Collect new date observations
+
         for obs in self.collector.get_eligible_by_date(job.training_date):
             ident = obs.verified_identity or obs.predicted_identity
             if not ident or ident == "UNKNOWN":
@@ -749,16 +749,16 @@ class BackgroundLearningWorker:
                 if img is not None:
                     training_data.append({"image": img, "label": ident})
 
-        # Collect historical replay data with genuine media
+
         for p in self.db.list_all_persons():
             if p.status != "ACTIVE":
                 continue
             ident = p.person_id
             embs = p.gait_embeddings if job.model_type == "bygait_light" else p.appearance_embeddings
-            for e in embs[:4]:  # Up to 4 historical per identity
+            for e in embs[:4]:
                 if e.status != "ACTIVE" or e.observation_date == job.training_date:
                     continue
-                # If historical embedding has attached genuine media or reference image
+
                 h_img = getattr(e, "image_data", None)
                 if h_img is not None:
                     historical_data.append({"image": h_img, "label": ident})

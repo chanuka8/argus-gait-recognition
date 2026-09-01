@@ -22,8 +22,8 @@ from automation.environment_validator import (
 
 @dataclass
 class DeviceInfo:
-    backend: str  # "cuda" | "cpu"
-    device: str  # "cuda:0" | "cpu"
+    backend: str
+    device: str
     cuda_available: bool
     gpu_name: str | None
     vram_mb: float

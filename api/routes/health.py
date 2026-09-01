@@ -18,7 +18,7 @@ from fastapi import APIRouter
 
 health_router = APIRouter(prefix="/health", tags=["health"])
 
-# Runtime reference — set by server.py at startup
+
 _runtime = None
 _start_time = time.monotonic()
 
@@ -97,7 +97,7 @@ def health_ready():
             ready = False
             reasons.append("shutting_down")
     else:
-        # No runtime configured = standalone API mode, still ready
+
         pass
 
     return {

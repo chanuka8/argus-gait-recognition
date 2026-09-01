@@ -550,7 +550,7 @@ class TestDocsCheckImmutabilityAndSafety(unittest.TestCase):
 
         def snapshot_files():
             snapshot = {}
-            # Snapshot docs directory
+
             docs_dir = root_dir / "docs"
             if docs_dir.exists():
                 for p in docs_dir.rglob("*.md"):
@@ -558,7 +558,7 @@ class TestDocsCheckImmutabilityAndSafety(unittest.TestCase):
                         rel = str(p.relative_to(root_dir))
                         snapshot[rel] = hashlib.sha256(p.read_bytes()).hexdigest()
 
-            # Snapshot root and package READMEs
+
             root_readme = root_dir / "README.md"
             if root_readme.is_file():
                 snapshot["README.md"] = hashlib.sha256(root_readme.read_bytes()).hexdigest()
@@ -631,7 +631,7 @@ class TestSyncIdempotency(unittest.TestCase):
     def test_repeated_update_produces_zero_further_diff(self):
         root_dir = Path(__file__).resolve().parent.parent.parent
 
-        # First update
+
         res1 = subprocess.run(
             [sys.executable, "scripts/sync_folder_readmes.py", "--update"],
             capture_output=True,
@@ -641,7 +641,7 @@ class TestSyncIdempotency(unittest.TestCase):
         )
         self.assertEqual(res1.returncode, 0)
 
-        # Second update must produce 0 updated
+
         res2 = subprocess.run(
             [sys.executable, "scripts/sync_folder_readmes.py", "--update"],
             capture_output=True,
@@ -652,7 +652,7 @@ class TestSyncIdempotency(unittest.TestCase):
         self.assertEqual(res2.returncode, 0)
         self.assertIn("0 updated", res2.stdout)
 
-        # Follow-up check must be 100% clean
+
         res3 = subprocess.run(
             [sys.executable, "scripts/sync_folder_readmes.py", "--check"],
             capture_output=True,

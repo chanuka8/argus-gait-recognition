@@ -57,10 +57,10 @@ class GaitService:
         self.store = VectorStore(gallery_dir=gallery_dir)
         self.appearance_store = VectorStore(gallery_dir=appearance_gallery_dir)
 
-        # Thread-safe re-entrant lock for lazy model loading
+
         self._lock = threading.RLock()
 
-        # Lazy component slots
+
         self._embedding_db = None
         self._model_registry = None
         self._continuous_engine = None
@@ -524,7 +524,7 @@ class GaitService:
             if frame is None or frame.size == 0:
                 continue
 
-            # 1. ByGaitLight Gait Feature Extraction (256D)
+
             silhouette = self.silhouette_extractor.extract_from_crop(frame)
             if silhouette is None:
                 gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -535,7 +535,7 @@ class GaitService:
             embeddings.append(embedding)
             added_embeddings += 1
 
-            # 2. OSNet Appearance Feature Extraction (512D)
+
             if self.appearance_extractor is not None:
                 try:
                     app_emb = self.appearance_extractor.extract(frame)
@@ -570,7 +570,7 @@ class GaitService:
 
         self.store.save(self.gallery_features, self.gallery_labels, self.metadata)
 
-        # Save appearance gallery
+
         if app_embeddings:
             new_app_features = np.vstack(app_embeddings)
             new_app_labels = [person_id] * len(app_embeddings)
@@ -586,7 +586,7 @@ class GaitService:
                 self.appearance_gallery_features, self.appearance_gallery_labels, self.appearance_metadata
             )
 
-        # Persistent EmbeddingDatabase Sync
+
         db_persist_result = None
         if self.embedding_db is not None:
             try:
@@ -690,7 +690,7 @@ class GaitService:
             "device_index": int(resolved_source) if source_type == "webcam" and str(resolved_source).isdigit() else 0,
         }
 
-        # Pre-flight camera admission check (dynamic capacity & resource safety)
+
         enforce_admission = bool(worker_cfg.get("enforce_admission", False))
         try:
             from streaming.deployment_readiness import AdmissionDecision, DeploymentReadinessManager

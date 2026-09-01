@@ -56,7 +56,7 @@ def compute_roc_pr_metrics(same_scores, diff_scores):
     n_pos = len(same_arr)
     n_neg = len(diff_arr)
 
-    # Rank-based exact AUC
+
     order = np.argsort(y_scores)
     ranks = np.empty_like(order, dtype=float)
     ranks[order] = np.arange(1, len(y_scores) + 1)
@@ -66,7 +66,7 @@ def compute_roc_pr_metrics(same_scores, diff_scores):
     rank_sum_pos = np.sum(ranks[:n_pos])
     auc = float((rank_sum_pos - n_pos * (n_pos + 1) / 2.0) / (n_pos * n_neg))
 
-    # ROC thresholds for EER
+
     all_thresholds = np.sort(np.unique(y_scores))[::-1]
     fpr_list, tpr_list = [0.0], [0.0]
     for t_val in all_thresholds:
@@ -85,7 +85,7 @@ def compute_roc_pr_metrics(same_scores, diff_scores):
     eer = round(float((fpr_np[eer_idx] + fnr_np[eer_idx]) / 2.0), 6)
     eer_thresh = round(float(all_thresholds[min(max(0, eer_idx - 1), len(all_thresholds) - 1)]), 6)
 
-    # Average Precision
+
     rec_list, prec_list = [], []
     for t_val in all_thresholds:
         tp_v = int(np.sum(same_arr >= t_val))
@@ -131,14 +131,14 @@ def run_dual_modal_evaluation():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"[ENV] Device: {device}")
 
-    # Initialize feature extraction modules
+
     gait_extractor = FeatureExtractionStep()
     OSNetBackbone._instance = None
     reid_extractor = ReIDFeatureExtractionStep(model_path="models/weights/osnet_x0_25.pth", device=device)
     detector = PersonDetector()
     fusion_engine = DualModalFusion(default_gait_weight=0.70, default_reid_weight=0.30, enabled=True)
 
-    # 1. Discover and load multimodal features for all 4 subjects
+
     base_gei = Path("data/auto_enrollment/gei")
     base_photos = Path("data/auto_enrollment/photos")
     subjects = ["demo_person_001", "Devhan", "Isuru", "person01"]
@@ -148,10 +148,10 @@ def run_dual_modal_evaluation():
         g_files = sorted((base_gei / name).glob("*.*"))
         p_files = sorted((base_photos / name).glob("*.*"))
 
-        # Extract gait (256D)
+
         g_embs = [gait_extractor.extract(f) for f in g_files]
 
-        # Extract appearance (512D)
+
         p_embs = []
         for f in p_files:
             img = cv2.imread(str(f))
@@ -159,7 +159,7 @@ def run_dual_modal_evaluation():
             emb = reid_extractor.extract(crop)
             p_embs.append(emb)
 
-        # Pair instances: each sample i has (gait_i, appearance_i)
+
         n_samples = min(len(g_embs), len(p_embs))
         subject_data[name] = {
             "gait": g_embs[:n_samples],
@@ -168,7 +168,7 @@ def run_dual_modal_evaluation():
         }
         print(f"Loaded {name}: {n_samples} multimodal samples (256D gait + 512D appearance)")
 
-    # 2. Pairwise Evaluations: Same-person and Different-person
+
     same_gait_scores = []
     same_app_scores = []
     same_fused_scores = []
@@ -236,7 +236,7 @@ def run_dual_modal_evaluation():
 
     report["confusion_pairs"] = confusion_pair_stats
 
-    # 3. Full Threshold Sweep for Fused Score (0.40 to 0.90 step 0.01)
+
     thresholds = [round(0.40 + i * 0.01, 2) for i in range(51)]
     fused_same_arr = np.array(same_fused_scores)
     fused_diff_arr = np.array(diff_fused_scores)
@@ -259,7 +259,7 @@ def run_dual_modal_evaluation():
 
     report["threshold_sweep_fused"] = sweep_table
 
-    # Operating Points for Fused Score
+
     op_points = {}
     for label, max_fpr in [("FPR_lte_5pct", 0.05), ("FPR_lte_1pct", 0.01), ("FPR_lte_0.5pct", 0.005), ("FPR_eq_0pct", 0.0)]:
         cand = [r for r in sweep_table if r["fpr"] <= max_fpr]
@@ -267,7 +267,7 @@ def run_dual_modal_evaluation():
             op_points[label] = max(cand, key=lambda r: r["recall"])
     report["operating_points_fused"] = op_points
 
-    # 4. Unknown Person Rejection Test (person01 as unknown against {demo_person_001, Devhan, Isuru})
+
     known_subjs = ["demo_person_001", "Devhan", "Isuru"]
     unknown_subj = "person01"
 
@@ -302,21 +302,21 @@ def run_dual_modal_evaluation():
         best_g_score = g_sims[best_g_idx]
         best_a_score = a_sims[best_a_idx]
 
-        # Fused decision
+
         best_fused_score = 0.70 * best_g_score + 0.30 * best_a_score
 
         for t in [0.60, 0.65, 0.70, 0.75, 0.80, 0.85]:
-            # App
+
             if best_a_score >= t:
                 unknown_test_results["app_only"][f"{t:.2f}"]["accepted"] += 1
             else:
                 unknown_test_results["app_only"][f"{t:.2f}"]["rejected"] += 1
-            # Gait
+
             if best_g_score >= t:
                 unknown_test_results["gait_only"][f"{t:.2f}"]["accepted"] += 1
             else:
                 unknown_test_results["gait_only"][f"{t:.2f}"]["rejected"] += 1
-            # Fused
+
             if best_fused_score >= t:
                 unknown_test_results["fused"][f"{t:.2f}"]["accepted"] += 1
             else:
@@ -327,7 +327,7 @@ def run_dual_modal_evaluation():
         "results": unknown_test_results,
     }
 
-    # 5. Leave-One-Out (LOO) Rank-1 Accuracy
+
     loo_summary = {"gait": {"correct": 0, "total": 0}, "appearance": {"correct": 0, "total": 0}, "fused": {"correct": 0, "total": 0}}
     per_subject_loo = {}
 
@@ -385,7 +385,7 @@ def run_dual_modal_evaluation():
         "by_subject": per_subject_loo,
     }
 
-    # 6. ROC AUC, EER, and AP
+
     roc_gait = compute_roc_pr_metrics(same_gait_scores, diff_gait_scores)
     roc_app = compute_roc_pr_metrics(same_app_scores, diff_app_scores)
     roc_fused = compute_roc_pr_metrics(same_fused_scores, diff_fused_scores)
@@ -396,13 +396,13 @@ def run_dual_modal_evaluation():
         "fused": roc_fused,
     }
 
-    # 7. Video Stream Evaluation (walk.mp4.mp4)
+
     video_path = "data/new_input/_disabled_test_01/walk.mp4.mp4"
     cap = cv2.VideoCapture(video_path)
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     max_frames = min(150, total_frames)
 
-    # Build galleries
+
     gal_lbls_all = []
     gal_g_all = []
     gal_a_all = []
@@ -462,7 +462,7 @@ def run_dual_modal_evaluation():
         "tracks": active_tracks,
     }
 
-    # Save artifact report
+
     out_dir = Path("outputs/reports")
     out_dir.mkdir(parents=True, exist_ok=True)
     report_file = out_dir / "step_5f_dual_modal_evaluation_report.json"

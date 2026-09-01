@@ -16,7 +16,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-# Ensure root directory in sys.path
+
 root_dir = Path(__file__).resolve().parent.parent
 if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
@@ -43,11 +43,11 @@ def verify_bygait_real_training() -> dict[str, Any]:
     print("[TEST 1] Real ByGaitLight CNN Fine-Tuning & Weight Update Verification", flush=True)
     print("=" * 80, flush=True)
 
-    # 1. Instantiate ByGaitLight backbone
+
     model = ByGaitLight(embedding_dim=256, part_bins=4)
     model.train()
 
-    # Track initial parameter tensors
+
     initial_params = {
         name: param.clone().detach()
         for name, param in model.named_parameters()
@@ -56,7 +56,7 @@ def verify_bygait_real_training() -> dict[str, Any]:
     total_trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"  Trainable parameters in ByGaitLight: {total_trainable_params:,} across {len(initial_params)} tensor layers", flush=True)
 
-    # 2. Synthetic GEI training batch (2 identities, 8 samples total)
+
     np.random.seed(42)
     torch.manual_seed(42)
 
@@ -69,13 +69,13 @@ def verify_bygait_real_training() -> dict[str, Any]:
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(full_model.parameters(), lr=1e-3)
 
-    # Initial loss calculation
+
     full_model.eval()
     with torch.no_grad():
         initial_out = full_model(X_data)
         initial_loss = float(criterion(initial_out, y_data).item())
 
-    # 3. Training step (forward -> backward -> step)
+
     full_model.train()
     training_steps = 3
     final_loss = initial_loss
@@ -89,7 +89,7 @@ def verify_bygait_real_training() -> dict[str, Any]:
         final_loss = float(loss.item())
         print(f"    Step {step + 1}/{training_steps} - CrossEntropy Loss: {final_loss:.6f}", flush=True)
 
-    # 4. Measure parameter deltas
+
     changed_tensor_count = 0
     max_delta = 0.0
     for name, param in model.named_parameters():
@@ -123,7 +123,7 @@ def verify_osnet_real_training() -> dict[str, Any]:
     print("[TEST 2] Real OSNet ReID Fine-Tuning & Weight Update Verification", flush=True)
     print("=" * 80, flush=True)
 
-    # 1. Instantiate OSNet backbone
+
     model = _build_osnet_x0_25()
     model.train()
 
@@ -135,7 +135,7 @@ def verify_osnet_real_training() -> dict[str, Any]:
     total_trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"  Trainable parameters in OSNet-x0.25: {total_trainable_params:,} across {len(initial_params)} tensor layers", flush=True)
 
-    # 2. Synthetic Person Crop batch (2 identities, 8 crops 3x256x128)
+
     np.random.seed(42)
     torch.manual_seed(42)
 
@@ -146,14 +146,14 @@ def verify_osnet_real_training() -> dict[str, Any]:
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(list(model.parameters()) + list(classifier.parameters()), lr=1e-3)
 
-    # Initial loss calculation
+
     model.eval()
     with torch.no_grad():
         feat = model(X_data)
         initial_out = classifier(feat)
         initial_loss = float(criterion(initial_out, y_data).item())
 
-    # 3. Training step (forward -> backward -> step)
+
     model.train()
     classifier.train()
     training_steps = 3
@@ -169,7 +169,7 @@ def verify_osnet_real_training() -> dict[str, Any]:
         final_loss = float(loss.item())
         print(f"    Step {step + 1}/{training_steps} - CrossEntropy Loss: {final_loss:.6f}", flush=True)
 
-    # 4. Measure parameter deltas
+
     changed_tensor_count = 0
     max_delta = 0.0
     for name, param in model.named_parameters():
@@ -214,18 +214,18 @@ def verify_replay_and_candidate_pipeline() -> dict[str, Any]:
         historical_replay_ratio=0.50,
     )
 
-    # 4 new GEI samples (Date 2026-08-27) + 4 historical GEI samples (Date 2026-08-01)
+
     new_gei = [{"image": np.random.rand(64, 128).astype(np.float32), "label": "Subject_New"} for _ in range(4)]
     hist_gei = [{"image": np.random.rand(64, 128).astype(np.float32), "label": "Subject_Hist"} for _ in range(4)]
 
-    # 50/50 verification
+
     total_samples = len(new_gei) + len(hist_gei)
     actual_replay_ratio = len(hist_gei) / total_samples
     print(f"  New date samples: {len(new_gei)} | Historical replay samples: {len(hist_gei)}", flush=True)
     print(f"  Configured replay ratio: 0.50 | Actual batch replay ratio: {actual_replay_ratio:.2f}", flush=True)
     assert actual_replay_ratio == 0.50, "Historical replay ratio mismatch!"
 
-    # Execute candidate fine-tuning
+
     res = tuner.fine_tune_bygait_light(
         active_weights_path="",
         training_gei_data=new_gei,

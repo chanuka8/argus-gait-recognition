@@ -431,7 +431,7 @@ def get_inference_backend(
         except (ImportError, RuntimeError, OSError, ValueError) as e:
             reasons.append(f"ONNX unavailable ({e})")
 
-        # Fallback to PyTorch reference engine
+
         attempted.append("pytorch")
         if not allow_fallback:
             raise RuntimeError(f"Auto backend failed to find available accelerated engine: {'; '.join(reasons)}")

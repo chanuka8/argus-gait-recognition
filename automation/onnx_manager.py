@@ -45,7 +45,7 @@ class OnnxManager:
             info["providers"] = providers
             info["cuda_available"] = "CUDAExecutionProvider" in providers
 
-            # Check if package is onnxruntime-gpu
+
             try:
                 import importlib.metadata
 
@@ -54,7 +54,7 @@ class OnnxManager:
             except (ImportError, KeyError, AttributeError, OSError):
                 info["is_gpu_package"] = info["cuda_available"]
 
-            # Test real InferenceSession creation & inference
+
             model_candidates = [
                 self.weights_dir / "silhouette_segmenter.onnx",
                 Path("models/weights/silhouette_segmenter.onnx"),

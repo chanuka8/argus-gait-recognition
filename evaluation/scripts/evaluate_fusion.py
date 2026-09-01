@@ -31,7 +31,7 @@ def evaluate_all_fusion_strategies(output_dir: str = "configs/fusion_profiles"):
     base_gei = Path("data/auto_enrollment/gei")
     base_photos = Path("data/auto_enrollment/photos")
 
-    # Load multimodal query samples
+
     query_gait, query_app, query_labels = [], [], []
     for s in subjects:
         g_files = sorted((base_gei / s).glob("*.*"))
@@ -56,7 +56,7 @@ def evaluate_all_fusion_strategies(output_dir: str = "configs/fusion_profiles"):
 
     N = len(query_labels)
 
-    # 1. Build pairwise genuine & impostor score pools
+
     pairwise_gait = []
     pairwise_app = []
     pairwise_labels = []
@@ -69,7 +69,7 @@ def evaluate_all_fusion_strategies(output_dir: str = "configs/fusion_profiles"):
             pairwise_app.append(s_a)
             pairwise_labels.append(1 if query_labels[i] == query_labels[j] else 0)
 
-    # 2. Build Leave-One-Out similarity matrices
+
     sim_matrix_base = np.zeros((N, N - 1), dtype=np.float32)
     sim_matrix_opt_linear = np.zeros((N, N - 1), dtype=np.float32)
     sim_matrix_calib = np.zeros((N, N - 1), dtype=np.float32)
@@ -90,7 +90,7 @@ def evaluate_all_fusion_strategies(output_dir: str = "configs/fusion_profiles"):
         if i == 0:
             loo_gallery_labels = gal_lbl
 
-        # Train pair dataset strictly disjoint from query i
+
         train_pairs_g, train_pairs_a, train_pairs_y = [], [], []
         for r1 in range(N):
             if r1 == i:
@@ -104,7 +104,7 @@ def evaluate_all_fusion_strategies(output_dir: str = "configs/fusion_profiles"):
                 train_pairs_a.append(s_a)
                 train_pairs_y.append(1 if query_labels[r1] == query_labels[r2] else 0)
 
-        # Fit Platt Calibrators & Learned AUC Fusion
+
         gait_calib = PlattScoreCalibrator().fit(train_pairs_g, train_pairs_y)
         app_calib = PlattScoreCalibrator().fit(train_pairs_a, train_pairs_y)
         learned_auc = LearnedLogisticFusion().fit(train_pairs_g, train_pairs_a, train_pairs_y, loss_type="ranking_auc")
@@ -122,7 +122,7 @@ def evaluate_all_fusion_strategies(output_dir: str = "configs/fusion_profiles"):
 
             sim_matrix_learned_auc[i, gal_idx] = learned_auc.predict_probability(g_sim, a_sim)
 
-    # Ranking metrics
+
     _, r_base = compute_cmc(sim_matrix_base, query_labels, loo_gallery_labels)
     _, r_opt_linear = compute_cmc(sim_matrix_opt_linear, query_labels, loo_gallery_labels)
     _, r_calib = compute_cmc(sim_matrix_calib, query_labels, loo_gallery_labels)
@@ -133,7 +133,7 @@ def evaluate_all_fusion_strategies(output_dir: str = "configs/fusion_profiles"):
     map_calib, _minp_calib = compute_map_minp(sim_matrix_calib, query_labels, loo_gallery_labels)
     map_learned_auc, _minp_learned_auc = compute_map_minp(sim_matrix_learned_auc, query_labels, loo_gallery_labels)
 
-    # Pairwise verification ROC-AUC & EER
+
     global_learned_auc = LearnedLogisticFusion().fit(pairwise_gait, pairwise_app, pairwise_labels, loss_type="ranking_auc")
     global_calib_g = PlattScoreCalibrator().fit(pairwise_gait, pairwise_labels)
     global_calib_a = PlattScoreCalibrator().fit(pairwise_app, pairwise_labels)

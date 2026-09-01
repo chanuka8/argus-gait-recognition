@@ -45,15 +45,15 @@ class DatasetSampleRecord:
     track_id: int
     timestamp: float
     observation_date: str
-    modality: str  # 'gait' or 'appearance'
+    modality: str
     vector: list[float]
     session_id: str = ""
-    image_data: Any | None = None  # Genuine GEI ndarray (64x128) or Person Crop ndarray (256x128x3)
-    training_media_status: str = "AVAILABLE"  # 'AVAILABLE' or 'TRAINING_MEDIA_UNAVAILABLE'
+    image_data: Any | None = None
+    training_media_status: str = "AVAILABLE"
     quality_score: float = 1.0
-    split_type: str = "train"  # 'train', 'val', 'independent_test', 'historical_replay', 'historical_test', 'future_holdout'
+    split_type: str = "train"
     condition_tags: dict[str, Any] = field(default_factory=dict)
-    provenance: str = "operational_observation"  # 'operational_observation' or 'historical_gallery'
+    provenance: str = "operational_observation"
 
     def __post_init__(self) -> None:
         if not self.session_id:
@@ -142,12 +142,12 @@ class TrainingDatasetBuilder:
         include_historical: bool = True,
         future_date: str | None = None,
     ) -> tuple[
-        list[DatasetSampleRecord],  # train_samples
-        list[DatasetSampleRecord],  # val_samples
-        list[DatasetSampleRecord],  # independent_test_samples
-        list[DatasetSampleRecord],  # historical_replay_samples
-        list[DatasetSampleRecord],  # historical_test_samples
-        list[DatasetSampleRecord],  # future_holdout_samples
+        list[DatasetSampleRecord],
+        list[DatasetSampleRecord],
+        list[DatasetSampleRecord],
+        list[DatasetSampleRecord],
+        list[DatasetSampleRecord],
+        list[DatasetSampleRecord],
         DatasetManifest,
     ]:
         """
@@ -156,7 +156,7 @@ class TrainingDatasetBuilder:
         modality = "gait" if model_type == "bygait_light" else "appearance"
         expected_dim = 256 if model_type == "bygait_light" else 512
 
-        # 1. Collect and filter new TRAINING_ELIGIBLE operational observations
+
         raw_obs = self.collector.get_eligible_by_date(training_date)
         eligible_samples: list[DatasetSampleRecord] = []
 
@@ -174,10 +174,10 @@ class TrainingDatasetBuilder:
             if not ident or ident in ("UNKNOWN", "UNKNOWN_PERSON"):
                 continue
 
-            # Load genuine media if available
+
             img = getattr(obs, "gei_image", None) if modality == "gait" else getattr(obs, "crop_image", None)
             if img is None and self.evidence_manager is not None:
-                # Look up from evidence manager index
+
                 for rec in self.evidence_manager._records.values():
                     if rec.observation_id == obs.observation_id and rec.modality == modality:
                         img = self.evidence_manager.load_evidence(rec.evidence_id)
@@ -204,8 +204,8 @@ class TrainingDatasetBuilder:
             )
             eligible_samples.append(sample)
 
-        # 2. Track / Session-Level Partitioning per Identity
-        # Groups observations by (person_id, session_id, track_id) to prevent cross-split leakage
+
+
         by_identity: dict[str, dict[str, list[DatasetSampleRecord]]] = {}
         for s in eligible_samples:
             track_key = f"{s.session_id}_{s.track_id}"
@@ -265,7 +265,7 @@ class TrainingDatasetBuilder:
                         s.split_type = "independent_test"
                         independent_test_samples.append(s)
 
-        # 3. Collect Historical Replay Data (Past dates & enrolled reference gallery)
+
         historical_replay_samples: list[DatasetSampleRecord] = []
         historical_test_samples: list[DatasetSampleRecord] = []
 
@@ -308,7 +308,7 @@ class TrainingDatasetBuilder:
                     else:
                         historical_replay_samples.append(sample)
 
-        # 4. Collect Future Holdout Partition (E) if specified
+
         future_holdout_samples: list[DatasetSampleRecord] = []
         if future_date and future_date > training_date:
             raw_future = self.collector.get_eligible_by_date(future_date)
@@ -331,10 +331,10 @@ class TrainingDatasetBuilder:
                         )
                         future_holdout_samples.append(fut_sample)
 
-        # 5. Strict Zero-Leakage Assertion
+
         self._verify_zero_leakage(train_samples, val_samples, independent_test_samples, historical_replay_samples, historical_test_samples, future_holdout_samples)
 
-        # 6. Build Manifest & Cryptographic Hash
+
         dataset_id = f"ds-{training_date.replace('-', '')}-{model_type[:4]}-{uuid.uuid4().hex[:6]}"
         manifest_dict = {
             "dataset_id": dataset_id,
@@ -417,7 +417,7 @@ class TrainingDatasetBuilder:
         test_ids = {s.sample_id for s in test}
         future_ids = {s.sample_id for s in future_holdout}
 
-        # Check sample IDs
+
         if train_ids.intersection(test_ids):
             raise ValueError(f"CRITICAL LEAKAGE: Training IDs found in independent test set: {train_ids.intersection(test_ids)}")
         if train_ids.intersection(val_ids):
@@ -427,7 +427,7 @@ class TrainingDatasetBuilder:
         if train_ids.intersection(future_ids):
             raise ValueError(f"CRITICAL LEAKAGE: Training IDs found in future holdout set: {train_ids.intersection(future_ids)}")
 
-        # Check track and session isolation between train and independent test
+
         train_sessions = {f"{s.person_id}_{s.session_id}_{s.track_id}" for s in train}
         test_sessions = {f"{s.person_id}_{s.session_id}_{s.track_id}" for s in test}
         overlap = train_sessions.intersection(test_sessions)

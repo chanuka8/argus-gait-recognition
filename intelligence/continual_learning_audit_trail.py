@@ -22,7 +22,7 @@ class ContinualLearningEvent:
     """Represents an immutable record of a continual learning lifecycle event."""
 
     event_id: str
-    event_type: str  # 'TRAINING_STARTED', 'TRAINING_COMPLETED', 'EVALUATION_COMPLETED', 'CANDIDATE_PROMOTED', 'CANDIDATE_REJECTED', 'ROLLBACK_EXECUTED'
+    event_type: str
     timestamp: float
     trigger_date: str
     model_type: str
@@ -38,7 +38,7 @@ class ContinualLearningEvent:
     candidate_metrics: dict[str, Any] = field(default_factory=dict)
     metric_deltas: dict[str, float] = field(default_factory=dict)
     validation_passed: bool = False
-    promotion_status: str = "PENDING"  # 'PROMOTED', 'REJECTED', 'HELD', 'ROLLED_BACK'
+    promotion_status: str = "PENDING"
     rejection_reasons: list[str] = field(default_factory=list)
     verdict: str = "UNPROVEN"
     hardware_profile: dict[str, Any] = field(default_factory=dict)

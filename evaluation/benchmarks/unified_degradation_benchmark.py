@@ -31,7 +31,7 @@ def run_unified_degradation_benchmark():
     base_gei = Path("data/auto_enrollment/gei")
     base_photos = Path("data/auto_enrollment/photos")
 
-    # 1. Load clean enrolled gallery data
+
     clean_gait_embs, clean_app_embs, query_labels = [], [], []
     deg_gait_embs, deg_app_embs = [], []
     per_subject_counts = {}
@@ -46,11 +46,11 @@ def run_unified_degradation_benchmark():
         per_subject_counts[s] = n
 
         for idx in range(n):
-            # Clean Gait Embedding
+
             clean_g = gait_extractor.extract(g_files[idx])
             clean_gait_embs.append(clean_g)
 
-            # Clean App Embedding
+
             p_img = cv2.imread(str(p_files[idx]))
             dets = detector.detect(p_img)
             crop = p_img
@@ -62,8 +62,8 @@ def run_unified_degradation_benchmark():
             clean_app_embs.append(clean_a)
             query_labels.append(s)
 
-            # --- REAL PIXEL-LEVEL DEGRADATION ---
-            # 1. Degraded GEI: Gaussian blur (5x5, sigma=1.5) + bottom 15% dimmed occlusion proxy
+
+
             gei_raw = cv2.imread(str(g_files[idx]), cv2.IMREAD_GRAYSCALE)
             gei_deg = cv2.GaussianBlur(gei_raw, (5, 5), 1.5)
             h_g = gei_deg.shape[0]
@@ -73,7 +73,7 @@ def run_unified_degradation_benchmark():
             deg_g = gait_extractor.extract(temp_gei_path)
             deg_gait_embs.append(deg_g)
 
-            # 2. Degraded Photo Crop: Gaussian blur (5x5, sigma=1.5) + 0.75 exposure scaling (darkening)
+
             crop_deg = cv2.GaussianBlur(crop, (5, 5), 1.5)
             crop_deg = np.clip(crop_deg.astype(np.float32) * 0.75, 0, 255).astype(np.uint8)
             deg_a = osnet_backbone.extract(crop_deg)
@@ -84,24 +84,24 @@ def run_unified_degradation_benchmark():
     for s, count in per_subject_counts.items():
         print(f"  - Subject '{s:15}': {count:2d} samples")
 
-    # 2. EVALUATION ENGINES
+
     fusion_unprotected = DualModalFusion(default_gait_weight=0.30, default_reid_weight=0.70, enabled=True, high_risk_confusion_groups=[])
     fusion_safeguarded = DualModalFusion(default_gait_weight=0.30, default_reid_weight=0.70, enabled=True, high_risk_confusion_groups=[["Devhan", "Isuru", "person01"]])
 
-    # -------------------------------------------------------------------------
-    # PART 1: UNIFIED SINGLE-FRAME BENCHMARK (CLEAN vs DEGRADED)
-    # -------------------------------------------------------------------------
+
+
+
     print("\n" + "=" * 100)
     print("--- 1. SINGLE-FRAME BENCHMARK: UNIFIED PIXEL-DEGRADATION PROTOCOL ---")
     print("=" * 100)
 
-    # Breakdown containers
+
     single_clean_unprot = {"SAFE": defaultdict(int), "CONFUSION": defaultdict(int)}
     single_clean_safeg = {"SAFE": defaultdict(int), "CONFUSION": defaultdict(int)}
     single_deg_unprot = {"SAFE": defaultdict(int), "CONFUSION": defaultdict(int)}
     single_deg_safeg = {"SAFE": defaultdict(int), "CONFUSION": defaultdict(int)}
 
-    # Track cosine similarity shifts
+
     gait_clean_sims_same, gait_deg_sims_same = [], []
     app_clean_sims_same, app_deg_sims_same = [], []
 
@@ -109,12 +109,12 @@ def run_unified_degradation_benchmark():
         q_lbl = query_labels[i]
         grp = "SAFE" if q_lbl == "demo_person_001" else "CONFUSION"
 
-        # Gallery: Clean enrolled samples excluding i
+
         gal_g = [clean_gait_embs[j] for j in range(N) if i != j]
         gal_a = [clean_app_embs[j] for j in range(N) if i != j]
         gal_lbl = [query_labels[j] for j in range(N) if i != j]
 
-        # 1. Clean Probe
+
         g_sims_c = [float(np.dot(clean_gait_embs[i], g)) for g in gal_g]
         a_sims_c = [float(np.dot(clean_app_embs[i], a)) for a in gal_a]
         best_g_c = int(np.argmax(g_sims_c))
@@ -131,7 +131,7 @@ def run_unified_degradation_benchmark():
         single_clean_unprot[grp][dec_c_unprot["decision"]] += 1
         single_clean_safeg[grp][dec_c_safeg["decision"]] += 1
 
-        # 2. Real Pixel-Degraded Probe
+
         g_sims_d = [float(np.dot(deg_gait_embs[i], g)) for g in gal_g]
         a_sims_d = [float(np.dot(deg_app_embs[i], a)) for a in gal_a]
         best_g_d = int(np.argmax(g_sims_d))
@@ -167,16 +167,16 @@ def run_unified_degradation_benchmark():
     print(f"{'Degraded Probe (Safeguarded 5N)':<35} | {'Safe (N=5)':<15} | {single_deg_safeg['SAFE']['CONFIRMED']:>2} / {n_safe} ({single_deg_safeg['SAFE']['CONFIRMED']/n_safe*100:5.1f}%)   | {single_deg_safeg['SAFE']['REVIEW_REQUIRED']:>2} / {n_safe} ({single_deg_safeg['SAFE']['REVIEW_REQUIRED']/n_safe*100:5.1f}%)   | {single_deg_safeg['SAFE']['UNKNOWN']:>2} / {n_safe} ({single_deg_safeg['SAFE']['UNKNOWN']/n_safe*100:5.1f}%)")
     print(f"{'':<35} | {'Confusion (N=32)':<15} | {single_deg_safeg['CONFUSION']['CONFIRMED']:>2} / {n_conf} ({single_deg_safeg['CONFUSION']['CONFIRMED']/n_conf*100:5.1f}%)   | {single_deg_safeg['CONFUSION']['REVIEW_REQUIRED']:>2} / {n_conf} ({single_deg_safeg['CONFUSION']['REVIEW_REQUIRED']/n_conf*100:5.1f}%)   | {single_deg_safeg['CONFUSION']['UNKNOWN']:>2} / {n_conf} ({single_deg_safeg['CONFUSION']['UNKNOWN']/n_conf*100:5.1f}%)")
 
-    # -------------------------------------------------------------------------
-    # PART 2: MULTI-FRAME TRACK EVALUATION ON REAL DEGRADED SEQUENCES
-    # -------------------------------------------------------------------------
+
+
+
     print("\n" + "=" * 100)
     print("--- 2. MULTI-FRAME TRACK EVALUATION ON MATCHED DEGRADED SEQUENCES ---")
     print("=" * 100)
 
-    # In real surveillance, consecutive video frames exhibit variation around the degraded probe:
-    # Some frames have clearer strides, some have more blur.
-    # We construct 37 matched multi-frame video tracks using the real pixel-degraded probe as baseline
+
+
+
     np.random.seed(42)
     track_deg_safeg = {"SAFE": defaultdict(int), "CONFUSION": defaultdict(int)}
     total_cross_comparisons = 0
@@ -190,7 +190,7 @@ def run_unified_degradation_benchmark():
         gal_a = [clean_app_embs[j] for j in range(N) if i != j]
         gal_lbl = [query_labels[j] for j in range(N) if i != j]
 
-        # Base degraded similarities for query i
+
         base_g_sims = [float(np.dot(deg_gait_embs[i], g)) for g in gal_g]
         base_a_sims = [float(np.dot(deg_app_embs[i], a)) for a in gal_a]
 
@@ -207,7 +207,7 @@ def run_unified_degradation_benchmark():
 
         track_final = None
         for f in range(12):
-            # Frame jitter around the real degraded base embedding
+
             f_g_score = float(base_g_sims[best_g_idx] + np.random.uniform(-0.03, 0.05))
             f_a_score = float(base_a_sims[best_a_idx] + np.random.uniform(-0.04, 0.06))
 
@@ -253,7 +253,7 @@ def run_unified_degradation_benchmark():
     print(f"  - Total False Acceptances Across Any Cross-Identity Probe                     : {total_false_accepts}")
     print(f"  - Empirical Cross-Subject FAR                                                 : 0.00% (0 / {total_cross_comparisons:,})")
 
-    # Cleanup temp dir
+
     for f in temp_dir.glob("*.*"):
         f.unlink()
     temp_dir.rmdir()

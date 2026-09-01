@@ -74,7 +74,7 @@ class DeterministicVideoQualityGate:
         total_pixels = mask.shape[0] * mask.shape[1]
         coverage = area / max(total_pixels, 1)
 
-        # Bounding box of silhouette
+
         y_indices, x_indices = np.where(mask > 0)
         if len(y_indices) == 0 or len(x_indices) == 0:
             return False, 0.0, 0.0, (0.0, 0.0)
@@ -118,14 +118,14 @@ class DeterministicVideoQualityGate:
         mean_lum = float(np.mean(lum_scores)) if lum_scores else 0.0
         mean_asp = float(np.mean(aspect_ratios)) if aspect_ratios else 0.0
 
-        # Motion dynamism: calculate total displacement of centroid over time
+
         motion_dynamism = 0.0
         if len(centroids) >= 2:
             dx_total = sum(abs(centroids[i][0] - centroids[i - 1][0]) for i in range(1, len(centroids)))
             dy_total = sum(abs(centroids[i][1] - centroids[i - 1][1]) for i in range(1, len(centroids)))
             motion_dynamism = float(dx_total + dy_total) / max(len(centroids), 1)
 
-        # Check conditions
+
         if usable_frames < self.min_frames:
             issues.append(f"Insufficient usable walking frames ({usable_frames} valid < {self.min_frames} required for full gait cycle)")
 
@@ -170,10 +170,10 @@ class DeterministicVideoQualityGate:
             return crop
 
         img = crop.copy()
-        # 1. Bilateral filter denoising
+
         img = cv2.bilateralFilter(img, d=5, sigmaColor=35, sigmaSpace=35)
 
-        # 2. Adaptive CLAHE on L-channel if dark
+
         hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
         v = hsv[:, :, 2]
         if np.mean(v) < 60.0:
@@ -181,7 +181,7 @@ class DeterministicVideoQualityGate:
             hsv[:, :, 2] = clahe.apply(v)
             img = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
 
-        # 3. Lanczos upscaling if resolution is slightly small
+
         h, w = img.shape[:2]
         if h < 128 or w < 64:
             scale = max(128.0 / h, 64.0 / w)

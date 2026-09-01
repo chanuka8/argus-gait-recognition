@@ -23,9 +23,9 @@ import numpy as np
 
 from monitoring.logging_config import get_logger
 
-# ---------------------------------------------------------------------------
-# Task 1 — Camera State Machine
-# ---------------------------------------------------------------------------
+
+
+
 
 
 class CameraState(enum.Enum):
@@ -45,7 +45,7 @@ class CameraState(enum.Enum):
     STOPPING = "STOPPING"
 
 
-# Valid transitions enforced by the state machine
+
 _VALID_TRANSITIONS: dict[CameraState, set[CameraState]] = {
     CameraState.STOPPED: {CameraState.STARTING},
     CameraState.STARTING: {CameraState.CONNECTING, CameraState.STOPPING, CameraState.FAILED},
@@ -66,29 +66,29 @@ class CameraResource:
     source_type: str = "webcam"
     source_uri: str = ""
 
-    # State machine
+
     connection_state: CameraState = CameraState.STOPPED
     desired_state: CameraState = CameraState.STOPPED
     actual_state: CameraState = CameraState.STOPPED
 
-    # Configuration
+
     fps_target: int = 15
     resolution: tuple[int, int] = (640, 480)
     codec: str = "h264"
     priority: int = 5
 
-    # Timestamps
+
     last_frame_timestamp: float = 0.0
     last_success_timestamp: float = 0.0
     last_error: str = ""
     last_error_timestamp: float = 0.0
     created_at: float = field(default_factory=time.monotonic)
 
-    # Reconnect
+
     reconnect_attempts: int = 0
     total_reconnect_count: int = 0
 
-    # Telemetry
+
     queue_depth: int = 0
     frames_received: int = 0
     frames_processed: int = 0
@@ -211,9 +211,9 @@ class CameraStateMachine:
             self._state_listeners.append(listener)
 
 
-# ---------------------------------------------------------------------------
-# Task 2 — Production Reconnect Engine
-# ---------------------------------------------------------------------------
+
+
+
 
 
 @dataclass
@@ -224,7 +224,7 @@ class ReconnectConfig:
     max_retry_interval: float = 60.0
     backoff_multiplier: float = 2.0
     jitter_range: float = 0.5
-    max_retry_attempts: int = 0  # 0 = unlimited
+    max_retry_attempts: int = 0
 
 
 class ReconnectEngine:
@@ -245,7 +245,7 @@ class ReconnectEngine:
         with self._lock:
             if self._stopped.is_set():
                 return False
-            # Cancel any existing timer for this camera
+
             self._cancel_timer_unsafe(camera_id)
 
             attempt = self._attempts.get(camera_id, 0)
@@ -321,9 +321,9 @@ class ReconnectEngine:
             self._logger.warning(f"Reconnect callback error for '{camera_id}': {exc}")
 
 
-# ---------------------------------------------------------------------------
-# Task 4 — Inference Worker Resilience
-# ---------------------------------------------------------------------------
+
+
+
 
 
 class InferenceWorkerState(enum.Enum):
@@ -486,9 +486,9 @@ class ResilientWorkerPool:
                         self._spawn_worker(wid)
 
 
-# ---------------------------------------------------------------------------
-# Task 5 — Adaptive Resource Management
-# ---------------------------------------------------------------------------
+
+
+
 
 
 class ResourcePressure(enum.Enum):
@@ -593,7 +593,7 @@ class AdaptiveResourceManager:
         with self._lock:
             old_pressure = self._pressure
 
-            # Determine pressure level
+
             if (
                 snap.cpu_percent >= th.max_cpu_percent
                 or snap.ram_percent >= th.max_ram_percent
@@ -620,7 +620,7 @@ class AdaptiveResourceManager:
                 self._pressure = ResourcePressure.HEALTHY
                 target_factor = 1.0
 
-            # Immediate reduction under CRITICAL; smooth transitions otherwise
+
             if self._pressure == ResourcePressure.CRITICAL:
                 self._processing_rate_factor = target_factor
             elif target_factor < self._processing_rate_factor:
@@ -658,9 +658,9 @@ class AdaptiveResourceManager:
             ]
 
 
-# ---------------------------------------------------------------------------
-# Task 6 — Frame Quality & Staleness Control
-# ---------------------------------------------------------------------------
+
+
+
 
 
 @dataclass
@@ -670,8 +670,8 @@ class QualifiedFrame:
     camera_id: str
     frame_id: int
     frame_uuid: str
-    capture_timestamp: float  # monotonic
-    wall_timestamp: str  # ISO 8601 UTC
+    capture_timestamp: float
+    wall_timestamp: str
     frame: np.ndarray
     source_type: str = "webcam"
     priority: int = 5
@@ -693,7 +693,7 @@ class FrameQualityGate:
         self._last_timestamps: dict[str, float] = {}
         self._lock = threading.Lock()
 
-        # Counters
+
         self.rejected_stale: int = 0
         self.rejected_duplicate: int = 0
         self.rejected_out_of_order: int = 0
@@ -704,20 +704,20 @@ class FrameQualityGate:
         now = time.monotonic()
         age_ms = (now - frame.capture_timestamp) * 1000.0
 
-        # Staleness check
+
         if age_ms > self.max_frame_age_ms:
             with self._lock:
                 self.rejected_stale += 1
             return False, f"stale ({age_ms:.0f}ms > {self.max_frame_age_ms:.0f}ms)"
 
         with self._lock:
-            # Out-of-order check
+
             last_ts = self._last_timestamps.get(frame.camera_id, 0.0)
             if frame.capture_timestamp < last_ts:
                 self.rejected_out_of_order += 1
                 return False, "out_of_order"
 
-            # Duplicate detection
+
             if self.enable_duplicate_detection and frame.frame_hash:
                 prev_hash = self._last_hashes.get(frame.camera_id)
                 if prev_hash and prev_hash == frame.frame_hash:
@@ -733,7 +733,7 @@ class FrameQualityGate:
         """Fast perceptual hash for duplicate detection."""
         if frame_data is None or frame_data.size == 0:
             return ""
-        # Use a small downsampled region for speed
+
         small = frame_data[::16, ::16].tobytes()[:256]
         return hashlib.md5(small).hexdigest()
 
@@ -747,9 +747,9 @@ class FrameQualityGate:
             }
 
 
-# ---------------------------------------------------------------------------
-# Task 7 — Camera FPS Governor
-# ---------------------------------------------------------------------------
+
+
+
 
 
 class FPSPolicy(enum.Enum):
@@ -819,9 +819,9 @@ class FPSGovernor:
             return self.target_inference_fps
 
 
-# ---------------------------------------------------------------------------
-# Task 13 — Model Lifecycle Safety (Hot-Swap)
-# ---------------------------------------------------------------------------
+
+
+
 
 
 class ModelVersion:
@@ -931,9 +931,9 @@ class SafeModelSwapper:
             self._swap_listeners.append(listener)
 
 
-# ---------------------------------------------------------------------------
-# Task 15 — Data Poisoning Protection
-# ---------------------------------------------------------------------------
+
+
+
 
 
 class DataPoisoningGuard:
@@ -956,7 +956,7 @@ class DataPoisoningGuard:
         self._lock = threading.Lock()
         self._logger = get_logger("poisoning_guard")
 
-        # Counters
+
         self.rejected_low_confidence: int = 0
         self.rejected_duplicate: int = 0
         self.rejected_outlier: int = 0
@@ -972,12 +972,12 @@ class DataPoisoningGuard:
         verification_state: str = "PREDICTED",
     ) -> tuple[bool, str]:
         """Validate an observation before it can become training-eligible."""
-        # Gate 1: Predicted observations are NEVER auto-promoted
+
         if verification_state == "PREDICTED":
-            # Allowed to persist as PREDICTED, but cannot become TRAINING_ELIGIBLE
+
             pass
 
-        # Gate 2: Confidence threshold
+
         if confidence < self.min_confidence:
             self.rejected_low_confidence += 1
             return False, f"low_confidence ({confidence:.3f} < {self.min_confidence})"
@@ -985,14 +985,14 @@ class DataPoisoningGuard:
         with self._lock:
             history = self._recent_embeddings.get(identity, [])
 
-            # Gate 3: Temporal consistency
+
             if history:
                 last_ts = history[-1][0]
                 if abs(timestamp - last_ts) < self.min_temporal_gap:
                     self.rejected_temporal += 1
                     return False, "temporal_too_close"
 
-            # Gate 4: Outlier detection via distance from recent cluster
+
             if len(history) >= 3 and embedding is not None:
                 recent_vecs = np.array([h[1] for h in history[-5:]])
                 centroid = recent_vecs.mean(axis=0)
@@ -1001,7 +1001,7 @@ class DataPoisoningGuard:
                     self.rejected_outlier += 1
                     return False, f"outlier (dist={dist:.3f} > {self.max_embedding_distance})"
 
-            # Gate 5: Duplicate embedding rejection (near identical match)
+
             if history and embedding is not None:
                 last_emb = history[-1][1]
                 cos_sim = float(np.dot(embedding, last_emb))
@@ -1009,10 +1009,10 @@ class DataPoisoningGuard:
                     self.rejected_duplicate += 1
                     return False, "duplicate_embedding"
 
-            # Accept and track
+
             if embedding is not None:
                 history.append((timestamp, embedding.copy()))
-                # Keep bounded history
+
                 if len(history) > 20:
                     history[:] = history[-20:]
                 self._recent_embeddings[identity] = history
@@ -1030,9 +1030,9 @@ class DataPoisoningGuard:
         }
 
 
-# ---------------------------------------------------------------------------
-# Task 16 — Structured Event Logging
-# ---------------------------------------------------------------------------
+
+
+
 
 
 class StructuredEventLogger:
@@ -1098,9 +1098,9 @@ class StructuredEventLogger:
             return self._event_count
 
 
-# ---------------------------------------------------------------------------
-# Task 17 — Graceful Shutdown
-# ---------------------------------------------------------------------------
+
+
+
 
 
 class GracefulShutdownManager:
@@ -1158,13 +1158,13 @@ class GracefulShutdownManager:
             signal.signal(signal.SIGINT, _handler)
             signal.signal(signal.SIGTERM, _handler)
         except (OSError, ValueError):
-            # Cannot install in non-main thread
+
             pass
 
 
-# ---------------------------------------------------------------------------
-# Task 20 — Capacity Estimation
-# ---------------------------------------------------------------------------
+
+
+
 
 
 class CapacityEstimator:
@@ -1206,15 +1206,15 @@ class CapacityEstimator:
                 "constraints_met": False,
             }
 
-        # Raw estimate from throughput
+
         raw_estimate = measured_throughput_fps / self.target_fps
 
-        # Apply resource constraints
+
         constraints_met = True
         limiting_factor = "none"
 
         if cpu_percent >= self.max_cpu:
-            # Scale down proportionally by the overload ratio
+
             raw_estimate *= (self.max_cpu / max(1.0, cpu_percent))
             constraints_met = False
             limiting_factor = "cpu"
@@ -1252,9 +1252,9 @@ class CapacityEstimator:
         }
 
 
-# ---------------------------------------------------------------------------
-# Integration: ProductionSurveillanceRuntime
-# ---------------------------------------------------------------------------
+
+
+
 
 
 class ProductionSurveillanceRuntime:
@@ -1278,7 +1278,7 @@ class ProductionSurveillanceRuntime:
     def __init__(self, config: dict | None = None) -> None:
         cfg = config or {}
 
-        # Sub-components
+
         self.camera_state_machine = CameraStateMachine()
         self.reconnect_engine = ReconnectEngine(
             ReconnectConfig(
@@ -1326,7 +1326,7 @@ class ProductionSurveillanceRuntime:
         self._start_time = time.monotonic()
         self._logger = get_logger("production_runtime")
 
-        # Register shutdown hooks in dependency order
+
         self.shutdown_manager.register_hook(10, "stop_camera_ingestion", self._shutdown_cameras)
         self.shutdown_manager.register_hook(20, "stop_reconnect_engine", self.reconnect_engine.cancel_all)
         self.shutdown_manager.register_hook(30, "stop_worker_pool", self.worker_pool.stop)
@@ -1401,7 +1401,7 @@ class ProductionSurveillanceRuntime:
                 camera_id,
             )
         elif state == CameraState.RECONNECTING:
-            # Schedule another attempt
+
             self.reconnect_engine.schedule_reconnect(
                 camera_id,
                 self._attempt_reconnect,
@@ -1418,7 +1418,7 @@ class ProductionSurveillanceRuntime:
         if cam is None:
             return False
         self.reconnect_engine.cancel(camera_id)
-        # Transition to STOPPING from any state
+
         if cam.connection_state != CameraState.STOPPED:
             self.camera_state_machine.transition(camera_id, CameraState.STOPPING)
             self.camera_state_machine.transition(camera_id, CameraState.STOPPED)
@@ -1535,7 +1535,7 @@ class ProductionSurveillanceRuntime:
             component="reconnect_engine",
             camera_id=camera_id,
         )
-        # Transition to CONNECTING for the attempt
+
         self.camera_state_machine.transition(camera_id, CameraState.CONNECTING)
 
     def _shutdown_cameras(self) -> None:

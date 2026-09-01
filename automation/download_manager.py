@@ -16,7 +16,7 @@ from pathlib import Path
 class DownloadManager:
     """Live progress downloader supporting HTTP range resumption and real-time telemetry."""
 
-    CHUNK_SIZE = 1024 * 1024  # 1 MB chunk
+    CHUNK_SIZE = 1024 * 1024
 
     @staticmethod
     def _format_size(num_bytes: float) -> str:
@@ -91,10 +91,10 @@ class DownloadManager:
                     status_code = getattr(response, "status", 200)
                     content_length = response.headers.get("Content-Length")
 
-                    if status_code == 206:  # Partial content
+                    if status_code == 206:
                         total_size = downloaded + int(content_length) if content_length else (expected_size or 0)
                         mode = "ab"
-                    else:  # Full transfer
+                    else:
                         total_size = int(content_length) if content_length else (expected_size or 0)
                         mode = "wb"
                         downloaded = 0
@@ -147,7 +147,7 @@ class DownloadManager:
                     sys.stdout.write("\n")
                     sys.stdout.flush()
 
-                # Verify integrity and finalize file
+
                 if total_size > 0 and part_path.stat().st_size < total_size:
                     print(
                         f"[ARGUS WARN] Downloaded size ({part_path.stat().st_size}) < expected ({total_size}). Retrying..."

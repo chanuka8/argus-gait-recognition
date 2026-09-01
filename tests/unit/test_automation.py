@@ -84,7 +84,7 @@ class TestAutomationSubsystem(unittest.TestCase):
         self.assertGreater(len(info["providers"]), 0)
 
     def test_status_response_schema_compatibility(self):
-        # Backward-compatible initialization
+
         resp = StatusResponse(
             status="operational",
             device="cuda",
@@ -94,7 +94,7 @@ class TestAutomationSubsystem(unittest.TestCase):
         self.assertEqual(resp.device, "cuda")
         self.assertIsNone(resp.compute)
 
-        # Extended initialization with compute info
+
         compute_data = ComputeInfo(
             backend="cuda",
             device="cuda:0",
@@ -114,7 +114,7 @@ class TestAutomationSubsystem(unittest.TestCase):
         self.assertEqual(resp_with_compute.compute.backend, "cuda")
 
     def test_force_cpu_device_manager(self):
-        # Force CPU mode
+
         dm_cpu = DeviceManager.get_instance(force_refresh=True, force_cpu=True)
         self.assertEqual(dm_cpu.backend, "cpu")
         self.assertEqual(dm_cpu.device, "cpu")
@@ -127,7 +127,7 @@ class TestAutomationSubsystem(unittest.TestCase):
         self.assertEqual(dm_cpu.resolve_component_device("cuda"), "cpu")
         self.assertEqual(dm_cpu.resolve_component_device("cpu"), "cpu")
 
-        # Restore default auto hardware mode
+
         dm_auto = DeviceManager.get_instance(force_refresh=True, force_cpu=False)
         self.assertIsNotNone(dm_auto.backend)
 
@@ -136,7 +136,7 @@ class TestAutomationSubsystem(unittest.TestCase):
 
         from pipeline.detection.person_detector import PersonDetector
 
-        # Force CPU mode
+
         DeviceManager.get_instance(force_refresh=True, force_cpu=True)
         detector = PersonDetector()
         self.assertEqual(detector.runtime_device, "cpu")
@@ -146,7 +146,7 @@ class TestAutomationSubsystem(unittest.TestCase):
         param_dev = next(detector.model.model.parameters()).device
         self.assertEqual(param_dev.type, "cpu")
 
-        # Restore default auto hardware mode
+
         DeviceManager.get_instance(force_refresh=True, force_cpu=False)
 
     def test_automation_module_getattr(self):

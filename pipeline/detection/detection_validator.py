@@ -116,14 +116,14 @@ class DetectionValidator:
         width = x2 - x1
         height = y2 - y1
 
-        # 1. Coordinates and dimensional bounds
+
         if width <= 0 or height <= 0:
             return False, "DEGENERATE_BBOX_DIMENSIONS"
 
         if width < self.min_width or height < (self.min_height // 2):
             return False, f"SUB_MINIMUM_SIZE_{width}x{height}_LT_{self.min_width}x{self.min_height // 2}"
 
-        # 2. Frame boundaries (if frame shape is provided)
+
         if frame_shape is not None and len(frame_shape) >= 2:
             frame_h, frame_w = int(frame_shape[0]), int(frame_shape[1])
             if (x1 < 0 or y1 < 0 or x2 > frame_w or y2 > frame_h) and (
@@ -131,7 +131,7 @@ class DetectionValidator:
             ):
                 return False, "OUT_OF_BOUNDS_TRUNCATED"
 
-        # 3. Confidence threshold
+
         if float(confidence) < max(0.20, self.min_confidence - 0.10):
             return False, f"LOW_CONFIDENCE_{confidence:.2f}_LT_{self.min_confidence:.2f}"
 
@@ -158,15 +158,15 @@ class DetectionValidator:
         height = max(1, y2 - y1)
         aspect_ratio = float(height) / float(width)
 
-        # Standard upright walking human: 1.0 <= h/w <= 6.0
+
         if self.min_aspect_ratio <= aspect_ratio <= self.max_aspect_ratio:
             return True, "STANDARD_WALKING", True, True, "STANDARD_UPRIGHT_GAIT_ELIGIBLE"
 
-        # Seated / Wheelchair user / Mobility aid (width comparable to or greater than height): 0.4 <= h/w < 1.0
+
         if 0.4 <= aspect_ratio < self.min_aspect_ratio:
             return True, "WHEELCHAIR", False, True, "WHEELCHAIR_SEATED_GAIT_INAPPLICABLE"
 
-        # Extreme non-standard aspect ratio (< 0.4 or > 6.0): Physical detection valid, but both biometrics ineligible
+
         return True, "NON_STANDARD_GAIT", False, False, f"NON_STANDARD_ASPECT_RATIO_{aspect_ratio:.2f}"
 
     def is_valid_detection(

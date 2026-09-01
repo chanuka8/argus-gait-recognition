@@ -111,7 +111,7 @@ class HardwareDetector:
             )
 
         try:
-            # Query GPU Name, Driver Version, Memory Total
+
             cmd = [
                 smi_path,
                 "--query-gpu=name,driver_version,memory.total",
@@ -141,7 +141,7 @@ class HardwareDetector:
             except ValueError:
                 vram_mb = 0.0
 
-            # Query CUDA Driver API version
+
             cuda_driver_ver: str | None = None
             try:
                 smi_banner = subprocess.run(
