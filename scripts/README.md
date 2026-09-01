@@ -23,6 +23,7 @@ This folder contains project maintenance, automation, development, validation, e
 | [build_gallery.py](build_gallery.py) | Utility script for build gallery. | `python scripts/build_gallery.py` |
 | [build_tensorrt_engine.py](build_tensorrt_engine.py) | Build TensorRT engine from ONNX model. | `python scripts/build_tensorrt_engine.py` |
 | [clean_live_gallery.py](clean_live_gallery.py) | Clean contaminated identities from ARGUS live gallery | `python scripts/clean_live_gallery.py` |
+| [cleanup_python_comments.py](cleanup_python_comments.py) | ARGUS AI Developer Cleanup Utility: Python Comments & Docstrings. | `python scripts/cleanup_python_comments.py` |
 | [demo_confidence_scorer.py](demo_confidence_scorer.py) | Utility script for demo confidence scorer. | `python scripts/demo_confidence_scorer.py` |
 | [demo_enrollment.py](demo_enrollment.py) | Utility script for demo enrollment. | `python scripts/demo_enrollment.py` |
 | [demo_events.py](demo_events.py) | Utility script for demo events. | `python scripts/demo_events.py` |
@@ -112,6 +113,7 @@ This folder contains project maintenance, automation, development, validation, e
 | [build_gallery.py](build_gallery.py) | Dataset | No | No | No | No | Utility script for build gallery. |
 | [build_tensorrt_engine.py](build_tensorrt_engine.py) | Conversion | Yes | No | No | No | Build TensorRT engine from ONNX model. |
 | [clean_live_gallery.py](clean_live_gallery.py) | Dataset | Yes | No | No | No | Clean contaminated identities from ARGUS live gallery |
+| [cleanup_python_comments.py](cleanup_python_comments.py) | Development | Yes | No | No | No | ARGUS AI Developer Cleanup Utility: Python Comments & Doc... |
 | [demo_confidence_scorer.py](demo_confidence_scorer.py) | Validation | No | No | No | No | Utility script for demo confidence scorer. |
 | [demo_enrollment.py](demo_enrollment.py) | Validation | No | No | No | No | Utility script for demo enrollment. |
 | [demo_events.py](demo_events.py) | Validation | No | No | No | No | Utility script for demo events. |
@@ -243,6 +245,34 @@ python scripts/build_tensorrt_engine.py --onnx-path models/engines/bygait_light.
 ```bash
 python scripts/clean_live_gallery.py
 python scripts/clean_live_gallery.py --gallery-dir models/live_gallery
+```
+
+</details>
+
+<details>
+<summary><strong>cleanup_python_comments.py</strong> — ARGUS AI Safe Developer Utility for Python Comments & Docstrings Cleanup.</summary>
+
+**Usage**: `python scripts/cleanup_python_comments.py`
+
+| Flag / Argument | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `--audit` | flag | No | None | Audit files and print summary report without modifying anything. |
+| `--check` | flag | No | None | Check if files contain removable comments/docstrings; exits 1 if found, 0 if clean. |
+| `--dry-run` | flag | No | None | Show per-file removal line ranges without modifying files. |
+| `--apply` | flag | No | None | Apply transformations safely to target files with AST and token validation. |
+| `--self-test` | flag | No | None | Run comprehensive built-in test suite on isolated temporary fixtures. |
+| `--path` | str | No | `.` | File or directory path to process (default: current directory). |
+| `--backup` | str | No | None | Optional directory to write original backup files before modifying. |
+| `--no-remove-docstrings` | flag | No | None | Do not remove docstrings (preserve all docstrings). |
+| `--no-remove-comments` | flag | No | None | Do not remove ordinary # comments (preserve comments). |
+| `--include-self` | flag | No | None | Include cleanup_python_comments.py itself during operations. |
+| `-v`, `--verbose` | flag | No | None | Enable detailed verbose output. |
+
+**Examples**:
+
+```bash
+python scripts/cleanup_python_comments.py
+python scripts/cleanup_python_comments.py --audit --check
 ```
 
 </details>
@@ -864,6 +894,7 @@ Development helper scripts run benchmarks, evaluations, training pipelines, and 
 <!-- BEGIN SYNC: DEVELOPMENT_SCRIPTS -->
 - **[analyze_cl_part_similarity.py](analyze_cl_part_similarity.py)**: Utility script for analyze cl part similarity. (`python scripts/analyze_cl_part_similarity.py`)
 - **[analyze_open_set_and_cl.py](analyze_open_set_and_cl.py)**: Utility script for analyze open set and cl. (`python scripts/analyze_open_set_and_cl.py`)
+- **[cleanup_python_comments.py](cleanup_python_comments.py)**: ARGUS AI Developer Cleanup Utility: Python Comments & Docstrings. (`python scripts/cleanup_python_comments.py`)
 - **[diagnose_f1_score.py](diagnose_f1_score.py)**: Utility script for diagnose f1 score. (`python scripts/diagnose_f1_score.py`)
 - **[download_gdrive_osnet.py](download_gdrive_osnet.py)**: Utility script for download gdrive osnet. (`python scripts/download_gdrive_osnet.py`)
 - **[download_osnet_weights.py](download_osnet_weights.py)**: Utility script for download osnet weights. (`python scripts/download_osnet_weights.py`)
@@ -892,6 +923,7 @@ Development helper scripts run benchmarks, evaluations, training pipelines, and 
 | `python scripts/build_gallery.py` | Utility script for build gallery. |
 | `python scripts/build_tensorrt_engine.py` | Build TensorRT engine from ONNX model. |
 | `python scripts/clean_live_gallery.py` | Clean contaminated identities from ARGUS live gallery |
+| `python scripts/cleanup_python_comments.py` | ARGUS AI Developer Cleanup Utility: Python Comments & Docstrings. |
 | `python scripts/demo_confidence_scorer.py` | Utility script for demo confidence scorer. |
 | `python scripts/demo_enrollment.py` | Utility script for demo enrollment. |
 | `python scripts/demo_events.py` | Utility script for demo events. |
@@ -1009,7 +1041,7 @@ flowchart TD
     step4 --> step5
     step6["6. Conversion (4 scripts)"]
     step5 --> step6
-    step7["7. Development (11 scripts)"]
+    step7["7. Development (12 scripts)"]
     step6 --> step7
     step8["8. Deployment (2 scripts)"]
     step7 --> step8
@@ -1033,6 +1065,7 @@ flowchart TD
 | [build_gallery.py](build_gallery.py) | `models/gallery` |
 | [build_tensorrt_engine.py](build_tensorrt_engine.py) | `models/engines/bygait_light_fp16.engine` |
 | [clean_live_gallery.py](clean_live_gallery.py) | `Runtime-determined paths` |
+| [cleanup_python_comments.py](cleanup_python_comments.py) | `Runtime-determined paths` |
 | [demo_confidence_scorer.py](demo_confidence_scorer.py) | `No file modifications` |
 | [demo_enrollment.py](demo_enrollment.py) | `data/new_input/demo_person_001` |
 | [demo_events.py](demo_events.py) | `No file modifications` |
@@ -1115,7 +1148,7 @@ flowchart TD
 | **Environment** | [activate_venv.ps1](activate_venv.ps1), [bootstrap_env.ps1](bootstrap_env.ps1), [download_package.py](download_package.py), [manage_venv.ps1](manage_venv.ps1), [process_runner.py](process_runner.py) |
 | **Git** | [install_git_hooks.py](install_git_hooks.py) |
 | **Read-Only** | [analyze_cl_part_similarity.py](analyze_cl_part_similarity.py), [analyze_open_set_and_cl.py](analyze_open_set_and_cl.py), [benchmark_crowd_performance.py](benchmark_crowd_performance.py), [benchmark_silhouette_segmenters.py](benchmark_silhouette_segmenters.py), [demo_confidence_scorer.py](demo_confidence_scorer.py), [demo_events.py](demo_events.py), [demo_gei.py](demo_gei.py), [demo_security_layer.py](demo_security_layer.py), [demo_silhouette.py](demo_silhouette.py), [demo_streaming_optimization.py](demo_streaming_optimization.py), [detect_environment.py](detect_environment.py), [evaluate_cross_view.py](evaluate_cross_view.py), [evaluate_open_set.py](evaluate_open_set.py), [generate_visualizer_charts.py](generate_visualizer_charts.py), [preprocess_casia.py](preprocess_casia.py), [run_auto_enrollment.py](run_auto_enrollment.py), [run_folder_recognition.py](run_folder_recognition.py), [run_folder_watcher.py](run_folder_watcher.py), [run_gallery_match.py](run_gallery_match.py), [run_inference_pipeline.py](run_inference_pipeline.py), [run_live_gei.py](run_live_gei.py), [run_live_recognition.py](run_live_recognition.py), [run_tracking.py](run_tracking.py), [run_video_recognition.py](run_video_recognition.py), [run_webcam_detection.py](run_webcam_detection.py), [setup_silhouette_model.py](setup_silhouette_model.py), [system_check.py](system_check.py), [train_model.py](train_model.py), [verify_firebase_continual_learning_e2e.py](verify_firebase_continual_learning_e2e.py), [verify_firebase_persistence.py](verify_firebase_persistence.py) |
-| **Repository Modification** | [audit_continual_learning_effectiveness.py](audit_continual_learning_effectiveness.py), [benchmark.py](benchmark.py), [benchmark_inference_backends.py](benchmark_inference_backends.py), [build_gallery.py](build_gallery.py), [build_tensorrt_engine.py](build_tensorrt_engine.py), [clean_live_gallery.py](clean_live_gallery.py), [demo_enrollment.py](demo_enrollment.py), [diagnose_f1_score.py](diagnose_f1_score.py), [doctor.py](doctor.py), [download_gdrive_osnet.py](download_gdrive_osnet.py), [download_osnet_weights.py](download_osnet_weights.py), [evaluate_appearance_recognition.py](evaluate_appearance_recognition.py), [evaluate_dual_modal_recognition.py](evaluate_dual_modal_recognition.py), [evaluate_exp004.py](evaluate_exp004.py), [evaluate_model.py](evaluate_model.py), [evaluate_open_set_threshold_sweep.py](evaluate_open_set_threshold_sweep.py), [evaluate_subject_disjoint.py](evaluate_subject_disjoint.py), [evaluate_threshold_sweep.py](evaluate_threshold_sweep.py), [export_bygait_onnx.py](export_bygait_onnx.py), [export_silhouette_unet_onnx.py](export_silhouette_unet_onnx.py), [extract_casia_skeletons.py](extract_casia_skeletons.py), [f1_threshold_calibration_independent_validation.py](f1_threshold_calibration_independent_validation.py), [migrate_output_layout.py](migrate_output_layout.py), [profile_live_stream_latency.py](profile_live_stream_latency.py), [profile_startup_forensics.py](profile_startup_forensics.py), [remove_gallery_identity.py](remove_gallery_identity.py), [remove_numeric_gallery_identities.py](remove_numeric_gallery_identities.py), [run_ablation_study.py](run_ablation_study.py), [run_exp004_ablations.py](run_exp004_ablations.py), [run_exp006_3d.py](run_exp006_3d.py), [run_exp006_full.py](run_exp006_full.py), [run_exp007_ablations.py](run_exp007_ablations.py), [run_optimization.py](run_optimization.py), [set_gallery_identity_status.py](set_gallery_identity_status.py), [simulate_date_aware_learning.py](simulate_date_aware_learning.py), [smoke_test_deployment.py](smoke_test_deployment.py), [sweep_fine_thresholds.py](sweep_fine_thresholds.py), [validate_appearance_runtime.py](validate_appearance_runtime.py), [validate_continuous_improvement_lifecycle.py](validate_continuous_improvement_lifecycle.py), [validate_live_surveillance.py](validate_live_surveillance.py), [verify_real_nn_learning.py](verify_real_nn_learning.py) |
+| **Repository Modification** | [audit_continual_learning_effectiveness.py](audit_continual_learning_effectiveness.py), [benchmark.py](benchmark.py), [benchmark_inference_backends.py](benchmark_inference_backends.py), [build_gallery.py](build_gallery.py), [build_tensorrt_engine.py](build_tensorrt_engine.py), [clean_live_gallery.py](clean_live_gallery.py), [cleanup_python_comments.py](cleanup_python_comments.py), [demo_enrollment.py](demo_enrollment.py), [diagnose_f1_score.py](diagnose_f1_score.py), [doctor.py](doctor.py), [download_gdrive_osnet.py](download_gdrive_osnet.py), [download_osnet_weights.py](download_osnet_weights.py), [evaluate_appearance_recognition.py](evaluate_appearance_recognition.py), [evaluate_dual_modal_recognition.py](evaluate_dual_modal_recognition.py), [evaluate_exp004.py](evaluate_exp004.py), [evaluate_model.py](evaluate_model.py), [evaluate_open_set_threshold_sweep.py](evaluate_open_set_threshold_sweep.py), [evaluate_subject_disjoint.py](evaluate_subject_disjoint.py), [evaluate_threshold_sweep.py](evaluate_threshold_sweep.py), [export_bygait_onnx.py](export_bygait_onnx.py), [export_silhouette_unet_onnx.py](export_silhouette_unet_onnx.py), [extract_casia_skeletons.py](extract_casia_skeletons.py), [f1_threshold_calibration_independent_validation.py](f1_threshold_calibration_independent_validation.py), [migrate_output_layout.py](migrate_output_layout.py), [profile_live_stream_latency.py](profile_live_stream_latency.py), [profile_startup_forensics.py](profile_startup_forensics.py), [remove_gallery_identity.py](remove_gallery_identity.py), [remove_numeric_gallery_identities.py](remove_numeric_gallery_identities.py), [run_ablation_study.py](run_ablation_study.py), [run_exp004_ablations.py](run_exp004_ablations.py), [run_exp006_3d.py](run_exp006_3d.py), [run_exp006_full.py](run_exp006_full.py), [run_exp007_ablations.py](run_exp007_ablations.py), [run_optimization.py](run_optimization.py), [set_gallery_identity_status.py](set_gallery_identity_status.py), [simulate_date_aware_learning.py](simulate_date_aware_learning.py), [smoke_test_deployment.py](smoke_test_deployment.py), [sweep_fine_thresholds.py](sweep_fine_thresholds.py), [validate_appearance_runtime.py](validate_appearance_runtime.py), [validate_continuous_improvement_lifecycle.py](validate_continuous_improvement_lifecycle.py), [validate_live_surveillance.py](validate_live_surveillance.py), [verify_real_nn_learning.py](verify_real_nn_learning.py) |
 | **Validation** | [test_server_functional_parity.py](test_server_functional_parity.py), [verify_environment.py](verify_environment.py) |
 <!-- END SYNC: SAFETY_CLASSIFICATION -->
 

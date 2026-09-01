@@ -173,7 +173,7 @@ with dynamic weight attenuation based on silhouette quality estimation, camera v
 
 ---
 
-## Missing Person Reference Data Flow vs. Live Continual Learning Flow
+## Missing Person Reference Data Flow vs. Live Operational Evidence
 
 A foundational design rule of ARGUS AI is the strict separation between **User Reference Data** (initial gallery/watchlist targets) and **Live Operational Evidence** (continual learning candidates).
 
@@ -255,7 +255,7 @@ Firebase Persistence (Async Lineage)             (State: TRAINING_ELIGIBLE)
 Every persisted embedding conforms to the canonical `FirebaseEmbeddingDocument` contract (`storage/firebase_embedding_store.py`):
 
 | Conceptual Field | Canonical Dataclass Property | Type | Description |
-|---|---|---|---|
+| :--- | :--- | :--- | :--- |
 | `embedding_id` | `embedding_id` | `str` | Deterministic SHA-256 derived identifier (`emb_{modality}_{person}_{ts}_{hash}`). |
 | `identity_id` | `person_id` | `str` | Unique subject identifier (e.g. `Missing_Person_101`). |
 | `embedding_type` | `modality` | `str` | Modality tag: `"gait"` (256D) or `"appearance"` (512D). |
@@ -265,7 +265,7 @@ Every persisted embedding conforms to the canonical `FirebaseEmbeddingDocument` 
 | `identity_type` | `identity_type` | `str` | `"USER_REFERENCE"` vs `"LIVE_OPERATIONAL"`. |
 | `source_type` | `source_type` | `str` | `"user_reference"`, `"live_surveillance"`, `"enrollment"`. |
 | `operational_state` | `operational_state` | `str` | `"PREDICTED"`, `"VERIFIED"`, `"TRAINING_ELIGIBLE"`, `"TRAINING_CONSUMED"`, `"REFERENCE"`. |
-| `training_eligibility`| `training_eligibility` | `str` | `"NOT_ELIGIBLE"` vs `"ELIGIBLE"`. |
+| `training_eligibility` | `training_eligibility` | `str` | `"NOT_ELIGIBLE"` vs `"ELIGIBLE"`. |
 | `observation_date` | `observation_date` / `capture_date` | `str` | ISO date string (`YYYY-MM-DD`). |
 | `provenance` | `provenance` | `dict` | Camera ID, track ID, confidence, bounding box metadata. |
 | `lineage_id` | `lineage_id` | `str` | Ancestor lineage identifier tracing model and dataset generation. |
