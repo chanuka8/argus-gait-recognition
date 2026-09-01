@@ -13,7 +13,7 @@ The `monitoring` package provides camera health monitoring, process watchdog fai
 
 <!-- BEGIN SYNC: KEY_MODULES -->
 | Module | Purpose |
-|---|---|
+| --- | --- |
 | [camera_monitor.py](camera_monitor.py) | Periodically gathers camera stream stats and writes JSON summaries to `outputs/monitoring/camera_stats/` |
 | [crash_guard.py](crash_guard.py) | Process crash interception and graceful recovery guard |
 | [gpu_tuner.py](gpu_tuner.py) | Monitors CUDA memory utilization and tunes batch allocation parameters |

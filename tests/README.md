@@ -14,7 +14,7 @@ The `tests` package contains unit, integration, and verification tests for valid
 
 <!-- BEGIN SYNC: KEY_MODULES -->
 | Module | Purpose |
-|---|---|
+| --- | --- |
 | [conftest.py](conftest.py) | Pytest root configuration and shared test fixtures |
 | `integration/` | Module/resource file integration/ |
 | [test_audit_verification.py](test_audit_verification.py) | Verifies audit logging, security event logging, and CSV log output |

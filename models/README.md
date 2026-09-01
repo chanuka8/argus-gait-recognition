@@ -13,7 +13,7 @@ The `models` package defines PyTorch neural network architectures, pre-trained w
 
 <!-- BEGIN SYNC: KEY_MODULES -->
 | Module | Purpose |
-|---|---|
+| --- | --- |
 | `active/` | Module/resource file active/ |
 | `appearance_gallery/` | Module/resource file appearance_gallery/ |
 | [architectures/bygait_light.py](architectures/bygait_light.py) | ByGaitLight 3-block lightweight CNN architecture mapping GEIs to 256-dim embeddings |

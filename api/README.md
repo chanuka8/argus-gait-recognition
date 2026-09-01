@@ -13,7 +13,7 @@ The `api` package provides RESTful HTTP endpoints and web server infrastructure 
 
 <!-- BEGIN SYNC: KEY_MODULES -->
 | Module | Purpose |
-|---|---|
+| --- | --- |
 | [routes/enrollment.py](routes/enrollment.py) | HTTP endpoints for target identity enrollment requests |
 | [routes/health.py](routes/health.py) | Module/resource file routes/health.py |
 | [routes/inference.py](routes/inference.py) | HTTP endpoints for model inference and feature extraction triggers |

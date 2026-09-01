@@ -13,7 +13,7 @@ The `streaming` package provides high-throughput video stream ingestion, thread-
 
 <!-- BEGIN SYNC: KEY_MODULES -->
 | Module | Purpose |
-|---|---|
+| --- | --- |
 | [buffer_queue.py](buffer_queue.py) | Thread-safe bounded ring buffer queue with non-blocking put/get operations |
 | [camera_scheduler.py](camera_scheduler.py) | Round-robin and priority scheduler distributing camera stream frame processing |
 | [deployment_readiness.py](deployment_readiness.py) | Phase 5 production deployment readiness, hardware capability discovery, dynamic system profiling, capacity estimation, and admission control |

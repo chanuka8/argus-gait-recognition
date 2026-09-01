@@ -2,7 +2,7 @@
 
 ![ARGUS AI Gait Recognition Banner](assets/github/Gitrepo_profilepic.png)
 
-### AI-Powered Gait Recognition and Surveillance Intelligence System
+## AI-Powered Gait Recognition and Surveillance Intelligence System
 
 ARGUS AI is a modular computer vision and deep learning platform designed for real-time human gait recognition, dual-modal appearance re-identification (ReID), and multi-camera surveillance intelligence. The system extracts biometric walking kinematics from silhouette sequences and appearance features from person crops to perform open-set identity matching, track individuals across camera networks, reconstruct forensic event timelines, and adaptively calibrate through continual learning validation gates.
 
@@ -44,7 +44,8 @@ Built on PyTorch, ONNX Runtime, OpenCV, FastAPI, and React 19, ARGUS AI incorpor
 19. [Troubleshooting Guide](#troubleshooting-guide)
 20. [Current Implementation Status](#current-implementation-status)
 21. [Known Limitations](#known-limitations)
-22. [License & Project Information](#license--project-information)
+22. [License](#license)
+23. [Project Information & Maintainer](#project-information--maintainer)
 
 ---
 
@@ -159,6 +160,7 @@ Downstream Component Binding (YOLO / PyTorch / ONNX / ByGaitLight / OSNet)
 ### Authoritative `DeviceManager` (`automation/device_manager.py`)
 
 `DeviceManager` acts as the single source of truth across the entire system:
+
 * Components resolve their target device by calling `DeviceManager.get_instance().resolve_component_device(requested)`.
 * Requesting `'auto'` or `'cuda'` resolves to `'cuda:0'` when CUDA is available and verified healthy; otherwise, it resolves to `'cpu'`.
 * PyTorch tensor operations, YOLO detection, ByteTrack tracking, ByGaitLight inference, OSNet inference, and ONNX Runtime sessions strictly follow the authoritative device state.
@@ -198,6 +200,7 @@ The bootstrap orchestrator (`automation/bootstrap.py`) performs a deterministic 
 | **12** | `Final Validation` | Generates authoritative environment summary and writes `.venv/argus_env_manifest.json`. |
 
 ### Idempotent Setup Behavior
+
 The bootstrap validates compatibility before performing actions. If the active environment already contains working CUDA PyTorch (`2.5.1+cu121`) and ONNX Runtime (`1.20.0`), it reports `PyTorch installation required: NO` and skips reinstallation.
 
 ---
@@ -292,7 +295,7 @@ Evaluated under a strict subject-disjoint partition: Train `001–062` (6,779 se
 | **Exp-001** (Legacy Non-Disjoint)* | Global (1) | Standard CE | ~0.50 | 86.89%* | 93.96%* | 96.82%* | 91.23%* | 72.64%* | 0.9150 | 16.88% | 36.75% | 0.9913 | Saturated near 1.0 |
 | **EXP-003A** (Disjoint Base) | Global (1) | Standard CE | 0.50 | 52.78% | 67.10% | 85.82% | 53.15% | 19.36% | 0.7499 | 31.95% | 70.49% | 0.7064 | Compressed `[0.208, 0.984]` |
 | **EXP-003B** (HPP Alone) | HPP (4) | Standard CE | 0.50 | 61.43% | 75.63% | 91.55% | 60.55% | 32.18% | 0.8327 | 24.86% | 57.06% | 0.7942 | Compressed `[0.450, 0.995]` |
-| **EXP-003C** (ArcFace Alone)| Global (1) | ArcFace | 0.50 | 59.58% | 73.78% | 91.00% | 61.55% | 26.18% | 0.8314 | 25.64% | 47.20% | 0.9927 | Saturated near 1.0 |
+| **EXP-003C** (ArcFace Alone) | Global (1) | ArcFace | 0.50 | 59.58% | 73.78% | 91.00% | 61.55% | 26.18% | 0.8314 | 25.64% | 47.20% | 0.9927 | Saturated near 1.0 |
 | **EXP-003D** (HPP+ArcFace) | HPP (4) | ArcFace | 0.00 | 69.71% | 80.91% | 96.73% | 72.79% | 39.64% | 0.8470 | 23.49% | 60.84% | 0.5287 | Expanded `[0.211, 0.965]` |
 | **EXP-003E** (Top Candidate) | HPP (4) | ArcFace | **0.25** | **72.63%** | **82.76%** | **97.00%** | **78.26%** | **42.64%** | **0.8776** | **20.46%** | **62.26%** | **0.4906** | **Desaturated `[-0.60, 0.97]`** |
 
@@ -323,6 +326,7 @@ stateDiagram-v2
 > **Lifecycle Invariant**: `STANDBY` is the initial camera state. `FAILED` represents an outcome following an attempted connection, never the default idle state.
 
 ### Ingestion Features
+
 * **Safe Device Probing**: Automatically detects local webcams using DirectShow (`CAP_DSHOW`) and MSMF backends on Windows without relying on hardcoded index `0`.
 * **Runtime Source Detection**: Source type is hidden during `STANDBY` and dynamically updates to `"Webcam"` or `"RTSP"` upon first frame acquisition.
 * **Worker Isolation**: Each camera runs on a dedicated thread with an internal frame buffer, client reference counting, and configurable frame rate throttling (`preview_max_fps`).
@@ -426,7 +430,7 @@ The backend API is implemented in FastAPI (`api/server.py`, `api/v1/router.py`, 
 | `GET` | `/api/v1/cameras/{camera_id}/snapshot` | Single JPEG snapshot of the latest captured video frame. |
 | `POST` | `/api/v1/credentials` | Store encrypted RTSP camera credentials. |
 | `GET` | `/api/v1/credentials` | List accessible credentials with masked password fields. |
-| `DELETE`| `/api/v1/credentials/{id}` | Delete user-owned credential entry. |
+| `DELETE` | `/api/v1/credentials/{id}` | Delete user-owned credential entry. |
 | `POST` | `/api/v1/credentials/{id}/share` | Grant credential access to another user ID. |
 | `POST` | `/api/v1/cameras/{id}/credentials` | Store camera-scoped credential. |
 | `WS` | `/api/v1/ws/recognition` | Real-time WebSocket feed for recognition events. |
@@ -557,6 +561,7 @@ E:\ARGUS_AI
 ## Installation & Windows Setup
 
 ### Prerequisites
+
 * **Python**: 3.11.x (64-bit)
 * **Node.js**: 18.x+ and npm
 * **OS**: Windows 10/11 (AMD64) or Linux (Ubuntu 20.04+)
@@ -586,6 +591,7 @@ powershell -ExecutionPolicy Bypass -File ".\scripts\bootstrap_env.ps1"
 ```
 
 For forced CPU testing:
+
 ```powershell
 powershell -ExecutionPolicy Bypass -File ".\scripts\bootstrap_env.ps1" -ForceCpu
 ```
@@ -733,6 +739,7 @@ This project is licensed under the [MIT License](LICENSE).
 
 **Chanuka Sandun**  
 Undergraduate in Cybersecurity  
-Developer of the ARGUS AI Gait Recognition Framework  
+Developer of the ARGUS AI Gait Recognition Framework
+
 * GitHub: [@chanuka8](https://github.com/chanuka8)  
 * LinkedIn: [linkedin.com/in/chanukasandun](https://www.linkedin.com/in/chanukasandun/)

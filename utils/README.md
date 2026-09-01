@@ -15,7 +15,7 @@ The `utils` package provides general-purpose helpers for bounding box stabilizat
 
 <!-- BEGIN SYNC: KEY_MODULES -->
 | Module | Purpose |
-|---|---|
+| --- | --- |
 | [alert_manager.py](alert_manager.py) | Manages threat alerts, cooldown deduplication, and `outputs/logs/events/alerts.csv` logging |
 | [box_stabilizer.py](box_stabilizer.py) | Exponential Moving Average (EMA) bounding box coordinate stabilizer |
 | [config_validator.py](config_validator.py) | Module/resource file config_validator.py |

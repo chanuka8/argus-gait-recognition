@@ -13,7 +13,7 @@ The `configs` package contains declarative YAML and JSON configuration manifests
 
 <!-- BEGIN SYNC: KEY_MODULES -->
 | Module | Purpose |
-|---|---|
+| --- | --- |
 | [auto_train.yaml](auto_train.yaml) | Automated model re-training trigger rules |
 | [base.yaml](base.yaml) | Base system-wide default settings and path definitions |
 | [cameras.yaml](cameras.yaml) | RTSP and USB camera stream source definitions |

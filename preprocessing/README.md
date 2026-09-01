@@ -14,7 +14,7 @@ The `preprocessing` package handles video frame preprocessing, silhouette extrac
 
 <!-- BEGIN SYNC: KEY_MODULES -->
 | Module | Purpose |
-|---|---|
+| --- | --- |
 | [augmentation.py](augmentation.py) | Data augmentation transformations for GEI images during model training |
 | [casia_extractor.py](casia_extractor.py) | Dataset parser extracting silhouettes and metadata from raw CASIA-B structure |
 | [dataset_builder.py](dataset_builder.py) | Builds train/test dataset splits and pre-computes GEI feature caches |

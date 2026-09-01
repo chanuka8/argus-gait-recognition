@@ -13,7 +13,7 @@ The `security_layer` package implements security event classification, decision 
 
 <!-- BEGIN SYNC: KEY_MODULES -->
 | Module | Purpose |
-|---|---|
+| --- | --- |
 | [credentials.py](credentials.py) | Encryption and credentials storage manager for RTSP stream passwords |
 | [security_engine.py](security_engine.py) | Security rule engine classifying recognition scores into severity decision tiers |
 | [security_logger.py](security_logger.py) | Thread-safe CSV logger persisting security audit events to `outputs/logs/security/security_events.csv` |

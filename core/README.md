@@ -13,7 +13,7 @@ The `core` package provides system initialization, logging setup, process lifecy
 
 <!-- BEGIN SYNC: KEY_MODULES -->
 | Module | Purpose |
-|---|---|
+| --- | --- |
 | [boot.py](boot.py) | Application startup sequence, dependency checks, and environment setup |
 | [config.py](config.py) | Configuration file loader and setting merge utilities |
 | [context.py](context.py) | Thread-safe global system context and runtime state holder |

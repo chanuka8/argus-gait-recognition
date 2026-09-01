@@ -15,7 +15,7 @@ The `evaluation` package implements scientific benchmarks, metrics evaluation, s
 
 <!-- BEGIN SYNC: KEY_MODULES -->
 | Module | Purpose |
-|---|---|
+| --- | --- |
 | [cross_view_evaluator.py](cross_view_evaluator.py) | Evaluates cross-camera view angle invariance across CASIA-B viewing angles |
 | [dataset_split.py](dataset_split.py) | Partitions dataset subjects into subject-disjoint train, gallery, and probe splits |
 | [evaluator.py](evaluator.py) | Core evaluation harness running identification evaluation protocols |

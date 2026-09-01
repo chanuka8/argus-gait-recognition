@@ -14,7 +14,7 @@ The `storage` package manages data persistence, evidence retention policy enforc
 
 <!-- BEGIN SYNC: KEY_MODULES -->
 | Module | Purpose |
-|---|---|
+| --- | --- |
 | [cache_manager.py](cache_manager.py) | General-purpose thread-safe key-value cache manager |
 | [data_manager.py](data_manager.py) | Central storage manager coordinating datasets, evidence, and vector stores |
 | [dataset_loader.py](dataset_loader.py) | Loads GEI image datasets and feature matrix caches from disk |

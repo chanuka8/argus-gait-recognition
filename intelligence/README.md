@@ -14,7 +14,7 @@ The `intelligence` package contains advanced biometric decision logic, open-set 
 
 <!-- BEGIN SYNC: KEY_MODULES -->
 | Module | Purpose |
-|---|---|
+| --- | --- |
 | [accuracy_validation_gate.py](accuracy_validation_gate.py) | Module/resource file accuracy_validation_gate.py |
 | [alert_manager.py](alert_manager.py) | Threat alert throttling and priority alert dispatching |
 | [appearance_embedding.py](appearance_embedding.py) | Feature extractor and embedding generator for person appearance ReID |

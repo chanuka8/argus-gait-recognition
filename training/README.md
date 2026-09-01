@@ -14,7 +14,7 @@ The `training` package handles deep neural network model training, loss function
 
 <!-- BEGIN SYNC: KEY_MODULES -->
 | Module | Purpose |
-|---|---|
+| --- | --- |
 | [callbacks.py](callbacks.py) | Early stopping, model checkpointer, and `TrainingLogger` callbacks |
 | [checkpointer.py](checkpointer.py) | Checkpoint saver and model state dictionary restorer |
 | [dataloader.py](dataloader.py) | PyTorch DataLoader factory supporting balanced identity batch sampling |

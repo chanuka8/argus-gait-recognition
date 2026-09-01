@@ -13,7 +13,7 @@ The `enrollment` package handles target identity registration, gallery database 
 
 <!-- BEGIN SYNC: KEY_MODULES -->
 | Module | Purpose |
-|---|---|
+| --- | --- |
 | [appearance_gallery_updater.py](appearance_gallery_updater.py) | Updates appearance feature embeddings in the enrollment gallery |
 | [auto_enrollment_service.py](auto_enrollment_service.py) | Automated background service for target identity auto-registration |
 | [enrollment_lifecycle.py](enrollment_lifecycle.py) | Module/resource file enrollment_lifecycle.py |

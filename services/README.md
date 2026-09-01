@@ -13,7 +13,7 @@ The `services` package manages persistent system service lifecycle (NSSM Windows
 
 <!-- BEGIN SYNC: KEY_MODULES -->
 | Module | Purpose |
-|---|---|
+| --- | --- |
 | [argus_service.py](argus_service.py) | Main background service entrypoint handling process signals (SIGINT/SIGTERM) and PID tracking |
 | [camera_discovery.py](camera_discovery.py) | Scans local IP subnets to discover active RTSP/USB video stream sources |
 | [camera_manager.py](camera_manager.py) | Central manager coordinating multi-camera workers, stream status, and health metrics |

@@ -13,7 +13,7 @@ The `events` package implements an in-memory publish-subscribe event bus and dis
 
 <!-- BEGIN SYNC: KEY_MODULES -->
 | Module | Purpose |
-|---|---|
+| --- | --- |
 | [dispatcher.py](dispatcher.py) | Asynchronous event dispatcher managing callback execution pools |
 | [event_bus.py](event_bus.py) | Centralized thread-safe event bus for publishing and subscribing to topics |
 | [event_types.py](event_types.py) | Data classes and enum definitions for system, recognition, and alert events |

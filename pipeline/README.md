@@ -13,7 +13,7 @@ The `pipeline` package implements high-level recognition execution pipelines for
 
 <!-- BEGIN SYNC: KEY_MODULES -->
 | Module | Purpose |
-|---|---|
+| --- | --- |
 | [base_pipeline.py](base_pipeline.py) | Abstract base class defining pipeline lifecycle, hook interfaces, and step execution |
 | [cache_engine.py](cache_engine.py) | High-speed feature and silhouette caching engine for pipeline steps |
 | `camera/` | Module/resource file camera/ |

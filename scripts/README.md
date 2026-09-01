@@ -10,7 +10,7 @@ This folder contains project maintenance, automation, development, validation, e
 
 <!-- BEGIN SYNC: KEY_MODULES -->
 | Script | Purpose | Primary Usage |
-|---|---|---|
+| --- | --- | --- |
 | [activate_venv.ps1](activate_venv.ps1) | ARGUS AI - Automatic Python virtual environment activation. | `powershell -ExecutionPolicy Bypass -File scripts/activate_venv.ps1` |
 | [analyze_cl_part_similarity.py](analyze_cl_part_similarity.py) | EXP-004B CL Root Cause Analysis: HPP Part-Level Similarity Investigation. | `python scripts/analyze_cl_part_similarity.py` |
 | [analyze_open_set_and_cl.py](analyze_open_set_and_cl.py) | Utility script for analyze open set and cl. | `python scripts/analyze_open_set_and_cl.py` |
@@ -34,7 +34,7 @@ This folder contains project maintenance, automation, development, validation, e
 | [diagnose_f1_score.py](diagnose_f1_score.py) | Targeted F1 Score Forensic Diagnostic Script for ARGUS AI. | `python scripts/diagnose_f1_score.py` |
 | [doctor.py](doctor.py) | ARGUS AI Non-Destructive Deployment Health Checker CLI (doctor.py). | `python scripts/doctor.py` |
 | [download_gdrive_osnet.py](download_gdrive_osnet.py) | Test downloading Google Drive weights with session cookies and confirmation tokens. | `python scripts/download_gdrive_osnet.py` |
-| [download_osnet_weights.py](download_osnet_weights.py) | Add project root to sys.path | `python scripts/download_osnet_weights.py` |
+| [download_osnet_weights.py](download_osnet_weights.py) | Utility script for download osnet weights. | `python scripts/download_osnet_weights.py` |
 | [download_package.py](download_package.py) | ARGUS AI Real-Time Package & Large File Streaming Downloader. | `python scripts/download_package.py` |
 | [evaluate_appearance_recognition.py](evaluate_appearance_recognition.py) | Evaluation script for appearance recognition. | `python scripts/evaluate_appearance_recognition.py` |
 | [evaluate_cross_view.py](evaluate_cross_view.py) | Evaluate ARGUS Cross-View Gait Recognition Metrics | `python scripts/evaluate_cross_view.py` |
@@ -81,7 +81,7 @@ This folder contains project maintenance, automation, development, validation, e
 | [smoke_test_deployment.py](smoke_test_deployment.py) | Automated Native Deployment Smoke Test for ARGUS AI. | `python scripts/smoke_test_deployment.py` |
 | [start_system.bat](start_system.bat) | System startup launcher script. | `scripts/start_system.bat` |
 | [start_system.sh](start_system.sh) | System startup launcher script. | `scripts/start_system.sh` |
-| [sweep_fine_thresholds.py](sweep_fine_thresholds.py) | Ensure repo root in sys.path | `python scripts/sweep_fine_thresholds.py` |
+| [sweep_fine_thresholds.py](sweep_fine_thresholds.py) | Utility script for sweep fine thresholds. | `python scripts/sweep_fine_thresholds.py` |
 | [sync_folder_readmes.py](sync_folder_readmes.py) | Automated README synchronization script for ARGUS AI package folders. | `python scripts/sync_folder_readmes.py` |
 | [system_check.py](system_check.py) | Environment and dependency verification script. | `python scripts/system_check.py` |
 | [test_server_functional_parity.py](test_server_functional_parity.py) | End-to-End Functional Parity and Regression Test for Optimized ARGUS AI Server. | `pytest scripts/test_server_functional_parity.py` |
@@ -98,7 +98,7 @@ This folder contains project maintenance, automation, development, validation, e
 
 <!-- BEGIN SYNC: SCRIPT_METADATA_TABLE -->
 | Script | Category | CLI | Auto | Used by CI | Used by Hook | Description |
-|---|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- | --- |
 | [activate_venv.ps1](activate_venv.ps1) | Environment | No | Yes | No | No | ARGUS AI - Automatic Python virtual environment activation. |
 | [analyze_cl_part_similarity.py](analyze_cl_part_similarity.py) | Development | No | No | No | No | EXP-004B CL Root Cause Analysis: HPP Part-Level Similarit... |
 | [analyze_open_set_and_cl.py](analyze_open_set_and_cl.py) | Development | No | No | No | No | Utility script for analyze open set and cl. |
@@ -122,7 +122,7 @@ This folder contains project maintenance, automation, development, validation, e
 | [diagnose_f1_score.py](diagnose_f1_score.py) | Development | No | No | No | No | Targeted F1 Score Forensic Diagnostic Script for ARGUS AI. |
 | [doctor.py](doctor.py) | Validation | No | No | No | No | ARGUS AI Non-Destructive Deployment Health Checker CLI (d... |
 | [download_gdrive_osnet.py](download_gdrive_osnet.py) | Development | No | No | No | No | Test downloading Google Drive weights with session cookie... |
-| [download_osnet_weights.py](download_osnet_weights.py) | Development | No | No | No | No | Add project root to sys.path |
+| [download_osnet_weights.py](download_osnet_weights.py) | Development | No | No | No | No | Utility script for download osnet weights. |
 | [download_package.py](download_package.py) | Environment | Yes | No | No | No | ARGUS AI Real-Time Package & Large File Streaming Downloa... |
 | [evaluate_appearance_recognition.py](evaluate_appearance_recognition.py) | Validation | No | No | No | No | Evaluation script for appearance recognition. |
 | [evaluate_cross_view.py](evaluate_cross_view.py) | Validation | Yes | No | No | No | Evaluate ARGUS Cross-View Gait Recognition Metrics |
@@ -169,7 +169,7 @@ This folder contains project maintenance, automation, development, validation, e
 | [smoke_test_deployment.py](smoke_test_deployment.py) | Validation | No | No | No | No | Automated Native Deployment Smoke Test for ARGUS AI. |
 | [start_system.bat](start_system.bat) | Deployment | No | No | No | No | System startup launcher script. |
 | [start_system.sh](start_system.sh) | Deployment | No | No | No | No | System startup launcher script. |
-| [sweep_fine_thresholds.py](sweep_fine_thresholds.py) | Development | No | No | No | No | Ensure repo root in sys.path |
+| [sweep_fine_thresholds.py](sweep_fine_thresholds.py) | Development | No | No | No | No | Utility script for sweep fine thresholds. |
 | [sync_folder_readmes.py](sync_folder_readmes.py) | Documentation | Yes | Yes | Yes | Yes | Automated README synchronization script for ARGUS AI pack... |
 | [system_check.py](system_check.py) | Validation | No | No | No | No | Environment and dependency verification script. |
 | [test_server_functional_parity.py](test_server_functional_parity.py) | Validation | No | No | No | No | End-to-End Functional Parity and Regression Test for Opti... |
@@ -191,7 +191,7 @@ This folder contains project maintenance, automation, development, validation, e
 **Usage**: `python scripts/benchmark_inference_backends.py`
 
 | Flag / Argument | Type | Required | Default | Description |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | `--samples` | int | No | 50 | Number of benchmark iterations |
 | `--device` | str | No | `auto` | Device choice (auto, cpu, cuda) |
 | `--precision` | str | No | `fp32` | Precision (fp32, fp16) |
@@ -212,7 +212,7 @@ python scripts/benchmark_inference_backends.py --samples 50 --device auto
 **Usage**: `python scripts/build_tensorrt_engine.py`
 
 | Flag / Argument | Type | Required | Default | Description |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | `--onnx-path` | str | No | `models/engines/bygait_light.onnx` | Path to ONNX file |
 | `--engine-path` | str | No | `models/engines/bygait_light_fp16.engine` | Output engine path |
 | `--precision` | str | No | `fp16` | Precision mode (choices: fp32, fp16) |
@@ -232,7 +232,7 @@ python scripts/build_tensorrt_engine.py --onnx-path models/engines/bygait_light.
 **Usage**: `python scripts/clean_live_gallery.py`
 
 | Flag / Argument | Type | Required | Default | Description |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | `--gallery-dir` | — | No | `models/live_gallery` | — |
 | `--person-id` | — (repeatable) | Yes | None | Identity to remove. Can be used multiple times. |
 
@@ -251,7 +251,7 @@ python scripts/clean_live_gallery.py --gallery-dir models/live_gallery
 **Usage**: `python scripts/detect_environment.py`
 
 | Flag / Argument | Type | Required | Default | Description |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | `--json` | flag | No | None | Output results in JSON format |
 
 **Examples**:
@@ -269,7 +269,7 @@ python scripts/detect_environment.py --json
 **Usage**: `python scripts/download_package.py`
 
 | Flag / Argument | Type | Required | Default | Description |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | `url` | — | No | None | Download URL |
 | `output` | — | No | None | Destination file path |
 | `--name` | — | No | None | Display package name |
@@ -293,7 +293,7 @@ python scripts/download_package.py
 **Usage**: `python scripts/evaluate_cross_view.py`
 
 | Flag / Argument | Type | Required | Default | Description |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | `--max-images` | int | No | 500 | Max images to evaluate. Default: 500. |
 | `--gallery-ratio` | float | No | 0.5 | Ratio of features to keep in gallery. Default: 0.5. |
 | `--threshold` | float | No | 0.75 | Recognition threshold. Default: 0.75. |
@@ -313,7 +313,7 @@ python scripts/evaluate_cross_view.py --max-images 500 --gallery-ratio 0.5
 **Usage**: `python scripts/evaluate_exp004.py`
 
 | Flag / Argument | Type | Required | Default | Description |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | `--model-path` | — | Yes | None | — |
 | `--output-dir` | — | Yes | None | — |
 | `--gei-root` | — | No | `data/casia_processed/gei` | — |
@@ -334,7 +334,7 @@ python scripts/evaluate_exp004.py
 **Usage**: `python scripts/evaluate_model.py`
 
 | Flag / Argument | Type | Required | Default | Description |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | `--max-images` | int | No | 500 | — |
 | `--gallery-ratio` | float | No | 0.5 | — |
 
@@ -353,7 +353,7 @@ python scripts/evaluate_model.py --max-images 500 --gallery-ratio 0.5
 **Usage**: `python scripts/evaluate_open_set.py`
 
 | Flag / Argument | Type | Required | Default | Description |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | `--max-images` | int | No | 500 | Max images to evaluate. Default: 500. |
 | `--gallery-ratio` | float | No | 0.5 | Ratio of features to keep in gallery for known subjects. Default: 0.5. |
 | `--threshold` | float | No | 0.85 | Rejection threshold. Default: 0.85. |
@@ -375,7 +375,7 @@ python scripts/evaluate_open_set.py --max-images 500 --gallery-ratio 0.5
 **Usage**: `python scripts/evaluate_open_set_threshold_sweep.py`
 
 | Flag / Argument | Type | Required | Default | Description |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | `--max-images` | int | No | 500 | Max images to evaluate per configuration. Default: 500. |
 | `--gallery-ratio` | float | No | 0.5 | Ratio of features to keep in gallery. Default: 0.5. |
 | `--known-ratio` | float | No | 0.6 | Ratio of subjects to treat as known. Default: 0.6. |
@@ -395,7 +395,7 @@ python scripts/evaluate_open_set_threshold_sweep.py --max-images 500 --gallery-r
 **Usage**: `python scripts/evaluate_subject_disjoint.py`
 
 | Flag / Argument | Type | Required | Default | Description |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | `--model-path` | str | No | `runs/exp_001/best_model.pth` | — |
 | `--gei-root` | str | No | `data/casia_processed/gei` | — |
 | `--split-config` | str | No | `configs/subject_split.json` | — |
@@ -417,7 +417,7 @@ python scripts/evaluate_subject_disjoint.py --model-path runs/exp_001/best_model
 **Usage**: `python scripts/evaluate_threshold_sweep.py`
 
 | Flag / Argument | Type | Required | Default | Description |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | `--max-images` | int | No | None | Max test images to process (None for all) |
 | `--gallery-ratio` | float | No | 0.5 | Ratio of features to keep in gallery |
 
@@ -436,7 +436,7 @@ python scripts/evaluate_threshold_sweep.py --gallery-ratio 0.5
 **Usage**: `python scripts/export_bygait_onnx.py`
 
 | Flag / Argument | Type | Required | Default | Description |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | `--model-path` | str | No | `runs/exp_001/best_model.pth` | Path to PyTorch checkpoint |
 | `--output-path` | str | No | `models/engines/bygait_light.onnx` | Output ONNX file path |
 | `--precision` | str | No | `fp32` | Model precision (choices: fp32, fp16) |
@@ -456,7 +456,7 @@ python scripts/export_bygait_onnx.py --model-path runs/exp_001/best_model.pth --
 **Usage**: `python scripts/extract_casia_skeletons.py`
 
 | Flag / Argument | Type | Required | Default | Description |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | `--min-sub` | int | No | 1 | — |
 | `--max-sub` | int | No | 124 | — |
 
@@ -475,7 +475,7 @@ python scripts/extract_casia_skeletons.py --min-sub 1 --max-sub 124
 **Usage**: `python scripts/migrate_output_layout.py`
 
 | Flag / Argument | Type | Required | Default | Description |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | `--dry-run` | flag | No | None | Log movements without executing. |
 | `--outputs-dir` | — | No | `outputs` | Path to outputs directory. |
 
@@ -494,7 +494,7 @@ python scripts/migrate_output_layout.py --dry-run --outputs-dir outputs
 **Usage**: `python scripts/preprocess_casia.py`
 
 | Flag / Argument | Type | Required | Default | Description |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | `--zip` | — | No | `data/casia_b_raw.zip` | Path to CASIA-B ZIP file |
 | `--output` | — | No | `data/casia_processed/gei` | Output directory for generated GEI images |
 | `--min-frames` | int | No | 15 | Minimum frames required to build a GEI |
@@ -515,7 +515,7 @@ python scripts/preprocess_casia.py --zip data/casia_b_raw.zip --output data/casi
 **Usage**: `python scripts/process_runner.py`
 
 | Flag / Argument | Type | Required | Default | Description |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | `--tag` | — | No | None | Prefix tag for output lines (e.g. PIP) |
 | `--cwd` | — | No | None | Working directory |
 | `--timeout` | int | No | None | Timeout in seconds |
@@ -535,7 +535,7 @@ python scripts/process_runner.py
 **Usage**: `python scripts/remove_gallery_identity.py`
 
 | Flag / Argument | Type | Required | Default | Description |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | `--person-id` | — | Yes | None | — |
 | `--gallery-dir` | — | No | `models/live_gallery` | — |
 
@@ -554,7 +554,7 @@ python scripts/remove_gallery_identity.py --gallery-dir models/live_gallery
 **Usage**: `python scripts/remove_numeric_gallery_identities.py`
 
 | Flag / Argument | Type | Required | Default | Description |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | `--dry-run` | flag | No | None | Show what would be removed without saving changes |
 
 **Examples**:
@@ -572,7 +572,7 @@ python scripts/remove_numeric_gallery_identities.py --dry-run
 **Usage**: `python scripts/run_ablation_study.py`
 
 | Flag / Argument | Type | Required | Default | Description |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | `--epochs` | int | No | 25 | — |
 | `--batch-size` | int | No | 16 | — |
 | `--lr` | float | No | 0.0001 | — |
@@ -592,7 +592,7 @@ python scripts/run_ablation_study.py --epochs 25 --batch-size 16
 **Usage**: `python scripts/run_auto_enrollment.py`
 
 | Flag / Argument | Type | Required | Default | Description |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | `--input` | — | No | `data/new_input` | Folder containing person folders for auto enrollment |
 | `--processed` | — | No | `data/auto_enrollment/gei` | Folder used to store generated enrollment GEI images |
 | `--watch` | flag | No | None | Continuously watch for new enrollment data |
@@ -616,7 +616,7 @@ python scripts/run_auto_enrollment.py --input data/new_input --processed data/au
 **Usage**: `python scripts/run_exp004_ablations.py`
 
 | Flag / Argument | Type | Required | Default | Description |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | `--mode` | — | No | `decision` | — (choices: decision, retrain_f, retrain_g, retrain_h, retrain_all, all) |
 
 **Examples**:
@@ -634,7 +634,7 @@ python scripts/run_exp004_ablations.py --mode decision
 **Usage**: `python scripts/run_folder_recognition.py`
 
 | Flag / Argument | Type | Required | Default | Description |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | `--folder` | — | Yes | None | Folder containing GEI images |
 | `--threshold` | float | No | 0.7 | Minimum cosine similarity score required for identity acceptance |
 | `--output` | — | No | None | Optional CSV output path |
@@ -654,7 +654,7 @@ python scripts/run_folder_recognition.py --threshold 0.7
 **Usage**: `python scripts/run_video_recognition.py`
 
 | Flag / Argument | Type | Required | Default | Description |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | `--video` | — | Yes | None | Path to walking video file |
 | `--model` | — | No | `runs/exp_001/best_model.pth` | Path to trained ByGaitLight model checkpoint |
 | `--threshold` | float | No | 0.75 | Minimum cosine similarity score required for identity acceptance |
@@ -681,7 +681,7 @@ python scripts/run_video_recognition.py --model runs/exp_001/best_model.pth
 **Usage**: `python scripts/set_gallery_identity_status.py`
 
 | Flag / Argument | Type | Required | Default | Description |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | `--person-id` | — | Yes | None | — |
 | `--status` | — | Yes | None | — (choices: ACTIVE, DISABLED, ARCHIVED, active, disabled, archived) |
 | `--gallery-dir` | — | No | `models/live_gallery` | — |
@@ -700,7 +700,7 @@ python scripts/set_gallery_identity_status.py
 **Usage**: `python scripts/sync_folder_readmes.py`
 
 | Flag / Argument | Type | Required | Default | Description |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | `--check` | flag | No | None | Check if folder READMEs are synchronized (CI mode). |
 | `--update` | flag | No | None | Update folder README key modules tables. |
 | `--root-dir` | — | No | `.` | Root workspace directory. |
@@ -720,7 +720,7 @@ python scripts/sync_folder_readmes.py --check --update
 **Usage**: `python scripts/train_model.py`
 
 | Flag / Argument | Type | Required | Default | Description |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | `--epochs` | int | No | 25 | — |
 | `--batch-size` | int | No | 16 | — |
 | `--lr` | float | No | 0.0001 | — |
@@ -863,12 +863,12 @@ Development helper scripts run benchmarks, evaluations, training pipelines, and 
 - **[analyze_open_set_and_cl.py](analyze_open_set_and_cl.py)**: Utility script for analyze open set and cl. (`python scripts/analyze_open_set_and_cl.py`)
 - **[diagnose_f1_score.py](diagnose_f1_score.py)**: Targeted F1 Score Forensic Diagnostic Script for ARGUS AI. (`python scripts/diagnose_f1_score.py`)
 - **[download_gdrive_osnet.py](download_gdrive_osnet.py)**: Test downloading Google Drive weights with session cookies and confirmation tokens. (`python scripts/download_gdrive_osnet.py`)
-- **[download_osnet_weights.py](download_osnet_weights.py)**: Add project root to sys.path (`python scripts/download_osnet_weights.py`)
+- **[download_osnet_weights.py](download_osnet_weights.py)**: Utility script for download osnet weights. (`python scripts/download_osnet_weights.py`)
 - **[f1_threshold_calibration_independent_validation.py](f1_threshold_calibration_independent_validation.py)**: ARGUS AI — F1 Threshold Calibration & Independent Validation (`python scripts/f1_threshold_calibration_independent_validation.py`)
 - **[profile_live_stream_latency.py](profile_live_stream_latency.py)**: Forensic Profiler for ARGUS AI Live Camera Stream Startup Latency. (`python scripts/profile_live_stream_latency.py`)
 - **[profile_startup_forensics.py](profile_startup_forensics.py)**: Forensic Startup Profiling for ARGUS AI Backend Server. (`python scripts/profile_startup_forensics.py`)
 - **[setup_silhouette_model.py](setup_silhouette_model.py)**: Silhouette Model Setup and Asset Verification Helper for ARGUS AI. (`python scripts/setup_silhouette_model.py`)
-- **[sweep_fine_thresholds.py](sweep_fine_thresholds.py)**: Ensure repo root in sys.path (`python scripts/sweep_fine_thresholds.py`)
+- **[sweep_fine_thresholds.py](sweep_fine_thresholds.py)**: Utility script for sweep fine thresholds. (`python scripts/sweep_fine_thresholds.py`)
 - **[train_model.py](train_model.py)**: Train ARGUS ByGaitLight model with metric learning (HPP + ArcFace + Triplet). (`python scripts/train_model.py`)
 <!-- END SYNC: DEVELOPMENT_SCRIPTS -->
 
@@ -876,7 +876,7 @@ Development helper scripts run benchmarks, evaluations, training pipelines, and 
 
 <!-- BEGIN SYNC: COMMAND_INDEX -->
 | Command | Description |
-|---|---|
+| --- | --- |
 | `powershell -ExecutionPolicy Bypass -File scripts/activate_venv.ps1` | ARGUS AI - Automatic Python virtual environment activation. |
 | `python scripts/analyze_cl_part_similarity.py` | EXP-004B CL Root Cause Analysis: HPP Part-Level Similarity Investig... |
 | `python scripts/analyze_open_set_and_cl.py` | Utility script for analyze open set and cl. |
@@ -900,7 +900,7 @@ Development helper scripts run benchmarks, evaluations, training pipelines, and 
 | `python scripts/diagnose_f1_score.py` | Targeted F1 Score Forensic Diagnostic Script for ARGUS AI. |
 | `python scripts/doctor.py` | ARGUS AI Non-Destructive Deployment Health Checker CLI (doctor.py). |
 | `python scripts/download_gdrive_osnet.py` | Test downloading Google Drive weights with session cookies and conf... |
-| `python scripts/download_osnet_weights.py` | Add project root to sys.path |
+| `python scripts/download_osnet_weights.py` | Utility script for download osnet weights. |
 | `python scripts/download_package.py` | ARGUS AI Real-Time Package & Large File Streaming Downloader. |
 | `python scripts/evaluate_appearance_recognition.py` | Evaluation script for appearance recognition. |
 | `python scripts/evaluate_cross_view.py` | Evaluate ARGUS Cross-View Gait Recognition Metrics |
@@ -947,7 +947,7 @@ Development helper scripts run benchmarks, evaluations, training pipelines, and 
 | `python scripts/smoke_test_deployment.py` | Automated Native Deployment Smoke Test for ARGUS AI. |
 | `scripts/start_system.bat` | System startup launcher script. |
 | `scripts/start_system.sh` | System startup launcher script. |
-| `python scripts/sweep_fine_thresholds.py` | Ensure repo root in sys.path |
+| `python scripts/sweep_fine_thresholds.py` | Utility script for sweep fine thresholds. |
 | `python scripts/sync_folder_readmes.py` | Automated README synchronization script for ARGUS AI package folders. |
 | `python scripts/system_check.py` | Environment and dependency verification script. |
 | `pytest scripts/test_server_functional_parity.py` | End-to-End Functional Parity and Regression Test for Optimized ARGU... |
@@ -1016,7 +1016,7 @@ flowchart TD
 
 <!-- BEGIN SYNC: CHANGE_IMPACT -->
 | Script | Generated / Modified Outputs |
-|---|---|
+| --- | --- |
 | [activate_venv.ps1](activate_venv.ps1) | `No file modifications` |
 | [analyze_cl_part_similarity.py](analyze_cl_part_similarity.py) | `No file modifications` |
 | [analyze_open_set_and_cl.py](analyze_open_set_and_cl.py) | `No file modifications` |
@@ -1104,7 +1104,7 @@ flowchart TD
 
 <!-- BEGIN SYNC: SAFETY_CLASSIFICATION -->
 | Classification | Scripts |
-|---|---|
+| --- | --- |
 | **Deployment** | [start_system.bat](start_system.bat), [start_system.sh](start_system.sh) |
 | **Documentation** | [sync_folder_readmes.py](sync_folder_readmes.py) |
 | **Environment** | [activate_venv.ps1](activate_venv.ps1), [bootstrap_env.ps1](bootstrap_env.ps1), [download_package.py](download_package.py), [manage_venv.ps1](manage_venv.ps1), [process_runner.py](process_runner.py) |
