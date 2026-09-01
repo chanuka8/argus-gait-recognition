@@ -13,10 +13,6 @@ from monitoring.logging_config import get_logger
 from security_layer.credentials import sanitize_rtsp_url
 
 
-
-
-
-
 @dataclass
 class CPUInfo:
     physical_cores: int = 4

@@ -1,4 +1,3 @@
-
 import threading
 from pathlib import Path
 from typing import Self
@@ -8,8 +7,6 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from torch import nn
-
-
 
 
 class _ConvLayer(nn.Module):

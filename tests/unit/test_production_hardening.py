@@ -30,10 +30,6 @@ from streaming.production_runtime import (
 )
 
 
-
-
-
-
 class TestCameraStateMachine:
     def test_initial_state_is_stopped(self):
         sm = CameraStateMachine()

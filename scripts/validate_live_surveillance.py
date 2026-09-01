@@ -6,7 +6,6 @@ import sys
 import time
 from typing import Any
 
-
 sys.path.insert(0, os.path.abspath("."))
 
 import cv2

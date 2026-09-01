@@ -4,7 +4,6 @@ import sys
 import time
 from pathlib import Path
 
-
 _repo_root = str(Path(__file__).resolve().parent.parent)
 if _repo_root not in sys.path:
     sys.path.insert(0, _repo_root)
@@ -14,10 +13,6 @@ import numpy as np
 import torch
 
 from models.architectures.bygait_light import ByGaitLight
-
-
-
-
 
 BYGAIT_CHECKPOINT = "runs/exp_001/best_model.pth"
 CASIA_GEI_DIR = Path("data/casia_processed/gei")

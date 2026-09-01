@@ -16,10 +16,6 @@ import numpy as np
 from monitoring.logging_config import get_logger
 
 
-
-
-
-
 class CameraState(enum.Enum):
     STOPPED = "STOPPED"
     STARTING = "STARTING"

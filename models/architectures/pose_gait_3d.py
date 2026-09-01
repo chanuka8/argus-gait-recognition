@@ -3,11 +3,6 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-
-
-
-
-
 L_HIP, R_HIP = 11, 12
 L_SHOULDER, R_SHOULDER = 5, 6
 

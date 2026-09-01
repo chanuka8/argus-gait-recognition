@@ -1,4 +1,3 @@
-
 import pytest
 
 from services.camera_source_resolver import CameraSourceResolver
@@ -27,10 +26,6 @@ from streaming.production_runtime import (
     CameraState,
     ProductionSurveillanceRuntime,
 )
-
-
-
-
 
 
 class TestHardwareCapabilityDiscovery:
