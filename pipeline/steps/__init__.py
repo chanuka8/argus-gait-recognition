@@ -1,70 +1,28 @@
-"""ARGUS AI Pipeline Steps Package."""
+"""ARGUS AI Pipeline Steps Package (Lazy Loading)."""
 
-try:
-    from pipeline.steps.centroid_matching_step import CentroidMatchingStep
-except ImportError:
-    CentroidMatchingStep = None
+import importlib
+from typing import Any
 
-try:
-    from pipeline.steps.feature_extraction import FeatureExtractionStep
-except ImportError:
-    FeatureExtractionStep = None
+_STEP_MODULE_MAP = {
+    "CentroidMatchingStep": "pipeline.steps.centroid_matching_step",
+    "FeatureExtractionStep": "pipeline.steps.feature_extraction",
+    "Gait3DStep": "pipeline.steps.gait_3d_step",
+    "LiveGEI": "pipeline.steps.live_gei",
+    "MatchingStep": "pipeline.steps.matching_step",
+    "QualityEstimator": "pipeline.steps.quality_estimator",
+    "ReIDFeatureExtractionStep": "pipeline.steps.reid_feature_extraction",
+    "ReIDMatchingStep": "pipeline.steps.reid_matching_step",
+    "SilhouetteStep": "pipeline.steps.silhouette_step",
+    "TemporalGaitVerifier": "pipeline.steps.temporal_gait_verifier",
+    "TrackingStep": "pipeline.steps.tracking",
+}
 
-try:
-    from pipeline.steps.live_gei import LiveGEI
-except ImportError:
-    LiveGEI = None
 
-try:
-    from pipeline.steps.matching_step import MatchingStep
-except ImportError:
-    MatchingStep = None
+def __getattr__(name: str) -> Any:
+    if name in _STEP_MODULE_MAP:
+        mod = importlib.import_module(_STEP_MODULE_MAP[name])
+        return getattr(mod, name)
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
-try:
-    from pipeline.steps.quality_estimator import QualityEstimator
-except ImportError:
-    QualityEstimator = None
 
-try:
-    from pipeline.steps.reid_feature_extraction import ReIDFeatureExtractionStep
-except ImportError:
-    ReIDFeatureExtractionStep = None
-
-try:
-    from pipeline.steps.reid_matching_step import ReIDMatchingStep
-except ImportError:
-    ReIDMatchingStep = None
-
-try:
-    from pipeline.steps.silhouette_step import SilhouetteStep
-except ImportError:
-    SilhouetteStep = None
-
-try:
-    from pipeline.steps.temporal_gait_verifier import TemporalGaitVerifier
-except ImportError:
-    TemporalGaitVerifier = None
-
-try:
-    from pipeline.steps.gait_3d_step import Gait3DStep
-except ImportError:
-    Gait3DStep = None
-
-try:
-    from pipeline.steps.tracking import TrackingStep
-except ImportError:
-    TrackingStep = None
-
-__all__ = [
-    "CentroidMatchingStep",
-    "FeatureExtractionStep",
-    "Gait3DStep",
-    "LiveGEI",
-    "MatchingStep",
-    "QualityEstimator",
-    "ReIDFeatureExtractionStep",
-    "ReIDMatchingStep",
-    "SilhouetteStep",
-    "TemporalGaitVerifier",
-    "TrackingStep",
-]
+__all__ = list(_STEP_MODULE_MAP.keys())

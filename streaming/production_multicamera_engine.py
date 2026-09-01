@@ -672,6 +672,7 @@ class ProductionMultiCameraEngine:
                                     modality="appearance",
                                     model_name="OSNet-x0.25",
                                     model_version="v1.0.0",
+                                    media_array=getattr(item, "crop", None),
                                     metadata={"bbox": item.bbox},
                                 )
                             except (RuntimeError, ValueError, TypeError, KeyError, OSError) as obs_err:
@@ -716,6 +717,7 @@ class ProductionMultiCameraEngine:
                                         modality="gait",
                                         model_name="ByGaitLight",
                                         model_version="v1.0.0",
+                                        media_array=gei,
                                         metadata={"bbox": bbox},
                                     )
                                 except (RuntimeError, ValueError, TypeError, KeyError, OSError) as gait_obs_err:

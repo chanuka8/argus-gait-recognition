@@ -1,7 +1,10 @@
 import asyncio
+import threading
+import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 import cv2
 import numpy as np
@@ -9,13 +12,7 @@ import yaml
 from fastapi import WebSocket
 
 from core.logger import setup_logger
-from intelligence.open_set_recognizer import OpenSetRecognizer
-from pipeline.detection.person_detector import PersonDetector
-from pipeline.silhouette.extractor import SilhouetteExtractor
-from pipeline.steps.feature_extraction import FeatureExtractionStep
-from pipeline.steps.matching_step import MatchingStep
 from security_layer.credentials import sanitize_rtsp_url
-from services.camera_source_resolver import CameraSourceResolver
 from services.camera_worker import CameraWorker
 from storage.vector_store import VectorStore
 
@@ -47,6 +44,7 @@ class GaitService:
     Unified Single-Instance Gait Recognition Service for ARGUS FastAPI Backend.
     Encapsulates person detection, silhouette extraction (UNet + Otsu fallback),
     ByGaitLight feature encoding, VectorStore matching, camera worker state, and event history.
+    Uses high-performance lazy initialization and background warmup for instant server startup.
     """
 
     def __init__(
@@ -59,51 +57,28 @@ class GaitService:
         self.store = VectorStore(gallery_dir=gallery_dir)
         self.appearance_store = VectorStore(gallery_dir=appearance_gallery_dir)
 
-        try:
-            from intelligence.continuous_improvement_engine import ContinuousImprovementEngine
-            from models.model_registry import ModelRegistry
-            from storage.embedding_database import EmbeddingDatabase
+        # Thread-safe re-entrant lock for lazy model loading
+        self._lock = threading.RLock()
 
-            self.embedding_db = EmbeddingDatabase(
-                gait_gallery_dir=gallery_dir, appearance_gallery_dir=appearance_gallery_dir
-            )
-            self.model_registry = ModelRegistry()
-            self.continuous_engine = ContinuousImprovementEngine(
-                registry=self.model_registry,
-                db=self.embedding_db,
-            )
-        except (ImportError, RuntimeError, ValueError, TypeError, OSError) as init_err:
-            self.logger.warning(f"EmbeddingDatabase / ModelRegistry / ContinuousEngine init deferred: {init_err}")
-            self.embedding_db = None
-            self.model_registry = None
-            self.continuous_engine = None
+        # Lazy component slots
+        self._embedding_db = None
+        self._model_registry = None
+        self._continuous_engine = None
+        self._extractor = None
+        self._matcher = None
+        self._silhouette_extractor = None
+        self._open_set_recognizer = None
+        self._appearance_extractor = None
+        self._appearance_matcher = None
+        self._detector = None
+        self._source_resolver = None
 
-        self.extractor = FeatureExtractionStep()
-        self.matcher = MatchingStep(threshold=0.85)
-        self.silhouette_extractor = SilhouetteExtractor(target_size=(64, 128))
-        self.open_set_recognizer = OpenSetRecognizer()
-
-        try:
-            from intelligence.appearance_embedding import AppearanceEmbeddingExtractor
-            from pipeline.steps.appearance_matching_step import AppearanceMatchingStep
-
-            self.appearance_extractor = AppearanceEmbeddingExtractor(update_interval=8)
-            self.appearance_matcher = AppearanceMatchingStep(threshold=0.60)
-        except (ImportError, RuntimeError, ValueError, TypeError, OSError) as app_init_err:
-            self.logger.warning(f"Appearance components init deferred: {app_init_err}")
-            self.appearance_extractor = None
-            self.appearance_matcher = None
-
-        self.detector = None
-        try:
-            self.detector = PersonDetector()
-        except (ImportError, RuntimeError, ValueError, OSError) as err:
-            self.logger.warning(f"PersonDetector initialization skipped: {err}")
+        self._is_warmed_up = False
+        self._warmup_error: str | None = None
 
         self.ws_manager = WebSocketManager()
         self.events_log: list[dict] = []
         self.active_cameras: dict[str, dict] = {}
-        self.source_resolver = CameraSourceResolver()
         self.camera_workers: dict[str, CameraWorker] = {}
 
         self.stats = {
@@ -117,6 +92,261 @@ class GaitService:
         self.appearance_metadata = {}
 
         self.reload_gallery()
+
+    @property
+    def is_warmed_up(self) -> bool:
+        """Returns True if background model warmup has completed."""
+        return self._is_warmed_up
+
+    @property
+    def extractor(self):
+        if self._extractor is None:
+            with self._lock:
+                if self._extractor is None:
+                    from pipeline.steps.feature_extraction import FeatureExtractionStep
+
+                    self._extractor = FeatureExtractionStep()
+        return self._extractor
+
+    @extractor.setter
+    def extractor(self, value: Any) -> None:
+        self._extractor = value
+
+    @property
+    def matcher(self):
+        if self._matcher is None:
+            with self._lock:
+                if self._matcher is None:
+                    from pipeline.steps.matching_step import MatchingStep
+
+                    self._matcher = MatchingStep(threshold=0.85)
+        return self._matcher
+
+    @matcher.setter
+    def matcher(self, value: Any) -> None:
+        self._matcher = value
+
+    @property
+    def silhouette_extractor(self):
+        if self._silhouette_extractor is None:
+            with self._lock:
+                if self._silhouette_extractor is None:
+                    from pipeline.silhouette.extractor import SilhouetteExtractor
+
+                    self._silhouette_extractor = SilhouetteExtractor(target_size=(64, 128))
+        return self._silhouette_extractor
+
+    @silhouette_extractor.setter
+    def silhouette_extractor(self, value: Any) -> None:
+        self._silhouette_extractor = value
+
+    @property
+    def open_set_recognizer(self):
+        if self._open_set_recognizer is None:
+            with self._lock:
+                if self._open_set_recognizer is None:
+                    from intelligence.open_set_recognizer import OpenSetRecognizer
+
+                    self._open_set_recognizer = OpenSetRecognizer()
+        return self._open_set_recognizer
+
+    @open_set_recognizer.setter
+    def open_set_recognizer(self, value: Any) -> None:
+        self._open_set_recognizer = value
+
+    @property
+    def appearance_extractor(self):
+        if self._appearance_extractor is None:
+            with self._lock:
+                if self._appearance_extractor is None:
+                    try:
+                        from intelligence.appearance_embedding import AppearanceEmbeddingExtractor
+
+                        self._appearance_extractor = AppearanceEmbeddingExtractor(update_interval=8)
+                    except (ImportError, RuntimeError, ValueError, TypeError, OSError) as app_init_err:
+                        self.logger.warning(f"Appearance extractor init deferred: {app_init_err}")
+                        self._appearance_extractor = None
+        return self._appearance_extractor
+
+    @appearance_extractor.setter
+    def appearance_extractor(self, value: Any) -> None:
+        self._appearance_extractor = value
+
+    @property
+    def appearance_matcher(self):
+        if self._appearance_matcher is None:
+            with self._lock:
+                if self._appearance_matcher is None:
+                    try:
+                        from pipeline.steps.appearance_matching_step import AppearanceMatchingStep
+
+                        self._appearance_matcher = AppearanceMatchingStep(threshold=0.60)
+                    except (ImportError, RuntimeError, ValueError, TypeError, OSError) as app_init_err:
+                        self.logger.warning(f"Appearance matcher init deferred: {app_init_err}")
+                        self._appearance_matcher = None
+        return self._appearance_matcher
+
+    @appearance_matcher.setter
+    def appearance_matcher(self, value: Any) -> None:
+        self._appearance_matcher = value
+
+    @property
+    def detector(self):
+        if self._detector is None:
+            with self._lock:
+                if self._detector is None:
+                    try:
+                        from pipeline.detection.person_detector import PersonDetector
+
+                        self._detector = PersonDetector()
+                    except (ImportError, RuntimeError, ValueError, OSError) as err:
+                        self.logger.warning(f"PersonDetector initialization skipped: {err}")
+                        self._detector = None
+        return self._detector
+
+    @detector.setter
+    def detector(self, value: Any) -> None:
+        self._detector = value
+
+    @property
+    def source_resolver(self):
+        if self._source_resolver is None:
+            with self._lock:
+                if self._source_resolver is None:
+                    from services.camera_source_resolver import CameraSourceResolver
+
+                    self._source_resolver = CameraSourceResolver()
+        return self._source_resolver
+
+    @source_resolver.setter
+    def source_resolver(self, value: Any) -> None:
+        self._source_resolver = value
+
+    @property
+    def embedding_db(self):
+        if self._embedding_db is None:
+            with self._lock:
+                if self._embedding_db is None:
+                    try:
+                        from storage.embedding_database import EmbeddingDatabase
+
+                        self._embedding_db = EmbeddingDatabase(
+                            gait_gallery_dir=self.gallery_dir,
+                            appearance_gallery_dir=self.appearance_gallery_dir,
+                        )
+                    except (ImportError, RuntimeError, ValueError, TypeError, OSError) as err:
+                        self.logger.warning(f"EmbeddingDatabase init deferred: {err}")
+                        self._embedding_db = None
+        return self._embedding_db
+
+    @embedding_db.setter
+    def embedding_db(self, value: Any) -> None:
+        self._embedding_db = value
+
+    @property
+    def model_registry(self):
+        if self._model_registry is None:
+            with self._lock:
+                if self._model_registry is None:
+                    try:
+                        from models.model_registry import ModelRegistry
+
+                        self._model_registry = ModelRegistry()
+                    except (ImportError, RuntimeError, ValueError, TypeError, OSError) as err:
+                        self.logger.warning(f"ModelRegistry init deferred: {err}")
+                        self._model_registry = None
+        return self._model_registry
+
+    @model_registry.setter
+    def model_registry(self, value: Any) -> None:
+        self._model_registry = value
+
+    @property
+    def continuous_engine(self):
+        if self._continuous_engine is None:
+            with self._lock:
+                if self._continuous_engine is None:
+                    try:
+                        from intelligence.continuous_improvement_engine import ContinuousImprovementEngine
+
+                        self._continuous_engine = ContinuousImprovementEngine(
+                            registry=self.model_registry,
+                            db=self.embedding_db,
+                        )
+                    except (ImportError, RuntimeError, ValueError, TypeError, OSError) as err:
+                        self.logger.warning(f"ContinuousImprovementEngine init deferred: {err}")
+                        self._continuous_engine = None
+        return self._continuous_engine
+
+    @continuous_engine.setter
+    def continuous_engine(self, value: Any) -> None:
+        self._continuous_engine = value
+
+    def warmup(self) -> dict[str, Any]:
+        """
+        Pre-warms all heavy models and components in a background worker thread.
+        Guarantees that inference requests after warmup execute with zero initial load latency.
+        """
+        with self._lock:
+            if self._is_warmed_up:
+                return {"status": "WARMED_UP", "already_warmed": True}
+
+            self.logger.info("[STARTUP] Beginning background model warmup...")
+            t0 = time.perf_counter()
+            results = {}
+
+            try:
+                _ = self.extractor
+                _ = self.matcher
+                results["bygait_light"] = "READY"
+            except Exception as e:  # noqa: BLE001
+                results["bygait_light"] = f"ERROR: {e}"
+
+            try:
+                _ = self.silhouette_extractor
+                results["silhouette_extractor"] = "READY"
+            except Exception as e:  # noqa: BLE001
+                results["silhouette_extractor"] = f"ERROR: {e}"
+
+            try:
+                _ = self.appearance_extractor
+                _ = self.appearance_matcher
+                results["osnet_appearance"] = "READY"
+            except Exception as e:  # noqa: BLE001
+                results["osnet_appearance"] = f"ERROR: {e}"
+
+            try:
+                _ = self.detector
+                results["person_detector"] = "READY" if self._detector else "DISABLED"
+            except Exception as e:  # noqa: BLE001
+                results["person_detector"] = f"ERROR: {e}"
+
+            try:
+                _ = self.open_set_recognizer
+                _ = self.embedding_db
+                _ = self.model_registry
+                _ = self.continuous_engine
+                results["continual_learning"] = "READY"
+            except Exception as e:  # noqa: BLE001
+                results["continual_learning"] = f"ERROR: {e}"
+
+            dur = time.perf_counter() - t0
+            self._is_warmed_up = True
+            self.logger.info(f"[STARTUP] Background model warmup completed in {dur:.3f}s. Results: {results}")
+            return {"status": "WARMED_UP", "duration": dur, "components": results}
+
+    async def warmup_async(self) -> dict[str, Any]:
+        """Asynchronously triggers model warmup in a thread pool without blocking event loop."""
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(None, self.warmup)
+
+    async def shutdown_async(self) -> None:
+        """Gracefully shut down active camera workers."""
+        for cam_id, worker in list(self.camera_workers.items()):
+            try:
+                worker.stop()
+            except Exception as e:  # noqa: BLE001
+                self.logger.warning(f"Error stopping camera {cam_id}: {e}")
 
     def reload_gallery(self) -> None:
         try:
@@ -449,6 +679,8 @@ class GaitService:
         res_cred_conf = resolution.get("credential_configured", False)
 
         sanitized_source = sanitize_rtsp_url(resolved_source)
+        retained_capture = resolution.get("capture")
+        initial_frame = resolution.get("initial_frame")
 
         camera_defaults = self._load_camera_config()
         worker_cfg = {
@@ -515,6 +747,8 @@ class GaitService:
             inference_pipeline=None,
             detection_processor=None,
             recognition_worker=recognition_worker,
+            existing_capture=retained_capture,
+            initial_frame=initial_frame,
         )
 
         started = worker.start()

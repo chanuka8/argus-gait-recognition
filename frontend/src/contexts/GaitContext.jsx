@@ -89,13 +89,20 @@ export const GaitProvider = ({ children }) => {
 
   const startCamera = async (cameraId, source, location, zoneId) => {
     const res = await gaitApi.startCamera(cameraId, source, location, zoneId);
-    await fetchState();
+    if (res && res.camera_id) {
+      setCameras((prev) => {
+        const filtered = prev.filter((c) => c.camera_id !== res.camera_id);
+        return [...filtered, res];
+      });
+    }
+    fetchState();
     return res;
   };
 
   const stopCamera = async (cameraId) => {
     const res = await gaitApi.stopCamera(cameraId);
-    await fetchState();
+    setCameras((prev) => prev.filter((c) => c.camera_id !== cameraId));
+    fetchState();
     return res;
   };
 

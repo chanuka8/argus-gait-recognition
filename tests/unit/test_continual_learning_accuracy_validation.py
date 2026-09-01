@@ -442,12 +442,13 @@ class TestEndToEndWorkerAccuracyValidation:
             timeout_seconds=60.0,
         )
 
-        # Seed verified observations for 2 identities (4 samples each = 8 total)
+        # Seed verified observations for 2 identities (4 samples each = 8 total) with spatial media
         date_str = "2026-08-31"
         for ident in ["Subject_Alpha", "Subject_Beta"]:
             for i in range(4):
                 vec = np.random.randn(256).astype(np.float32)
                 vec /= np.linalg.norm(vec)
+                gei = np.random.randint(0, 255, size=(64, 128), dtype=np.uint8)
                 obs = collector.record_observation(
                     camera_id=f"cam_{i % 2 + 1}",
                     track_id=100 + i,
@@ -456,6 +457,7 @@ class TestEndToEndWorkerAccuracyValidation:
                     confidence=0.92,
                     modality="gait",
                     observation_date=date_str,
+                    media_array=gei,
                 )
                 collector.verify_observation(obs.observation_id, verified_identity=ident)
 
@@ -500,12 +502,13 @@ class TestEndToEndWorkerAccuracyValidation:
             timeout_seconds=60.0,
         )
 
-        # Seed verified appearance observations (512D) for 2 identities
+        # Seed verified appearance observations (512D) with spatial crops for 2 identities
         date_str = "2026-08-31"
         for ident in ["Subject_Gamma", "Subject_Delta"]:
             for i in range(4):
                 vec = np.random.randn(512).astype(np.float32)
                 vec /= np.linalg.norm(vec)
+                crop = np.random.randint(0, 255, size=(256, 128, 3), dtype=np.uint8)
                 obs = collector.record_observation(
                     camera_id=f"cam_{i % 2 + 1}",
                     track_id=200 + i,
@@ -514,6 +517,7 @@ class TestEndToEndWorkerAccuracyValidation:
                     confidence=0.95,
                     modality="appearance",
                     observation_date=date_str,
+                    media_array=crop,
                 )
                 collector.verify_observation(obs.observation_id, verified_identity=ident)
 

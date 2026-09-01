@@ -3,15 +3,17 @@ import threading
 import time
 from datetime import datetime, timezone
 from queue import Full, Queue
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import cv2
 import numpy as np
 
 from monitoring.logging_config import get_logger
 from security_layer.credentials import sanitize_rtsp_url
-from services.recognition_worker import RecognitionWorker
 from utils.display_renderer import DetectionDisplayRenderer, load_display_config
+
+if TYPE_CHECKING:
+    from services.recognition_worker import RecognitionWorker
 
 
 def normalize_camera_source(source) -> int | str:
@@ -43,8 +45,10 @@ class CameraWorker:
         camera_config: dict,
         inference_pipeline=None,
         detection_processor=None,
-        recognition_worker: RecognitionWorker | None = None,
+        recognition_worker: "RecognitionWorker | None" = None,
         inference_engine: Any | None = None,
+        existing_capture: Any | None = None,
+        initial_frame: np.ndarray | None = None,
     ) -> None:
         self.camera_id = camera_id
         self.config = camera_config
@@ -52,6 +56,8 @@ class CameraWorker:
         self.detection_processor = detection_processor
         self.recognition_worker = recognition_worker
         self.inference_engine = inference_engine
+        self._existing_capture = existing_capture
+        self._initial_frame = initial_frame
 
         self._logger = get_logger(f"camera.{camera_id}")
         self._renderer = DetectionDisplayRenderer(load_display_config())
@@ -87,6 +93,7 @@ class CameraWorker:
         self._thread = None
         self._is_starting = False
         self._stop_event = threading.Event()
+        self._frame_event = threading.Event()
         self._lock = threading.RLock()
 
         self._latest_jpeg: bytes | None = None
@@ -183,6 +190,7 @@ class CameraWorker:
                         self._last_frame_at = iso_now
                         self._last_jpeg_encode_time = now
 
+                self._frame_event.set()
                 self._logger.info(
                     f"Camera {self.camera_id} first frame received after {attempt} attempt(s) "
                     f"({time.monotonic() - (deadline - self._startup_timeout):.1f}s)"
@@ -205,6 +213,56 @@ class CameraWorker:
             source = self._resolve_source()
             safe_source = sanitize_rtsp_url(str(source))
             self._logger.info(f"Opening camera source: {safe_source}")
+
+            # Adopt pre-verified capture handle from source resolution if available
+            if self._existing_capture is not None and getattr(self._existing_capture, "isOpened", lambda: False)():
+                self._capture = self._existing_capture
+                self._existing_capture = None
+                self._logger.info(f"Adopted pre-verified camera capture for: {safe_source}")
+
+                try:
+                    self._capture.set(cv2.CAP_PROP_FRAME_WIDTH, self._width)
+                    self._capture.set(cv2.CAP_PROP_FRAME_HEIGHT, self._height)
+                    if self._target_fps > 0:
+                        self._capture.set(cv2.CAP_PROP_FPS, self._target_fps)
+                except (cv2.error, OSError):
+                    pass
+
+                # If initial frame was already acquired during resolution probe, encode immediately
+                if self._initial_frame is not None and getattr(self._initial_frame, "size", 0) > 0:
+                    init_f = self._initial_frame
+                    self._initial_frame = None
+                    try:
+                        frame_resized = cv2.resize(init_f, (self._width, self._height))
+                        encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), self._jpeg_quality]
+                        success, enc_buf = cv2.imencode(".jpg", frame_resized, encode_param)
+                        now = time.monotonic()
+                        iso_now = datetime.now(timezone.utc).isoformat()
+                        with self._lock:
+                            self.stats["connected"] = True
+                            self._frame_count = 1
+                            self.stats["frames_captured"] = 1
+                            if success and enc_buf is not None:
+                                self._latest_jpeg = enc_buf.tobytes()
+                                self._last_frame_at = iso_now
+                                self._last_jpeg_encode_time = now
+                        self._frame_event.set()
+                        self._logger.info(f"Camera {self.camera_id} connected instantly using pre-verified frame")
+                        return True
+                    except (cv2.error, OSError, ValueError) as enc_err:
+                        self._logger.warning(f"Initial JPEG encode error from pre-verified frame: {enc_err}")
+
+                if not self._wait_for_first_frame(safe_source):
+                    if self._capture is not None:
+                        try:
+                            self._capture.release()
+                        except (RuntimeError, ValueError, TypeError, AttributeError, cv2.error, OSError) as exc:
+                            self._logger.warning(f"Error releasing unstarted camera capture: {exc}")
+                    self._capture = None
+                    return False
+
+                self._logger.info(f"Camera {self.camera_id} connected and ready")
+                return True
 
             if isinstance(source, int) or (isinstance(source, str) and source.isdigit()):
                 dev_idx = int(source)
@@ -267,7 +325,10 @@ class CameraWorker:
         with self._lock:
             cap = self._capture
             self._capture = None
+            self._existing_capture = None
+            self._initial_frame = None
             self.stats["connected"] = False
+            self._frame_event.set()
             if cap is not None:
                 try:
                     cap.release()
@@ -460,6 +521,7 @@ class CameraWorker:
                                 self._latest_jpeg = jpeg_bytes
                                 self._last_frame_at = iso_now
                             self._last_jpeg_encode_time = now
+                            self._frame_event.set()
                     except (cv2.error, OSError, ValueError) as enc_err:
                         self._logger.debug(f"Preview JPEG encode error: {enc_err}")
 
@@ -495,12 +557,20 @@ class CameraWorker:
                 self._close_capture()
                 with self._lock:
                     self._latest_jpeg = self._render_status_frame("CAPTURE ERROR")
+                self._frame_event.set()
 
         self._close_capture()
         self._logger.info("Camera capture loop stopped")
 
     def get_latest_jpeg(self) -> bytes | None:
         """Return the latest encoded JPEG frame bytes safely."""
+        with self._lock:
+            return self._latest_jpeg
+
+    def wait_for_frame(self, timeout: float = 0.5) -> bytes | None:
+        """Wait for the next frame to be encoded and return latest JPEG bytes."""
+        self._frame_event.wait(timeout)
+        self._frame_event.clear()
         with self._lock:
             return self._latest_jpeg
 

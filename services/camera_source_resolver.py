@@ -37,6 +37,7 @@ class CameraSourceResolver:
         self._credential_manager = credential_manager or CredentialManager()
 
         self._reserved_sources: dict[str, str] = {}
+        self._retained_captures: dict[str, tuple[Any, Any]] = {}
 
         self._registered_cameras: list[dict[str, Any]] = []
         self._load_registered_cameras()
@@ -77,6 +78,11 @@ class CameraSourceResolver:
             self._reserved_sources[source_key] = camera_id
             return True
 
+    def pop_retained_capture(self, source_key: str) -> tuple[Any | None, Any | None]:
+        """Atomically retrieve and remove a retained VideoCapture handle and first frame for handover."""
+        with self._lock:
+            return self._retained_captures.pop(source_key, (None, None))
+
     def release_source_by_camera_id(
         self,
         camera_id: str,
@@ -91,6 +97,12 @@ class CameraSourceResolver:
             for source_key, reserved_camera_id in list(self._reserved_sources.items()):
                 if reserved_camera_id == camera_id:
                     del self._reserved_sources[source_key]
+                    retained_cap, _ = self._retained_captures.pop(source_key, (None, None))
+                    if retained_cap is not None:
+                        try:
+                            retained_cap.release()
+                        except (cv2.error, OSError):
+                            pass
 
                     self._logger.info(f"Released source reservation {source_key} for camera {camera_id}")
 
@@ -103,15 +115,22 @@ class CameraSourceResolver:
         with self._lock:
             if source_key in self._reserved_sources:
                 del self._reserved_sources[source_key]
+                retained_cap, _ = self._retained_captures.pop(source_key, (None, None))
+                if retained_cap is not None:
+                    try:
+                        retained_cap.release()
+                    except (cv2.error, OSError):
+                        pass
 
                 self._logger.info(f"Released source reservation {source_key}")
 
-    def probe_usb_webcam(self, device_index: int) -> bool:
+    def probe_usb_webcam(self, device_index: int, retain: bool = False) -> bool:
         """
         Probe whether a local camera (built-in, integrated, or USB) is connected and readable.
 
-        The camera is opened temporarily, tested using one frame, and
-        released safely.
+        If retain is True and the probe succeeds, the open VideoCapture handle and first frame
+        are preserved for single-open handover to CameraWorker. Otherwise, the capture is
+        safely closed.
         """
         source_key = f"usb:{device_index}"
 
@@ -138,7 +157,20 @@ class CameraSourceResolver:
 
             ret, frame = capture.read()
 
-            return bool(ret and frame is not None and frame.size > 0)
+            is_valid = bool(ret and frame is not None and frame.size > 0)
+            if is_valid and retain:
+                with self._lock:
+                    old_cap, _ = self._retained_captures.get(source_key, (None, None))
+                    if old_cap is not None and old_cap != capture:
+                        try:
+                            old_cap.release()
+                        except (cv2.error, OSError):
+                            pass
+                    self._retained_captures[source_key] = (capture, frame)
+                # Keep capture open for worker handover
+                capture = None
+
+            return is_valid
 
         except (cv2.error, OSError, ValueError) as exc:
             self._logger.debug(f"Local camera probe failed for index {device_index}: {exc}")
@@ -152,7 +184,7 @@ class CameraSourceResolver:
                     self._logger.debug(f"Local camera probe release failed for index {device_index}: {exc}")
                 capture = None
 
-    def probe_stream(self, url: str) -> bool:
+    def probe_stream(self, url: str, retain: bool = False) -> bool:
         """
         Probe whether an RTSP or HTTP stream is openable and readable.
 
@@ -175,7 +207,19 @@ class CameraSourceResolver:
 
             ret, frame = capture.read()
 
-            return bool(ret and frame is not None and frame.size > 0)
+            is_valid = bool(ret and frame is not None and frame.size > 0)
+            if is_valid and retain:
+                with self._lock:
+                    old_cap, _ = self._retained_captures.get(source_key, (None, None))
+                    if old_cap is not None and old_cap != capture:
+                        try:
+                            old_cap.release()
+                        except (cv2.error, OSError):
+                            pass
+                    self._retained_captures[source_key] = (capture, frame)
+                capture = None
+
+            return is_valid
 
         except (cv2.error, OSError, ValueError) as exc:
             self._logger.debug(f"Stream probe failed for {safe_url}: {exc}")
@@ -328,11 +372,18 @@ class CameraSourceResolver:
             if self.is_source_reserved(source_key):
                 continue
 
-            if not self.probe_usb_webcam(dev_idx):
+            if not self.probe_usb_webcam(dev_idx, retain=True):
                 continue
+
+            retained_cap, initial_frame = self.pop_retained_capture(source_key)
 
             with self._lock:
                 if source_key in self._reserved_sources:
+                    if retained_cap is not None:
+                        try:
+                            retained_cap.release()
+                        except (cv2.error, OSError):
+                            pass
                     continue
                 self._reserved_sources[source_key] = camera_id
 
@@ -347,6 +398,8 @@ class CameraSourceResolver:
                 "source_key": source_key,
                 "credential_id": None,
                 "credential_configured": False,
+                "capture": retained_cap,
+                "initial_frame": initial_frame,
             }
 
         for cam_cfg in self._registered_cameras:
@@ -383,11 +436,18 @@ class CameraSourceResolver:
             if self.is_source_reserved(source_key):
                 continue
 
-            if not self.probe_stream(internal_url):
+            if not self.probe_stream(internal_url, retain=True):
                 continue
+
+            retained_cap, initial_frame = self.pop_retained_capture(source_key)
 
             with self._lock:
                 if source_key in self._reserved_sources:
+                    if retained_cap is not None:
+                        try:
+                            retained_cap.release()
+                        except (cv2.error, OSError):
+                            pass
                     continue
                 self._reserved_sources[source_key] = camera_id
 
@@ -405,6 +465,8 @@ class CameraSourceResolver:
                 "source_key": source_key,
                 "credential_id": cam_cred_id,
                 "credential_configured": bool(cam_cred_id or clean_pass),
+                "capture": retained_cap,
+                "initial_frame": initial_frame,
             }
 
         raise RuntimeError("Unable to detect camera source: No connected local webcam or reachable RTSP stream found.")

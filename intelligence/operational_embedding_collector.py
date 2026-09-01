@@ -40,6 +40,8 @@ class OperationalObservation:
     created_at: float = field(default_factory=time.time)
     observation_date: str = ""
     metadata: dict[str, Any] = field(default_factory=dict)
+    gei_image: Any | None = None
+    crop_image: Any | None = None
 
     def __post_init__(self) -> None:
         if not self.observation_date:
@@ -51,6 +53,8 @@ class OperationalObservation:
         d["observation_date"] = self.observation_date
         d["model_name"] = self.model_name
         d["model_version"] = self.model_version
+        d.pop("gei_image", None)
+        d.pop("crop_image", None)
         return d
 
     @classmethod
@@ -98,7 +102,15 @@ class OperationalEmbeddingCollector:
         self.max_buffer_size = max_buffer_size
         self.dedup_window_seconds = float(dedup_window_seconds)
         self.dedup_similarity_threshold = float(dedup_similarity_threshold)
-        self.evidence_manager = evidence_manager
+        if evidence_manager is None:
+            try:
+                from intelligence.operational_evidence_manager import OperationalEvidenceManager
+
+                self.evidence_manager = OperationalEvidenceManager()
+            except (ImportError, RuntimeError, OSError):
+                self.evidence_manager = None
+        else:
+            self.evidence_manager = evidence_manager
         self._buffer: list[OperationalObservation] = []
         self._logger = get_logger("operational_collector")
         self._lock = threading.RLock()
@@ -180,9 +192,27 @@ class OperationalEmbeddingCollector:
                                     past_obs.metadata.update(metadata)
                                 return past_obs
 
-            # Auto-infer default model name if not provided
-            if not model_name:
-                model_name = "OSNet-x0.25" if modality == "appearance" else "ByGaitLight"
+            # Enrich metadata with condition and viewpoint tags
+            meta_dict = dict(metadata or {})
+            if "bbox" in meta_dict and isinstance(meta_dict["bbox"], (list, tuple)) and len(meta_dict["bbox"]) >= 4:
+                b = meta_dict["bbox"]
+                bw = max(1.0, float(b[2] - b[0]))
+                bh = max(1.0, float(b[3] - b[1]))
+                ar = round(bh / bw, 2)
+                meta_dict["aspect_ratio"] = ar
+                if ar >= 2.6:
+                    meta_dict.setdefault("viewpoint_class", "frontal")
+                elif ar <= 1.9:
+                    meta_dict.setdefault("viewpoint_class", "profile")
+                else:
+                    meta_dict.setdefault("viewpoint_class", "oblique")
+
+            if media_array is not None and isinstance(media_array, np.ndarray):
+                try:
+                    meta_dict.setdefault("mean_intensity", round(float(np.mean(media_array)), 2))
+                    meta_dict.setdefault("media_shape", list(media_array.shape))
+                except (TypeError, ValueError, AttributeError) as arr_err:
+                    self._logger.debug(f"Could not compute media stats: {arr_err}")
 
             obs = OperationalObservation(
                 observation_id=f"obs_{int(now)}_{uuid.uuid4().hex[:6]}",
@@ -199,7 +229,9 @@ class OperationalEmbeddingCollector:
                 model_version=model_version,
                 created_at=now,
                 observation_date=obs_date,
-                metadata=metadata or {},
+                metadata=meta_dict,
+                gei_image=media_array if modality == "gait" else None,
+                crop_image=media_array if modality == "appearance" else None,
             )
 
             if media_array is not None and self.evidence_manager is not None:
@@ -211,8 +243,8 @@ class OperationalEmbeddingCollector:
                         person_id=predicted_identity,
                         modality=modality,
                         media_array=media_array,
-                        session_id=str(metadata.get("session_id", "") if metadata else ""),
-                        condition_metadata=metadata or {},
+                        session_id=str(meta_dict.get("session_id", "")),
+                        condition_metadata=meta_dict,
                     )
                 except (RuntimeError, ValueError, TypeError, OSError) as ev_err:
                     self._logger.debug(f"Failed to store evidence array: {ev_err}")

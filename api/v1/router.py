@@ -83,19 +83,18 @@ def get_health(
     service: Annotated[GaitService, Depends(get_gait_service)],
 ):
     """Return the health status of the ARGUS gait service."""
+    backend_name = "pytorch"
+    if service._extractor is not None:
+        backend_name = getattr(service._extractor.backend, "backend_name", "pytorch")
 
     return {
         "status": "healthy",
         "system": "ARGUS AI Gait Recognition System",
         "version": "0.1.0",
         "pipeline_loaded": True,
-        "active_backend": getattr(
-            service.extractor.backend,
-            "backend_name",
-            "pytorch",
-        ),
+        "active_backend": backend_name,
         "models": {
-            "person_detector": ("active" if service.detector else "optional"),
+            "person_detector": "active" if service._detector is not None or service._is_warmed_up else "optional",
             "silhouette_extractor": "active",
             "gait_encoder": "active",
         },
@@ -614,9 +613,9 @@ async def stream_camera(
                         b"Content-Type: image/jpeg\r\n"
                         b"Content-Length: " + str(len(jpeg_bytes)).encode() + b"\r\n\r\n" + jpeg_bytes + b"\r\n"
                     )
-                    await asyncio.sleep(0.066)
+                    await asyncio.sleep(0.05)
                 else:
-                    await asyncio.sleep(0.1)
+                    await asyncio.sleep(0.01)
         except (asyncio.CancelledError, GeneratorExit):
             pass
         finally:

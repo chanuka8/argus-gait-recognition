@@ -3,7 +3,6 @@ from pathlib import Path
 
 import numpy as np
 import yaml
-from ultralytics import YOLO
 
 from automation.device_manager import DeviceManager
 from monitoring.logging_config import get_logger
@@ -11,6 +10,8 @@ from monitoring.logging_config import get_logger
 
 class PersonDetector:
     def __init__(self, config_path: str = "configs/detection.yaml") -> None:
+        from ultralytics import YOLO
+
         self.logger = get_logger("detection")
         self.config = self._load_config(config_path)
         self.lock = threading.Lock()

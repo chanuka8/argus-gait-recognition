@@ -492,32 +492,16 @@ class BackgroundLearningWorker:
                 ]
                 self.evidence_manager.lock_manifest_evidence(evidence_ids, manifest.dataset_id)
 
-            # Format training_data and historical_data for NNFineTuner
+            # Format training_data and historical_data for NNFineTuner (GENUINE SPATIAL MEDIA ONLY)
             training_data = []
             for s in train_samples:
-                if s.image_data is not None:
+                if s.image_data is not None and s.training_media_status != "TRAINING_MEDIA_UNAVAILABLE":
                     training_data.append({"image": s.image_data, "label": s.person_id})
-                elif s.training_media_status != "TRAINING_MEDIA_UNAVAILABLE":
-                    vec = np.asarray(s.vector, dtype=np.float32)
-                    if job.model_type == "bygait_light":
-                        img = np.pad(vec.reshape(16, 16), ((24, 24), (24, 24)), mode="edge")
-                    else:
-                        img = np.tile(vec[:384].reshape(128, 3), (2, 1)).astype(np.uint8)
-                        img = np.clip(img * 255, 0, 255).astype(np.uint8)
-                    training_data.append({"image": img, "label": s.person_id})
 
             historical_data = []
             for s in hist_replay:
-                if s.image_data is not None:
+                if s.image_data is not None and s.training_media_status != "TRAINING_MEDIA_UNAVAILABLE":
                     historical_data.append({"image": s.image_data, "label": s.person_id})
-                elif s.training_media_status != "TRAINING_MEDIA_UNAVAILABLE":
-                    vec = np.asarray(s.vector, dtype=np.float32)
-                    if job.model_type == "bygait_light":
-                        img = np.pad(vec.reshape(16, 16), ((24, 24), (24, 24)), mode="edge")
-                    else:
-                        img = np.tile(vec[:384].reshape(128, 3), (2, 1)).astype(np.uint8)
-                        img = np.clip(img * 255, 0, 255).astype(np.uint8)
-                    historical_data.append({"image": img, "label": s.person_id})
 
             if len(training_data) + len(historical_data) < 4:
                 td, hd = self._prepare_nn_training_data(job)
@@ -525,8 +509,8 @@ class BackgroundLearningWorker:
                     training_data, historical_data = td, hd
                 else:
                     raise ValueError(
-                        f"Insufficient NN training samples: {len(training_data)} new + "
-                        f"{len(historical_data)} historical (minimum 4 total)"
+                        f"Insufficient genuine spatial media for NN training: {len(training_data)} new + "
+                        f"{len(historical_data)} historical (minimum 4 total). Synthetic surrogates prohibited by policy."
                     )
 
             # 2. Snapshot ACTIVE production baseline model
@@ -745,31 +729,27 @@ class BackgroundLearningWorker:
             if not ident or ident == "UNKNOWN":
                 continue
 
-            if job.model_type == "bygait_light":
-                if obs.modality == "gait" and hasattr(obs, "gei_image") and obs.gei_image is not None:
-                    training_data.append({"image": obs.gei_image, "label": ident})
-                elif obs.modality == "gait":
-                    # Synthesize from embedding vector as 16x16 image (for testing)
-                    vec = np.asarray(obs.vector, dtype=np.float32)
-                    if vec.size == 256:
-                        img = vec.reshape(16, 16)
-                        img = np.pad(img, ((24, 24), (24, 24)), mode="edge")
-                        training_data.append({"image": img, "label": ident})
-            elif job.model_type == "osnet_reid":
-                if obs.modality == "appearance" and hasattr(obs, "crop_image") and obs.crop_image is not None:
-                    training_data.append({"image": obs.crop_image, "label": ident})
-                elif obs.modality == "appearance":
-                    vec = np.asarray(obs.vector, dtype=np.float32)
-                    if vec.size == 512:
-                        # Synthesize a 256x128x3 placeholder crop from vector
-                        img = np.tile(vec[:384].reshape(128, 3), (2, 1)).astype(np.uint8)
-                        img = np.clip(img * 255, 0, 255).astype(np.uint8)
-                        if img.shape != (256, 128, 3):
-                            import cv2
-                            img = cv2.resize(img, (128, 256))
-                        training_data.append({"image": img, "label": ident})
+            img = None
+            if job.model_type == "bygait_light" and obs.modality == "gait":
+                img = getattr(obs, "gei_image", None)
+                if img is None and self.evidence_manager is not None:
+                    for rec in self.evidence_manager._records.values():
+                        if rec.observation_id == obs.observation_id and rec.modality == "gait":
+                            img = self.evidence_manager.load_evidence(rec.evidence_id)
+                            break
+                if img is not None:
+                    training_data.append({"image": img, "label": ident})
+            elif job.model_type == "osnet_reid" and obs.modality == "appearance":
+                img = getattr(obs, "crop_image", None)
+                if img is None and self.evidence_manager is not None:
+                    for rec in self.evidence_manager._records.values():
+                        if rec.observation_id == obs.observation_id and rec.modality == "appearance":
+                            img = self.evidence_manager.load_evidence(rec.evidence_id)
+                            break
+                if img is not None:
+                    training_data.append({"image": img, "label": ident})
 
-        # Collect historical replay data
+        # Collect historical replay data with genuine media
         for p in self.db.list_all_persons():
             if p.status != "ACTIVE":
                 continue
@@ -778,21 +758,13 @@ class BackgroundLearningWorker:
             for e in embs[:4]:  # Up to 4 historical per identity
                 if e.status != "ACTIVE" or e.observation_date == job.training_date:
                     continue
-                vec = np.asarray(e.vector, dtype=np.float32)
-                if job.model_type == "bygait_light" and vec.size == 256:
-                    img = vec.reshape(16, 16)
-                    img = np.pad(img, ((24, 24), (24, 24)), mode="edge")
-                    historical_data.append({"image": img, "label": ident})
-                elif job.model_type == "osnet_reid" and vec.size == 512:
-                    img = np.tile(vec[:384].reshape(128, 3), (2, 1)).astype(np.uint8)
-                    img = np.clip(img * 255, 0, 255).astype(np.uint8)
-                    if img.shape != (256, 128, 3):
-                        import cv2
-                        img = cv2.resize(img, (128, 256))
-                    historical_data.append({"image": img, "label": ident})
+                # If historical embedding has attached genuine media or reference image
+                h_img = getattr(e, "image_data", None)
+                if h_img is not None:
+                    historical_data.append({"image": h_img, "label": ident})
 
         self._logger.info(
             f"[NN_DATA_PREPARED] type={job.model_type} date={job.training_date} "
-            f"new={len(training_data)} historical={len(historical_data)}"
+            f"genuine_new={len(training_data)} genuine_historical={len(historical_data)}"
         )
         return training_data, historical_data
