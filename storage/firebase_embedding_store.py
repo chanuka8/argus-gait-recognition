@@ -255,6 +255,55 @@ class PersistenceResult:
         return d
 
 
+def validate_service_account_file(file_path: Path | str | None) -> tuple[bool, str, dict[str, str]]:
+    """Safely validate service account JSON file without exposing secret keys.
+
+    Returns:
+        (is_valid, reason, safe_metadata)
+    """
+    if not file_path:
+        return False, "CREDENTIAL_PATH_MISSING", {}
+
+    p = Path(file_path)
+    if not p.exists():
+        return False, f"FILE_NOT_FOUND: '{p.as_posix()}'", {}
+    if not p.is_file():
+        return False, f"NOT_A_FILE: '{p.as_posix()}'", {}
+
+    try:
+        with open(p, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, json.JSONDecodeError, UnicodeDecodeError, ValueError) as exc:
+        return False, f"JSON_PARSE_ERROR: {exc}", {}
+
+    if not isinstance(data, dict):
+        return False, "ROOT_NOT_A_JSON_OBJECT", {}
+
+    sa_type = data.get("type")
+    if sa_type != "service_account":
+        return False, f"INVALID_TYPE: expected 'service_account', got '{sa_type}'", {}
+
+    project_id = data.get("project_id")
+    if not project_id or not isinstance(project_id, str):
+        return False, "MISSING_OR_EMPTY_PROJECT_ID", {}
+
+    private_key = data.get("private_key")
+    if not private_key or not isinstance(private_key, str) or "-----BEGIN PRIVATE KEY-----" not in private_key:
+        return False, "MISSING_OR_MALFORMED_PRIVATE_KEY", {}
+
+    client_email = data.get("client_email")
+    if not client_email or not isinstance(client_email, str) or "@" not in client_email:
+        return False, "MISSING_OR_MALFORMED_CLIENT_EMAIL", {}
+
+    # Public safe metadata only - NEVER contains private_key or access tokens
+    safe_metadata = {
+        "project_id": str(project_id),
+        "client_email": str(client_email),
+        "type": str(sa_type),
+    }
+    return True, "VALID", safe_metadata
+
+
 class FirebaseEmbeddingStore:
     COLLECTION_NAME = "biometric_embeddings"
     PERSONS_COLLECTION = "biometric_persons"
@@ -277,58 +326,129 @@ class FirebaseEmbeddingStore:
         self._lock = threading.RLock()
         self._offline_data: dict[str, Any] = {}
 
+        self.credential_status: str = "MISSING"
+        self.firestore_status: str = "UNINITIALIZED"
+        self.storage_status: str = "UNINITIALIZED"
+        self.project_id: str = "argus-17702"
+        self.client_email: str | None = None
+        self._resolved_cred_path: Path | None = None
+
         if mode == "auto":
-            self.mode = self._detect_mode()
+            self.mode, self._resolved_cred_path = self._detect_mode()
+        elif mode == "live":
+            self.mode = "live"
+            self._resolved_cred_path = self._resolve_credential_path()
         else:
-            self.mode = mode
+            self.mode = "offline"
+            self._resolved_cred_path = None
 
         if self.mode == "live":
             self._initialize_firebase()
         else:
             self._load_offline_store()
             self._logger.info(
-                "[FIREBASE_OFFLINE] Running in offline/mock mode. "
-                "Set FIREBASE_SERVICE_ACCOUNT_PATH or GOOGLE_APPLICATION_CREDENTIALS for live mode."
+                f"[FIREBASE_OFFLINE] Running in offline/mock mode (credential: {self.credential_status}). "
+                "Local inference and offline embedding queue remain fully operational."
             )
 
-    def _detect_mode(self) -> str:
-        cred_path = os.environ.get("FIREBASE_SERVICE_ACCOUNT_PATH") or os.environ.get(
+    def _resolve_credential_path(self) -> Path | None:
+        raw_path = os.environ.get("FIREBASE_SERVICE_ACCOUNT_PATH") or os.environ.get(
             "GOOGLE_APPLICATION_CREDENTIALS"
         )
-        if cred_path and Path(cred_path).exists():
-            return "live"
-        return "offline"
+        if raw_path and raw_path.strip():
+            return Path(raw_path.strip())
+        default_path = Path("config/firebase-service-account.json")
+        if default_path.exists() and default_path.is_file():
+            return default_path
+        return None
+
+    def _detect_mode(self) -> tuple[str, Path | None]:
+        cred_path = self._resolve_credential_path()
+        if not cred_path:
+            self.credential_status = "MISSING"
+            return "offline", None
+
+        is_valid, reason, meta = validate_service_account_file(cred_path)
+        if is_valid:
+            self.credential_status = "FOUND"
+            self.project_id = meta.get("project_id", "argus-17702")
+            self.client_email = meta.get("client_email")
+            return "live", cred_path
+        else:
+            self.credential_status = "INVALID"
+            self._logger.warning(
+                f"[FIREBASE_CREDENTIAL_INVALID] Service account at '{cred_path.as_posix()}' is invalid: {reason}. "
+                "Safely falling back to offline mode."
+            )
+            return "offline", None
 
     def _initialize_firebase(self) -> None:
         try:
-            import firebase_admin
-            from firebase_admin import credentials, firestore, storage
-
-            cred_path = os.environ.get("FIREBASE_SERVICE_ACCOUNT_PATH") or os.environ.get(
-                "GOOGLE_APPLICATION_CREDENTIALS"
-            )
-            if not cred_path or not Path(cred_path).exists():
-                self._logger.warning(
-                    "[FIREBASE_INIT] Credential file not found. Falling back to offline mode."
-                )
+            cred_path = self._resolved_cred_path
+            if not cred_path:
                 self.mode = "offline"
+                self.credential_status = "MISSING"
+                self.firestore_status = "UNINITIALIZED"
+                self.storage_status = "UNINITIALIZED"
                 self._load_offline_store()
                 return
 
+            is_valid, reason, meta = validate_service_account_file(cred_path)
+            if not is_valid:
+                self._logger.warning(
+                    f"[FIREBASE_INIT_SKIPPED] Service account credential validation failed: {reason}. "
+                    "Safely using offline mode."
+                )
+                self.mode = "offline"
+                self.credential_status = "INVALID"
+                self.firestore_status = "UNINITIALIZED"
+                self.storage_status = "UNINITIALIZED"
+                self._load_offline_store()
+                return
+
+            self.project_id = meta.get("project_id", "argus-17702")
+            self.client_email = meta.get("client_email")
+            self.credential_status = "FOUND"
+
+            import firebase_admin
+            from firebase_admin import credentials, firestore, storage
+
             if not firebase_admin._apps:
-                cred = credentials.Certificate(cred_path)
+                cred = credentials.Certificate(str(cred_path))
                 firebase_admin.initialize_app(
                     cred,
-                    {"storageBucket": "argus-17702.firebasestorage.app"},
+                    {
+                        "projectId": self.project_id,
+                        "storageBucket": "argus-17702.firebasestorage.app",
+                    },
+                )
+                self._logger.info(
+                    f"[FIREBASE_LIVE] Firebase Admin SDK initialized for project '{self.project_id}'."
                 )
 
             self._firestore_client = firestore.client()
-            self._storage_bucket = storage.bucket()
-            self._logger.info("[FIREBASE_LIVE] Firebase Admin SDK initialized successfully.")
+            self.firestore_status = "CONNECTED"
+
+            try:
+                self._storage_bucket = storage.bucket()
+                self.storage_status = "CONNECTED"
+            except Exception as s_err:  # noqa: BLE001
+                self._storage_bucket = None
+                self.storage_status = f"UNAVAILABLE ({s_err})"
+                self._logger.warning(f"[FIREBASE_STORAGE_WARNING] Storage bucket unavailable: {s_err}")
+
+            self._logger.info(
+                f"[FIREBASE_STATUS] Mode: LIVE | Project: {self.project_id} | "
+                f"Firestore: {self.firestore_status} | Storage: {self.storage_status}"
+            )
 
         except Exception as err:  # noqa: BLE001
-            self._logger.warning(f"[FIREBASE_INIT_FAILED] {err}. Falling back to offline mode.")
+            self._logger.warning(
+                f"[FIREBASE_INIT_FAILED] {err}. Safely falling back to offline mode. Local inference is unaffected."
+            )
             self.mode = "offline"
+            self.firestore_status = "FAILED"
+            self.storage_status = "FAILED"
             self._load_offline_store()
 
     def check_connection_health(self) -> tuple[bool, dict[str, Any]]:
@@ -337,6 +457,10 @@ class FirebaseEmbeddingStore:
                 return True, {
                     "mode": "offline",
                     "status": "HEALTHY",
+                    "credential": self.credential_status,
+                    "firestore": self.firestore_status,
+                    "storage": self.storage_status,
+                    "project_id": self.project_id,
                     "offline_store_exists": self.offline_store_path.exists(),
                     "total_embeddings": len(self._offline_data.get("embeddings", {})),
                     "total_persons": len(self._offline_data.get("persons", {})),
@@ -346,18 +470,38 @@ class FirebaseEmbeddingStore:
         try:
             t0 = time.time()
             if self._firestore_client is None:
-                return False, {"mode": "live", "status": "UNINITIALIZED", "error": "Firestore client is None"}
+                return False, {
+                    "mode": "live",
+                    "status": "UNINITIALIZED",
+                    "credential": self.credential_status,
+                    "firestore": "UNINITIALIZED",
+                    "storage": self.storage_status,
+                    "project_id": self.project_id,
+                    "error": "Firestore client is None",
+                }
             # Lightweight health query
             _ = list(self._firestore_client.collection(self.COLLECTION_NAME).limit(1).stream())
             latency_ms = round((time.time() - t0) * 1000, 2)
             return True, {
                 "mode": "live",
                 "status": "HEALTHY",
+                "credential": "FOUND",
+                "firestore": "CONNECTED",
+                "storage": self.storage_status,
+                "project_id": self.project_id,
                 "latency_ms": latency_ms,
                 "retry_queue_size": len(self._retry_queue),
             }
         except Exception as err:  # noqa: BLE001
-            return False, {"mode": "live", "status": "UNHEALTHY", "error": str(err)}
+            return False, {
+                "mode": "live",
+                "status": "UNHEALTHY",
+                "credential": self.credential_status,
+                "firestore": "FAILED",
+                "storage": self.storage_status,
+                "project_id": self.project_id,
+                "error": str(err),
+            }
 
     def _load_offline_store(self) -> None:
         with self._lock:

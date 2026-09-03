@@ -23,9 +23,6 @@ from pipeline.detection.person_detector import PersonDetector
 from pipeline.steps.feature_extraction import FeatureExtractionStep
 
 
-
-
-
 def compute_map_minp(similarity_matrix: np.ndarray, query_labels: list[str], gallery_labels: list[str]) -> tuple[float, float]:
     num_queries = len(query_labels)
     gallery_labels_arr = np.array(gallery_labels)

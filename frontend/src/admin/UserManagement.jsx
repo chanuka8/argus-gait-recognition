@@ -3,9 +3,10 @@ import { UserPlus, Search, ToggleLeft, ToggleRight, Trash2, X, Camera, Eye, EyeO
 import AdminHeader from './AdminHeader';
 import { db, storage } from '../firebaseConfig';
 import { useAuth } from '../hooks/useAuth';
-import { collection, getDocs, doc, getDoc, setDoc, deleteDoc, updateDoc, query, where } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import { addLog } from '../utils/logService';
+import { API_BASE, getAuthHeaders } from '../config/apiConfig';
 import './UserManagement.css';
 
 const validatePassword = (password) => {
@@ -208,28 +209,31 @@ const UserManagement = () => {
                 finalImageUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${finalUsername}`;
             }
 
-            const roleLower = newRole.toLowerCase();
-            const targetCollection = (roleLower === 'admin' || roleLower === 'root admin') ? 'admins' : 'investigators';
-            const docId = finalUsername;
+            const createRes = await fetch(`${API_BASE}/api/v1/auth/admin/users`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...getAuthHeaders(),
+                },
+                body: JSON.stringify({
+                    username: finalUsername,
+                    password: newPassword,
+                    role: newRole,
+                    name: newName,
+                    nic: newNic,
+                    image: finalImageUrl,
+                }),
+            });
 
-            const docRef = doc(db, targetCollection, docId);
-            const newDocData = {
-                name: newName,
-                username: finalUsername,
-                password: newPassword,
-                nic: newNic,
-                image: finalImageUrl,
-                role: roleLower,
-                status: 'Active',
-                lastLogin: 'Never'
-            };
-
-            await setDoc(docRef, newDocData);
+            if (!createRes.ok) {
+                const err = await createRes.json().catch(() => ({}));
+                throw new Error(err.detail || 'Failed to create operator account');
+            }
 
             setUsers(prev => [
                 ...prev,
                 {
-                    id: docId,
+                    id: finalUsername,
                     name: newName,
                     username: finalUsername,
                     role: newRole,
@@ -325,46 +329,26 @@ const UserManagement = () => {
                 }
             }
 
-            const roleLower = newRole.toLowerCase();
-            const targetCollection = (roleLower === 'admin' || roleLower === 'root admin') ? 'admins' : 'investigators';
-
-            const oldRoleLower = editingUser.role.toLowerCase();
-            const roleChanged = (oldRoleLower === 'admin' || oldRoleLower === 'root admin') !== (roleLower === 'admin' || roleLower === 'root admin');
-
             const docId = editingUser.id;
 
-            const updatedData = {
-                name: newName,
-                username: editingUser.username,
-                nic: newNic,
-                image: finalImageUrl,
-                role: roleLower,
-                status: editingUser.status || 'Active',
-                lastLogin: editingUser.lastLogin || 'Never'
-            };
+            const updateRes = await fetch(`${API_BASE}/api/v1/auth/admin/users/${encodeURIComponent(editingUser.username)}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...getAuthHeaders(),
+                },
+                body: JSON.stringify({
+                    role: newRole,
+                    name: newName,
+                    nic: newNic,
+                    image: finalImageUrl,
+                    password: newPassword.trim() ? newPassword : null,
+                }),
+            });
 
-            if (newPassword.trim()) {
-                updatedData.password = newPassword;
-            } else {
-                const oldCollection = (oldRoleLower === 'admin' || oldRoleLower === 'root admin') ? 'admins' : 'investigators';
-                const oldDocRef = doc(db, oldCollection, docId);
-                const oldDocSnap = await getDoc(oldDocRef);
-                if (oldDocSnap.exists()) {
-                    updatedData.password = oldDocSnap.data().password;
-                } else {
-                    updatedData.password = '';
-                }
-            }
-
-            if (roleChanged) {
-                const oldDocRef = doc(db, (oldRoleLower === 'admin' || oldRoleLower === 'root admin') ? 'admins' : 'investigators', docId);
-                await deleteDoc(oldDocRef);
-
-                const newDocRef = doc(db, targetCollection, docId);
-                await setDoc(newDocRef, updatedData);
-            } else {
-                const docRef = doc(db, targetCollection, docId);
-                await setDoc(docRef, updatedData);
+            if (!updateRes.ok) {
+                const err = await updateRes.json().catch(() => ({}));
+                throw new Error(err.detail || 'Failed to update operator account');
             }
 
             setUsers(prev => prev.map(u =>
@@ -466,31 +450,37 @@ const UserManagement = () => {
         setIsAuthorizing(true);
 
         try {
-            const adminQuery = query(
-                collection(db, 'admins'),
-                where('username', '==', currentUser?.username || '')
-            );
-            const querySnapshot = await getDocs(adminQuery);
+            const verifyRes = await fetch(`${API_BASE}/api/v1/auth/verify-password`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...getAuthHeaders(),
+                },
+                body: JSON.stringify({ password: confirmPassword }),
+            });
 
-            if (querySnapshot.empty) {
-                setPasswordError('Administrator credentials record not found in system database.');
-                setIsAuthorizing(false);
-                return;
-            }
-
-            const adminDoc = querySnapshot.docs[0];
-            const correctPassword = adminDoc.data().password;
-            if (confirmPassword !== correctPassword) {
+            if (!verifyRes.ok) {
                 setPasswordError('Incorrect password. Authorization failed.');
                 setIsAuthorizing(false);
                 return;
             }
 
-            const role = deletingOperator.role;
-            const targetCollection = (role.toLowerCase() === 'admin' || role.toLowerCase() === 'root admin') ? 'admins' : 'investigators';
-            
-            const docRef = doc(db, targetCollection, deletingOperator.id);
-            await deleteDoc(docRef);
+            const verifyData = await verifyRes.json();
+            if (!verifyData.valid) {
+                setPasswordError('Incorrect password. Authorization failed.');
+                setIsAuthorizing(false);
+                return;
+            }
+
+            const deleteRes = await fetch(`${API_BASE}/api/v1/auth/admin/users/${encodeURIComponent(deletingOperator.username)}`, {
+                method: 'DELETE',
+                headers: getAuthHeaders(),
+            });
+
+            if (!deleteRes.ok) {
+                const err = await deleteRes.json().catch(() => ({}));
+                throw new Error(err.detail || 'Failed to delete operator account');
+            }
 
             setUsers(users.filter(u => u.id !== deletingOperator.id));
 
@@ -504,7 +494,7 @@ const UserManagement = () => {
                 }
             }
 
-            addLog('critical', `Operator ${deletingOperator.username} removed from system`, `Operator account ${deletingOperator.username} (${role}) was permanently deleted by administrator.`, currentUser.username);
+            addLog('critical', `Operator ${deletingOperator.username} removed from system`, `Operator account ${deletingOperator.username} (${deletingOperator.role || 'Operator'}) was permanently deleted by administrator.`, currentUser.username);
 
             setIsDeleteSuccess(true);
 

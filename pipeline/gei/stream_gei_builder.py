@@ -21,6 +21,7 @@ class StreamGEIBuilder:
         self.target_size = (int(target_size_cfg[0]), int(target_size_cfg[1]))
 
         self.track_buffers: dict[int, list[np.ndarray]] = {}
+        self.track_sums: dict[int, np.ndarray] = {}
         self.last_updated: dict[int, float] = {}
 
     @staticmethod
@@ -48,20 +49,28 @@ class StreamGEIBuilder:
         if silhouette is None or silhouette.size == 0:
             return
 
-        resized = cv2.resize(silhouette, self.target_size)
-        normalized = (resized > 0).astype(np.float32)
+        expected_shape = (self.target_size[1], self.target_size[0])
+        if silhouette.shape[:2] == expected_shape:
+            resized = silhouette
+        else:
+            resized = cv2.resize(silhouette, self.target_size, interpolation=cv2.INTER_NEAREST)
 
+        normalized = (resized > 0).astype(np.float32, copy=False)
         now = time.monotonic()
 
         with self.lock:
             if track_id not in self.track_buffers:
                 self.track_buffers[track_id] = []
+                self.track_sums[track_id] = normalized.copy()
+            else:
+                self.track_sums[track_id] += normalized
 
             buffer = self.track_buffers[track_id]
             buffer.append(normalized)
 
             if len(buffer) > self.max_frames:
-                buffer.pop(0)
+                old = buffer.pop(0)
+                self.track_sums[track_id] -= old
 
             self.last_updated[track_id] = now
 
@@ -73,13 +82,18 @@ class StreamGEIBuilder:
     def build_gei(self, track_id: int) -> np.ndarray | None:
         with self.lock:
             buffer = self.track_buffers.get(track_id, [])
+            count = len(buffer)
 
-            if len(buffer) < self.min_frames:
+            if count < self.min_frames:
                 return None
 
-            gei_mean = np.mean(buffer, axis=0)
-            gei_uint8 = (gei_mean * 255.0).astype(np.uint8)
+            running_sum = self.track_sums.get(track_id)
+            if running_sum is None:
+                return None
 
+            # O(1) running sum division
+            gei_mean = running_sum / count
+            gei_uint8 = np.clip(gei_mean * 255.0, 0, 255).astype(np.uint8)
             return gei_uint8
 
     def get_frame_count(self, track_id: int) -> int:
@@ -89,6 +103,7 @@ class StreamGEIBuilder:
     def clear_track(self, track_id: int) -> None:
         with self.lock:
             self.track_buffers.pop(track_id, None)
+            self.track_sums.pop(track_id, None)
             self.last_updated.pop(track_id, None)
 
     def cleanup_inactive(self, max_idle_seconds: float = 10.0) -> list[int]:
@@ -99,6 +114,7 @@ class StreamGEIBuilder:
             for track_id, last_ts in list(self.last_updated.items()):
                 if now - last_ts > max_idle_seconds:
                     self.track_buffers.pop(track_id, None)
+                    self.track_sums.pop(track_id, None)
                     self.last_updated.pop(track_id, None)
                     removed.append(track_id)
 

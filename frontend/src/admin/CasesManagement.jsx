@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Search, Trash2, Briefcase, X, Eye, EyeOff } from 'lucide-react';
 import AdminHeader from './AdminHeader';
 import { db, storage } from '../firebaseConfig';
-import { collection, getDocs, doc, getDoc, deleteDoc, query, where } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, deleteDoc } from 'firebase/firestore';
 import { ref, deleteObject } from 'firebase/storage';
 import { useAuth } from '../hooks/useAuth';
 import { addLog } from '../utils/logService';
+import { API_BASE, getAuthHeaders } from '../config/apiConfig';
 import './CasesManagement.css';
 
 const CasesManagement = () => {
@@ -75,21 +76,23 @@ const CasesManagement = () => {
         setIsAuthorizing(true);
 
         try {
-            const adminQuery = query(
-                collection(db, 'admins'),
-                where('username', '==', currentUser?.username || '')
-            );
-            const querySnapshot = await getDocs(adminQuery);
+            const verifyRes = await fetch(`${API_BASE}/api/v1/auth/verify-password`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...getAuthHeaders(),
+                },
+                body: JSON.stringify({ password: confirmPassword }),
+            });
 
-            if (querySnapshot.empty) {
-                setPasswordError('Administrator credentials record not found in system database.');
+            if (!verifyRes.ok) {
+                setPasswordError('Incorrect password. Authorization failed.');
                 setIsAuthorizing(false);
                 return;
             }
 
-            const adminDoc = querySnapshot.docs[0];
-            const correctPassword = adminDoc.data().password;
-            if (confirmPassword !== correctPassword) {
+            const verifyData = await verifyRes.json();
+            if (!verifyData.valid) {
                 setPasswordError('Incorrect password. Authorization failed.');
                 setIsAuthorizing(false);
                 return;

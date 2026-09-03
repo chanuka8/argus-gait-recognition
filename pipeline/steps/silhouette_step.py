@@ -208,9 +208,10 @@ class SilhouetteStep:
         canvas[y_offset : y_offset + target_h, x_offset : x_offset + new_w] = resized_silhouette
         return canvas
 
-    @staticmethod
-    def _clean_mask(mask: np.ndarray) -> np.ndarray:
-        kernel = np.ones((3, 3), np.uint8)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=1)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=2)
-        return mask
+    _KERNEL_3X3 = np.ones((3, 3), np.uint8)
+
+    @classmethod
+    def _clean_mask(cls, mask: np.ndarray) -> np.ndarray:
+        cleaned = cv2.morphologyEx(mask, cv2.MORPH_OPEN, cls._KERNEL_3X3, iterations=1)
+        cleaned = cv2.morphologyEx(cleaned, cv2.MORPH_CLOSE, cls._KERNEL_3X3, iterations=2)
+        return cleaned

@@ -37,3 +37,50 @@ def security_log_path():
 @pytest.fixture
 def benchmark_report_path():
     return PROJECT_ROOT / "outputs" / "reports" / "benchmark" / "benchmark_report.json"
+
+
+@pytest.fixture(autouse=True)
+def setup_test_auth_headers(request, monkeypatch):
+    """Provide valid admin session token to non-security test clients so regression tests pass."""
+    fspath = str(getattr(request, "fspath", "")).replace("\\", "/")
+    if "tests/security" in fspath:
+        return
+
+    from fastapi.testclient import TestClient
+
+    from security_layer.auth import get_session_store
+
+    session = get_session_store().create_session(
+        operator_id="test_admin_auto",
+        username="test_admin_auto",
+        role="admin",
+    )
+    admin_auth = f"Bearer {session.token}"
+
+    original_request = TestClient.request
+
+    def authenticated_request(self, method, url, *args, **kwargs):
+        headers = kwargs.get("headers")
+        if headers is None:
+            kwargs["headers"] = {"Authorization": admin_auth}
+        elif isinstance(headers, dict) and "Authorization" not in headers:
+            kwargs["headers"] = {"Authorization": admin_auth, **headers}
+        return original_request(self, method, url, *args, **kwargs)
+
+    monkeypatch.setattr(TestClient, "request", authenticated_request)
+
+
+@pytest.fixture(autouse=True)
+def isolate_operator_storage(tmp_path, monkeypatch):
+    """Hermetically isolate operator store in all tests to prevent mutating production/offline disk files."""
+    monkeypatch.setenv("ARGUS_OPERATOR_STORE_MODE", "offline")
+    from security_layer.auth import get_operator_store
+
+    op_store = get_operator_store()
+    orig_path = op_store.offline_store_path
+    isolated_file = tmp_path / "test_operator_store.json"
+    op_store.offline_store_path = isolated_file
+    try:
+        yield isolated_file
+    finally:
+        op_store.offline_store_path = orig_path

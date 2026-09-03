@@ -153,3 +153,39 @@ class IdentifyRequest(BaseModel):
 class IdentifyResponse(BaseModel):
     identity: str
     score: float
+
+
+class ReferenceVideoUploadResponse(BaseModel):
+    job_id: str
+    person_id: str
+    status: str
+    message: str
+    created_at: float
+
+
+class ReferenceJobProgressSchema(BaseModel):
+    stage: str = "QUEUED"
+    total_frames: int = 0
+    frames_processed: int = 0
+    fps: float = 0.0
+    tracks_detected: int = 0
+    selected_track_id: int | None = None
+    valid_silhouettes: int = 0
+    valid_sequences: int = 0
+    embeddings_generated: int = 0
+    embeddings_deduplicated: int = 0
+    embeddings_committed: int = 0
+
+
+class ReferenceJobStatusResponse(BaseModel):
+    job_id: str
+    person_id: str
+    case_id: str = ""
+    status: str
+    created_at: float
+    started_at: float | None = None
+    completed_at: float | None = None
+    progress: ReferenceJobProgressSchema = Field(default_factory=ReferenceJobProgressSchema)
+    result: dict = Field(default_factory=dict)
+    error_message: str | None = None
+    diagnostic_code: str | None = None

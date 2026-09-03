@@ -15,10 +15,14 @@ This folder contains project maintenance, automation, development, validation, e
 | [analyze_cl_part_similarity.py](analyze_cl_part_similarity.py) | Utility script for analyze cl part similarity. | `python scripts/analyze_cl_part_similarity.py` |
 | [analyze_open_set_and_cl.py](analyze_open_set_and_cl.py) | Utility script for analyze open set and cl. | `python scripts/analyze_open_set_and_cl.py` |
 | [audit_continual_learning_effectiveness.py](audit_continual_learning_effectiveness.py) | Utility script for audit continual learning effectiveness. | `python scripts/audit_continual_learning_effectiveness.py` |
+| [audit_gpu_validation.py](audit_gpu_validation.py) | ARGUS AI — Complete GPU Validation Audit | `python scripts/audit_gpu_validation.py` |
 | [benchmark.py](benchmark.py) | Performance benchmark script for benchmark. | `python scripts/benchmark.py` |
+| [benchmark_baseline_performance.py](benchmark_baseline_performance.py) | ARGUS AI Benchmark Suite | `python scripts/benchmark_baseline_performance.py` |
 | [benchmark_crowd_performance.py](benchmark_crowd_performance.py) | Performance benchmark script for benchmark crowd performance. | `python scripts/benchmark_crowd_performance.py` |
 | [benchmark_inference_backends.py](benchmark_inference_backends.py) | Benchmark ARGUS inference backends. | `python scripts/benchmark_inference_backends.py` |
+| [benchmark_reference_processor.py](benchmark_reference_processor.py) | Ensure project root is in sys.path when executed directly as a script | `python scripts/benchmark_reference_processor.py` |
 | [benchmark_silhouette_segmenters.py](benchmark_silhouette_segmenters.py) | Performance benchmark script for benchmark silhouette segmenters. | `python scripts/benchmark_silhouette_segmenters.py` |
+| [bootstrap_admin.py](bootstrap_admin.py) | ARGUS AI - Secure First-Time Administrator Bootstrap Script. | `python scripts/bootstrap_admin.py` |
 | [bootstrap_env.ps1](bootstrap_env.ps1) | ARGUS AI - Production-Grade Automated Environment Bootstrap & Repair. | `powershell -ExecutionPolicy Bypass -File scripts/bootstrap_env.ps1` |
 | [build_gallery.py](build_gallery.py) | Utility script for build gallery. | `python scripts/build_gallery.py` |
 | [build_tensorrt_engine.py](build_tensorrt_engine.py) | Build TensorRT engine from ONNX model. | `python scripts/build_tensorrt_engine.py` |
@@ -54,6 +58,7 @@ This folder contains project maintenance, automation, development, validation, e
 | [install_git_hooks.py](install_git_hooks.py) | Detect Python interpreter (prefer project-local .venv standard) | `python scripts/install_git_hooks.py` |
 | [manage_venv.ps1](manage_venv.ps1) | ARGUS AI - Safe Virtual Environment Manager for Windows. | `powershell -ExecutionPolicy Bypass -File scripts/manage_venv.ps1` |
 | [migrate_output_layout.py](migrate_output_layout.py) | Migrate ARGUS AI output layout. | `python scripts/migrate_output_layout.py` |
+| [migrate_passwords.py](migrate_passwords.py) | ARGUS AI - Secure Password Migration Script. | `python scripts/migrate_passwords.py` |
 | [preprocess_casia.py](preprocess_casia.py) | Build GEI images from CASIA-B ZIP dataset | `python scripts/preprocess_casia.py` |
 | [process_runner.py](process_runner.py) | ARGUS Subprocess Streaming Runner | `python scripts/process_runner.py` |
 | [profile_live_stream_latency.py](profile_live_stream_latency.py) | Utility script for profile live stream latency. | `python scripts/profile_live_stream_latency.py` |
@@ -88,8 +93,10 @@ This folder contains project maintenance, automation, development, validation, e
 | [test_server_functional_parity.py](test_server_functional_parity.py) | Validation test script for server functional parity. | `pytest scripts/test_server_functional_parity.py` |
 | [train_model.py](train_model.py) | Train ARGUS ByGaitLight model with metric learning (HPP + ArcFace + Triplet). | `python scripts/train_model.py` |
 | [validate_appearance_runtime.py](validate_appearance_runtime.py) | Utility script for validate appearance runtime. | `python scripts/validate_appearance_runtime.py` |
+| [validate_camera_hardware.py](validate_camera_hardware.py) | ARGUS AI Physical Camera Hardware Validation | `python scripts/validate_camera_hardware.py` |
 | [validate_continuous_improvement_lifecycle.py](validate_continuous_improvement_lifecycle.py) | Utility script for validate continuous improvement lifecycle. | `python scripts/validate_continuous_improvement_lifecycle.py` |
 | [validate_live_surveillance.py](validate_live_surveillance.py) | Utility script for validate live surveillance. | `python scripts/validate_live_surveillance.py` |
+| [verify_camera_to_gait_pipeline.py](verify_camera_to_gait_pipeline.py) | Ensure project root is in sys.path | `python scripts/verify_camera_to_gait_pipeline.py` |
 | [verify_environment.py](verify_environment.py) | Utility script for verify environment. | `python scripts/verify_environment.py` |
 | [verify_firebase_continual_learning_e2e.py](verify_firebase_continual_learning_e2e.py) | ARGUS AI — End-to-End Firebase Architecture & Continual Learning Verification. | `python scripts/verify_firebase_continual_learning_e2e.py` |
 | [verify_firebase_persistence.py](verify_firebase_persistence.py) | Utility script for verify firebase persistence. | `python scripts/verify_firebase_persistence.py` |
@@ -105,10 +112,14 @@ This folder contains project maintenance, automation, development, validation, e
 | [analyze_cl_part_similarity.py](analyze_cl_part_similarity.py) | Development | No | No | No | No | Utility script for analyze cl part similarity. |
 | [analyze_open_set_and_cl.py](analyze_open_set_and_cl.py) | Development | No | No | No | No | Utility script for analyze open set and cl. |
 | [audit_continual_learning_effectiveness.py](audit_continual_learning_effectiveness.py) | Validation | No | No | No | No | Utility script for audit continual learning effectiveness. |
+| [audit_gpu_validation.py](audit_gpu_validation.py) | Validation | No | No | No | No | ARGUS AI — Complete GPU Validation Audit |
 | [benchmark.py](benchmark.py) | Validation | No | No | No | No | Performance benchmark script for benchmark. |
+| [benchmark_baseline_performance.py](benchmark_baseline_performance.py) | Validation | Yes | No | No | No | ARGUS AI Benchmark Suite |
 | [benchmark_crowd_performance.py](benchmark_crowd_performance.py) | Validation | No | No | No | No | Performance benchmark script for benchmark crowd performa... |
 | [benchmark_inference_backends.py](benchmark_inference_backends.py) | Validation | Yes | No | No | No | Benchmark ARGUS inference backends. |
+| [benchmark_reference_processor.py](benchmark_reference_processor.py) | Validation | No | No | No | No | Ensure project root is in sys.path when executed directly... |
 | [benchmark_silhouette_segmenters.py](benchmark_silhouette_segmenters.py) | Validation | No | No | No | No | Performance benchmark script for benchmark silhouette seg... |
+| [bootstrap_admin.py](bootstrap_admin.py) | Development | Yes | No | No | No | ARGUS AI - Secure First-Time Administrator Bootstrap Script. |
 | [bootstrap_env.ps1](bootstrap_env.ps1) | Environment | No | No | No | No | ARGUS AI - Production-Grade Automated Environment Bootstr... |
 | [build_gallery.py](build_gallery.py) | Dataset | No | No | No | No | Utility script for build gallery. |
 | [build_tensorrt_engine.py](build_tensorrt_engine.py) | Conversion | Yes | No | No | No | Build TensorRT engine from ONNX model. |
@@ -144,6 +155,7 @@ This folder contains project maintenance, automation, development, validation, e
 | [install_git_hooks.py](install_git_hooks.py) | Git | No | No | No | No | Detect Python interpreter (prefer project-local .venv sta... |
 | [manage_venv.ps1](manage_venv.ps1) | Environment | No | No | No | No | ARGUS AI - Safe Virtual Environment Manager for Windows. |
 | [migrate_output_layout.py](migrate_output_layout.py) | Conversion | Yes | No | No | No | Migrate ARGUS AI output layout. |
+| [migrate_passwords.py](migrate_passwords.py) | Development | Yes | No | No | No | ARGUS AI - Secure Password Migration Script. |
 | [preprocess_casia.py](preprocess_casia.py) | Dataset | Yes | No | No | No | Build GEI images from CASIA-B ZIP dataset |
 | [process_runner.py](process_runner.py) | Environment | Yes | No | No | No | ARGUS Subprocess Streaming Runner |
 | [profile_live_stream_latency.py](profile_live_stream_latency.py) | Development | No | No | No | No | Utility script for profile live stream latency. |
@@ -178,8 +190,10 @@ This folder contains project maintenance, automation, development, validation, e
 | [test_server_functional_parity.py](test_server_functional_parity.py) | Validation | No | No | No | No | Validation test script for server functional parity. |
 | [train_model.py](train_model.py) | Development | Yes | No | No | No | Train ARGUS ByGaitLight model with metric learning (HPP +... |
 | [validate_appearance_runtime.py](validate_appearance_runtime.py) | Validation | No | No | No | No | Utility script for validate appearance runtime. |
+| [validate_camera_hardware.py](validate_camera_hardware.py) | Validation | Yes | No | No | No | ARGUS AI Physical Camera Hardware Validation |
 | [validate_continuous_improvement_lifecycle.py](validate_continuous_improvement_lifecycle.py) | Validation | No | No | No | No | Utility script for validate continuous improvement lifecy... |
 | [validate_live_surveillance.py](validate_live_surveillance.py) | Validation | No | No | No | No | Utility script for validate live surveillance. |
+| [verify_camera_to_gait_pipeline.py](verify_camera_to_gait_pipeline.py) | Validation | No | No | No | No | Ensure project root is in sys.path |
 | [verify_environment.py](verify_environment.py) | Validation | No | No | No | No | Utility script for verify environment. |
 | [verify_firebase_continual_learning_e2e.py](verify_firebase_continual_learning_e2e.py) | Validation | No | No | No | No | ARGUS AI — End-to-End Firebase Architecture & Continual L... |
 | [verify_firebase_persistence.py](verify_firebase_persistence.py) | Validation | No | No | No | No | Utility script for verify firebase persistence. |
@@ -189,6 +203,26 @@ This folder contains project maintenance, automation, development, validation, e
 ## CLI Reference
 
 <!-- BEGIN SYNC: CLI_REFERENCE -->
+<details>
+<summary><strong>benchmark_baseline_performance.py</strong> — ARGUS AI Benchmark Suite</summary>
+
+**Usage**: `python scripts/benchmark_baseline_performance.py`
+
+| Flag / Argument | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `--iterations` | int | No | 30 | Iterations for microbenchmarks |
+| `--output` | str | No | `outputs/reports/baseline_performance.json` | — |
+| `--compare` | str | No | None | Path to baseline report to compare against |
+
+**Examples**:
+
+```bash
+python scripts/benchmark_baseline_performance.py
+python scripts/benchmark_baseline_performance.py --iterations 30 --output outputs/reports/baseline_performance.json
+```
+
+</details>
+
 <details>
 <summary><strong>benchmark_inference_backends.py</strong> — Benchmark ARGUS inference backends.</summary>
 
@@ -206,6 +240,25 @@ This folder contains project maintenance, automation, development, validation, e
 ```bash
 python scripts/benchmark_inference_backends.py
 python scripts/benchmark_inference_backends.py --samples 50 --device auto
+```
+
+</details>
+
+<details>
+<summary><strong>bootstrap_admin.py</strong> — ARGUS AI - Secure First-Time Administrator Bootstrap</summary>
+
+**Usage**: `python scripts/bootstrap_admin.py`
+
+| Flag / Argument | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `--username` | — | No | None | Root administrator username (default: admin_root) |
+| `--name` | — | No | None | Administrator full name |
+| `--store-path` | — | No | `data/operator_store.json` | Path to offline operator store JSON file |
+
+**Examples**:
+
+```bash
+python scripts/bootstrap_admin.py
 ```
 
 </details>
@@ -521,6 +574,26 @@ python scripts/migrate_output_layout.py --dry-run --outputs-dir outputs
 </details>
 
 <details>
+<summary><strong>migrate_passwords.py</strong> — ARGUS AI - Fail-safe Password Migration to Argon2id</summary>
+
+**Usage**: `python scripts/migrate_passwords.py`
+
+| Flag / Argument | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `--dry-run` | flag | No | None | Scan and report accounts needing migration without modifying data |
+| `--apply` | flag | No | None | Execute password migration and persist Argon2id hashes |
+| `--store-path` | — | No | `data/operator_store.json` | Path to offline operator store JSON file |
+
+**Examples**:
+
+```bash
+python scripts/migrate_passwords.py
+python scripts/migrate_passwords.py --dry-run --apply
+```
+
+</details>
+
+<details>
 <summary><strong>preprocess_casia.py</strong> — Build GEI images from CASIA-B ZIP dataset</summary>
 
 **Usage**: `python scripts/preprocess_casia.py`
@@ -776,6 +849,27 @@ python scripts/train_model.py --epochs 25 --batch-size 16
 
 </details>
 
+<details>
+<summary><strong>validate_camera_hardware.py</strong> — ARGUS AI Physical Camera Hardware Validation</summary>
+
+**Usage**: `python scripts/validate_camera_hardware.py`
+
+| Flag / Argument | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `--webcam-index` | int | No | 0 | Local webcam device index (default: 0) |
+| `--usb-index` | int | No | None | External USB webcam device index (default: None) |
+| `--rtsp-url` | str | No | None | Live RTSP stream URL |
+| `--json` | flag | No | None | Output JSON only |
+
+**Examples**:
+
+```bash
+python scripts/validate_camera_hardware.py
+python scripts/validate_camera_hardware.py --webcam-index 0
+```
+
+</details>
+
 <!-- END SYNC: CLI_REFERENCE -->
 
 ## Common Commands
@@ -810,9 +904,12 @@ Validation scripts perform environment health verification and component sanity 
 
 <!-- BEGIN SYNC: VALIDATION_SCRIPTS -->
 - **[audit_continual_learning_effectiveness.py](audit_continual_learning_effectiveness.py)**: Utility script for audit continual learning effectiveness. (`python scripts/audit_continual_learning_effectiveness.py`)
+- **[audit_gpu_validation.py](audit_gpu_validation.py)**: ARGUS AI — Complete GPU Validation Audit (`python scripts/audit_gpu_validation.py`)
 - **[benchmark.py](benchmark.py)**: Performance benchmark script for benchmark. (`python scripts/benchmark.py`)
+- **[benchmark_baseline_performance.py](benchmark_baseline_performance.py)**: ARGUS AI Benchmark Suite (`python scripts/benchmark_baseline_performance.py`)
 - **[benchmark_crowd_performance.py](benchmark_crowd_performance.py)**: Performance benchmark script for benchmark crowd performance. (`python scripts/benchmark_crowd_performance.py`)
 - **[benchmark_inference_backends.py](benchmark_inference_backends.py)**: Benchmark ARGUS inference backends. (`python scripts/benchmark_inference_backends.py`)
+- **[benchmark_reference_processor.py](benchmark_reference_processor.py)**: Ensure project root is in sys.path when executed directly as a script (`python scripts/benchmark_reference_processor.py`)
 - **[benchmark_silhouette_segmenters.py](benchmark_silhouette_segmenters.py)**: Performance benchmark script for benchmark silhouette segmenters. (`python scripts/benchmark_silhouette_segmenters.py`)
 - **[demo_confidence_scorer.py](demo_confidence_scorer.py)**: Utility script for demo confidence scorer. (`python scripts/demo_confidence_scorer.py`)
 - **[demo_enrollment.py](demo_enrollment.py)**: Utility script for demo enrollment. (`python scripts/demo_enrollment.py`)
@@ -853,8 +950,10 @@ Validation scripts perform environment health verification and component sanity 
 - **[system_check.py](system_check.py)**: Environment and dependency verification script. (`python scripts/system_check.py`)
 - **[test_server_functional_parity.py](test_server_functional_parity.py)**: Validation test script for server functional parity. (`pytest scripts/test_server_functional_parity.py`)
 - **[validate_appearance_runtime.py](validate_appearance_runtime.py)**: Utility script for validate appearance runtime. (`python scripts/validate_appearance_runtime.py`)
+- **[validate_camera_hardware.py](validate_camera_hardware.py)**: ARGUS AI Physical Camera Hardware Validation (`python scripts/validate_camera_hardware.py`)
 - **[validate_continuous_improvement_lifecycle.py](validate_continuous_improvement_lifecycle.py)**: Utility script for validate continuous improvement lifecycle. (`python scripts/validate_continuous_improvement_lifecycle.py`)
 - **[validate_live_surveillance.py](validate_live_surveillance.py)**: Utility script for validate live surveillance. (`python scripts/validate_live_surveillance.py`)
+- **[verify_camera_to_gait_pipeline.py](verify_camera_to_gait_pipeline.py)**: Ensure project root is in sys.path (`python scripts/verify_camera_to_gait_pipeline.py`)
 - **[verify_environment.py](verify_environment.py)**: Utility script for verify environment. (`python scripts/verify_environment.py`)
 - **[verify_firebase_continual_learning_e2e.py](verify_firebase_continual_learning_e2e.py)**: ARGUS AI — End-to-End Firebase Architecture & Continual Learning Verification. (`python scripts/verify_firebase_continual_learning_e2e.py`)
 - **[verify_firebase_persistence.py](verify_firebase_persistence.py)**: Utility script for verify firebase persistence. (`python scripts/verify_firebase_persistence.py`)
@@ -894,11 +993,13 @@ Development helper scripts run benchmarks, evaluations, training pipelines, and 
 <!-- BEGIN SYNC: DEVELOPMENT_SCRIPTS -->
 - **[analyze_cl_part_similarity.py](analyze_cl_part_similarity.py)**: Utility script for analyze cl part similarity. (`python scripts/analyze_cl_part_similarity.py`)
 - **[analyze_open_set_and_cl.py](analyze_open_set_and_cl.py)**: Utility script for analyze open set and cl. (`python scripts/analyze_open_set_and_cl.py`)
+- **[bootstrap_admin.py](bootstrap_admin.py)**: ARGUS AI - Secure First-Time Administrator Bootstrap Script. (`python scripts/bootstrap_admin.py`)
 - **[cleanup_python_comments.py](cleanup_python_comments.py)**: ARGUS AI Developer Cleanup Utility: Python Comments & Docstrings. (`python scripts/cleanup_python_comments.py`)
 - **[diagnose_f1_score.py](diagnose_f1_score.py)**: Utility script for diagnose f1 score. (`python scripts/diagnose_f1_score.py`)
 - **[download_gdrive_osnet.py](download_gdrive_osnet.py)**: Utility script for download gdrive osnet. (`python scripts/download_gdrive_osnet.py`)
 - **[download_osnet_weights.py](download_osnet_weights.py)**: Utility script for download osnet weights. (`python scripts/download_osnet_weights.py`)
 - **[f1_threshold_calibration_independent_validation.py](f1_threshold_calibration_independent_validation.py)**: Utility script for f1 threshold calibration independent validation. (`python scripts/f1_threshold_calibration_independent_validation.py`)
+- **[migrate_passwords.py](migrate_passwords.py)**: ARGUS AI - Secure Password Migration Script. (`python scripts/migrate_passwords.py`)
 - **[profile_live_stream_latency.py](profile_live_stream_latency.py)**: Utility script for profile live stream latency. (`python scripts/profile_live_stream_latency.py`)
 - **[profile_startup_forensics.py](profile_startup_forensics.py)**: Utility script for profile startup forensics. (`python scripts/profile_startup_forensics.py`)
 - **[setup_silhouette_model.py](setup_silhouette_model.py)**: Utility script for setup silhouette model. (`python scripts/setup_silhouette_model.py`)
@@ -915,10 +1016,14 @@ Development helper scripts run benchmarks, evaluations, training pipelines, and 
 | `python scripts/analyze_cl_part_similarity.py` | Utility script for analyze cl part similarity. |
 | `python scripts/analyze_open_set_and_cl.py` | Utility script for analyze open set and cl. |
 | `python scripts/audit_continual_learning_effectiveness.py` | Utility script for audit continual learning effectiveness. |
+| `python scripts/audit_gpu_validation.py` | ARGUS AI — Complete GPU Validation Audit |
 | `python scripts/benchmark.py` | Performance benchmark script for benchmark. |
+| `python scripts/benchmark_baseline_performance.py` | ARGUS AI Benchmark Suite |
 | `python scripts/benchmark_crowd_performance.py` | Performance benchmark script for benchmark crowd performance. |
 | `python scripts/benchmark_inference_backends.py` | Benchmark ARGUS inference backends. |
+| `python scripts/benchmark_reference_processor.py` | Ensure project root is in sys.path when executed directly as a script |
 | `python scripts/benchmark_silhouette_segmenters.py` | Performance benchmark script for benchmark silhouette segmenters. |
+| `python scripts/bootstrap_admin.py` | ARGUS AI - Secure First-Time Administrator Bootstrap Script. |
 | `powershell -ExecutionPolicy Bypass -File scripts/bootstrap_env.ps1` | ARGUS AI - Production-Grade Automated Environment Bootstrap & Repair. |
 | `python scripts/build_gallery.py` | Utility script for build gallery. |
 | `python scripts/build_tensorrt_engine.py` | Build TensorRT engine from ONNX model. |
@@ -954,6 +1059,7 @@ Development helper scripts run benchmarks, evaluations, training pipelines, and 
 | `python scripts/install_git_hooks.py` | Detect Python interpreter (prefer project-local .venv standard) |
 | `powershell -ExecutionPolicy Bypass -File scripts/manage_venv.ps1` | ARGUS AI - Safe Virtual Environment Manager for Windows. |
 | `python scripts/migrate_output_layout.py` | Migrate ARGUS AI output layout. |
+| `python scripts/migrate_passwords.py` | ARGUS AI - Secure Password Migration Script. |
 | `python scripts/preprocess_casia.py` | Build GEI images from CASIA-B ZIP dataset |
 | `python scripts/process_runner.py` | ARGUS Subprocess Streaming Runner |
 | `python scripts/profile_live_stream_latency.py` | Utility script for profile live stream latency. |
@@ -988,8 +1094,10 @@ Development helper scripts run benchmarks, evaluations, training pipelines, and 
 | `pytest scripts/test_server_functional_parity.py` | Validation test script for server functional parity. |
 | `python scripts/train_model.py` | Train ARGUS ByGaitLight model with metric learning (HPP + ArcFace +... |
 | `python scripts/validate_appearance_runtime.py` | Utility script for validate appearance runtime. |
+| `python scripts/validate_camera_hardware.py` | ARGUS AI Physical Camera Hardware Validation |
 | `python scripts/validate_continuous_improvement_lifecycle.py` | Utility script for validate continuous improvement lifecycle. |
 | `python scripts/validate_live_surveillance.py` | Utility script for validate live surveillance. |
+| `python scripts/verify_camera_to_gait_pipeline.py` | Ensure project root is in sys.path |
 | `python scripts/verify_environment.py` | Utility script for verify environment. |
 | `python scripts/verify_firebase_continual_learning_e2e.py` | ARGUS AI — End-to-End Firebase Architecture & Continual Learning Ve... |
 | `python scripts/verify_firebase_persistence.py` | Utility script for verify firebase persistence. |
@@ -1031,7 +1139,7 @@ flowchart TD
 ```mermaid
 flowchart TD
     step1["1. Environment (5 scripts)"]
-    step2["2. Validation (50 scripts)"]
+    step2["2. Validation (55 scripts)"]
     step1 --> step2
     step3["3. Documentation"]
     step2 --> step3
@@ -1041,7 +1149,7 @@ flowchart TD
     step4 --> step5
     step6["6. Conversion (4 scripts)"]
     step5 --> step6
-    step7["7. Development (12 scripts)"]
+    step7["7. Development (14 scripts)"]
     step6 --> step7
     step8["8. Deployment (2 scripts)"]
     step7 --> step8
@@ -1057,10 +1165,14 @@ flowchart TD
 | [analyze_cl_part_similarity.py](analyze_cl_part_similarity.py) | `No file modifications` |
 | [analyze_open_set_and_cl.py](analyze_open_set_and_cl.py) | `No file modifications` |
 | [audit_continual_learning_effectiveness.py](audit_continual_learning_effectiveness.py) | `outputs` |
+| [audit_gpu_validation.py](audit_gpu_validation.py) | `Runtime-determined paths` |
 | [benchmark.py](benchmark.py) | `outputs/reports/benchmark` |
+| [benchmark_baseline_performance.py](benchmark_baseline_performance.py) | `outputs/reports/baseline_performance.json` |
 | [benchmark_crowd_performance.py](benchmark_crowd_performance.py) | `No file modifications` |
 | [benchmark_inference_backends.py](benchmark_inference_backends.py) | `outputs/reports/benchmark` |
+| [benchmark_reference_processor.py](benchmark_reference_processor.py) | `Runtime-determined paths` |
 | [benchmark_silhouette_segmenters.py](benchmark_silhouette_segmenters.py) | `No file modifications` |
+| [bootstrap_admin.py](bootstrap_admin.py) | `Runtime-determined paths` |
 | [bootstrap_env.ps1](bootstrap_env.ps1) | `No file modifications` |
 | [build_gallery.py](build_gallery.py) | `models/gallery` |
 | [build_tensorrt_engine.py](build_tensorrt_engine.py) | `models/engines/bygait_light_fp16.engine` |
@@ -1096,6 +1208,7 @@ flowchart TD
 | [install_git_hooks.py](install_git_hooks.py) | `.git/hooks/pre-commit` |
 | [manage_venv.ps1](manage_venv.ps1) | `No file modifications` |
 | [migrate_output_layout.py](migrate_output_layout.py) | `Runtime-determined paths` |
+| [migrate_passwords.py](migrate_passwords.py) | `Runtime-determined paths` |
 | [preprocess_casia.py](preprocess_casia.py) | `data/casia_processed/gei` |
 | [process_runner.py](process_runner.py) | `No file modifications` |
 | [profile_live_stream_latency.py](profile_live_stream_latency.py) | `Runtime-determined paths` |
@@ -1130,8 +1243,10 @@ flowchart TD
 | [test_server_functional_parity.py](test_server_functional_parity.py) | `No file modifications` |
 | [train_model.py](train_model.py) | `No file modifications` |
 | [validate_appearance_runtime.py](validate_appearance_runtime.py) | `outputs/test_runtime_appearance_gallery`, `outputs/test_runtime_appearance_multi_gallery` |
+| [validate_camera_hardware.py](validate_camera_hardware.py) | `No file modifications` |
 | [validate_continuous_improvement_lifecycle.py](validate_continuous_improvement_lifecycle.py) | `Runtime-determined paths` |
 | [validate_live_surveillance.py](validate_live_surveillance.py) | `Runtime-determined paths` |
+| [verify_camera_to_gait_pipeline.py](verify_camera_to_gait_pipeline.py) | `No file modifications` |
 | [verify_environment.py](verify_environment.py) | `Runtime-determined paths` |
 | [verify_firebase_continual_learning_e2e.py](verify_firebase_continual_learning_e2e.py) | `No file modifications` |
 | [verify_firebase_persistence.py](verify_firebase_persistence.py) | `No file modifications` |
@@ -1147,8 +1262,8 @@ flowchart TD
 | **Documentation** | [sync_folder_readmes.py](sync_folder_readmes.py) |
 | **Environment** | [activate_venv.ps1](activate_venv.ps1), [bootstrap_env.ps1](bootstrap_env.ps1), [download_package.py](download_package.py), [manage_venv.ps1](manage_venv.ps1), [process_runner.py](process_runner.py) |
 | **Git** | [install_git_hooks.py](install_git_hooks.py) |
-| **Read-Only** | [analyze_cl_part_similarity.py](analyze_cl_part_similarity.py), [analyze_open_set_and_cl.py](analyze_open_set_and_cl.py), [benchmark_crowd_performance.py](benchmark_crowd_performance.py), [benchmark_silhouette_segmenters.py](benchmark_silhouette_segmenters.py), [demo_confidence_scorer.py](demo_confidence_scorer.py), [demo_events.py](demo_events.py), [demo_gei.py](demo_gei.py), [demo_security_layer.py](demo_security_layer.py), [demo_silhouette.py](demo_silhouette.py), [demo_streaming_optimization.py](demo_streaming_optimization.py), [detect_environment.py](detect_environment.py), [evaluate_cross_view.py](evaluate_cross_view.py), [evaluate_open_set.py](evaluate_open_set.py), [generate_visualizer_charts.py](generate_visualizer_charts.py), [preprocess_casia.py](preprocess_casia.py), [run_auto_enrollment.py](run_auto_enrollment.py), [run_folder_recognition.py](run_folder_recognition.py), [run_folder_watcher.py](run_folder_watcher.py), [run_gallery_match.py](run_gallery_match.py), [run_inference_pipeline.py](run_inference_pipeline.py), [run_live_gei.py](run_live_gei.py), [run_live_recognition.py](run_live_recognition.py), [run_tracking.py](run_tracking.py), [run_video_recognition.py](run_video_recognition.py), [run_webcam_detection.py](run_webcam_detection.py), [setup_silhouette_model.py](setup_silhouette_model.py), [system_check.py](system_check.py), [train_model.py](train_model.py), [verify_firebase_continual_learning_e2e.py](verify_firebase_continual_learning_e2e.py), [verify_firebase_persistence.py](verify_firebase_persistence.py) |
-| **Repository Modification** | [audit_continual_learning_effectiveness.py](audit_continual_learning_effectiveness.py), [benchmark.py](benchmark.py), [benchmark_inference_backends.py](benchmark_inference_backends.py), [build_gallery.py](build_gallery.py), [build_tensorrt_engine.py](build_tensorrt_engine.py), [clean_live_gallery.py](clean_live_gallery.py), [cleanup_python_comments.py](cleanup_python_comments.py), [demo_enrollment.py](demo_enrollment.py), [diagnose_f1_score.py](diagnose_f1_score.py), [doctor.py](doctor.py), [download_gdrive_osnet.py](download_gdrive_osnet.py), [download_osnet_weights.py](download_osnet_weights.py), [evaluate_appearance_recognition.py](evaluate_appearance_recognition.py), [evaluate_dual_modal_recognition.py](evaluate_dual_modal_recognition.py), [evaluate_exp004.py](evaluate_exp004.py), [evaluate_model.py](evaluate_model.py), [evaluate_open_set_threshold_sweep.py](evaluate_open_set_threshold_sweep.py), [evaluate_subject_disjoint.py](evaluate_subject_disjoint.py), [evaluate_threshold_sweep.py](evaluate_threshold_sweep.py), [export_bygait_onnx.py](export_bygait_onnx.py), [export_silhouette_unet_onnx.py](export_silhouette_unet_onnx.py), [extract_casia_skeletons.py](extract_casia_skeletons.py), [f1_threshold_calibration_independent_validation.py](f1_threshold_calibration_independent_validation.py), [migrate_output_layout.py](migrate_output_layout.py), [profile_live_stream_latency.py](profile_live_stream_latency.py), [profile_startup_forensics.py](profile_startup_forensics.py), [remove_gallery_identity.py](remove_gallery_identity.py), [remove_numeric_gallery_identities.py](remove_numeric_gallery_identities.py), [run_ablation_study.py](run_ablation_study.py), [run_exp004_ablations.py](run_exp004_ablations.py), [run_exp006_3d.py](run_exp006_3d.py), [run_exp006_full.py](run_exp006_full.py), [run_exp007_ablations.py](run_exp007_ablations.py), [run_optimization.py](run_optimization.py), [set_gallery_identity_status.py](set_gallery_identity_status.py), [simulate_date_aware_learning.py](simulate_date_aware_learning.py), [smoke_test_deployment.py](smoke_test_deployment.py), [sweep_fine_thresholds.py](sweep_fine_thresholds.py), [validate_appearance_runtime.py](validate_appearance_runtime.py), [validate_continuous_improvement_lifecycle.py](validate_continuous_improvement_lifecycle.py), [validate_live_surveillance.py](validate_live_surveillance.py), [verify_real_nn_learning.py](verify_real_nn_learning.py) |
+| **Read-Only** | [analyze_cl_part_similarity.py](analyze_cl_part_similarity.py), [analyze_open_set_and_cl.py](analyze_open_set_and_cl.py), [benchmark_crowd_performance.py](benchmark_crowd_performance.py), [benchmark_silhouette_segmenters.py](benchmark_silhouette_segmenters.py), [demo_confidence_scorer.py](demo_confidence_scorer.py), [demo_events.py](demo_events.py), [demo_gei.py](demo_gei.py), [demo_security_layer.py](demo_security_layer.py), [demo_silhouette.py](demo_silhouette.py), [demo_streaming_optimization.py](demo_streaming_optimization.py), [detect_environment.py](detect_environment.py), [evaluate_cross_view.py](evaluate_cross_view.py), [evaluate_open_set.py](evaluate_open_set.py), [generate_visualizer_charts.py](generate_visualizer_charts.py), [preprocess_casia.py](preprocess_casia.py), [run_auto_enrollment.py](run_auto_enrollment.py), [run_folder_recognition.py](run_folder_recognition.py), [run_folder_watcher.py](run_folder_watcher.py), [run_gallery_match.py](run_gallery_match.py), [run_inference_pipeline.py](run_inference_pipeline.py), [run_live_gei.py](run_live_gei.py), [run_live_recognition.py](run_live_recognition.py), [run_tracking.py](run_tracking.py), [run_video_recognition.py](run_video_recognition.py), [run_webcam_detection.py](run_webcam_detection.py), [setup_silhouette_model.py](setup_silhouette_model.py), [system_check.py](system_check.py), [train_model.py](train_model.py), [validate_camera_hardware.py](validate_camera_hardware.py), [verify_camera_to_gait_pipeline.py](verify_camera_to_gait_pipeline.py), [verify_firebase_continual_learning_e2e.py](verify_firebase_continual_learning_e2e.py), [verify_firebase_persistence.py](verify_firebase_persistence.py) |
+| **Repository Modification** | [audit_continual_learning_effectiveness.py](audit_continual_learning_effectiveness.py), [audit_gpu_validation.py](audit_gpu_validation.py), [benchmark.py](benchmark.py), [benchmark_baseline_performance.py](benchmark_baseline_performance.py), [benchmark_inference_backends.py](benchmark_inference_backends.py), [benchmark_reference_processor.py](benchmark_reference_processor.py), [bootstrap_admin.py](bootstrap_admin.py), [build_gallery.py](build_gallery.py), [build_tensorrt_engine.py](build_tensorrt_engine.py), [clean_live_gallery.py](clean_live_gallery.py), [cleanup_python_comments.py](cleanup_python_comments.py), [demo_enrollment.py](demo_enrollment.py), [diagnose_f1_score.py](diagnose_f1_score.py), [doctor.py](doctor.py), [download_gdrive_osnet.py](download_gdrive_osnet.py), [download_osnet_weights.py](download_osnet_weights.py), [evaluate_appearance_recognition.py](evaluate_appearance_recognition.py), [evaluate_dual_modal_recognition.py](evaluate_dual_modal_recognition.py), [evaluate_exp004.py](evaluate_exp004.py), [evaluate_model.py](evaluate_model.py), [evaluate_open_set_threshold_sweep.py](evaluate_open_set_threshold_sweep.py), [evaluate_subject_disjoint.py](evaluate_subject_disjoint.py), [evaluate_threshold_sweep.py](evaluate_threshold_sweep.py), [export_bygait_onnx.py](export_bygait_onnx.py), [export_silhouette_unet_onnx.py](export_silhouette_unet_onnx.py), [extract_casia_skeletons.py](extract_casia_skeletons.py), [f1_threshold_calibration_independent_validation.py](f1_threshold_calibration_independent_validation.py), [migrate_output_layout.py](migrate_output_layout.py), [migrate_passwords.py](migrate_passwords.py), [profile_live_stream_latency.py](profile_live_stream_latency.py), [profile_startup_forensics.py](profile_startup_forensics.py), [remove_gallery_identity.py](remove_gallery_identity.py), [remove_numeric_gallery_identities.py](remove_numeric_gallery_identities.py), [run_ablation_study.py](run_ablation_study.py), [run_exp004_ablations.py](run_exp004_ablations.py), [run_exp006_3d.py](run_exp006_3d.py), [run_exp006_full.py](run_exp006_full.py), [run_exp007_ablations.py](run_exp007_ablations.py), [run_optimization.py](run_optimization.py), [set_gallery_identity_status.py](set_gallery_identity_status.py), [simulate_date_aware_learning.py](simulate_date_aware_learning.py), [smoke_test_deployment.py](smoke_test_deployment.py), [sweep_fine_thresholds.py](sweep_fine_thresholds.py), [validate_appearance_runtime.py](validate_appearance_runtime.py), [validate_continuous_improvement_lifecycle.py](validate_continuous_improvement_lifecycle.py), [validate_live_surveillance.py](validate_live_surveillance.py), [verify_real_nn_learning.py](verify_real_nn_learning.py) |
 | **Validation** | [test_server_functional_parity.py](test_server_functional_parity.py), [verify_environment.py](verify_environment.py) |
 <!-- END SYNC: SAFETY_CLASSIFICATION -->
 

@@ -61,11 +61,14 @@ class DualModalFusion:
             return None
         v1 = np.asarray(vec1, dtype=np.float32).ravel()
         v2 = np.asarray(vec2, dtype=np.float32).ravel()
-        norm1 = float(np.linalg.norm(v1))
-        norm2 = float(np.linalg.norm(v2))
-        if norm1 == 0.0 or norm2 == 0.0:
+        d1 = float(np.dot(v1, v1))
+        d2 = float(np.dot(v2, v2))
+        if d1 == 0.0 or d2 == 0.0:
             return 0.0
-        return float(np.dot(v1, v2) / (norm1 * norm2))
+        dot12 = float(np.dot(v1, v2))
+        if abs(d1 - 1.0) < 1e-4 and abs(d2 - 1.0) < 1e-4:
+            return dot12
+        return float(dot12 / np.sqrt(d1 * d2))
 
     def fuse(
         self,

@@ -1,10 +1,18 @@
 
-import { getApiUrl, getWsUrl, getStreamUrl, getSnapshotUrl } from '../config/apiConfig';
+import { getApiUrl, getWsUrl, getStreamUrl, getSnapshotUrl, getAuthHeaders } from '../config/apiConfig';
 
 async function request(endpoint, options = {}) {
   const url = getApiUrl(endpoint);
   try {
-    const response = await fetch(url, options);
+    const authHeaders = getAuthHeaders();
+    const mergedHeaders = {
+      ...authHeaders,
+      ...(options.headers || {}),
+    };
+    const response = await fetch(url, {
+      ...options,
+      headers: mergedHeaders,
+    });
     if (!response.ok) {
       const errData = await response.json().catch(() => ({}));
       throw new Error(errData.detail || `HTTP Error ${response.status}: ${response.statusText}`);
@@ -65,6 +73,16 @@ export const gaitApi = {
 
   getStreamUrl,
   getSnapshotUrl,
+  getCameraSnapshot: async (cameraId) => {
+    const url = getApiUrl(`/cameras/${encodeURIComponent(cameraId)}/snapshot`);
+    const response = await fetch(url, {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      throw new Error(`Snapshot fetch failed (${response.status})`);
+    }
+    return await response.blob();
+  },
 
   identifyImage: async (file, cameraId = 'upload-image') => {
     const formData = new FormData();

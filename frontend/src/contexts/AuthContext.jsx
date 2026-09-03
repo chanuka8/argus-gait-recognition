@@ -1,103 +1,72 @@
-
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebaseConfig';
-import { collection, query, where, getDocs, doc, setDoc, onSnapshot, getDoc, deleteDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { addLog } from '../utils/logService';
 import { AuthContext } from './authContextDef';
+import { API_BASE } from '../config/apiConfig';
 
 export const AuthProvider = ({ children }) => {
     const [currentUser, setCurrentUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    const seedDatabase = async () => {
-        try {
-            const admin1Ref = doc(db, 'admins', 'admin_root');
-            const admin1Snap = await getDoc(admin1Ref);
-            if (!admin1Snap.exists()) {
-                await setDoc(admin1Ref, {
-                    name: 'Root Administrator',
-                    username: 'admin',
-                    password: 'Admin@123',
-                    nic: '199502104523',
-                    image: 'https://api.dicebear.com/7.x/bottts/svg?seed=admin',
-                    role: 'Root Admin',
-                    status: 'Active',
-                    lastLogin: 'Never'
-                });
-                console.log('Seeded root admin account 1.');
-            } else if (admin1Snap.data().role !== 'Root Admin') {
-                await setDoc(admin1Ref, { role: 'Root Admin' }, { merge: true });
-                console.log('Updated first root admin role to Root Admin.');
-            }
-
-            const admin2Ref = doc(db, 'admins', 'root_admin');
-            const admin2Snap = await getDoc(admin2Ref);
-            if (admin2Snap.exists()) {
-                await deleteDoc(admin2Ref);
-                console.log('Removed legacy second default root admin account (root.admin).');
-            }
-        } catch (error) {
-            console.error('Error seeding database:', error);
-        }
-    };
-
     useEffect(() => {
-        const checkSessionAndSeed = async () => {
-            await seedDatabase();
-            
+        const checkSession = async () => {
+            const token = sessionStorage.getItem('argus_session_token');
             const cachedUser = sessionStorage.getItem('argus_current_user');
-            if (cachedUser) {
-                const parsedUser = JSON.parse(cachedUser);
+
+            if (token) {
                 try {
-                    const roleLower = parsedUser.role.toLowerCase();
-                    const targetCollection = (roleLower === 'admin' || roleLower === 'root admin') ? 'admins' : 'investigators';
-                    const userQuery = query(
-                        collection(db, targetCollection),
-                        where('username', '==', parsedUser.username)
-                    );
-                    const querySnapshot = await getDocs(userQuery);
-                    if (!querySnapshot.empty) {
-                        const userData = querySnapshot.docs[0].data();
-                        if (userData.status === 'Suspended') {
-                            console.warn('Current user is suspended. Logging out.');
-                            sessionStorage.removeItem('argus_current_user');
-                            setCurrentUser(null);
-                        } else {
-                            const updatedUser = {
-                                ...parsedUser,
-                                id: querySnapshot.docs[0].id,
-                                name: userData.name,
-                                image: userData.image,
-                                nic: userData.nic,
-                                role: userData.role || roleLower,
-                                status: userData.status
-                            };
-                            sessionStorage.setItem('argus_current_user', JSON.stringify(updatedUser));
-                            setCurrentUser(updatedUser);
-                        }
+                    const res = await fetch(`${API_BASE}/api/v1/auth/me`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                        },
+                    });
+
+                    if (res.ok) {
+                        const profile = await res.json();
+                        sessionStorage.setItem('argus_current_user', JSON.stringify(profile));
+                        setCurrentUser(profile);
                     } else {
+                        // Session expired or invalid on server
+                        sessionStorage.removeItem('argus_session_token');
                         sessionStorage.removeItem('argus_current_user');
                         setCurrentUser(null);
                     }
-                } catch (err) {
-                    console.error('Error verifying user session:', err);
-                    setCurrentUser(parsedUser);
+                } catch {
+                    // Fallback to cached profile if network temporarily unavailable
+                    if (cachedUser) {
+                        try {
+                            setCurrentUser(JSON.parse(cachedUser));
+                        } catch {
+                            setCurrentUser(null);
+                        }
+                    } else {
+                        setCurrentUser(null);
+                    }
                 }
+            } else {
+                sessionStorage.removeItem('argus_session_token');
+                sessionStorage.removeItem('argus_current_user');
+                setCurrentUser(null);
             }
             setLoading(false);
         };
-        
-        checkSessionAndSeed();
+
+        checkSession();
     }, []);
 
+    // Listen for operator suspension or removal events in real-time
     useEffect(() => {
-        if (!currentUser) return;
+        if (!currentUser || !currentUser.username) return;
 
-        const roleLower = currentUser.role.toLowerCase();
-        const targetCollection = (roleLower === 'admin' || roleLower === 'root admin') ? 'admins' : 'investigators';
+        const roleLower = (currentUser.role || '').toLowerCase();
+        const targetCollection = (roleLower === 'admin' || roleLower === 'root admin' || roleLower === 'root_admin')
+            ? 'admins'
+            : 'investigators';
+
         const q = query(
             collection(db, targetCollection),
-            where('username', '==', currentUser.username)
+            where('username', '==', currentUser.username.toLowerCase())
         );
 
         const unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -105,15 +74,17 @@ export const AuthProvider = ({ children }) => {
                 const data = querySnapshot.docs[0].data();
                 if (data.status === 'Suspended') {
                     alert('Your account has been suspended. Logging out.');
+                    sessionStorage.removeItem('argus_session_token');
                     sessionStorage.removeItem('argus_current_user');
                     setCurrentUser(null);
-                    addLog('info', `Operator ${currentUser.username} suspended and logged out`, `Session terminated automatically due to administrator suspension.`, currentUser.username);
+                    addLog('info', `Operator ${currentUser.username} suspended and logged out`, 'Session terminated automatically due to administrator suspension.', currentUser.username);
                 }
             } else {
-                alert('Your account has been removed. Logging out.');
+                // If operator document was deleted
+                sessionStorage.removeItem('argus_session_token');
                 sessionStorage.removeItem('argus_current_user');
                 setCurrentUser(null);
-                addLog('info', `Operator ${currentUser.username} removed and logged out`, `Session terminated automatically because the operator account was deleted.`, currentUser.username);
+                addLog('info', `Operator ${currentUser.username} removed and logged out`, 'Session terminated automatically because the operator account was deleted.', currentUser.username);
             }
         }, (error) => {
             console.error("Error listening to user status changes:", error);
@@ -129,52 +100,61 @@ export const AuthProvider = ({ children }) => {
 
         const formattedUsername = username.trim().toLowerCase();
 
-        const roleLower = role.toLowerCase();
-        const targetCollection = (roleLower === 'admin' || roleLower === 'root admin') ? 'admins' : 'investigators';
-        const userQuery = query(
-            collection(db, targetCollection),
-            where('username', '==', formattedUsername)
-        );
+        // Authoritative server-side authentication with Argon2id verification
+        const res = await fetch(`${API_BASE}/api/v1/auth/login`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                username: formattedUsername,
+                password: password,
+                role: role,
+            }),
+        });
 
-        const querySnapshot = await getDocs(userQuery);
-        
-        if (querySnapshot.empty) {
-            throw new Error('Operator account not found.');
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.detail || 'Invalid credentials or login failure.');
         }
 
-        const userDoc = querySnapshot.docs[0];
-        const userData = userDoc.data();
+        const authData = await res.json();
+        const loggedUser = authData.operator;
 
-        if (userData.status === 'Suspended') {
-            throw new Error('Account suspended. Contact administration.');
-        }
-
-        if (userData.password !== password) {
-            throw new Error('Invalid credentials.');
-        }
-
-        const loggedUser = {
-            id: userDoc.id,
-            name: userData.name,
-            email: userData.username,
-            username: userData.username,
-            nic: userData.nic,
-            image: userData.image,
-            role: userData.role || roleLower
-        };
-
+        sessionStorage.setItem('argus_session_token', authData.token);
         sessionStorage.setItem('argus_current_user', JSON.stringify(loggedUser));
         setCurrentUser(loggedUser);
 
-        addLog('info', `Operator ${loggedUser.username} logged in successfully`, `User ${loggedUser.name} (${loggedUser.role}) authenticated via credential verification. Session started.`, loggedUser.username);
+        addLog(
+            'info',
+            `Operator ${loggedUser.username} logged in successfully`,
+            `User ${loggedUser.name || loggedUser.username} (${loggedUser.role}) authenticated via server-side session token. Session started.`,
+            loggedUser.username
+        );
 
         return loggedUser;
     };
 
     const logout = async () => {
+        const token = sessionStorage.getItem('argus_session_token');
         const username = currentUser?.username || 'unknown';
         const name = currentUser?.name || 'Unknown';
 
+        if (token) {
+            try {
+                await fetch(`${API_BASE}/api/v1/auth/logout`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                    },
+                });
+            } catch (err) {
+                console.warn("Backend session revocation notice:", err);
+            }
+        }
+
+        sessionStorage.removeItem('argus_session_token');
         sessionStorage.removeItem('argus_current_user');
         setCurrentUser(null);
 
@@ -184,7 +164,7 @@ export const AuthProvider = ({ children }) => {
     const value = {
         currentUser,
         login,
-        logout
+        logout,
     };
 
     return (

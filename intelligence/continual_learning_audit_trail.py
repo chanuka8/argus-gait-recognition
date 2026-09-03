@@ -52,7 +52,24 @@ class ContinualLearningAuditTrail:
         with self._lock:
             events = self.list_events()
             events.append(event)
-            return self._save_events(events)
+            saved = self._save_events(events)
+        if saved:
+            self._sync_event_to_firebase(event)
+        return saved
+
+    def _sync_event_to_firebase(self, event: ContinualLearningEvent) -> None:
+        try:
+            import firebase_admin
+            from firebase_admin import firestore
+
+            if not firebase_admin._apps:
+                return
+
+            db = firestore.client()
+            db.collection("audit_logs").document(event.event_id).set(event.to_dict())
+            self._logger.debug(f"[FIREBASE_AUDIT_SYNC] Synced audit event '{event.event_id}' to Firestore.")
+        except Exception as err:  # noqa: BLE001
+            self._logger.debug(f"[FIREBASE_AUDIT_SYNC_SKIPPED] {err}")
 
     def create_and_record(
         self,

@@ -2,6 +2,7 @@ import asyncio
 import threading
 import time
 import uuid
+from collections import deque
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -51,7 +52,7 @@ class GaitService:
 
         self._lock = threading.RLock()
 
-
+        self._firebase_store = None
         self._embedding_db = None
         self._model_registry = None
         self._continuous_engine = None
@@ -68,7 +69,7 @@ class GaitService:
         self._warmup_error: str | None = None
 
         self.ws_manager = WebSocketManager()
-        self.events_log: list[dict] = []
+        self.events_log: deque[dict] = deque(maxlen=500)
         self.active_cameras: dict[str, dict] = {}
         self.camera_workers: dict[str, CameraWorker] = {}
 
@@ -213,6 +214,24 @@ class GaitService:
         self._source_resolver = value
 
     @property
+    def firebase_store(self):
+        if self._firebase_store is None:
+            with self._lock:
+                if self._firebase_store is None:
+                    try:
+                        from storage.firebase_embedding_store import FirebaseEmbeddingStore
+
+                        self._firebase_store = FirebaseEmbeddingStore(mode="auto")
+                    except (ImportError, RuntimeError, ValueError, TypeError, OSError) as err:
+                        self.logger.warning(f"FirebaseEmbeddingStore init deferred: {err}")
+                        self._firebase_store = None
+        return self._firebase_store
+
+    @firebase_store.setter
+    def firebase_store(self, value: Any) -> None:
+        self._firebase_store = value
+
+    @property
     def embedding_db(self):
         if self._embedding_db is None:
             with self._lock:
@@ -223,6 +242,7 @@ class GaitService:
                         self._embedding_db = EmbeddingDatabase(
                             gait_gallery_dir=self.gallery_dir,
                             appearance_gallery_dir=self.appearance_gallery_dir,
+                            firebase_store=self.firebase_store,
                         )
                     except (ImportError, RuntimeError, ValueError, TypeError, OSError) as err:
                         self.logger.warning(f"EmbeddingDatabase init deferred: {err}")
@@ -380,9 +400,7 @@ class GaitService:
                 )
 
     def _handle_recognition_event(self, event_dict: dict) -> None:
-        self.events_log.insert(0, event_dict)
-        if len(self.events_log) > 500:
-            self.events_log.pop()
+        self.events_log.appendleft(event_dict)
         self.stats["total_events"] += 1
 
         try:
@@ -476,10 +494,7 @@ class GaitService:
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
-        self.events_log.insert(0, event)
-        if len(self.events_log) > 200:
-            self.events_log.pop()
-
+        self.events_log.appendleft(event)
         self.stats["total_events"] += 1
 
         try:

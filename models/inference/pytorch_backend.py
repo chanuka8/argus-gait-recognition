@@ -69,15 +69,14 @@ class PyTorchBackend(BaseInferenceBackend):
         elif tensor.ndim == 3:
             tensor = tensor.unsqueeze(0)
 
-        tensor = tensor.to(self.device)
+        tensor = tensor.to(self.device, non_blocking=True)
         if self.precision == "fp16" and self.device.type == "cuda":
             tensor = tensor.half()
 
-        with torch.no_grad():
+        with torch.inference_mode():
             output = self.model(tensor)
             if self.precision == "fp16":
                 output = output.float()
-
             embeddings = output.cpu().numpy()
 
-        return self.normalize_embedding(embeddings)
+        return embeddings.astype(np.float32)

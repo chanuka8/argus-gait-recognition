@@ -1,0 +1,95 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (request.auth.token.role == 'admin' || request.auth.token.role == 'Root Admin' || request.auth.token.admin == true);
+    }
+
+    function isInvestigator() {
+      return isAuthenticated() && 
+        (request.auth.token.role == 'investigator' || isAdmin());
+    }
+
+    // Default: Deny all unauthenticated or unhandled access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Biometric Embeddings (256D gait / 512D appearance)
+    match /biometric_embeddings/{embeddingId} {
+      allow read: if isInvestigator();
+      allow write: if isAdmin();
+    }
+    match /person_embeddings/{embeddingId} {
+      allow read: if isInvestigator();
+      allow write: if isAdmin();
+    }
+
+    // Biometric Persons / Identities
+    match /biometric_persons/{personId} {
+      allow read: if isInvestigator();
+      allow write: if isAdmin();
+    }
+    match /identities/{personId} {
+      allow read: if isInvestigator();
+      allow write: if isAdmin();
+    }
+
+    // Administrator Accounts
+    match /admins/{adminId} {
+      allow read, write: if isAdmin();
+    }
+
+    // Investigator Accounts
+    match /investigators/{investigatorId} {
+      allow read: if isInvestigator();
+      allow write: if isAdmin();
+    }
+
+    // Active Camera Nodes & Topology
+    match /active_cameras/{cameraId} {
+      allow read: if isInvestigator();
+      allow write: if isAdmin();
+    }
+
+    // Detections & Recognition Events
+    match /detections/{eventId} {
+      allow read: if isInvestigator();
+      allow write: if isAdmin();
+    }
+    match /recognition_events/{eventId} {
+      allow read: if isInvestigator();
+      allow write: if isAdmin();
+    }
+
+    // Victims & Missing Persons
+    match /victims/{victimId} {
+      allow read: if isInvestigator();
+      allow write: if isInvestigator();
+    }
+
+    // Model Registry & Candidate Metadata
+    match /model_registry/{modelId} {
+      allow read: if isInvestigator();
+      allow write: if isAdmin();
+    }
+
+    // Continual Learning Jobs & Audit Trail
+    match /learning_jobs/{jobId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+    match /audit_logs/{auditId} {
+      allow read: if isAdmin();
+      allow write: if false; // Server-side Firebase Admin SDK only
+    }
+  }
+}

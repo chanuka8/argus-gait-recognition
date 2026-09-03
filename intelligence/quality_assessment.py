@@ -37,7 +37,7 @@ class QualityAssessment:
 
         try:
             gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
-            lap_var = float(cv2.Laplacian(gray, cv2.CV_64F).var())
+            lap_var = float(cv2.Laplacian(gray, cv2.CV_32F).var())
             blur_factor = min(1.0, lap_var / max(1.0, self.blur_threshold))
         except (cv2.error, ValueError, TypeError):
             blur_factor = 0.5

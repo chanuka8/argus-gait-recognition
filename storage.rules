@@ -1,0 +1,48 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (request.auth.token.role == 'admin' || request.auth.token.role == 'Root Admin' || request.auth.token.admin == true);
+    }
+
+    function isInvestigator() {
+      return isAuthenticated() && 
+        (request.auth.token.role == 'investigator' || isAdmin());
+    }
+
+    // Default deny
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+
+    // Controlled Case Evidence (Images & Videos)
+    match /cases/{caseId}/{mediaType}/{fileName} {
+      allow read: if isInvestigator();
+      allow write: if isAdmin() && 
+        request.resource.size < 50 * 1024 * 1024 && // Max 50MB per media file
+        (request.resource.contentType.matches('image/.*') || request.resource.contentType.matches('video/.*'));
+    }
+
+    // Model Artifacts & Weights (PyTorch / ONNX models)
+    match /models/{modelId}/{version}/{fileName} {
+      allow read: if isInvestigator();
+      allow write: if isAdmin() &&
+        request.resource.size < 500 * 1024 * 1024; // Max 500MB per weight checkpoint
+    }
+
+    // System Exports & Controlled Reports
+    match /reports/{reportId}/{fileName} {
+      allow read: if isInvestigator();
+      allow write: if isAdmin() &&
+        request.resource.size < 20 * 1024 * 1024;
+    }
+  }
+}

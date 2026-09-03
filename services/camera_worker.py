@@ -2,7 +2,7 @@ import sys
 import threading
 import time
 from datetime import datetime, timezone
-from queue import Full, Queue
+from queue import Empty, Full, Queue
 from typing import TYPE_CHECKING, Any
 
 import cv2
@@ -471,7 +471,8 @@ class CameraWorker:
                         self._latest_jpeg = self._render_status_frame("SIGNAL LOST")
                     continue
 
-                frame = cv2.resize(frame, (self._width, self._height))
+                if frame.shape[1] != self._width or frame.shape[0] != self._height:
+                    frame = cv2.resize(frame, (self._width, self._height))
                 now = time.monotonic()
                 iso_now = datetime.now(timezone.utc).isoformat()
 
@@ -507,9 +508,19 @@ class CameraWorker:
                         self._logger.debug(f"Preview JPEG encode error: {enc_err}")
 
                 try:
-                    self._frame_queue.put(frame, block=False)
+                    self._frame_queue.put_nowait(frame)
                     self._frame_count += 1
                 except Full:
+                    # Drop oldest stale frame to guarantee latest-frame processing for real-time recognition
+                    try:
+                        self._frame_queue.get_nowait()
+                    except Empty:
+                        pass
+                    try:
+                        self._frame_queue.put_nowait(frame)
+                        self._frame_count += 1
+                    except Full:
+                        pass
                     with self._lock:
                         self.stats["frames_dropped"] += 1
 

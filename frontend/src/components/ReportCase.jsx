@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Bell, User as UserIcon, PlusCircle, XCircle, Play, CheckCircle, Trash2, MapPin, Navigation, Loader, Brain } from 'lucide-react';
+import { ArrowLeft, Bell, User as UserIcon, PlusCircle, XCircle, Play, CheckCircle, Trash2, MapPin, Navigation, Loader, Brain, AlertTriangle } from 'lucide-react';
 import { db, storage } from '../firebaseConfig';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
@@ -37,6 +37,9 @@ const ReportCase = () => {
     const [isUploading, setIsUploading] = useState(false);
     const [isDetectingGPS, setIsDetectingGPS] = useState(false);
     const [processingPhase, setProcessingPhase] = useState(null);
+    const [gaitProgress, setGaitProgress] = useState(null);
+    const [enrollmentResult, setEnrollmentResult] = useState(null);
+    const [enrollmentWarning, setEnrollmentWarning] = useState(null);
 
     const imageInputRef = useRef(null);
     const videoInputRef = useRef(null);
@@ -185,16 +188,29 @@ const ReportCase = () => {
                 createdAt: serverTimestamp()
             });
 
-            setProcessingPhase('extracting');
-            try {
-                const modelResult = await sendMediaToModel(caseId, formData.name, images, videos);
-                if (!modelResult.success) {
-                    console.warn('[ARGUS] Secondary ML model notice:', modelResult.errors);
-                } else {
-                    console.log('[ARGUS] Media processed successfully.');
+            if (images.length > 0 || videos.length > 0) {
+                setProcessingPhase('extracting');
+                try {
+                    const modelResult = await sendMediaToModel(
+                        caseId,
+                        formData.name,
+                        images,
+                        videos,
+                        (progressData, status, jobData) => {
+                            setGaitProgress({ ...progressData, status, jobData });
+                        }
+                    );
+                    if (!modelResult.success || (modelResult.errors && modelResult.errors.length > 0)) {
+                        console.warn('[ARGUS] Biometric enrollment notice/warning:', modelResult.errors);
+                        setEnrollmentWarning(modelResult.errors.join(' | '));
+                    } else {
+                        console.log('[ARGUS] Media processed successfully:', modelResult);
+                        setEnrollmentResult(modelResult);
+                    }
+                } catch (mlErr) {
+                    console.warn('[ARGUS] ML model enrollment notice:', mlErr);
+                    setEnrollmentWarning(mlErr.message || 'Biometric reference processing could not complete.');
                 }
-            } catch (mlErr) {
-                console.warn('[ARGUS] ML model enrollment notice:', mlErr);
             }
 
             setShowSuccessModal(true);
@@ -227,6 +243,9 @@ const ReportCase = () => {
         });
         setImages([]);
         setVideos([]);
+        setGaitProgress(null);
+        setEnrollmentResult(null);
+        setEnrollmentWarning(null);
     };
 
     return (
@@ -462,13 +481,29 @@ const ReportCase = () => {
                         {processingPhase === 'extracting' ? (
                             <>
                                 <h3 style={{ color: 'var(--ice)', marginTop: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                                    <Brain size={22} color="#5ce1e6" /> Extracting Biometric Embeddings...
+                                    <Brain size={22} color="#5ce1e6" /> Extracting Reference Biometrics...
                                 </h3>
-                                <p style={{ marginTop: '1rem', color: 'var(--text-secondary)' }}>
-                                    Generating ByGaitLight (256D) &amp; OSNet (512D) biometric embeddings.
+                                <p style={{ marginTop: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
+                                    {gaitProgress?.stage === 'TRACKING'
+                                        ? `Tracking Target Subject (${gaitProgress.frames_processed || 0} frames @ ${gaitProgress.fps || 0} FPS)...`
+                                        : gaitProgress?.stage === 'GENERATING_GEI'
+                                        ? `Constructing Gait Energy Images (${gaitProgress.valid_silhouettes || 0} silhouettes)...`
+                                        : gaitProgress?.stage === 'EXTRACTING_EMBEDDINGS'
+                                        ? `Generating ByGaitLight (256D) embeddings (${gaitProgress.valid_sequences || 0} sequences)...`
+                                        : gaitProgress?.stage === 'PERSISTING'
+                                        ? `Deduplicating & Persisting Gallery (${gaitProgress.embeddings_generated || 0} vectors)...`
+                                        : 'Running Camera-Independent ByGaitLight (256D) Pipeline...'}
                                 </p>
-                                <div style={{ marginTop: '0.75rem', padding: '0.5rem 1rem', background: 'rgba(92,225,230,0.08)', borderRadius: '6px', border: '1px solid rgba(92,225,230,0.2)' }}>
-                                    <span style={{ fontSize: '0.78rem', color: '#5ce1e6', fontWeight: '600' }}>🧠 ByGaitLight + OSNet Biometric Enrollment</span>
+                                <div style={{ marginTop: '0.75rem', padding: '0.6rem 1rem', background: 'rgba(92,225,230,0.08)', borderRadius: '6px', border: '1px solid rgba(92,225,230,0.2)', textAlign: 'left', fontSize: '0.78rem', color: 'var(--text-primary)' }}>
+                                    <div style={{ marginBottom: '0.2rem' }}>
+                                        <strong style={{ color: '#5ce1e6' }}>Status:</strong> {gaitProgress?.status || 'PROCESSING'}
+                                    </div>
+                                    <div style={{ marginBottom: '0.2rem' }}>
+                                        <strong>Gait Sequences:</strong> {gaitProgress?.valid_sequences || 0}
+                                    </div>
+                                    <div>
+                                        <strong>256D Embeddings Committed:</strong> {gaitProgress?.embeddings_committed || gaitProgress?.embeddings_generated || 0}
+                                    </div>
                                 </div>
                             </>
                         ) : (
@@ -484,11 +519,126 @@ const ReportCase = () => {
 
             {showSuccessModal && (
                 <div className="modal-overlay" onClick={handleModalClose}>
-                    <div className="success-modal" onClick={(e) => e.stopPropagation()}>
+                    <div className="success-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '540px', textAlign: 'center' }}>
                         <button className="modal-close-btn" onClick={handleModalClose}>
                             <XCircle size={28} fill="#E53935" color="#ffffff" />
                         </button>
-                        <h3>New Case added ( Case id : {formData.caseId} )</h3>
+
+                        {enrollmentWarning ? (
+                            <>
+                                <div style={{ display: 'inline-flex', padding: '12px', borderRadius: '50%', background: 'rgba(255, 171, 0, 0.15)', marginBottom: '1rem' }}>
+                                    <AlertTriangle size={36} color="#ffab00" />
+                                </div>
+                                <h3 style={{ color: '#ffab00', marginBottom: '0.5rem' }}>
+                                    Case Created — Biometric Enrollment Warning
+                                </h3>
+                                <p style={{ color: 'var(--ice)', fontWeight: 600, fontSize: '0.95rem', marginBottom: '0.75rem' }}>
+                                    Case ID: {formData.caseId}
+                                </p>
+                                <div style={{
+                                    padding: '0.85rem 1rem',
+                                    background: 'rgba(255, 171, 0, 0.08)',
+                                    border: '1px solid rgba(255, 171, 0, 0.3)',
+                                    borderRadius: '8px',
+                                    textAlign: 'left',
+                                    fontSize: '0.82rem',
+                                    color: 'var(--text-primary)',
+                                    marginBottom: '1rem',
+                                    lineHeight: 1.5
+                                }}>
+                                    <div style={{ fontWeight: 700, color: '#ffab00', marginBottom: '0.35rem' }}>
+                                        Safety Policy Notice:
+                                    </div>
+                                    <div>{enrollmentWarning}</div>
+                                    <div style={{ marginTop: '0.5rem', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                                        Case record and uploaded files have been safely stored, but biometric gait embeddings were not enrolled into the active surveillance gallery to prevent registering incorrect persons.
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={handleModalClose}
+                                    style={{
+                                        padding: '0.6rem 1.8rem',
+                                        background: 'var(--grad-primary)',
+                                        border: 'none',
+                                        borderRadius: '6px',
+                                        color: '#fff',
+                                        fontWeight: 700,
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    Acknowledge & Close
+                                </button>
+                            </>
+                        ) : enrollmentResult ? (
+                            <>
+                                <div style={{ display: 'inline-flex', padding: '12px', borderRadius: '50%', background: 'rgba(92, 225, 230, 0.15)', marginBottom: '1rem' }}>
+                                    <CheckCircle size={36} color="#5ce1e6" />
+                                </div>
+                                <h3 style={{ color: 'var(--ice)', marginBottom: '0.5rem' }}>
+                                    New Case Enrolled & Gallery Updated
+                                </h3>
+                                <p style={{ color: '#5ce1e6', fontWeight: 600, fontSize: '0.95rem', marginBottom: '0.75rem' }}>
+                                    Case ID: {formData.caseId}
+                                </p>
+                                <div style={{
+                                    padding: '0.85rem 1rem',
+                                    background: 'rgba(92, 225, 230, 0.08)',
+                                    border: '1px solid rgba(92, 225, 230, 0.25)',
+                                    borderRadius: '8px',
+                                    textAlign: 'left',
+                                    fontSize: '0.82rem',
+                                    color: 'var(--text-primary)',
+                                    marginBottom: '1rem',
+                                    lineHeight: 1.5
+                                }}>
+                                    <div style={{ marginBottom: '0.3rem' }}>
+                                        <strong style={{ color: '#5ce1e6' }}>Gait Embeddings Committed:</strong>{' '}
+                                        {enrollmentResult?.combinedResult?.gait_embeddings_added || 0} (256D ByGaitLight)
+                                    </div>
+                                    <div style={{ marginBottom: '0.3rem' }}>
+                                        <strong>Appearance Embeddings:</strong>{' '}
+                                        {enrollmentResult?.combinedResult?.appearance_embeddings_added || 0} (512D OSNet)
+                                    </div>
+                                    <div>
+                                        <strong>Engine Status:</strong> COMPLETED &bull; Camera-OFF Offline Pipeline &bull; Gallery Synchronized
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={handleModalClose}
+                                    style={{
+                                        padding: '0.6rem 1.8rem',
+                                        background: 'var(--grad-primary)',
+                                        border: 'none',
+                                        borderRadius: '6px',
+                                        color: '#fff',
+                                        fontWeight: 700,
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    Done
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <h3 style={{ color: 'var(--ice)', marginBottom: '1rem' }}>
+                                    New Case Added (Case ID: {formData.caseId})
+                                </h3>
+                                <button
+                                    onClick={handleModalClose}
+                                    style={{
+                                        padding: '0.6rem 1.8rem',
+                                        background: 'var(--grad-primary)',
+                                        border: 'none',
+                                        borderRadius: '6px',
+                                        color: '#fff',
+                                        fontWeight: 700,
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    Done
+                                </button>
+                            </>
+                        )}
                     </div>
                 </div>
             )}

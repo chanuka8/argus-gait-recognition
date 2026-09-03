@@ -21,8 +21,10 @@ The `services` package manages persistent system service lifecycle (NSSM Windows
 | [camera_source_resolver.py](camera_source_resolver.py) | Module/resource file camera_source_resolver.py |
 | [camera_worker.py](camera_worker.py) | Dedicated background thread worker capturing frames from an individual camera stream |
 | [gait_service.py](gait_service.py) | Module/resource file gait_service.py |
+| [missing_person_processor.py](missing_person_processor.py) | Camera-independent offline reference-video processing engine implementing the locked ByGaitLight gait pipeline with multi-person isolation |
 | [onvif_client.py](onvif_client.py) | ONVIF protocol client querying network CCTV camera capabilities and RTSP stream URIs |
 | [recognition_worker.py](recognition_worker.py) | Module/resource file recognition_worker.py |
+| [reference_job_manager.py](reference_job_manager.py) | Persistent reference job manager coordinating background video enrollment states and execution queues |
 | [vendor_adapters.py](vendor_adapters.py) | Vendor-specific camera stream adapters (Hikvision, Dahua, Axis, generic RTSP) |
 <!-- END SYNC: KEY_MODULES -->
 

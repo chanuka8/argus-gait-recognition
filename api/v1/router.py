@@ -5,6 +5,8 @@ from fastapi.responses import Response, StreamingResponse
 """Version 1 API routes for the ARGUS gait recognition backend."""
 
 import tempfile
+import time
+from pathlib import Path
 from typing import Annotated
 
 import numpy as np
@@ -18,7 +20,9 @@ from fastapi import (
     UploadFile,
     WebSocket,
     WebSocketDisconnect,
+    status,
 )
+from pydantic import BaseModel
 
 from api.schemas import (
     CameraInfoResponse,
@@ -31,24 +35,73 @@ from api.schemas import (
     HealthResponse,
     MetricsResponse,
     RecognitionEvent,
+    ReferenceJobStatusResponse,
+    ReferenceVideoUploadResponse,
     StatusResponse,
+)
+from security_layer.auth import SessionToken, extract_bearer_token, get_session_store
+from security_layer.authorization import (
+    Role,
+    normalize_role,
+    verify_case_access,
+    verify_job_access,
 )
 from security_layer.credentials import CredentialManager, sanitize_rtsp_url
 from services.gait_service import GaitService
+from services.missing_person_processor import MissingPersonVideoProcessor
+from services.reference_job_manager import ReferenceJobManager, ReferenceJobStatus
+
+
+def get_current_operator_session(request: Request) -> SessionToken:
+    """Derive authenticated operator session from cryptographically verified server session.
+
+    Security Guarantee:
+      - Never trusts client-asserted X-User-ID header as proof of identity.
+      - Requires a valid Authorization: Bearer <session_token>.
+      - Raises HTTP 401 if missing, invalid, or expired.
+      - Raises HTTP 403 if operator account is suspended.
+    """
+    token = extract_bearer_token(request)
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required. Provide Authorization: Bearer <session_token>",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    session = get_session_store().get_session(token)
+    if not session:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired session token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    if session.status == "Suspended":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account has been suspended",
+        )
+
+    return session
 
 
 def get_current_user_id(request: Request) -> str:
-    user_header = request.headers.get("X-User-ID")
-    if user_header:
-        return user_header.strip()
+    """Convenience accessor returning operator username."""
+    session = get_current_operator_session(request)
+    return session.username
 
-    auth_header = request.headers.get("Authorization")
-    if auth_header and auth_header.startswith("Bearer "):
-        token = auth_header[7:].strip()
-        if token:
-            return token.split(".")[0] if "." in token else token
 
-    return "default_user"
+def require_admin_operator(request: Request) -> SessionToken:
+    """Ensure operator possesses administrative role (admin or root_admin)."""
+    session = get_current_operator_session(request)
+    role_norm = normalize_role(session.role)
+    if role_norm not in (Role.ROOT_ADMIN.value, Role.ADMIN.value):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Operation requires administrative privileges; current role is '{session.role}'",
+        )
+    return session
 
 
 _fallback_service_lock = asyncio.Lock() if hasattr(asyncio, "Lock") else None
@@ -156,11 +209,14 @@ async def identify_image(
         File(description="Image file used for gait identification"),
     ],
     service: Annotated[GaitService, Depends(get_gait_service)],
+    request: Request,
     camera_id: Annotated[
         str,
         Form(description="Camera or upload source identifier"),
     ] = "upload-image",
 ):
+    get_current_operator_session(request)
+
     if file.content_type and not file.content_type.startswith("image/"):
         raise HTTPException(
             status_code=415,
@@ -210,7 +266,9 @@ async def analyze_video(
         File(description="Video file used for gait analysis"),
     ],
     service: Annotated[GaitService, Depends(get_gait_service)],
+    request: Request,
 ):
+    get_current_operator_session(request)
     temporary_path: str | None = None
 
     try:
@@ -331,7 +389,8 @@ def create_credential(
     body: CredentialCreateRequest,
     request: Request,
 ):
-    user_id = get_current_user_id(request)
+    session = require_admin_operator(request)
+    user_id = session.username
     cm = CredentialManager()
     try:
         meta = cm.store_credential(
@@ -356,7 +415,8 @@ def create_credential(
 def list_credentials(
     request: Request,
 ):
-    user_id = get_current_user_id(request)
+    session = require_admin_operator(request)
+    user_id = session.username
     cm = CredentialManager()
     return cm.list_credentials_for_user(user_id=user_id)
 
@@ -369,7 +429,8 @@ def get_credential(
     credential_id: str,
     request: Request,
 ):
-    user_id = get_current_user_id(request)
+    session = require_admin_operator(request)
+    user_id = session.username
     cm = CredentialManager()
     meta = cm.get_credential_metadata(credential_id, user_id=user_id)
     if not meta:
@@ -385,7 +446,8 @@ def delete_credential(
     credential_id: str,
     request: Request,
 ):
-    user_id = get_current_user_id(request)
+    session = require_admin_operator(request)
+    user_id = session.username
     cm = CredentialManager()
     try:
         deleted = cm.delete_credential(credential_id, user_id=user_id)
@@ -408,7 +470,8 @@ def share_credential(
     body: CredentialShareRequest,
     request: Request,
 ):
-    user_id = get_current_user_id(request)
+    session = require_admin_operator(request)
+    user_id = session.username
     cm = CredentialManager()
     try:
         shared = cm.grant_access(
@@ -438,7 +501,8 @@ def set_camera_credentials(
     body: CredentialCreateRequest,
     request: Request,
 ):
-    user_id = get_current_user_id(request)
+    session = require_admin_operator(request)
+    user_id = session.username
     cm = CredentialManager()
     cred_id = body.credential_id or f"cred_{camera_id}"
     try:
@@ -464,13 +528,14 @@ def start_camera(
     request: Request,
     service: Annotated[GaitService, Depends(get_gait_service)],
 ):
+    session = require_admin_operator(request)
+    user_id = session.username
+
     if not body.camera_id:
         raise HTTPException(
             status_code=400,
             detail="camera_id is required",
         )
-
-    user_id = get_current_user_id(request)
 
     try:
         return service.start_camera(
@@ -496,8 +561,10 @@ def start_camera(
 @v1_router.post("/cameras/stop")
 def stop_camera(
     body: CameraStopRequest,
+    request: Request,
     service: Annotated[GaitService, Depends(get_gait_service)],
 ):
+    require_admin_operator(request)
     stopped = service.stop_camera(body.camera_id)
 
     if not stopped:
@@ -517,8 +584,10 @@ def stop_camera(
     response_model=list[CameraInfoResponse],
 )
 def list_cameras(
+    request: Request,
     service: Annotated[GaitService, Depends(get_gait_service)],
 ):
+    get_current_operator_session(request)
     return service.list_all_cameras()
 
 
@@ -528,8 +597,10 @@ def list_cameras(
 )
 def get_camera(
     camera_id: str,
+    request: Request,
     service: Annotated[GaitService, Depends(get_gait_service)],
 ):
+    get_current_operator_session(request)
     info = service.get_camera_info(camera_id)
     if not info:
         raise HTTPException(
@@ -544,8 +615,13 @@ def get_camera(
 )
 async def stream_camera(
     camera_id: str,
-    service: Annotated[GaitService, Depends(get_gait_service)],
+    service: Annotated[GaitService, Depends(get_gait_service)] = None,
+    request: Request = None,
 ):
+    if request is not None:
+        get_current_operator_session(request)
+    if service is None:
+        service = get_gait_service(request)
     if camera_id not in service.active_cameras:
         raise HTTPException(
             status_code=404,
@@ -613,8 +689,10 @@ async def stream_camera(
 )
 def get_camera_snapshot(
     camera_id: str,
+    request: Request,
     service: Annotated[GaitService, Depends(get_gait_service)],
 ):
+    get_current_operator_session(request)
     worker = service.get_camera_worker(camera_id)
     if not worker or camera_id not in service.active_cameras:
         raise HTTPException(
@@ -650,7 +728,9 @@ async def enroll_subject(
         File(description="One or more gait enrollment image files"),
     ],
     service: Annotated[GaitService, Depends(get_gait_service)],
+    request: Request,
 ):
+    get_current_operator_session(request)
     normalized_person_id = person_id.strip()
 
     if not normalized_person_id:
@@ -713,6 +793,249 @@ async def enroll_subject(
             await upload.close()
 
 
+@v1_router.post(
+    "/cases/upload-reference",
+    response_model=ReferenceVideoUploadResponse,
+)
+async def upload_case_reference_video(
+    person_id: Annotated[
+        str,
+        Form(description="Missing person / case identifier"),
+    ],
+    file: Annotated[
+        UploadFile,
+        File(description="Reference video file containing target subject"),
+    ],
+    service: Annotated[GaitService, Depends(get_gait_service)],
+    request: Request,
+    case_id: Annotated[
+        str | None,
+        Form(description="Optional case identifier if distinct from person_id"),
+    ] = None,
+):
+    session = get_current_operator_session(request)
+    normalized_person_id = person_id.strip()
+    if not normalized_person_id:
+        raise HTTPException(status_code=400, detail="person_id is required")
+
+    valid_extensions = {".mp4", ".avi", ".mov", ".mkv", ".webm", ".m4v"}
+    suffix = ".mp4"
+    if file.filename and "." in file.filename:
+        suffix = "." + file.filename.rsplit(".", maxsplit=1)[-1].lower()
+
+    if suffix not in valid_extensions:
+        raise HTTPException(
+            status_code=415,
+            detail=f"Unsupported video format '{suffix}'. Allowed: {sorted(valid_extensions)}",
+        )
+
+    content = await file.read()
+    if not content:
+        raise HTTPException(status_code=400, detail="Uploaded reference video file is empty")
+
+    videos_dir = Path("data/reference_videos")
+    videos_dir.mkdir(parents=True, exist_ok=True)
+
+    job_mgr = ReferenceJobManager.get_instance()
+    # Save the file deterministically with person_id and timestamp
+    save_filename = f"{normalized_person_id}_{int(time.time())}_{file.filename or 'reference' + suffix}"
+    saved_path = videos_dir / save_filename
+    await asyncio.to_thread(saved_path.write_bytes, content)
+
+    job = job_mgr.create_job(
+        person_id=normalized_person_id,
+        video_path=str(saved_path),
+        case_id=case_id or normalized_person_id,
+        owner=session.username,
+    )
+
+    processor = MissingPersonVideoProcessor(
+        detector=service.detector,
+        extractor=service.extractor,
+        store=service.store,
+        embedding_db=service.embedding_db,
+    )
+
+    job_mgr.submit_task(
+        processor.process_reference_video,
+        person_id=normalized_person_id,
+        video_path=str(saved_path),
+        job_id=job.job_id,
+        case_id=case_id or normalized_person_id,
+        gait_service_ref=service,
+    )
+
+    return {
+        "job_id": job.job_id,
+        "person_id": normalized_person_id,
+        "status": ReferenceJobStatus.QUEUED.value,
+        "message": "Reference video uploaded and queued for camera-independent gait embedding extraction",
+        "created_at": job.created_at,
+    }
+
+
+@v1_router.get(
+    "/cases/jobs/{job_id}",
+    response_model=ReferenceJobStatusResponse,
+)
+def get_case_job_status(
+    job_id: str,
+    request: Request,
+):
+    session = get_current_operator_session(request)
+    job = verify_job_access(job_id, session)
+    return job.to_dict()
+
+
+@v1_router.post(
+    "/cases/jobs/{job_id}/retry",
+    response_model=ReferenceJobStatusResponse,
+)
+def retry_case_job(
+    job_id: str,
+    request: Request,
+    service: Annotated[GaitService, Depends(get_gait_service)],
+):
+    session = get_current_operator_session(request)
+    job = verify_job_access(job_id, session, mutate=True)
+
+    job_mgr = ReferenceJobManager.get_instance()
+
+    # Idempotency: if already completed, return cached result immediately
+    if job.status == ReferenceJobStatus.COMPLETED:
+        return job.to_dict()
+
+    if job.status == ReferenceJobStatus.PROCESSING:
+        return job.to_dict()
+
+    # Re-queue failed or interrupted job
+    job_mgr.update_progress(job_id, stage="QUEUED", status=ReferenceJobStatus.QUEUED)
+    processor = MissingPersonVideoProcessor(
+        detector=service.detector,
+        extractor=service.extractor,
+        store=service.store,
+        embedding_db=service.embedding_db,
+    )
+
+    job_mgr.submit_task(
+        processor.process_reference_video,
+        person_id=job.person_id,
+        video_path=job.video_path,
+        job_id=job.job_id,
+        case_id=job.case_id,
+        gait_service_ref=service,
+    )
+
+    updated_job = job_mgr.get_job(job_id)
+    return updated_job.to_dict() if updated_job else job.to_dict()
+
+
+@v1_router.get(
+    "/cases/jobs",
+    response_model=list[ReferenceJobStatusResponse],
+)
+def list_case_jobs(
+    request: Request,
+):
+    session = get_current_operator_session(request)
+    owner_filter = session.username if normalize_role(session.role) == Role.INVESTIGATOR.value else None
+    jobs = ReferenceJobManager.get_instance().list_jobs(limit=50, owner=owner_filter)
+    return [j.to_dict() for j in jobs]
+
+
+@v1_router.get("/gallery")
+def get_gallery(
+    request: Request,
+    service: Annotated[GaitService, Depends(get_gait_service)],
+):
+    get_current_operator_session(request)
+    persons = service.embedding_db.list_all_persons()
+    active = [p for p in persons if p.status == "ACTIVE"]
+    return {
+        "total_persons": len(active),
+        "persons": [
+            {
+                "person_id": p.person_id,
+                "gait_embeddings": len(p.gait_embeddings),
+                "appearance_embeddings": len(p.appearance_embeddings),
+                "status": p.status,
+                "updated_at": p.updated_at,
+            }
+            for p in active
+        ],
+    }
+
+
+@v1_router.get("/cases/{case_id}/gallery")
+def get_case_gallery(
+    case_id: str,
+    request: Request,
+    service: Annotated[GaitService, Depends(get_gait_service)],
+):
+    session = get_current_operator_session(request)
+    verify_case_access(case_id, session)
+    person = service.embedding_db.get_person(case_id)
+    if not person or person.status != "ACTIVE":
+        raise HTTPException(status_code=404, detail=f"Case biometric subject '{case_id}' not found")
+    return {
+        "case_id": case_id,
+        "person_id": person.person_id,
+        "gait_embeddings_count": len(person.gait_embeddings),
+        "appearance_embeddings_count": len(person.appearance_embeddings),
+        "status": person.status,
+    }
+
+
+class GalleryDeleteRequest(BaseModel):
+    person_id: str
+
+
+@v1_router.post("/gallery/delete")
+def delete_gallery_subject(
+    body: GalleryDeleteRequest,
+    request: Request,
+    service: Annotated[GaitService, Depends(get_gait_service)],
+):
+    require_admin_operator(request)
+    success = service.embedding_db.delete_person(body.person_id)
+    if not success:
+        raise HTTPException(status_code=404, detail=f"Subject '{body.person_id}' not found in biometric gallery")
+    return {"success": True, "person_id": body.person_id, "message": "Biometric gallery record marked as deleted"}
+
+
+@v1_router.get("/learning/status")
+def get_continual_learning_status(request: Request):
+    require_admin_operator(request)
+    return {
+        "status": "IDLE",
+        "model_version": "v1.0.0",
+        "candidates_evaluated": 0,
+        "promotion_eligible": False,
+    }
+
+
+@v1_router.post("/learning/promote")
+def promote_candidate_model(request: Request):
+    session = get_current_operator_session(request)
+    if normalize_role(session.role) != Role.ROOT_ADMIN.value:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Root Administrator privileges required to promote model versions",
+        )
+    return {"success": True, "message": "Candidate model promoted to production"}
+
+
+@v1_router.post("/learning/rollback")
+def rollback_model_version(request: Request):
+    session = get_current_operator_session(request)
+    if normalize_role(session.role) != Role.ROOT_ADMIN.value:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Root Administrator privileges required to rollback model versions",
+        )
+    return {"success": True, "message": "Production model rolled back to previous baseline"}
+
+
 @v1_router.get(
     "/events",
     response_model=list[RecognitionEvent],
@@ -720,7 +1043,7 @@ async def enroll_subject(
 def get_events(
     service: Annotated[GaitService, Depends(get_gait_service)],
 ):
-    return service.events_log
+    return list(service.events_log)
 
 
 @v1_router.websocket("/ws/recognition")

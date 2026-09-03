@@ -79,24 +79,16 @@ class MatchingStep:
         if len(gallery_features) == 0:
             return None, None
 
-        active_mask = np.asarray(
-            [
-                self._is_active(
-                    str(label),
-                    metadata,
-                )
-                for label in gallery_labels
-            ],
-            dtype=bool,
-        )
-
-        if not np.any(
-            active_mask,
-        ):
-            return None, None
-
-        gallery_features = gallery_features[active_mask]
-        gallery_labels = gallery_labels[active_mask]
+        if metadata:
+            active_mask = np.fromiter(
+                (self._is_active(str(label), metadata) for label in gallery_labels),
+                dtype=bool,
+                count=len(gallery_labels),
+            )
+            if not np.any(active_mask):
+                return None, None
+            gallery_features = gallery_features[active_mask]
+            gallery_labels = gallery_labels[active_mask]
 
         gallery_norms = np.linalg.norm(
             gallery_features,
@@ -108,27 +100,27 @@ class MatchingStep:
 
         self._cache_key = current_key
         self._cached_active_features = gallery_features
-        self._cached_active_labels = gallery_labels
+        self._cached_active_labels = tuple(str(x) for x in gallery_labels)
 
-        return gallery_features, gallery_labels
+        return gallery_features, self._cached_active_labels
 
     def _prepare_query(
         self,
         query_feature,
     ):
-        query_feature = np.asarray(
-            query_feature,
-            dtype=np.float32,
-        ).ravel()
-
-        query_norm = float(np.linalg.norm(
-            query_feature,
-        ))
-
-        if query_norm == 0.0:
+        if query_feature is None:
             return None
-
-        return query_feature / (query_norm + 1e-8)
+        if isinstance(query_feature, np.ndarray) and query_feature.dtype == np.float32 and query_feature.ndim == 1:
+            return query_feature
+        q = np.asarray(query_feature, dtype=np.float32).ravel()
+        if q.size == 0:
+            return None
+        q_len_sq = float(np.dot(q, q))
+        if q_len_sq == 0.0:
+            return None
+        if abs(q_len_sq - 1.0) > 1e-3:
+            q = q / np.sqrt(q_len_sq)
+        return q
 
     def match(
         self,
@@ -171,9 +163,7 @@ class MatchingStep:
         if best_score < self.threshold:
             return "UNKNOWN", best_score
 
-        return str(
-            gallery_labels[best_index],
-        ), best_score
+        return gallery_labels[best_index], best_score
 
     def top_k_matches(
         self,

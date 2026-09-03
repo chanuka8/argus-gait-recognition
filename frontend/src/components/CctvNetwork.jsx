@@ -13,20 +13,170 @@ import Notifications from './Notifications';
 import UserProfileModal from './UserProfileModal';
 import { useAuth } from '../hooks/useAuth';
 import { useGait } from '../hooks/useGait';
-import { getStreamUrl } from '../config/apiConfig';
+import { getStreamUrl, getAuthHeaders, getSnapshotUrl } from '../config/apiConfig';
 import './CctvNetwork.css';
 import './History.css';
 
+function findJpegStart(buf) {
+    for (let i = 0; i < buf.length - 1; i++) {
+        if (buf[i] === 0xff && buf[i + 1] === 0xd8) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+function findJpegEnd(buf, startIndex) {
+    for (let i = startIndex + 2; i < buf.length - 1; i++) {
+        if (buf[i] === 0xff && buf[i + 1] === 0xd9) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 const LiveCameraFeed = ({ cameraId, cameraName, workerActive, telemetry }) => {
     const [streamError, setStreamError] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
     const [isLoaded, setIsLoaded] = useState(false);
     const [retryKey, setRetryKey] = useState(0);
+    const [frameUrl, setFrameUrl] = useState(null);
 
     const handleRetry = () => {
         setStreamError(false);
+        setErrorMessage('');
         setIsLoaded(false);
         setRetryKey(k => k + 1);
     };
+
+    useEffect(() => {
+        if (!workerActive) {
+            setIsLoaded(false);
+            setStreamError(false);
+            setErrorMessage('');
+            setFrameUrl(prev => {
+                if (prev) URL.revokeObjectURL(prev);
+                return null;
+            });
+            return;
+        }
+
+        const abortController = new AbortController();
+        let currentObjectUrl = null;
+        let isCancelled = false;
+
+        const startStream = async () => {
+            const authHeaders = getAuthHeaders();
+            if (!authHeaders.Authorization) {
+                setStreamError(true);
+                setErrorMessage('Authentication required. Please log in.');
+                return;
+            }
+
+            const streamUrl = getStreamUrl(cameraId);
+
+            try {
+                const response = await fetch(streamUrl, {
+                    headers: authHeaders,
+                    signal: abortController.signal,
+                });
+
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.detail || `Stream HTTP ${response.status}`);
+                }
+
+                if (!response.body) {
+                    throw new Error('ReadableStream not supported');
+                }
+
+                const reader = response.body.getReader();
+                let buffer = new Uint8Array(0);
+
+                const appendChunk = (chunk) => {
+                    const newBuf = new Uint8Array(buffer.length + chunk.length);
+                    newBuf.set(buffer);
+                    newBuf.set(chunk, buffer.length);
+                    buffer = newBuf;
+                };
+
+                while (!abortController.signal.aborted && !isCancelled) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    appendChunk(value);
+
+                    while (buffer.length > 4) {
+                        const startIndex = findJpegStart(buffer);
+                        if (startIndex === -1) {
+                            if (buffer.length > 65536) buffer = buffer.slice(-1024);
+                            break;
+                        }
+
+                        const endIndex = findJpegEnd(buffer, startIndex);
+                        if (endIndex === -1) {
+                            if (startIndex > 0) {
+                                buffer = buffer.slice(startIndex);
+                            }
+                            break;
+                        }
+
+                        const frameData = buffer.slice(startIndex, endIndex + 2);
+                        buffer = buffer.slice(endIndex + 2);
+
+                        const blob = new Blob([frameData], { type: 'image/jpeg' });
+                        const nextUrl = URL.createObjectURL(blob);
+
+                        if (currentObjectUrl) {
+                            URL.revokeObjectURL(currentObjectUrl);
+                        }
+                        currentObjectUrl = nextUrl;
+                        if (!isCancelled) {
+                            setFrameUrl(nextUrl);
+                            setIsLoaded(true);
+                            setStreamError(false);
+                        }
+                    }
+                }
+            } catch (err) {
+                if (abortController.signal.aborted || isCancelled) return;
+                console.warn(`[LiveCameraFeed] Stream disconnected for ${cameraId}:`, err);
+
+                try {
+                    const snapUrl = getSnapshotUrl(cameraId);
+                    const snapRes = await fetch(snapUrl, { headers: authHeaders, signal: abortController.signal });
+                    if (snapRes.ok) {
+                        const snapBlob = await snapRes.blob();
+                        const nextUrl = URL.createObjectURL(snapBlob);
+                        if (currentObjectUrl) URL.revokeObjectURL(currentObjectUrl);
+                        currentObjectUrl = nextUrl;
+                        if (!isCancelled) {
+                            setFrameUrl(nextUrl);
+                            setIsLoaded(true);
+                            setStreamError(false);
+                        }
+                        return;
+                    }
+                } catch {
+                    // Fallback to snapshot polling failed, proceed to error display
+                }
+
+                setStreamError(true);
+                setErrorMessage(err.message || 'Stream connection lost');
+                setIsLoaded(false);
+            }
+        };
+
+        startStream();
+
+        return () => {
+            isCancelled = true;
+            abortController.abort();
+            if (currentObjectUrl) {
+                URL.revokeObjectURL(currentObjectUrl);
+            }
+        };
+    }, [cameraId, workerActive, retryKey]);
 
     if (!workerActive) {
         return (
@@ -45,8 +195,6 @@ const LiveCameraFeed = ({ cameraId, cameraName, workerActive, telemetry }) => {
         );
     }
 
-    const streamUrl = `${getStreamUrl(cameraId)}?t=${retryKey}`;
-
     return (
         <div className="simulated-feed-box" style={{ position: 'relative', overflow: 'hidden', minHeight: '180px' }}>
             <div className="feed-watermark" style={{ zIndex: 3 }}>
@@ -54,10 +202,10 @@ const LiveCameraFeed = ({ cameraId, cameraName, workerActive, telemetry }) => {
                 <span>{new Date().toLocaleTimeString()}</span>
             </div>
 
-            {!streamError && (
+            {!streamError && frameUrl && (
                 <img
                     key={retryKey}
-                    src={streamUrl}
+                    src={frameUrl}
                     alt={`Live Stream - ${cameraName}`}
                     style={{
                         position: 'absolute',
@@ -69,14 +217,6 @@ const LiveCameraFeed = ({ cameraId, cameraName, workerActive, telemetry }) => {
                         zIndex: 1,
                         opacity: isLoaded ? 1 : 0,
                         transition: 'opacity 0.25s ease-in-out',
-                    }}
-                    onLoad={() => {
-                        setIsLoaded(true);
-                        setStreamError(false);
-                    }}
-                    onError={() => {
-                        setStreamError(true);
-                        setIsLoaded(false);
                     }}
                 />
             )}
@@ -111,7 +251,7 @@ const LiveCameraFeed = ({ cameraId, cameraName, workerActive, telemetry }) => {
                         <>
                             <AlertTriangle size={24} color="#FFD166" />
                             <span style={{ color: '#FFD166', fontSize: '0.82rem', fontWeight: 600 }}>
-                                Stream Disconnected or Initializing
+                                {errorMessage || 'Stream Disconnected or Initializing'}
                             </span>
                             <button
                                 type="button"
@@ -127,6 +267,7 @@ const LiveCameraFeed = ({ cameraId, cameraName, workerActive, telemetry }) => {
                                     display: 'flex',
                                     alignItems: 'center',
                                     gap: '4px',
+                                    marginTop: '4px',
                                 }}
                             >
                                 <RefreshCw size={12} /> Retry Stream

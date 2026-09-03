@@ -22,3 +22,4 @@ ultralytics>=8.0.0
 uvicorn>=0.22.0
 httpx>=0.24.0
 python-multipart
+argon2-cffi>=23.1.0,<26.0.0

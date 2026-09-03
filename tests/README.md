@@ -17,6 +17,7 @@ The `tests` package contains unit, integration, and verification tests for valid
 | --- | --- |
 | [conftest.py](conftest.py) | Pytest root configuration and shared test fixtures |
 | `integration/` | Module/resource file integration/ |
+| `security/` | Module/resource file security/ |
 | [test_audit_verification.py](test_audit_verification.py) | Verifies audit logging, security event logging, and CSV log output |
 | [test_camera_service.py](test_camera_service.py) | Tests camera acquisition service, stream reconnects, and status reporting |
 | [test_camera_transition_model.py](test_camera_transition_model.py) | Tests cross-camera topology travel-time model calculations |

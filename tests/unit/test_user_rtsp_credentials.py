@@ -128,10 +128,19 @@ def test_credentials_never_appear_in_logs(caplog, temp_credential_store):
 
 
 def test_credentials_never_appear_in_api_response():
+    from security_layer.auth import get_session_store
+
+    session = get_session_store().create_session(
+        operator_id="test_user_api",
+        username="test_user_api",
+        role="admin",
+    )
+    auth_headers = {"Authorization": f"Bearer {session.token}"}
+
     with TestClient(app) as client:
         resp = client.post(
             "/api/v1/credentials",
-            headers={"X-User-ID": "test_user_api"},
+            headers=auth_headers,
             json={
                 "username": "api_camera_user",
                 "password": "ApiSecretPassword888",
@@ -146,7 +155,7 @@ def test_credentials_never_appear_in_api_response():
 
         list_resp = client.get(
             "/api/v1/credentials",
-            headers={"X-User-ID": "test_user_api"},
+            headers=auth_headers,
         )
         assert list_resp.status_code == 200
         list_data = list_resp.json()
@@ -154,7 +163,7 @@ def test_credentials_never_appear_in_api_response():
 
         get_resp = client.get(
             f"/api/v1/credentials/{cred_id}",
-            headers={"X-User-ID": "test_user_api"},
+            headers=auth_headers,
         )
         assert get_resp.status_code == 200
         get_data = get_resp.json()
@@ -503,12 +512,22 @@ def test_monitoring_logger_filter_redacts_credentials():
 
 
 def test_api_camera_start_error_response_redacts_credentials():
+    from security_layer.auth import get_session_store
+
     mock_cap = MagicMock()
     mock_cap.isOpened.return_value = False
+
+    session = get_session_store().create_session(
+        operator_id="test_admin_cam",
+        username="test_admin_cam",
+        role="admin",
+    )
+    auth_headers = {"Authorization": f"Bearer {session.token}"}
 
     with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap), TestClient(app) as client:
         resp = client.post(
             "/api/v1/cameras/start",
+            headers=auth_headers,
             json={
                 "camera_id": "CAM-ERR-TEST",
                 "source": "rtsp://leaked_user:LeakedPass999@192.168.1.99:554/live",

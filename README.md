@@ -289,6 +289,37 @@ Every persisted embedding conforms to the canonical `FirebaseEmbeddingDocument` 
 * **Automatic Retry Queue**: Offline transactions are queued (`data/firebase_offline_store.json`) and automatically retried upon connection restoration.
 * **Disaster Recovery Rebuild**: `EmbeddingDatabase.rebuild_from_firebase()` enables 100% gallery recovery from cloud snapshots in disaster recovery scenarios.
 
+### Firebase Admin SDK Configuration
+
+When unconfigured, ARGUS runs hermetically in **offline mode** without error. To enable live cloud persistence:
+
+1. **Obtain Key**: Generate and download the Firebase Admin SDK private key JSON from the Firebase Console for project `argus-17702`.
+2. **Store Key**: Save the file at:
+   ```text
+   E:\ARGUS_AI\config\firebase-service-account.json
+   ```
+   *(Protected by `.gitignore`; never commit this file).*
+3. **Set Environment Variable**:
+   ```powershell
+   $env:FIREBASE_SERVICE_ACCOUNT_PATH="E:\ARGUS_AI\config\firebase-service-account.json"
+   ```
+4. **Verify Path**:
+   ```powershell
+   Test-Path $env:FIREBASE_SERVICE_ACCOUNT_PATH
+   # Expected: True
+   ```
+5. **Safely Validate**:
+   ```powershell
+   $j = Get-Content $env:FIREBASE_SERVICE_ACCOUNT_PATH -Raw | ConvertFrom-Json
+   [PSCustomObject]@{
+       Type           = $j.type
+       ProjectId      = $j.project_id
+       HasPrivateKey  = [bool]$j.private_key
+       HasClientEmail = [bool]$j.client_email
+   }
+   # Expected: Type = service_account, ProjectId = argus-17702, HasPrivateKey = True, HasClientEmail = True
+   ```
+
 ---
 
 ## Operational Embedding Lifecycle & State Machine

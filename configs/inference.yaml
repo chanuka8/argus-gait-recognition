@@ -236,3 +236,13 @@ inference_backend:
   warmup_iterations: 3
   dynamic_batch: false
   max_batch_size: 1
+
+reference_enrollment:
+  # Evidence-based deduplication threshold matching matching_policy.confirmed_threshold (0.92).
+  # Embeddings with cosine similarity >= 0.92 from the same video are treated as duplicate gait cycles.
+  # Subject to calibration against operational camera datasets.
+  dedup_cosine_threshold: 0.92
+  min_gait_frames: 10
+  target_isolation_ratio: 2.5
+  stride: 1
+  model_version: "v1.0.0"

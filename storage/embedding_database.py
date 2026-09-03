@@ -382,6 +382,17 @@ class EmbeddingDatabase:
                 app_meta,
             )
 
+    def reconcile_vector_stores(self) -> dict[str, Any]:
+        """Reconcile VectorStore gallery files directly from durable PersonRecord records on disk."""
+        self._sync_vector_stores()
+        all_persons = self.list_all_persons()
+        active_count = sum(1 for p in all_persons if p.status == "ACTIVE")
+        return {
+            "status": "RECONCILED",
+            "active_persons": active_count,
+            "total_persons": len(all_persons),
+        }
+
     def list_all_persons(self) -> list[PersonRecord]:
         results = []
         for p_file in sorted(self.persons_dir.glob("*.json")):
@@ -392,6 +403,19 @@ class EmbeddingDatabase:
             except (OSError, json.JSONDecodeError, ValueError) as err:
                 self._logger.warning(f"Error loading {p_file.name}: {err}")
         return results
+
+    def delete_person(self, person_id: str) -> bool:
+        """Mark person record as DELETED and sync in-memory vector stores."""
+        person = self.get_person(person_id)
+        if person is None:
+            return False
+        person.status = "DELETED"
+        for e in person.gait_embeddings + person.appearance_embeddings:
+            e.status = "DELETED"
+        self.save_person(person)
+        self._sync_vector_stores()
+        self._logger.info(f"Marked person '{person_id}' as DELETED in EmbeddingDatabase")
+        return True
 
     def get_distinct_observation_dates(self) -> list[str]:
         dates = set()

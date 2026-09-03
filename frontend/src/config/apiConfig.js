@@ -11,6 +11,11 @@ export const getApiUrl = (endpoint = '') => {
   return `${API_BASE}/api/v1${cleanEndpoint}`;
 };
 
+export const getAuthHeaders = () => {
+  const token = sessionStorage.getItem('argus_session_token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
 export const getStreamUrl = (cameraId) => {
   return `${API_BASE}/api/v1/cameras/${encodeURIComponent(cameraId)}/stream`;
 };

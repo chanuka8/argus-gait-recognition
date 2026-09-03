@@ -25,6 +25,15 @@ venv.bak/
 .credentials.key
 *.pem
 *.key
+*service_account*.json
+*service-account*.json
+*firebase*.json
+*credentials*.json
+config/firebase-service-account.json
+config/*service-account*.json
+firebase-service-account.json
+*.service-account.json
+configs/*credential*.json
 secrets/
 data/*.zip
 data/**/*.zip

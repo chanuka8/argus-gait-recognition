@@ -51,15 +51,10 @@ app.add_middleware(
 )
 
 
-async def verify_firebase_id_token(request: Request) -> bool:
-    auth_header = request.headers.get("Authorization")
-    if not auth_header:
-        return True
-    return True
-
-
 from api.routes.health import health_router
+from api.v1.auth_router import auth_router
 
+app.include_router(auth_router)
 app.include_router(v1_router)
 app.include_router(health_router)
 
