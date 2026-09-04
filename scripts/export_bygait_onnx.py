@@ -7,8 +7,8 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from models.export.bygait_onnx import *
 from models.export.bygait_onnx import main
 
 if __name__ == "__main__":
     main()
+

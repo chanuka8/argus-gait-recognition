@@ -24,10 +24,10 @@
         "updated_at": 1788486547.892624
     },
     "MP_PHOTO_001": {
-        "embeddings": 20,
+        "embeddings": 21,
         "status": "ACTIVE",
         "enabled": true,
-        "updated_at": 1788487264.6678283
+        "updated_at": 1788487425.1204123
     },
     "subject999": {
         "embeddings": 89,
@@ -36,9 +36,9 @@
         "updated_at": 1788487373.4414396
     },
     "Subject_42": {
-        "embeddings": 32,
+        "embeddings": 34,
         "status": "ACTIVE",
         "enabled": true,
-        "updated_at": 1788483827.6756427
+        "updated_at": 1788487503.8675606
     }
 }

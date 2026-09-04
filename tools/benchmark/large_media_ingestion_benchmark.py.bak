@@ -11,6 +11,8 @@ Measures realistic 350 MB, ~15-second video ingestion:
 8. Total end-to-end latency
 """
 
+import io
+import os
 import sys
 import time
 from pathlib import Path
@@ -224,4 +226,3 @@ def run_benchmark():
 
 if __name__ == "__main__":
     run_benchmark()
-
