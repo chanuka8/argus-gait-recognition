@@ -16,6 +16,7 @@ from fastapi import (
     File,
     Form,
     HTTPException,
+    Query,
     Request,
     UploadFile,
     WebSocket,
@@ -34,22 +35,30 @@ from api.schemas import (
     EnrollResponse,
     HealthResponse,
     MetricsResponse,
+    ReadinessResponse,
     RecognitionEvent,
     ReferenceJobStatusResponse,
     ReferenceVideoUploadResponse,
     StatusResponse,
+    UploadChunkResponse,
+    UploadSessionCommitResponse,
+    UploadSessionInitRequest,
+    UploadSessionInitResponse,
+    UploadSessionStatusResponse,
 )
 from security_layer.auth import SessionToken, extract_bearer_token, get_session_store
 from security_layer.authorization import (
+    Permission,
     Role,
+    has_permission,
     normalize_role,
     verify_case_access,
     verify_job_access,
 )
 from security_layer.credentials import CredentialManager, sanitize_rtsp_url
 from services.gait_service import GaitService
-from services.missing_person_processor import MissingPersonVideoProcessor
 from services.reference_job_manager import ReferenceJobManager, ReferenceJobStatus
+from services.upload_session_manager import UploadSessionManager
 
 
 def get_current_operator_session(request: Request) -> SessionToken:
@@ -137,17 +146,41 @@ def get_health(
     if service._extractor is not None:
         backend_name = getattr(service._extractor.backend, "backend_name", "pytorch")
 
+    readiness = service.get_readiness() if hasattr(service, "get_readiness") else {}
+    states = readiness.get("states", {})
+    rec_ready = readiness.get("recognition_ready", service.is_warmed_up)
+
     return {
         "status": "healthy",
         "system": "ARGUS AI Gait Recognition System",
         "version": "0.1.0",
         "pipeline_loaded": True,
+        "recognition_ready": rec_ready,
         "active_backend": backend_name,
         "models": {
-            "person_detector": "active" if service._detector is not None or service._is_warmed_up else "optional",
-            "silhouette_extractor": "active",
-            "gait_encoder": "active",
+            "person_detector": "active" if states.get("DETECTOR_READY", service._detector is not None) else "initializing",
+            "silhouette_extractor": "active" if states.get("SILHOUETTE_READY", False) else "initializing",
+            "gait_encoder": "active" if states.get("BYGAIT_READY", False) else "initializing",
         },
+        "readiness": states,
+    }
+
+
+@v1_router.get(
+    "/readiness",
+    response_model=ReadinessResponse,
+)
+def get_readiness(
+    service: Annotated[GaitService, Depends(get_gait_service)],
+):
+    if hasattr(service, "get_readiness"):
+        return service.get_readiness()
+    return {
+        "api_ready": True,
+        "recognition_ready": service.is_warmed_up,
+        "states": {"API_READY": True, "RECOGNITION_READY": service.is_warmed_up},
+        "components": {},
+        "warmup_duration_seconds": 0.0,
     }
 
 
@@ -528,7 +561,15 @@ def start_camera(
     request: Request,
     service: Annotated[GaitService, Depends(get_gait_service)],
 ):
-    session = require_admin_operator(request)
+    session = get_current_operator_session(request)
+    if not (
+        has_permission(session.role, Permission.CAMERA_START)
+        or has_permission(session.role, Permission.CAMERA_CONTROL)
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Operation requires camera start privileges; current role is '{session.role}'",
+        )
     user_id = session.username
 
     if not body.camera_id:
@@ -564,7 +605,15 @@ def stop_camera(
     request: Request,
     service: Annotated[GaitService, Depends(get_gait_service)],
 ):
-    require_admin_operator(request)
+    session = get_current_operator_session(request)
+    if not (
+        has_permission(session.role, Permission.CAMERA_STOP)
+        or has_permission(session.role, Permission.CAMERA_CONTROL)
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Operation requires camera stop privileges; current role is '{session.role}'",
+        )
     stopped = service.stop_camera(body.camera_id)
 
     if not stopped:
@@ -615,6 +664,7 @@ def get_camera(
 )
 async def stream_camera(
     camera_id: str,
+    max_frames: int = Query(default=0, ge=0, description="Optional frame limit (0 for continuous)"),
     service: Annotated[GaitService, Depends(get_gait_service)] = None,
     request: Request = None,
 ):
@@ -635,10 +685,19 @@ async def stream_camera(
             detail=f"Camera worker instance {camera_id} not found",
         )
 
+    try:
+        limit = int(max_frames)
+    except (ValueError, TypeError):
+        limit = int(getattr(max_frames, "default", 0) or 0)
+
     async def frame_generator():
         worker.register_client()
+        frames_sent = 0
         try:
             while camera_id in service.active_cameras:
+                if request is not None and await request.is_disconnected():
+                    break
+
                 curr_worker = service.get_camera_worker(camera_id)
                 if not curr_worker or not curr_worker.is_running():
                     if curr_worker:
@@ -662,6 +721,9 @@ async def stream_camera(
                         b"Content-Type: image/jpeg\r\n"
                         b"Content-Length: " + str(len(jpeg_bytes)).encode() + b"\r\n\r\n" + jpeg_bytes + b"\r\n"
                     )
+                    frames_sent += 1
+                    if limit > 0 and frames_sent >= limit:
+                        break
                     await asyncio.sleep(0.05)
                 else:
                     await asyncio.sleep(0.01)
@@ -729,8 +791,12 @@ async def enroll_subject(
     ],
     service: Annotated[GaitService, Depends(get_gait_service)],
     request: Request,
+    async_mode: Annotated[
+        bool,
+        Form(description="Whether to process enrollment asynchronously via background job"),
+    ] = False,
 ):
-    get_current_operator_session(request)
+    session = get_current_operator_session(request)
     normalized_person_id = person_id.strip()
 
     if not normalized_person_id:
@@ -766,6 +832,56 @@ async def enroll_subject(
                 detail="No valid image files supplied",
             )
 
+        if async_mode:
+            photos_dir = Path("data/reference_photos")
+            photos_dir.mkdir(parents=True, exist_ok=True)
+            saved_paths: list[str] = []
+            timestamp = int(time.time())
+            for idx, raw_bytes in enumerate(image_bytes_list):
+                p_path = photos_dir / f"{normalized_person_id}_{timestamp}_{idx:02d}.jpg"
+                p_path.write_bytes(raw_bytes)
+                saved_paths.append(str(p_path))
+
+            job_mgr = ReferenceJobManager.get_instance()
+            job = job_mgr.create_job(
+                person_id=normalized_person_id,
+                media_path=saved_paths[0],
+                media_type="image",
+                owner=session.username,
+            )
+
+            from services.missing_person_processor import MissingPersonVideoProcessor
+
+            processor = MissingPersonVideoProcessor(
+                detector=service.detector,
+                extractor=service.extractor,
+                appearance_extractor=service.appearance_extractor,
+                silhouette_step=service.silhouette_extractor,
+                store=service.store,
+                embedding_db=service.embedding_db,
+            )
+
+            job_mgr.submit_task(
+                processor.process_reference_photos,
+                person_id=normalized_person_id,
+                photo_paths=saved_paths,
+                job_id=job.job_id,
+                case_id=normalized_person_id,
+                gait_service_ref=service,
+            )
+
+            return {
+                "success": True,
+                "person_id": normalized_person_id,
+                "message": "Images uploaded and queued for asynchronous biometric processing",
+                "embeddings_added": len(saved_paths),
+                "gait_embeddings_added": 0,
+                "appearance_embeddings_added": 0,
+                "firebase_status": "PENDING",
+                "status": "QUEUED",
+                "job_id": job.job_id,
+            }
+
         result = service.enroll_images(
             normalized_person_id,
             image_bytes_list,
@@ -796,6 +912,7 @@ async def enroll_subject(
 @v1_router.post(
     "/cases/upload-reference",
     response_model=ReferenceVideoUploadResponse,
+    status_code=status.HTTP_202_ACCEPTED,
 )
 async def upload_case_reference_video(
     person_id: Annotated[
@@ -829,19 +946,44 @@ async def upload_case_reference_video(
             detail=f"Unsupported video format '{suffix}'. Allowed: {sorted(valid_extensions)}",
         )
 
-    content = await file.read()
-    if not content:
-        raise HTTPException(status_code=400, detail="Uploaded reference video file is empty")
-
     videos_dir = Path("data/reference_videos")
     videos_dir.mkdir(parents=True, exist_ok=True)
 
-    job_mgr = ReferenceJobManager.get_instance()
-    # Save the file deterministically with person_id and timestamp
-    save_filename = f"{normalized_person_id}_{int(time.time())}_{file.filename or 'reference' + suffix}"
+    safe_base = Path(file.filename or f"reference{suffix}").name
+    clean_name = "".join(c for c in safe_base if c.isalnum() or c in "._-") or f"reference{suffix}"
+    save_filename = f"{normalized_person_id}_{int(time.time())}_{clean_name}"
     saved_path = videos_dir / save_filename
-    await asyncio.to_thread(saved_path.write_bytes, content)
 
+    def _save_stream_to_file(src_file, dst_path: Path) -> int:
+        written = 0
+        with open(dst_path, "wb") as f_out:
+            while True:
+                chunk = src_file.read(1024 * 1024)
+                if not chunk:
+                    break
+                f_out.write(chunk)
+                written += len(chunk)
+        return written
+
+    total_bytes = 0
+    try:
+        total_bytes = await asyncio.to_thread(_save_stream_to_file, file.file, saved_path)
+        if total_bytes == 0:
+            if saved_path.exists():
+                saved_path.unlink(missing_ok=True)
+            raise HTTPException(status_code=400, detail="Uploaded reference video file is empty")
+    except HTTPException:
+        if saved_path.exists():
+            saved_path.unlink(missing_ok=True)
+        raise
+    except Exception as exc:
+        if saved_path.exists():
+            saved_path.unlink(missing_ok=True)
+        raise HTTPException(status_code=500, detail=f"Failed to save video: {exc}") from exc
+    finally:
+        await file.close()
+
+    job_mgr = ReferenceJobManager.get_instance()
     job = job_mgr.create_job(
         person_id=normalized_person_id,
         video_path=str(saved_path),
@@ -849,9 +991,14 @@ async def upload_case_reference_video(
         owner=session.username,
     )
 
+    from services.missing_person_processor import MissingPersonVideoProcessor
+
     processor = MissingPersonVideoProcessor(
         detector=service.detector,
+        tracker=service.tracker,
         extractor=service.extractor,
+        appearance_extractor=service.appearance_extractor,
+        silhouette_step=service.silhouette_extractor,
         store=service.store,
         embedding_db=service.embedding_db,
     )
@@ -905,26 +1052,41 @@ def retry_case_job(
     if job.status == ReferenceJobStatus.COMPLETED:
         return job.to_dict()
 
-    if job.status == ReferenceJobStatus.PROCESSING:
+    if job.status in (ReferenceJobStatus.PROCESSING, ReferenceJobStatus.RESUMING):
         return job.to_dict()
 
-    # Re-queue failed or interrupted job
-    job_mgr.update_progress(job_id, stage="QUEUED", status=ReferenceJobStatus.QUEUED)
+    # Resume interrupted or failed job from last safe checkpoint
+    job_mgr.update_progress(job_id, status=ReferenceJobStatus.RESUMING, resumed=True)
+    from services.missing_person_processor import MissingPersonVideoProcessor
+
     processor = MissingPersonVideoProcessor(
         detector=service.detector,
+        tracker=service.tracker,
         extractor=service.extractor,
+        appearance_extractor=service.appearance_extractor,
+        silhouette_step=service.silhouette_extractor,
         store=service.store,
         embedding_db=service.embedding_db,
     )
 
-    job_mgr.submit_task(
-        processor.process_reference_video,
-        person_id=job.person_id,
-        video_path=job.video_path,
-        job_id=job.job_id,
-        case_id=job.case_id,
-        gait_service_ref=service,
-    )
+    if job.media_type == "video":
+        job_mgr.submit_task(
+            processor.process_reference_video,
+            person_id=job.person_id,
+            video_path=job.video_path,
+            job_id=job.job_id,
+            case_id=job.case_id,
+            gait_service_ref=service,
+        )
+    else:
+        job_mgr.submit_task(
+            processor.process_reference_photos,
+            person_id=job.person_id,
+            photo_paths=[job.media_path],
+            job_id=job.job_id,
+            case_id=job.case_id,
+            gait_service_ref=service,
+        )
 
     updated_job = job_mgr.get_job(job_id)
     return updated_job.to_dict() if updated_job else job.to_dict()
@@ -941,6 +1103,194 @@ def list_case_jobs(
     owner_filter = session.username if normalize_role(session.role) == Role.INVESTIGATOR.value else None
     jobs = ReferenceJobManager.get_instance().list_jobs(limit=50, owner=owner_filter)
     return [j.to_dict() for j in jobs]
+
+
+# =========================================================================
+# Resumable Chunked Upload Session Endpoints
+# =========================================================================
+
+
+@v1_router.post(
+    "/cases/upload-session/init",
+    response_model=UploadSessionInitResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def init_upload_session(
+    payload: UploadSessionInitRequest,
+    request: Request,
+):
+    session = get_current_operator_session(request)
+    session_mgr = UploadSessionManager.get_instance()
+    try:
+        record = session_mgr.create_session(
+            person_id=payload.person_id,
+            filename=payload.filename,
+            total_size=payload.total_size,
+            chunk_size=payload.chunk_size,
+            media_type=payload.media_type,
+            case_id=payload.case_id or payload.person_id,
+            owner=session.username,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+    return {
+        "upload_id": record.upload_id,
+        "person_id": record.person_id,
+        "chunk_size": record.chunk_size,
+        "total_chunks": record.total_chunks,
+        "total_size": record.total_size,
+        "expires_at": record.expires_at,
+    }
+
+
+@v1_router.post(
+    "/cases/upload-session/{upload_id}/chunk",
+    response_model=UploadChunkResponse,
+)
+async def upload_session_chunk(
+    upload_id: str,
+    chunk_index: Annotated[int, Form(description="0-indexed chunk sequence number")],
+    file: Annotated[UploadFile, File(description="Chunk binary payload")],
+    request: Request,
+):
+    get_current_operator_session(request)
+    session_mgr = UploadSessionManager.get_instance()
+    try:
+        chunk_bytes = await file.read()
+        success, msg, data = session_mgr.write_chunk(
+            upload_id=upload_id,
+            chunk_index=chunk_index,
+            chunk_bytes=chunk_bytes,
+        )
+        if not success:
+            raise HTTPException(status_code=400, detail=msg)
+    finally:
+        await file.close()
+
+    return {
+        "upload_id": upload_id,
+        "chunk_index": chunk_index,
+        "chunks_received": data["chunks_received"],
+        "total_chunks": data["total_chunks"],
+        "bytes_received": data["bytes_received"],
+        "is_complete": data["is_complete"],
+    }
+
+
+@v1_router.get(
+    "/cases/upload-session/{upload_id}/status",
+    response_model=UploadSessionStatusResponse,
+)
+def get_upload_session_status(
+    upload_id: str,
+    request: Request,
+):
+    get_current_operator_session(request)
+    session_mgr = UploadSessionManager.get_instance()
+    record = session_mgr.get_session(upload_id)
+    if not record:
+        raise HTTPException(status_code=404, detail=f"Upload session '{upload_id}' not found")
+
+    return {
+        "upload_id": record.upload_id,
+        "person_id": record.person_id,
+        "status": record.status,
+        "total_chunks": record.total_chunks,
+        "chunks_received": sorted(record.chunks_received),
+        "bytes_received": record.bytes_received,
+        "total_size": record.total_size,
+        "is_complete": len(record.chunks_received) == record.total_chunks,
+        "expires_at": record.expires_at,
+        "job_id": record.job_id,
+    }
+
+
+@v1_router.post(
+    "/cases/upload-session/{upload_id}/commit",
+    response_model=UploadSessionCommitResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+def commit_upload_session(
+    upload_id: str,
+    request: Request,
+    service: Annotated[GaitService, Depends(get_gait_service)],
+):
+    session = get_current_operator_session(request)
+    session_mgr = UploadSessionManager.get_instance()
+    success, msg, final_path = session_mgr.assemble_and_commit(upload_id)
+    if not success or final_path is None:
+        raise HTTPException(status_code=400, detail=msg)
+
+    record = session_mgr.get_session(upload_id)
+    if not record:
+        raise HTTPException(status_code=404, detail="Upload session not found after commit")
+
+    job_mgr = ReferenceJobManager.get_instance()
+    job = job_mgr.create_job(
+        person_id=record.person_id,
+        case_id=record.case_id,
+        media_path=str(final_path),
+        media_type=record.media_type,
+        owner=session.username,
+    )
+    record.job_id = job.job_id
+    session_mgr._persist_session(record)
+
+    from services.missing_person_processor import MissingPersonVideoProcessor
+
+    processor = MissingPersonVideoProcessor(
+        detector=service.detector,
+        tracker=service.tracker,
+        extractor=service.extractor,
+        appearance_extractor=service.appearance_extractor,
+        silhouette_step=service.silhouette_extractor,
+        store=service.store,
+        embedding_db=service.embedding_db,
+    )
+
+    if record.media_type == "video":
+        job_mgr.submit_task(
+            processor.process_reference_video,
+            person_id=record.person_id,
+            video_path=str(final_path),
+            job_id=job.job_id,
+            case_id=record.case_id,
+            gait_service_ref=service,
+        )
+    else:
+        job_mgr.submit_task(
+            processor.process_reference_photos,
+            person_id=record.person_id,
+            photo_paths=[final_path],
+            job_id=job.job_id,
+            case_id=record.case_id,
+            gait_service_ref=service,
+        )
+
+    return {
+        "upload_id": upload_id,
+        "person_id": record.person_id,
+        "status": ReferenceJobStatus.QUEUED.value,
+        "job_id": job.job_id,
+        "media_path": str(final_path),
+        "message": f"Session committed. Asynchronous biometric extraction job queued for {record.media_type}.",
+    }
+
+
+@v1_router.post(
+    "/cases/upload-session/{upload_id}/cancel",
+)
+def cancel_upload_session(
+    upload_id: str,
+    request: Request,
+):
+    get_current_operator_session(request)
+    session_mgr = UploadSessionManager.get_instance()
+    cancelled = session_mgr.cancel_session(upload_id)
+    if not cancelled:
+        raise HTTPException(status_code=404, detail=f"Upload session '{upload_id}' not found")
+    return {"success": True, "upload_id": upload_id, "status": "CANCELLED"}
 
 
 @v1_router.get("/gallery")

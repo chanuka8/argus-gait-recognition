@@ -13,6 +13,70 @@ import { sendMediaToModel } from '../utils/embeddingService';
 import './ReportCase.css';
 import './History.css'; 
 
+const VIDEO_STAGES = [
+    { key: 'QUEUED', label: 'Queued' },
+    { key: 'VALIDATING_VIDEO', label: 'Validating' },
+    { key: 'TRACKING', label: 'Tracking' },
+    { key: 'FEATURE_EXTRACTION', label: 'Feature Extraction' },
+    { key: 'MATCHING', label: 'Matching' },
+    { key: 'PERSISTING', label: 'Persisting' },
+    { key: 'COMPLETED', label: 'Completed' },
+];
+
+const formatBytes = (bytes) => {
+    if (!bytes || bytes <= 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+};
+
+const getEffectiveStageIndex = (stage, status) => {
+    if (status === 'COMPLETED') return 6;
+    if (status === 'RESUMING') {
+        const normalized = (stage || '').toUpperCase();
+        if (normalized === 'FEATURE_EXTRACTION' || normalized === 'GENERATING_GEI' || normalized === 'EXTRACTING_EMBEDDINGS') return 3;
+        if (normalized === 'MATCHING') return 4;
+        if (normalized === 'PERSISTING') return 5;
+        return 2;
+    }
+    if (!stage) return status === 'QUEUED' ? 0 : 0;
+    const normalized = stage.toUpperCase();
+    if (normalized === 'QUEUED') return 0;
+    if (normalized === 'VALIDATING_VIDEO') return 1;
+    if (normalized === 'TRACKING') return 2;
+    if (normalized === 'FEATURE_EXTRACTION' || normalized === 'GENERATING_GEI' || normalized === 'EXTRACTING_EMBEDDINGS') return 3;
+    if (normalized === 'MATCHING') return 4;
+    if (normalized === 'PERSISTING') return 5;
+    if (normalized === 'COMPLETED') return 6;
+    return 2;
+};
+
+const calculateVideoProgressPercent = (stage, status, framesProcessed, totalFrames) => {
+    if (status === 'COMPLETED') return 100;
+    if (status === 'RESUMING') {
+        if (totalFrames && totalFrames > 0 && framesProcessed > 0) {
+            return Math.min(95, Math.max(25, Math.round((framesProcessed / totalFrames) * 75)));
+        }
+        return 35;
+    }
+    if (!stage) return status === 'QUEUED' ? 5 : 10;
+    const normalized = stage.toUpperCase();
+    if (normalized === 'QUEUED') return 5;
+    if (normalized === 'VALIDATING_VIDEO') return 15;
+    if (normalized === 'TRACKING') {
+        if (totalFrames && totalFrames > 0) {
+            return Math.min(65, 20 + Math.round((framesProcessed / totalFrames) * 45));
+        }
+        return 40;
+    }
+    if (normalized === 'FEATURE_EXTRACTION' || normalized === 'GENERATING_GEI' || normalized === 'EXTRACTING_EMBEDDINGS') return 75;
+    if (normalized === 'MATCHING') return 88;
+    if (normalized === 'PERSISTING') return 95;
+    if (normalized === 'COMPLETED') return 100;
+    return 50;
+};
+
 const ReportCase = () => {
     const navigate = useNavigate();
     const { currentUser } = useAuth();
@@ -38,8 +102,28 @@ const ReportCase = () => {
     const [isDetectingGPS, setIsDetectingGPS] = useState(false);
     const [processingPhase, setProcessingPhase] = useState(null);
     const [gaitProgress, setGaitProgress] = useState(null);
+    const [uploadProgress, setUploadProgress] = useState({
+        phase: 'IDLE',
+        percent: 0,
+        loaded: 0,
+        total: 0,
+        label: '',
+        mediaType: null,
+    });
+    const [processingProgress, setProcessingProgress] = useState({
+        stage: null,
+        status: null,
+        percent: 0,
+        framesProcessed: 0,
+        totalFrames: 0,
+        fps: 0,
+        validSilhouettes: 0,
+        validSequences: 0,
+        embeddingsCommitted: 0,
+    });
     const [enrollmentResult, setEnrollmentResult] = useState(null);
     const [enrollmentWarning, setEnrollmentWarning] = useState(null);
+    const [cloudSyncWarning, setCloudSyncWarning] = useState(null);
 
     const imageInputRef = useRef(null);
     const videoInputRef = useRef(null);
@@ -136,60 +220,127 @@ const ReportCase = () => {
             const caseId = formData.caseId;
             console.log('Submitting case', caseId, 'NIC', formData.nic);
 
-            const imageUrls = [];
-            for (let i = 0; i < images.length; i++) {
-                const file = images[i];
-                const fileRef = ref(storage, `cases/${caseId}/images/${file.name}`);
-                const uploadTask = uploadBytesResumable(fileRef, file);
-                uploadTasksRef.current.push(uploadTask);
-                await new Promise((resolve, reject) => {
-                    uploadTask.on('state_changed', null, reject, () => resolve());
+            let imageUrls = [];
+            let videoUrls = [];
+
+            // 1. Cloud storage sync (resilient to offline or network drops, never blocks local ARGUS pipeline)
+            try {
+                const totalFirebaseBytes = [...images, ...videos].reduce((sum, f) => sum + (f.size || 0), 0);
+                const transferredMap = {};
+
+                const updateFirebaseProgress = (fileKey, bytesTransferred) => {
+                    transferredMap[fileKey] = bytesTransferred;
+                    const currentTotal = Object.values(transferredMap).reduce((a, b) => a + b, 0);
+                    const pct = totalFirebaseBytes > 0
+                        ? Math.min(100, Math.round((currentTotal / totalFirebaseBytes) * 100))
+                        : 100;
+                    setUploadProgress({
+                        phase: 'FIREBASE',
+                        percent: pct,
+                        loaded: currentTotal,
+                        total: totalFirebaseBytes,
+                        label: `Syncing files with cloud storage (${pct}%)...`,
+                        mediaType: null,
+                    });
+                };
+
+                setUploadProgress({
+                    phase: 'FIREBASE',
+                    percent: 0,
+                    loaded: 0,
+                    total: totalFirebaseBytes,
+                    label: 'Syncing files with cloud storage...',
+                    mediaType: null,
                 });
-                const url = await getDownloadURL(fileRef);
-                imageUrls.push(url);
-            }
 
-            const videoUrls = [];
-            for (let i = 0; i < videos.length; i++) {
-                const file = videos[i];
-                const fileRef = ref(storage, `cases/${caseId}/videos/${file.name}`);
-                const uploadTask = uploadBytesResumable(fileRef, file);
-                uploadTasksRef.current.push(uploadTask);
-                await new Promise((resolve, reject) => {
-                    uploadTask.on('state_changed', null, reject, () => resolve());
+                for (let i = 0; i < images.length; i++) {
+                    const file = images[i];
+                    const fileKey = `img_${i}_${file.name}`;
+                    const fileRef = ref(storage, `cases/${caseId}/images/${file.name}`);
+                    const uploadTask = uploadBytesResumable(fileRef, file);
+                    uploadTasksRef.current.push(uploadTask);
+                    await new Promise((resolve, reject) => {
+                        uploadTask.on(
+                            'state_changed',
+                            (snapshot) => updateFirebaseProgress(fileKey, snapshot.bytesTransferred),
+                            reject,
+                            () => {
+                                updateFirebaseProgress(fileKey, file.size || 0);
+                                resolve();
+                            }
+                        );
+                    });
+                    const url = await getDownloadURL(fileRef);
+                    imageUrls.push(url);
+                }
+
+                for (let i = 0; i < videos.length; i++) {
+                    const file = videos[i];
+                    const fileKey = `vid_${i}_${file.name}`;
+                    const fileRef = ref(storage, `cases/${caseId}/videos/${file.name}`);
+                    const uploadTask = uploadBytesResumable(fileRef, file);
+                    uploadTasksRef.current.push(uploadTask);
+                    await new Promise((resolve, reject) => {
+                        uploadTask.on(
+                            'state_changed',
+                            (snapshot) => updateFirebaseProgress(fileKey, snapshot.bytesTransferred),
+                            reject,
+                            () => {
+                                updateFirebaseProgress(fileKey, file.size || 0);
+                                resolve();
+                            }
+                        );
+                    });
+                    const url = await getDownloadURL(fileRef);
+                    videoUrls.push(url);
+                }
+
+                const lastSeenLocation = {
+                    name: formData.locationName,
+                    lat: parseFloat(formData.latitude),
+                    lng: parseFloat(formData.longitude),
+                    source: "Hybrid GPS / Camera Geocoding"
+                };
+
+                const victimRef = doc(db, 'victims', caseId);
+                await setDoc(victimRef, {
+                    ...formData,
+                    caseId: caseId,
+                    status: 'Investigating',
+                    lastSeenLocation: lastSeenLocation,
+                    createdAt: serverTimestamp()
                 });
-                const url = await getDownloadURL(fileRef);
-                videoUrls.push(url);
+
+                const mediaRef = doc(db, 'person_media', caseId);
+                await setDoc(mediaRef, {
+                    caseId: caseId,
+                    nic: formData.nic,
+                    imageUrls: imageUrls,
+                    videoUrls: videoUrls,
+                    linkedAt: serverTimestamp(),
+                    createdAt: serverTimestamp()
+                });
+            } catch (cloudErr) {
+                if (cloudErr.code === 'storage/canceled') {
+                    console.log("Cloud upload cancelled by user.");
+                    return;
+                }
+                console.warn("[ARGUS] Cloud storage sync notice (proceeding with local ARGUS AI ingestion):", cloudErr);
+                setCloudSyncWarning("Operating in local-first mode. Biometrics and case data are enrolled and secured in local ARGUS surveillance storage.");
             }
-
-            const lastSeenLocation = {
-                name: formData.locationName,
-                lat: parseFloat(formData.latitude),
-                lng: parseFloat(formData.longitude),
-                source: "Hybrid GPS / Camera Geocoding"
-            };
-
-            const victimRef = doc(db, 'victims', caseId);
-            await setDoc(victimRef, {
-                ...formData,
-                caseId: caseId,
-                status: 'Investigating',
-                lastSeenLocation: lastSeenLocation,
-                createdAt: serverTimestamp()
-            });
-
-            const mediaRef = doc(db, 'person_media', caseId);
-            await setDoc(mediaRef, {
-                caseId: caseId,
-                nic: formData.nic,
-                imageUrls: imageUrls,
-                videoUrls: videoUrls,
-                linkedAt: serverTimestamp(),
-                createdAt: serverTimestamp()
-            });
 
             if (images.length > 0 || videos.length > 0) {
-                setProcessingPhase('extracting');
+                setUploadProgress({
+                    phase: 'BIOMETRIC_UPLOAD',
+                    percent: 0,
+                    loaded: 0,
+                    total: 0,
+                    label: videos.length > 0
+                        ? 'Uploading reference video to ARGUS AI...'
+                        : 'Uploading photos to ARGUS AI...',
+                    mediaType: videos.length > 0 ? 'video' : 'image',
+                });
+
                 try {
                     const modelResult = await sendMediaToModel(
                         caseId,
@@ -197,7 +348,64 @@ const ReportCase = () => {
                         images,
                         videos,
                         (progressData, status, jobData) => {
-                            setGaitProgress({ ...progressData, status, jobData });
+                            if (progressData.phase === 'UPLOAD') {
+                                setUploadProgress({
+                                    phase: 'BIOMETRIC_UPLOAD',
+                                    percent: progressData.percent || 0,
+                                    loaded: progressData.loaded || 0,
+                                    total: progressData.total || 0,
+                                    speedMBs: progressData.speedMBs || null,
+                                    etaSeconds: progressData.etaSeconds || null,
+                                    connectionStatus: progressData.connectionStatus || 'stable',
+                                    label: progressData.mediaType === 'video'
+                                        ? `Uploading reference video to ARGUS AI (${progressData.percent || 0}%)...`
+                                        : `Uploading reference photo(s) to ARGUS AI (${progressData.percent || 0}%)...`,
+                                    mediaType: progressData.mediaType,
+                                });
+                            } else if (progressData.phase === 'UPLOAD_COMPLETE') {
+                                setUploadProgress(prev => ({
+                                    ...prev,
+                                    phase: 'UPLOAD_COMPLETE',
+                                    percent: 100,
+                                    loaded: prev.total || prev.loaded,
+                                    speedMBs: '0.00',
+                                    etaSeconds: 0,
+                                    connectionStatus: 'stable',
+                                    label: 'Upload complete. Biometric processing dispatched asynchronously.',
+                                }));
+                            } else if (progressData.phase === 'PROCESSING' || status) {
+                                setUploadProgress(prev => ({
+                                    ...prev,
+                                    phase: 'UPLOAD_COMPLETE',
+                                    percent: 100,
+                                    label: 'Upload complete.',
+                                }));
+                                setProcessingPhase('extracting');
+                                const framesProc = progressData.frames_processed || 0;
+                                const lastSafe = progressData.last_safe_frame || framesProc;
+                                const totFrames = progressData.total_frames || 0;
+                                const stageName = progressData.stage || (status === 'QUEUED' ? 'QUEUED' : 'PROCESSING');
+                                const serverPct = progressData.percent || 0;
+                                const calcPct = progressData.mediaType === 'image'
+                                    ? 100
+                                    : Math.max(serverPct, calculateVideoProgressPercent(stageName, status, framesProc, totFrames));
+
+                                setProcessingProgress({
+                                    stage: stageName,
+                                    status: status || 'PROCESSING',
+                                    percent: calcPct,
+                                    framesProcessed: framesProc,
+                                    lastSafeFrame: lastSafe,
+                                    totalFrames: totFrames,
+                                    fps: progressData.fps || 0,
+                                    validSilhouettes: progressData.valid_silhouettes || 0,
+                                    validSequences: progressData.valid_sequences || 0,
+                                    embeddingsCommitted: progressData.embeddings_committed || progressData.embeddings_generated || 0,
+                                    recoveryCount: jobData?.recovery_count || 0,
+                                    resumed: jobData?.resumed || false,
+                                });
+                                setGaitProgress({ ...progressData, status, jobData });
+                            }
                         }
                     );
                     if (!modelResult.success || (modelResult.errors && modelResult.errors.length > 0)) {
@@ -230,6 +438,7 @@ const ReportCase = () => {
 
     const handleModalClose = () => {
         setShowSuccessModal(false);
+        setCloudSyncWarning(null);
         setFormData({
             caseId: '',
             caseType: '',
@@ -243,6 +452,25 @@ const ReportCase = () => {
         });
         setImages([]);
         setVideos([]);
+        setUploadProgress({
+            phase: 'IDLE',
+            percent: 0,
+            loaded: 0,
+            total: 0,
+            label: '',
+            mediaType: null,
+        });
+        setProcessingProgress({
+            stage: null,
+            status: null,
+            percent: 0,
+            framesProcessed: 0,
+            totalFrames: 0,
+            fps: 0,
+            validSilhouettes: 0,
+            validSequences: 0,
+            embeddingsCommitted: 0,
+        });
         setGaitProgress(null);
         setEnrollmentResult(null);
         setEnrollmentWarning(null);
@@ -475,41 +703,117 @@ const ReportCase = () => {
 
             {isUploading && (
                 <div className="modal-overlay">
-                    <div className="success-modal" style={{ textAlign: 'center' }}>
+                    <div className="success-modal" style={{ textAlign: 'center', maxWidth: '480px' }}>
                         <div className="spinner"></div>
 
                         {processingPhase === 'extracting' ? (
                             <>
-                                <h3 style={{ color: 'var(--ice)', marginTop: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                                <div style={{ marginTop: '1rem' }}>
+                                    <span className="upload-complete-badge">✓ Media Upload Completed</span>
+                                </div>
+                                <h3 style={{ color: 'var(--ice)', marginTop: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontSize: '1.2rem' }}>
                                     <Brain size={22} color="#5ce1e6" /> Extracting Reference Biometrics...
                                 </h3>
-                                <p style={{ marginTop: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
-                                    {gaitProgress?.stage === 'TRACKING'
-                                        ? `Tracking Target Subject (${gaitProgress.frames_processed || 0} frames @ ${gaitProgress.fps || 0} FPS)...`
-                                        : gaitProgress?.stage === 'GENERATING_GEI'
-                                        ? `Constructing Gait Energy Images (${gaitProgress.valid_silhouettes || 0} silhouettes)...`
-                                        : gaitProgress?.stage === 'EXTRACTING_EMBEDDINGS'
-                                        ? `Generating ByGaitLight (256D) embeddings (${gaitProgress.valid_sequences || 0} sequences)...`
-                                        : gaitProgress?.stage === 'PERSISTING'
-                                        ? `Deduplicating & Persisting Gallery (${gaitProgress.embeddings_generated || 0} vectors)...`
+
+                                <div className="progress-bar-container">
+                                    <div
+                                        className="progress-bar-fill processing"
+                                        style={{ width: `${processingProgress.percent}%` }}
+                                    ></div>
+                                </div>
+                                <div className="progress-stats">
+                                    <span>Processing: {processingProgress.percent}%</span>
+                                    <span>Status: {processingProgress.status || 'PROCESSING'}</span>
+                                </div>
+
+                                {videos.length > 0 && (
+                                    <div className="stage-badge-container">
+                                        {VIDEO_STAGES.map((s, idx) => {
+                                            const currentIdx = getEffectiveStageIndex(processingProgress.stage, processingProgress.status);
+                                            let badgeClass = 'stage-badge';
+                                            if (idx < currentIdx) badgeClass += ' done';
+                                            else if (idx === currentIdx) badgeClass += ' active';
+                                            return (
+                                                <span key={s.key} className={badgeClass}>
+                                                    {idx < currentIdx ? '✓ ' : ''}{s.label}
+                                                </span>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+
+                                <p style={{ marginTop: '0.75rem', color: 'var(--text-secondary)', fontSize: '0.84rem' }}>
+                                    {processingProgress.status === 'RESUMING'
+                                        ? `Resuming previous processing from frame ${processingProgress.lastSafeFrame || processingProgress.framesProcessed || 0} / ${processingProgress.totalFrames || 0}...`
+                                        : processingProgress.stage === 'TRACKING'
+                                        ? `Tracking Target Subject (${processingProgress.framesProcessed} frames @ ${processingProgress.fps || 0} FPS)...`
+                                        : processingProgress.stage === 'GENERATING_GEI' || processingProgress.stage === 'FEATURE_EXTRACTION'
+                                        ? `Constructing Gait Energy Images (${processingProgress.validSilhouettes || 0} silhouettes)...`
+                                        : processingProgress.stage === 'EXTRACTING_EMBEDDINGS'
+                                        ? `Generating ByGaitLight (256D) embeddings (${processingProgress.validSequences || 0} sequences)...`
+                                        : processingProgress.stage === 'MATCHING'
+                                        ? 'Deduplicating embeddings & validating gallery...'
+                                        : processingProgress.stage === 'PERSISTING'
+                                        ? `Persisting Gallery (${processingProgress.embeddingsCommitted || 0} vectors committed)...`
+                                        : processingProgress.stage === 'ENROLLING'
+                                        ? 'Enrolling biometrics (ByGaitLight 256D + OSNet 512D)...'
                                         : 'Running Camera-Independent ByGaitLight (256D) Pipeline...'}
                                 </p>
+
                                 <div style={{ marginTop: '0.75rem', padding: '0.6rem 1rem', background: 'rgba(92,225,230,0.08)', borderRadius: '6px', border: '1px solid rgba(92,225,230,0.2)', textAlign: 'left', fontSize: '0.78rem', color: 'var(--text-primary)' }}>
                                     <div style={{ marginBottom: '0.2rem' }}>
-                                        <strong style={{ color: '#5ce1e6' }}>Status:</strong> {gaitProgress?.status || 'PROCESSING'}
+                                        <strong style={{ color: '#5ce1e6' }}>Current Stage:</strong> {processingProgress.stage || 'PROCESSING'}
                                     </div>
-                                    <div style={{ marginBottom: '0.2rem' }}>
-                                        <strong>Gait Sequences:</strong> {gaitProgress?.valid_sequences || 0}
-                                    </div>
-                                    <div>
-                                        <strong>256D Embeddings Committed:</strong> {gaitProgress?.embeddings_committed || gaitProgress?.embeddings_generated || 0}
-                                    </div>
+                                    {videos.length > 0 && (
+                                        <>
+                                            <div style={{ marginBottom: '0.2rem' }}>
+                                                <strong>Gait Sequences:</strong> {processingProgress.validSequences || gaitProgress?.valid_sequences || 0}
+                                            </div>
+                                            <div>
+                                                <strong>256D Embeddings Committed:</strong> {processingProgress.embeddingsCommitted || gaitProgress?.embeddings_committed || 0}
+                                            </div>
+                                        </>
+                                    )}
+                                    {images.length > 0 && videos.length === 0 && (
+                                        <div>
+                                            <strong>Enrolling:</strong> {images.length} photo(s) into surveillance gallery
+                                        </div>
+                                    )}
                                 </div>
                             </>
                         ) : (
                             <>
-                                <h3 style={{ color: 'var(--ice)', marginTop: '1.5rem' }}>Uploading Data...</h3>
-                                <p style={{ marginTop: '1rem', color: 'var(--text-secondary)' }}>Please wait, securing case files...</p>
+                                <h3 style={{ color: 'var(--ice)', marginTop: '1.25rem', fontSize: '1.25rem' }}>
+                                    {uploadProgress.mediaType === 'video'
+                                        ? 'Uploading Reference Video...'
+                                        : uploadProgress.mediaType === 'image'
+                                        ? 'Uploading Reference Photos...'
+                                        : 'Uploading Case Data...'}
+                                </h3>
+
+                                <div className="progress-bar-container">
+                                    <div
+                                        className="progress-bar-fill"
+                                        style={{ width: `${uploadProgress.percent}%` }}
+                                    ></div>
+                                </div>
+                                <div className="progress-stats">
+                                    <span>Upload: {uploadProgress.percent}%</span>
+                                    <span>{uploadProgress.total > 0 ? `${formatBytes(uploadProgress.loaded)} / ${formatBytes(uploadProgress.total)}` : ''}</span>
+                                </div>
+                                {uploadProgress.speedMBs && uploadProgress.speedMBs !== '0.00' && (
+                                    <div className="upload-meta-bar">
+                                        <span>Speed: {uploadProgress.speedMBs} MB/s</span>
+                                        <span>{uploadProgress.etaSeconds > 0 ? `ETA: ~${uploadProgress.etaSeconds}s` : ''}</span>
+                                        <span className={`status-pill ${uploadProgress.connectionStatus || 'stable'}`}>
+                                            {uploadProgress.connectionStatus === 'retrying' ? 'Retrying...' : 'Stable'}
+                                        </span>
+                                    </div>
+                                )}
+
+                                <p style={{ marginTop: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.84rem' }}>
+                                    {uploadProgress.label || 'Please wait, securing case files...'}
+                                </p>
                                 <button className="cancel-upload-btn" onClick={handleCancelUpload}>Cancel Upload</button>
                             </>
                         )}
@@ -600,8 +904,13 @@ const ReportCase = () => {
                                         {enrollmentResult?.combinedResult?.appearance_embeddings_added || 0} (512D OSNet)
                                     </div>
                                     <div>
-                                        <strong>Engine Status:</strong> COMPLETED &bull; Camera-OFF Offline Pipeline &bull; Gallery Synchronized
+                                        <strong>Engine Status:</strong> COMPLETED &bull; Active Gallery Synchronized
                                     </div>
+                                    {cloudSyncWarning && (
+                                        <div style={{ marginTop: '0.35rem', color: '#ffab00', fontSize: '0.78rem' }}>
+                                            <strong>Notice:</strong> {cloudSyncWarning}
+                                        </div>
+                                    )}
                                 </div>
                                 <button
                                     onClick={handleModalClose}

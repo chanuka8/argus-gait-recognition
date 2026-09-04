@@ -37,6 +37,7 @@ Below is the complete list of package-level documentation files for all major co
 | **`storage/`** | Evidence snapshot persistence, retention policy enforcement, lineage tracking, and vector store | [storage/README.md](../storage/README.md) |
 | **`streaming/`** | Stream acquisition engine, thread-safe ring buffers (`BufferQueue`), load balancer, and worker pool | [streaming/README.md](../streaming/README.md) |
 | **`tests/`** | Unit and integration test suite documentation | [tests/README.md](../tests/README.md) |
+| **`tools/`** | Operational CLI tools, benchmarks, maintenance scripts, and migrations | [tools/README.md](../tools/README.md) |
 | **`training/`** | PyTorch model trainer, loss functions (Triplet + Cross-Entropy), data loaders, and callbacks | [training/README.md](../training/README.md) |
 | **`utils/`** | Detection reporter, OpenCV HUD renderer, EMA box stabilizer, prediction smoother, and alert manager | [utils/README.md](../utils/README.md) |
 
@@ -46,6 +47,6 @@ Below is the complete list of package-level documentation files for all major co
 
 Folder documentation alignment is automatically enforced and maintained:
 
-1. **Local Pre-Commit Hook**: Automatically runs `python scripts/sync_folder_readmes.py` before every commit, updating and staging README files.
-2. **CI Freshness Check**: The GitHub Actions workflow `.github/workflows/readme_sync_check.yml` verifies README freshness using `python scripts/sync_folder_readmes.py --check`.
-3. **Manual Verification**: Developers can run `python scripts/sync_folder_readmes.py --check` or `python scripts/sync_folder_readmes.py` at any time.
+1. **Local Pre-Commit Hook**: Automatically runs `python tools/maintenance/sync_folder_readmes.py` before every commit, updating and staging README files.
+2. **CI Freshness Check**: The GitHub Actions workflow `.github/workflows/readme_sync_check.yml` verifies README freshness using `python tools/maintenance/sync_folder_readmes.py --check`.
+3. **Manual Verification**: Developers can run `python tools/maintenance/sync_folder_readmes.py --check` or `python tools/maintenance/sync_folder_readmes.py` at any time.

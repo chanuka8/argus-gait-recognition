@@ -7,7 +7,7 @@ on:
       - '**/*.py'
       - '**/README.md'
       - 'configs/**'
-      - 'scripts/sync_folder_readmes.py'
+      - 'tools/maintenance/sync_folder_readmes.py'
       - 'docs/README_INDEX.md'
       - '.github/workflows/readme_sync_check.yml'
   pull_request:
@@ -16,7 +16,7 @@ on:
       - '**/*.py'
       - '**/README.md'
       - 'configs/**'
-      - 'scripts/sync_folder_readmes.py'
+      - 'tools/maintenance/sync_folder_readmes.py'
       - 'docs/README_INDEX.md'
       - '.github/workflows/readme_sync_check.yml'
 
@@ -36,4 +36,4 @@ jobs:
 
       - name: Verify README Freshness (Read-Only Check)
         run: |
-          python scripts/sync_folder_readmes.py --check
+          python tools/maintenance/sync_folder_readmes.py --check

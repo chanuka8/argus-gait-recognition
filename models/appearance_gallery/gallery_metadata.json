@@ -1,14 +1,44 @@
 {
-    "subject999": {
-        "embeddings": 73,
+    "DIAG_PHOTO_01": {
+        "embeddings": 6,
         "status": "ACTIVE",
         "enabled": true,
-        "updated_at": 1788445665.385268
+        "updated_at": 1788477275.4400039
+    },
+    "DIAG_PHOTO_02": {
+        "embeddings": 4,
+        "status": "ACTIVE",
+        "enabled": true,
+        "updated_at": 1788477279.3518505
+    },
+    "MP_OFF_PHOTO_01": {
+        "embeddings": 1,
+        "status": "ACTIVE",
+        "enabled": true,
+        "updated_at": 1788486650.1458833
+    },
+    "MP_ON_PHOTO_01": {
+        "embeddings": 1,
+        "status": "ACTIVE",
+        "enabled": true,
+        "updated_at": 1788486547.892624
+    },
+    "MP_PHOTO_001": {
+        "embeddings": 20,
+        "status": "ACTIVE",
+        "enabled": true,
+        "updated_at": 1788487264.6678283
+    },
+    "subject999": {
+        "embeddings": 89,
+        "status": "ACTIVE",
+        "enabled": true,
+        "updated_at": 1788487373.4414396
     },
     "Subject_42": {
-        "embeddings": 14,
+        "embeddings": 32,
         "status": "ACTIVE",
         "enabled": true,
-        "updated_at": 1788460534.751846
+        "updated_at": 1788483827.6756427
     }
 }

@@ -47,7 +47,7 @@ def health(args=None) -> int:
     return run_command(
         [
             sys.executable,
-            "scripts/system_check.py",
+            "tools/validation/system_check.py",
         ]
     )
 
@@ -57,7 +57,7 @@ def preprocess(args=None) -> int:
     return run_command(
         [
             sys.executable,
-            "scripts/preprocess_casia.py",
+            "tools/data/preprocess_casia.py",
         ]
     )
 
@@ -67,7 +67,7 @@ def train(args=None) -> int:
 
     command = [
         sys.executable,
-        "scripts/train_model.py",
+        "training/train_model.py",
     ]
 
     if args is not None:
@@ -88,7 +88,7 @@ def build_gallery(args=None) -> int:
     return run_command(
         [
             sys.executable,
-            "scripts/build_gallery.py",
+            "tools/maintenance/build_gallery.py",
         ]
     )
 
@@ -98,7 +98,7 @@ def evaluate(args=None) -> int:
     return run_command(
         [
             sys.executable,
-            "scripts/evaluate_model.py",
+            "evaluation/evaluate_model.py",
         ]
     )
 
@@ -108,7 +108,7 @@ def benchmark(args=None) -> int:
     return run_command(
         [
             sys.executable,
-            "scripts/benchmark.py",
+            "tools/benchmark/benchmark.py",
         ]
     )
 
@@ -120,7 +120,7 @@ def auto_enroll(args=None) -> None:
     run_command(
         [
             sys.executable,
-            "scripts/run_auto_enrollment.py",
+            "tools/data/run_auto_enrollment.py",
             "--input",
             input_dir,
         ]
@@ -137,7 +137,7 @@ def auto_enroll_watch(args=None) -> None:
     run_command(
         [
             sys.executable,
-            "scripts/run_auto_enrollment.py",
+            "tools/data/run_auto_enrollment.py",
             "--input",
             input_dir,
             "--watch",
@@ -166,7 +166,7 @@ def recognize_folder(args=None) -> None:
 
     command = [
         sys.executable,
-        "scripts/run_folder_recognition.py",
+        "tools/validation/run_folder_recognition.py",
         "--folder",
         folder,
         "--threshold",
@@ -210,7 +210,7 @@ def recognize_video(args=None) -> None:
 
     command = [
         sys.executable,
-        "scripts/run_video_recognition.py",
+        "tools/validation/run_video_recognition.py",
         "--video",
         video,
         "--threshold",
@@ -246,7 +246,7 @@ def remove_identity(args=None) -> None:
     run_command(
         [
             sys.executable,
-            "scripts/remove_gallery_identity.py",
+            "tools/maintenance/remove_gallery_identity.py",
             "--person-id",
             person_id,
         ]
@@ -270,7 +270,7 @@ def set_status(args=None) -> None:
     run_command(
         [
             sys.executable,
-            "scripts/set_gallery_identity_status.py",
+            "tools/maintenance/set_gallery_identity_status.py",
             "--person-id",
             person_id,
             "--status",
@@ -285,7 +285,7 @@ def remove_numeric_identities(args=None) -> None:
 
     command = [
         sys.executable,
-        "scripts/remove_numeric_gallery_identities.py",
+        "tools/maintenance/remove_numeric_gallery_identities.py",
     ]
 
     if dry_run:
@@ -317,7 +317,7 @@ def live(args=None) -> None:
         watcher_process = start_background_process(
             [
                 sys.executable,
-                "scripts/run_auto_enrollment.py",
+                "tools/data/run_auto_enrollment.py",
                 "--input",
                 input_dir,
                 "--watch",
@@ -327,7 +327,7 @@ def live(args=None) -> None:
         run_command(
             [
                 sys.executable,
-                "scripts/run_live_recognition.py",
+                "tools/validation/run_live_recognition.py",
             ]
         )
 
@@ -421,7 +421,7 @@ def security_test(args=None) -> int:
     return run_command(
         [
             sys.executable,
-            "scripts/demo_security_layer.py",
+            "tools/validation/demo_security_layer.py",
         ]
     )
 
@@ -431,7 +431,7 @@ def confidence_test(args=None) -> int:
     return run_command(
         [
             sys.executable,
-            "scripts/demo_confidence_scorer.py",
+            "tools/validation/demo_confidence_scorer.py",
         ]
     )
 
@@ -441,7 +441,7 @@ def visualizer_test(args=None) -> int:
     return run_command(
         [
             sys.executable,
-            "scripts/generate_visualizer_charts.py",
+            "evaluation/generate_visualizer_charts.py",
         ]
     )
 
@@ -451,7 +451,7 @@ def streaming_test(args=None) -> int:
     return run_command(
         [
             sys.executable,
-            "scripts/demo_streaming_optimization.py",
+            "tools/validation/demo_streaming_optimization.py",
         ]
     )
 
@@ -542,19 +542,19 @@ def research_eval(args=None) -> int:
         return code
 
     print("\nRunning evaluation threshold sweep...")
-    code = run_command([sys.executable, "scripts/evaluate_threshold_sweep.py"])
+    code = run_command([sys.executable, "evaluation/evaluate_threshold_sweep.py"])
     if code != 0:
         print("\n[ERROR] Threshold sweep failed.")
         return code
 
     print("\nRunning open-set evaluation...")
-    code = run_command([sys.executable, "scripts/evaluate_open_set.py"])
+    code = run_command([sys.executable, "evaluation/evaluate_open_set.py"])
     if code != 0:
         print("\n[ERROR] Open-set evaluation failed.")
         return code
 
     print("\nRunning cross-view evaluation...")
-    code = run_command([sys.executable, "scripts/evaluate_cross_view.py"])
+    code = run_command([sys.executable, "evaluation/evaluate_cross_view.py"])
     if code != 0:
         print("\n[ERROR] Cross-view evaluation failed.")
         return code
@@ -653,7 +653,7 @@ def docs_check(args=None) -> int:
         "monitoring",
         "pipeline",
         "preprocessing",
-        "scripts",
+        "tools",
         "security_layer",
         "services",
         "storage",

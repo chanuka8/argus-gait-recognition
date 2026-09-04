@@ -6,6 +6,7 @@ class HealthResponse(BaseModel):
     system: str = "ARGUS AI Gait Recognition System"
     version: str = "0.1.0"
     pipeline_loaded: bool = True
+    recognition_ready: bool = False
     active_backend: str = "pytorch"
     models: dict[str, str] = Field(
         default_factory=lambda: {
@@ -14,6 +15,15 @@ class HealthResponse(BaseModel):
             "gait_encoder": "active",
         }
     )
+    readiness: dict[str, bool] = Field(default_factory=dict)
+
+
+class ReadinessResponse(BaseModel):
+    api_ready: bool = True
+    recognition_ready: bool = False
+    states: dict[str, bool] = Field(default_factory=dict)
+    components: dict[str, str] = Field(default_factory=dict)
+    warmup_duration_seconds: float = 0.0
 
 
 class ComputeInfo(BaseModel):
@@ -144,6 +154,7 @@ class EnrollResponse(BaseModel):
     appearance_embeddings_added: int = 0
     firebase_status: str = "CONFIRMED"
     status: str = "EMBEDDING_ONLY"
+    job_id: str | None = None
 
 
 class IdentifyRequest(BaseModel):
@@ -167,14 +178,18 @@ class ReferenceJobProgressSchema(BaseModel):
     stage: str = "QUEUED"
     total_frames: int = 0
     frames_processed: int = 0
+    last_safe_frame: int = 0
     fps: float = 0.0
     tracks_detected: int = 0
     selected_track_id: int | None = None
     valid_silhouettes: int = 0
     valid_sequences: int = 0
+    completed_sequences: list[int] = Field(default_factory=list)
     embeddings_generated: int = 0
     embeddings_deduplicated: int = 0
     embeddings_committed: int = 0
+    persisted_embedding_ids: list[str] = Field(default_factory=list)
+    percent: int = 0
 
 
 class ReferenceJobStatusResponse(BaseModel):
@@ -183,9 +198,63 @@ class ReferenceJobStatusResponse(BaseModel):
     case_id: str = ""
     status: str
     created_at: float
+    updated_at: float | None = None
+    last_checkpoint_at: float | None = None
     started_at: float | None = None
     completed_at: float | None = None
     progress: ReferenceJobProgressSchema = Field(default_factory=ReferenceJobProgressSchema)
     result: dict = Field(default_factory=dict)
     error_message: str | None = None
     diagnostic_code: str | None = None
+    recovery_count: int = 0
+    resumed: bool = False
+    original_filename: str = ""
+
+
+class UploadSessionInitRequest(BaseModel):
+    person_id: str
+    filename: str
+    total_size: int
+    chunk_size: int | None = None
+    media_type: str = "video"
+    case_id: str | None = None
+
+
+class UploadSessionInitResponse(BaseModel):
+    upload_id: str
+    person_id: str
+    chunk_size: int
+    total_chunks: int
+    total_size: int
+    expires_at: float
+
+
+class UploadChunkResponse(BaseModel):
+    upload_id: str
+    chunk_index: int
+    chunks_received: int
+    total_chunks: int
+    bytes_received: int
+    is_complete: bool
+
+
+class UploadSessionStatusResponse(BaseModel):
+    upload_id: str
+    person_id: str
+    status: str
+    total_chunks: int
+    chunks_received: list[int]
+    bytes_received: int
+    total_size: int
+    is_complete: bool
+    expires_at: float
+    job_id: str | None = None
+
+
+class UploadSessionCommitResponse(BaseModel):
+    upload_id: str
+    person_id: str
+    status: str
+    job_id: str
+    media_path: str
+    message: str

@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 
 import supervision as sv
 import yaml
@@ -12,6 +13,7 @@ class TrackingStep:
         model_path: str | None = None,
         confidence: float | None = None,
         config_path: str = "configs/detection.yaml",
+        detector: Any | None = None,
     ) -> None:
         self.config_path = Path(config_path)
         self.config = self._load_config(self.config_path)
@@ -41,17 +43,26 @@ class TrackingStep:
         raw_imgsz = self.config.get("img_size", 640)
         self.img_size = int(raw_imgsz) if isinstance(raw_imgsz, int) and raw_imgsz > 0 else 640
 
-        if self.model_path.exists():
-            self.detector = YOLO(str(self.model_path))
+        if detector is not None:
+            self.detector_wrapper = detector if hasattr(detector, "lock") else None
+            self.detector = getattr(detector, "model", detector)
         else:
-            self.detector = YOLO("yolov8n.pt")
+            self.detector_wrapper = None
+            if self.model_path.exists():
+                self.detector = YOLO(str(self.model_path))
+            else:
+                self.detector = YOLO("yolov8n.pt")
 
-        if self.runtime_device:
-            try:
-                self.detector.to(self.runtime_device)
-            except (RuntimeError, ValueError, AttributeError, OSError):
-                pass
+            if self.runtime_device:
+                try:
+                    self.detector.to(self.runtime_device)
+                except (RuntimeError, ValueError, AttributeError, OSError):
+                    pass
 
+        self.tracker = ByteTrackTracker()
+
+    def reset(self) -> None:
+        """Reset internal tracker state between video streams to prevent track leakage."""
         self.tracker = ByteTrackTracker()
 
     @staticmethod
@@ -79,10 +90,11 @@ class TrackingStep:
         if self.runtime_device:
             kwargs["device"] = self.runtime_device
 
-        result = self.detector(
-            frame,
-            **kwargs,
-        )[0]
+        if self.detector_wrapper and hasattr(self.detector_wrapper, "lock"):
+            with self.detector_wrapper.lock:
+                result = self.detector(frame, **kwargs)[0]
+        else:
+            result = self.detector(frame, **kwargs)[0]
 
         detections = sv.Detections.from_ultralytics(result)
 

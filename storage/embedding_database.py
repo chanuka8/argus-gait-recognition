@@ -283,6 +283,196 @@ class EmbeddingDatabase:
             "firebase_results": [r.to_dict() for r in firebase_results] if firebase_results else [],
         }
 
+    def commit_and_activate_embeddings(
+        self,
+        person_id: str,
+        gait_embeddings: list[np.ndarray | list[float]] | None = None,
+        appearance_embeddings: list[np.ndarray | list[float]] | None = None,
+        model_version: str = "v1.0.0",
+        source_session_id: str = "",
+        quality_scores: list[float] | None = None,
+        created_at: float | None = None,
+        observation_date: str | None = None,
+        gait_service_ref: Any | None = None,
+        retire_previous: bool = True,
+        embedding_ids: list[str] | None = None,
+        appearance_embedding_ids: list[str] | None = None,
+    ) -> dict[str, Any]:
+        """Atomically validates, commits, and activates new embeddings while retiring previous ones.
+
+        Guarantees:
+          1. Strict pre-validation: All vectors validated (dimension, finite, non-zero norm) before mutation.
+          2. Idempotent persistence: Deterministic IDs prevent duplicate records across retries or restarts.
+          3. Zero identity outage: Existing active embeddings remain untouched until new ones are confirmed.
+          4. Atomic activation: New embeddings marked ACTIVE; old embeddings marked RETIRED.
+          5. VectorStore sync: Only ACTIVE embeddings enter the live gallery.
+          6. In-memory reload: GaitService active recognition workers refreshed atomically.
+        """
+        person = self.get_person(person_id)
+        if person is None:
+            person = PersonRecord(person_id=person_id)
+
+        now = created_at if created_at is not None else time.time()
+        obs_date = observation_date or time.strftime("%Y-%m-%d", time.gmtime(now))
+
+        validated_gait_recs: list[EmbeddingRecord] = []
+        confirmed_gait_ids: list[str] = []
+
+        if gait_embeddings:
+            for i, raw_vec in enumerate(gait_embeddings):
+                vec = np.asarray(raw_vec, dtype=np.float32).ravel()
+                if vec.size != 256:
+                    raise ValueError(f"Gait embedding dimension mismatch: expected 256, got {vec.size}")
+                if not np.isfinite(vec).all():
+                    raise ValueError(f"Gait embedding at index {i} contains non-finite values (NaN/Inf)")
+                norm = float(np.linalg.norm(vec))
+                if norm < 1e-6:
+                    raise ValueError(f"Gait embedding at index {i} has near-zero norm ({norm:.2e})")
+                vec = (vec / norm).astype(np.float32)
+
+                q_score = quality_scores[i] if quality_scores and i < len(quality_scores) else 1.0
+                if embedding_ids and i < len(embedding_ids) and embedding_ids[i]:
+                    emb_id = embedding_ids[i]
+                elif source_session_id:
+                    emb_id = f"gait_{person_id}_{source_session_id}_seq_{i}"
+                else:
+                    emb_id = f"gait_{person_id}_{int(now)}_{uuid.uuid4().hex[:6]}"
+
+                # Idempotency check: does this deterministic embedding already exist in person records?
+                existing_rec = next((e for e in person.gait_embeddings if e.embedding_id == emb_id), None)
+                if existing_rec is not None:
+                    if existing_rec.status != "ACTIVE":
+                        existing_rec.status = "ACTIVE"
+                    confirmed_gait_ids.append(existing_rec.embedding_id)
+                    continue
+
+                rec = EmbeddingRecord(
+                    embedding_id=emb_id,
+                    person_id=person_id,
+                    modality="gait",
+                    embedding_dim=256,
+                    vector=vec.tolist(),
+                    model_version=model_version,
+                    embedding_version=len(person.gait_embeddings) + len(validated_gait_recs) + 1,
+                    quality_score=q_score,
+                    source_session_id=source_session_id,
+                    created_at=now,
+                    observation_date=obs_date,
+                    status="ACTIVE",
+                )
+                validated_gait_recs.append(rec)
+                confirmed_gait_ids.append(emb_id)
+
+        validated_app_recs: list[EmbeddingRecord] = []
+        confirmed_app_ids: list[str] = []
+
+        if appearance_embeddings:
+            for i, raw_vec in enumerate(appearance_embeddings):
+                vec = np.asarray(raw_vec, dtype=np.float32).ravel()
+                if vec.size != 512:
+                    raise ValueError(f"Appearance embedding dimension mismatch: expected 512, got {vec.size}")
+                if not np.isfinite(vec).all():
+                    raise ValueError(f"Appearance embedding at index {i} contains non-finite values (NaN/Inf)")
+                norm = float(np.linalg.norm(vec))
+                if norm < 1e-6:
+                    raise ValueError(f"Appearance embedding at index {i} has near-zero norm ({norm:.2e})")
+                vec = (vec / norm).astype(np.float32)
+
+                if appearance_embedding_ids and i < len(appearance_embedding_ids) and appearance_embedding_ids[i]:
+                    emb_id = appearance_embedding_ids[i]
+                elif source_session_id:
+                    emb_id = f"app_{person_id}_{source_session_id}_seq_{i}"
+                else:
+                    emb_id = f"app_{person_id}_{int(now)}_{uuid.uuid4().hex[:6]}"
+
+                existing_app = next((e for e in person.appearance_embeddings if e.embedding_id == emb_id), None)
+                if existing_app is not None:
+                    if existing_app.status != "ACTIVE":
+                        existing_app.status = "ACTIVE"
+                    confirmed_app_ids.append(existing_app.embedding_id)
+                    continue
+
+                rec = EmbeddingRecord(
+                    embedding_id=emb_id,
+                    person_id=person_id,
+                    modality="appearance",
+                    embedding_dim=512,
+                    vector=vec.tolist(),
+                    model_version=model_version,
+                    embedding_version=len(person.appearance_embeddings) + len(validated_app_recs) + 1,
+                    quality_score=1.0,
+                    source_session_id=source_session_id,
+                    created_at=now,
+                    observation_date=obs_date,
+                    status="ACTIVE",
+                )
+                validated_app_recs.append(rec)
+                confirmed_app_ids.append(emb_id)
+
+        # Retire previously active embeddings for this person (excluding current batch)
+        all_current_gait_ids = set(confirmed_gait_ids)
+        all_current_app_ids = set(confirmed_app_ids)
+
+        retired_gait_count = 0
+        retired_app_count = 0
+        if retire_previous:
+            if confirmed_gait_ids:
+                for e in person.gait_embeddings:
+                    if e.status == "ACTIVE" and e.embedding_id not in all_current_gait_ids:
+                        e.status = "RETIRED"
+                        retired_gait_count += 1
+
+            if confirmed_app_ids:
+                for e in person.appearance_embeddings:
+                    if e.status == "ACTIVE" and e.embedding_id not in all_current_app_ids:
+                        e.status = "RETIRED"
+                        retired_app_count += 1
+
+        person.gait_embeddings.extend(validated_gait_recs)
+        person.appearance_embeddings.extend(validated_app_recs)
+
+        saved = self.save_person(person)
+        if not saved:
+            raise RuntimeError(f"Failed to atomically persist person record for {person_id}")
+
+        self._sync_vector_stores()
+
+        if gait_service_ref is not None and hasattr(gait_service_ref, "reload_gallery"):
+            try:
+                gait_service_ref.reload_gallery()
+            except Exception as e:  # noqa: BLE001
+                self._logger.warning(f"Could not reload live GaitService gallery: {e}")
+
+        firebase_results = []
+        if self.firebase_store is not None:
+            firebase_results = self._persist_to_firebase(
+                person=person,
+                model_version=model_version,
+                source_session_id=source_session_id or "",
+                observation_date=obs_date,
+            )
+
+        self._logger.info(
+            f"Atomic activation completed for '{person_id}': "
+            f"+{len(validated_gait_recs)} new gait active ({len(confirmed_gait_ids)} total confirmed, retired {retired_gait_count}), "
+            f"+{len(validated_app_recs)} new appearance active ({len(confirmed_app_ids)} total confirmed, retired {retired_app_count})."
+        )
+
+        return {
+            "success": True,
+            "person_id": person_id,
+            "gait_embeddings_added": len(validated_gait_recs),
+            "appearance_embeddings_added": len(validated_app_recs),
+            "gait_embeddings_retired": retired_gait_count,
+            "appearance_embeddings_retired": retired_app_count,
+            "total_gait_embeddings": len(person.gait_embeddings),
+            "total_appearance_embeddings": len(person.appearance_embeddings),
+            "persisted_embedding_ids": confirmed_gait_ids,
+            "appearance_embedding_ids": confirmed_app_ids,
+            "persistence_verified": True,
+            "firebase_results": [r.to_dict() for r in firebase_results] if firebase_results else [],
+        }
+
     def verify_persistence(
         self,
         person_id: str,

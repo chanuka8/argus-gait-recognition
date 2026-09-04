@@ -1,7 +1,3 @@
-#!/bin/bash
-if [ -f ".venv/bin/activate" ]; then
-    source .venv/bin/activate
-elif [ -f "venv/bin/activate" ]; then
-    source venv/bin/activate
-fi
-python main.py
+#!/usr/bin/env bash
+# ARGUS AI - Backward-compatibility shim for scripts/start_system.sh
+bash tools/start_system.sh "$@"

@@ -43,7 +43,17 @@ def benchmark_report_path():
 def setup_test_auth_headers(request, monkeypatch):
     """Provide valid admin session token to non-security test clients so regression tests pass."""
     fspath = str(getattr(request, "fspath", "")).replace("\\", "/")
-    if "tests/security" in fspath:
+    security_test_modules = {
+        "test_auth_bypass.py",
+        "test_camera_auth_flow.py",
+        "test_rbac_and_bola.py",
+        "test_admin_bootstrap.py",
+        "test_password_migration.py",
+        "test_firebase_account_connectivity.py",
+        "test_investigator_camera_flow.py",
+        "test_async_missing_person.py",
+    }
+    if any(sec in fspath for sec in security_test_modules) or "tests/security" in fspath:
         return
 
     from fastapi.testclient import TestClient

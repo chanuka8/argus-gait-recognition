@@ -63,10 +63,21 @@ class GaitService:
         self._appearance_extractor = None
         self._appearance_matcher = None
         self._detector = None
+        self._tracker = None
         self._source_resolver = None
 
         self._is_warmed_up = False
         self._warmup_error: str | None = None
+        self._warmup_duration: float = 0.0
+        self._readiness: dict[str, str] = {
+            "api": "READY",
+            "gallery": "PENDING",
+            "bygait": "PENDING",
+            "osnet": "PENDING",
+            "detector": "PENDING",
+            "silhouette": "PENDING",
+            "continual_learning": "PENDING",
+        }
 
         self.ws_manager = WebSocketManager()
         self.events_log: deque[dict] = deque(maxlen=500)
@@ -90,13 +101,41 @@ class GaitService:
         return self._is_warmed_up
 
     @property
+    def is_recognition_ready(self) -> bool:
+        with self._lock:
+            required = ["bygait", "osnet", "silhouette", "gallery"]
+            return all(self._readiness.get(k) == "READY" for k in required)
+
+    def get_readiness(self) -> dict[str, Any]:
+        with self._lock:
+            rec_ready = self.is_recognition_ready
+            states = {
+                "API_READY": True,
+                "GALLERY_READY": self._readiness.get("gallery") == "READY",
+                "BYGAIT_READY": self._readiness.get("bygait") == "READY",
+                "OSNET_READY": self._readiness.get("osnet") == "READY",
+                "DETECTOR_READY": self._readiness.get("detector") in ("READY", "DISABLED"),
+                "SILHOUETTE_READY": self._readiness.get("silhouette") == "READY",
+                "CONTINUAL_LEARNING_READY": self._readiness.get("continual_learning") == "READY",
+                "RECOGNITION_READY": rec_ready,
+            }
+            return {
+                "api_ready": True,
+                "recognition_ready": rec_ready,
+                "states": states,
+                "components": dict(self._readiness),
+                "warmup_duration_seconds": round(self._warmup_duration, 3),
+            }
+
+    @property
     def extractor(self):
         if self._extractor is None:
+            from pipeline.steps.feature_extraction import FeatureExtractionStep
+
+            step = FeatureExtractionStep()
             with self._lock:
                 if self._extractor is None:
-                    from pipeline.steps.feature_extraction import FeatureExtractionStep
-
-                    self._extractor = FeatureExtractionStep()
+                    self._extractor = step
         return self._extractor
 
     @extractor.setter
@@ -106,11 +145,12 @@ class GaitService:
     @property
     def matcher(self):
         if self._matcher is None:
+            from pipeline.steps.matching_step import MatchingStep
+
+            matcher = MatchingStep(threshold=0.85)
             with self._lock:
                 if self._matcher is None:
-                    from pipeline.steps.matching_step import MatchingStep
-
-                    self._matcher = MatchingStep(threshold=0.85)
+                    self._matcher = matcher
         return self._matcher
 
     @matcher.setter
@@ -120,11 +160,12 @@ class GaitService:
     @property
     def silhouette_extractor(self):
         if self._silhouette_extractor is None:
+            from pipeline.silhouette.extractor import SilhouetteExtractor
+
+            extractor = SilhouetteExtractor(target_size=(64, 128))
             with self._lock:
                 if self._silhouette_extractor is None:
-                    from pipeline.silhouette.extractor import SilhouetteExtractor
-
-                    self._silhouette_extractor = SilhouetteExtractor(target_size=(64, 128))
+                    self._silhouette_extractor = extractor
         return self._silhouette_extractor
 
     @silhouette_extractor.setter
@@ -134,11 +175,12 @@ class GaitService:
     @property
     def open_set_recognizer(self):
         if self._open_set_recognizer is None:
+            from intelligence.open_set_recognizer import OpenSetRecognizer
+
+            recognizer = OpenSetRecognizer()
             with self._lock:
                 if self._open_set_recognizer is None:
-                    from intelligence.open_set_recognizer import OpenSetRecognizer
-
-                    self._open_set_recognizer = OpenSetRecognizer()
+                    self._open_set_recognizer = recognizer
         return self._open_set_recognizer
 
     @open_set_recognizer.setter
@@ -148,15 +190,16 @@ class GaitService:
     @property
     def appearance_extractor(self):
         if self._appearance_extractor is None:
+            try:
+                from intelligence.appearance_embedding import AppearanceEmbeddingExtractor
+
+                extractor = AppearanceEmbeddingExtractor(update_interval=8)
+            except (ImportError, RuntimeError, ValueError, TypeError, OSError) as app_init_err:
+                self.logger.warning(f"Appearance extractor init deferred: {app_init_err}")
+                extractor = None
             with self._lock:
                 if self._appearance_extractor is None:
-                    try:
-                        from intelligence.appearance_embedding import AppearanceEmbeddingExtractor
-
-                        self._appearance_extractor = AppearanceEmbeddingExtractor(update_interval=8)
-                    except (ImportError, RuntimeError, ValueError, TypeError, OSError) as app_init_err:
-                        self.logger.warning(f"Appearance extractor init deferred: {app_init_err}")
-                        self._appearance_extractor = None
+                    self._appearance_extractor = extractor
         return self._appearance_extractor
 
     @appearance_extractor.setter
@@ -166,15 +209,16 @@ class GaitService:
     @property
     def appearance_matcher(self):
         if self._appearance_matcher is None:
+            try:
+                from pipeline.steps.appearance_matching_step import AppearanceMatchingStep
+
+                matcher = AppearanceMatchingStep(threshold=0.60)
+            except (ImportError, RuntimeError, ValueError, TypeError, OSError) as app_init_err:
+                self.logger.warning(f"Appearance matcher init deferred: {app_init_err}")
+                matcher = None
             with self._lock:
                 if self._appearance_matcher is None:
-                    try:
-                        from pipeline.steps.appearance_matching_step import AppearanceMatchingStep
-
-                        self._appearance_matcher = AppearanceMatchingStep(threshold=0.60)
-                    except (ImportError, RuntimeError, ValueError, TypeError, OSError) as app_init_err:
-                        self.logger.warning(f"Appearance matcher init deferred: {app_init_err}")
-                        self._appearance_matcher = None
+                    self._appearance_matcher = matcher
         return self._appearance_matcher
 
     @appearance_matcher.setter
@@ -184,15 +228,16 @@ class GaitService:
     @property
     def detector(self):
         if self._detector is None:
+            try:
+                from pipeline.detection.person_detector import PersonDetector
+
+                det = PersonDetector()
+            except (ImportError, RuntimeError, ValueError, OSError) as err:
+                self.logger.warning(f"PersonDetector initialization skipped: {err}")
+                det = None
             with self._lock:
                 if self._detector is None:
-                    try:
-                        from pipeline.detection.person_detector import PersonDetector
-
-                        self._detector = PersonDetector()
-                    except (ImportError, RuntimeError, ValueError, OSError) as err:
-                        self.logger.warning(f"PersonDetector initialization skipped: {err}")
-                        self._detector = None
+                    self._detector = det
         return self._detector
 
     @detector.setter
@@ -200,13 +245,33 @@ class GaitService:
         self._detector = value
 
     @property
+    def tracker(self):
+        if self._tracker is None:
+            try:
+                from pipeline.steps.tracking import TrackingStep
+
+                trk = TrackingStep(detector=self.detector)
+            except (ImportError, RuntimeError, ValueError, OSError) as err:
+                self.logger.warning(f"TrackingStep initialization skipped: {err}")
+                trk = None
+            with self._lock:
+                if self._tracker is None:
+                    self._tracker = trk
+        return self._tracker
+
+    @tracker.setter
+    def tracker(self, value: Any) -> None:
+        self._tracker = value
+
+    @property
     def source_resolver(self):
         if self._source_resolver is None:
+            from services.camera_source_resolver import CameraSourceResolver
+
+            resolver = CameraSourceResolver()
             with self._lock:
                 if self._source_resolver is None:
-                    from services.camera_source_resolver import CameraSourceResolver
-
-                    self._source_resolver = CameraSourceResolver()
+                    self._source_resolver = resolver
         return self._source_resolver
 
     @source_resolver.setter
@@ -296,50 +361,129 @@ class GaitService:
         with self._lock:
             if self._is_warmed_up:
                 return {"status": "WARMED_UP", "already_warmed": True}
+            if getattr(self, "_is_warming_up", False):
+                return {"status": "WARMING_UP", "already_warmed": False}
+            self._is_warming_up = True
 
-            self.logger.info("[STARTUP] Beginning background model warmup...")
-            t0 = time.perf_counter()
-            results = {}
+        self.logger.info("[STARTUP] Beginning background model warmup...")
+        t0 = time.perf_counter()
+        results = {}
 
-            try:
-                _ = self.extractor
-                _ = self.matcher
-                results["bygait_light"] = "READY"
-            except Exception as e:  # noqa: BLE001
-                results["bygait_light"] = f"ERROR: {e}"
+        # 1. ByGaitLight Gait Encoder
+        try:
+            with self._lock:
+                self._readiness["bygait"] = "INITIALIZING"
+            ext = self.extractor
+            _ = self.matcher
+            if ext is not None and hasattr(ext, "backend") and ext.backend is not None:
+                dummy_gei = np.zeros((128, 64), dtype=np.float32)
+                _ = ext.backend.predict(dummy_gei)
+            with self._lock:
+                self._readiness["bygait"] = "READY"
+            results["bygait_light"] = "READY"
+        except Exception as e:  # noqa: BLE001
+            with self._lock:
+                self._readiness["bygait"] = "ERROR"
+            results["bygait_light"] = f"ERROR: {e}"
 
-            try:
-                _ = self.silhouette_extractor
-                results["silhouette_extractor"] = "READY"
-            except Exception as e:  # noqa: BLE001
-                results["silhouette_extractor"] = f"ERROR: {e}"
+        # 2. Silhouette UNet Extractor
+        try:
+            with self._lock:
+                self._readiness["silhouette"] = "INITIALIZING"
+            sil_ext = self.silhouette_extractor
+            if sil_ext is not None:
+                dummy_crop = np.zeros((128, 64, 3), dtype=np.uint8)
+                cv2.rectangle(dummy_crop, (16, 16), (48, 112), (255, 255, 255), -1)
+                _ = sil_ext.extract_from_crop(dummy_crop)
+            with self._lock:
+                self._readiness["silhouette"] = "READY"
+            results["silhouette_extractor"] = "READY"
+        except Exception as e:  # noqa: BLE001
+            with self._lock:
+                self._readiness["silhouette"] = "ERROR"
+            results["silhouette_extractor"] = f"ERROR: {e}"
 
-            try:
-                _ = self.appearance_extractor
-                _ = self.appearance_matcher
-                results["osnet_appearance"] = "READY"
-            except Exception as e:  # noqa: BLE001
-                results["osnet_appearance"] = f"ERROR: {e}"
+        # 3. OSNet Appearance Extractor
+        try:
+            with self._lock:
+                self._readiness["osnet"] = "INITIALIZING"
+            app_ext = self.appearance_extractor
+            _ = self.appearance_matcher
+            if app_ext is not None:
+                dummy_crop = np.zeros((128, 64, 3), dtype=np.uint8)
+                _ = app_ext.extract(dummy_crop)
+            with self._lock:
+                self._readiness["osnet"] = "READY"
+            results["osnet_appearance"] = "READY"
+        except Exception as e:  # noqa: BLE001
+            with self._lock:
+                self._readiness["osnet"] = "ERROR"
+            results["osnet_appearance"] = f"ERROR: {e}"
 
-            try:
-                _ = self.detector
-                results["person_detector"] = "READY" if self._detector else "DISABLED"
-            except Exception as e:  # noqa: BLE001
-                results["person_detector"] = f"ERROR: {e}"
+        # 4. Person Detector
+        try:
+            with self._lock:
+                self._readiness["detector"] = "INITIALIZING"
+            det = self.detector
+            if det is not None:
+                dummy_img = np.zeros((160, 160, 3), dtype=np.uint8)
+                _ = det.detect(dummy_img)
+            det_status = "READY" if self._detector else "DISABLED"
+            with self._lock:
+                self._readiness["detector"] = det_status
+            results["person_detector"] = det_status
+        except Exception as e:  # noqa: BLE001
+            with self._lock:
+                self._readiness["detector"] = "ERROR"
+            results["person_detector"] = f"ERROR: {e}"
 
-            try:
-                _ = self.open_set_recognizer
-                _ = self.embedding_db
-                _ = self.model_registry
-                _ = self.continuous_engine
-                results["continual_learning"] = "READY"
-            except Exception as e:  # noqa: BLE001
-                results["continual_learning"] = f"ERROR: {e}"
+        # 5. Continual Learning & Registry
+        try:
+            with self._lock:
+                self._readiness["continual_learning"] = "INITIALIZING"
+            _ = self.open_set_recognizer
+            _ = self.embedding_db
+            _ = self.model_registry
+            _ = self.continuous_engine
+            with self._lock:
+                self._readiness["continual_learning"] = "READY"
+            results["continual_learning"] = "READY"
+        except Exception as e:  # noqa: BLE001
+            with self._lock:
+                self._readiness["continual_learning"] = "ERROR"
+            results["continual_learning"] = f"ERROR: {e}"
 
-            dur = time.perf_counter() - t0
+        dur = time.perf_counter() - t0
+        with self._lock:
+            self._warmup_duration = dur
             self._is_warmed_up = True
-            self.logger.info(f"[STARTUP] Background model warmup completed in {dur:.3f}s. Results: {results}")
-            return {"status": "WARMED_UP", "duration": dur, "components": results}
+            self._is_warming_up = False
+
+        self.logger.info(f"[STARTUP] Background model warmup completed in {dur:.3f}s. Results: {results}")
+
+        # Automatic recovery scanner for unfinished reference video jobs
+        try:
+            from services.missing_person_processor import MissingPersonVideoProcessor
+            from services.reference_job_manager import ReferenceJobManager
+            processor = MissingPersonVideoProcessor(
+                detector=self.detector,
+                tracker=self.tracker,
+                extractor=self.extractor,
+                appearance_extractor=self.appearance_extractor,
+                silhouette_step=self.silhouette_extractor,
+                store=self.store,
+                embedding_db=self.embedding_db,
+            )
+            recovered = ReferenceJobManager.get_instance().recover_unfinished_jobs(
+                processor=processor,
+                gait_service_ref=self,
+            )
+            if recovered:
+                self.logger.info(f"[STARTUP] Recovered and resumed {len(recovered)} unfinished reference job(s).")
+        except Exception as rec_err:  # noqa: BLE001
+            self.logger.warning(f"[STARTUP] Reference job recovery notice: {rec_err}")
+
+        return {"status": "WARMED_UP", "duration": dur, "components": results}
 
     async def warmup_async(self) -> dict[str, Any]:
         loop = asyncio.get_running_loop()
@@ -352,52 +496,67 @@ class GaitService:
             except Exception as e:  # noqa: BLE001
                 self.logger.warning(f"Error stopping camera {cam_id}: {e}")
 
-    def reload_gallery(self) -> None:
+        # Graceful shutdown of reference video job workers and checkpoint persistence
         try:
-            gallery = self.store.load()
-            if gallery is not None:
-                self.gallery_features, labels, self.metadata = gallery
-                self.gallery_labels = list(labels) if labels is not None else []
-                self.logger.info(f"Loaded gait gallery with {len(self.gallery_labels)} embeddings.")
-            else:
+            from services.reference_job_manager import ReferenceJobManager
+            loop = asyncio.get_running_loop()
+            await loop.run_in_executor(None, ReferenceJobManager.get_instance().shutdown, 5.0)
+        except Exception as e:  # noqa: BLE001
+            self.logger.warning(f"Error during reference job manager shutdown: {e}")
+
+    def reload_gallery(self) -> None:
+        with self._lock:
+            try:
+                gallery = self.store.load()
+                if gallery is not None:
+                    self.gallery_features, labels, self.metadata = gallery
+                    self.gallery_labels = list(labels) if labels is not None else []
+                    self.logger.info(f"Loaded gait gallery with {len(self.gallery_labels)} embeddings.")
+                else:
+                    self.gallery_features = np.empty((0, 256), dtype=np.float32)
+                    self.gallery_labels = []
+                    self.metadata = []
+                    self.logger.warning("No gait gallery found; operating with empty gait gallery.")
+            except (RuntimeError, ValueError, TypeError, OSError) as err:
+                self.logger.error(f"Failed to load gait gallery: {err}")
                 self.gallery_features = np.empty((0, 256), dtype=np.float32)
                 self.gallery_labels = []
                 self.metadata = []
-                self.logger.warning("No gait gallery found; operating with empty gait gallery.")
-        except (RuntimeError, ValueError, TypeError, OSError) as err:
-            self.logger.error(f"Failed to load gait gallery: {err}")
-            self.gallery_features = np.empty((0, 256), dtype=np.float32)
-            self.gallery_labels = []
-            self.metadata = []
 
-        try:
-            app_gallery = self.appearance_store.load()
-            if app_gallery is not None:
-                self.appearance_gallery_features, app_labels, self.appearance_metadata = app_gallery
-                self.appearance_gallery_labels = list(app_labels) if app_labels is not None else []
-                self.logger.info(f"Loaded appearance gallery with {len(self.appearance_gallery_labels)} embeddings.")
-            else:
+            try:
+                app_gallery = self.appearance_store.load()
+                if app_gallery is not None:
+                    self.appearance_gallery_features, app_labels, self.appearance_metadata = app_gallery
+                    self.appearance_gallery_labels = list(app_labels) if app_labels is not None else []
+                    self.logger.info(f"Loaded appearance gallery with {len(self.appearance_gallery_labels)} embeddings.")
+                else:
+                    self.appearance_gallery_features = np.empty((0, 512), dtype=np.float32)
+                    self.appearance_gallery_labels = []
+                    self.appearance_metadata = {}
+            except (RuntimeError, ValueError, TypeError, OSError) as app_err:
+                self.logger.warning(f"Failed to load appearance gallery: {app_err}")
                 self.appearance_gallery_features = np.empty((0, 512), dtype=np.float32)
                 self.appearance_gallery_labels = []
                 self.appearance_metadata = {}
-        except (RuntimeError, ValueError, TypeError, OSError) as app_err:
-            self.logger.warning(f"Failed to load appearance gallery: {app_err}")
-            self.appearance_gallery_features = np.empty((0, 512), dtype=np.float32)
-            self.appearance_gallery_labels = []
-            self.appearance_metadata = {}
 
-        for worker in self.camera_workers.values():
-            if worker.recognition_worker is not None:
-                worker.recognition_worker.update_gallery(
-                    gallery_features=self.gallery_features,
-                    gallery_labels=self.gallery_labels,
-                    metadata=self.metadata,
-                )
-                worker.recognition_worker.update_appearance_gallery(
-                    gallery_features=self.appearance_gallery_features,
-                    gallery_labels=self.appearance_gallery_labels,
-                    metadata=self.appearance_metadata,
-                )
+            self._readiness["gallery"] = "READY"
+            workers_snapshot = list(self.camera_workers.values())
+
+        for worker in workers_snapshot:
+            try:
+                if worker.recognition_worker is not None:
+                    worker.recognition_worker.update_gallery(
+                        gallery_features=self.gallery_features,
+                        gallery_labels=self.gallery_labels,
+                        metadata=self.metadata,
+                    )
+                    worker.recognition_worker.update_appearance_gallery(
+                        gallery_features=self.appearance_gallery_features,
+                        gallery_labels=self.appearance_gallery_labels,
+                        metadata=self.appearance_metadata,
+                    )
+            except Exception as w_err:  # noqa: BLE001
+                self.logger.warning(f"Error updating camera worker gallery for {getattr(worker, 'camera_id', 'unknown')}: {w_err}")
 
     def _handle_recognition_event(self, event_dict: dict) -> None:
         self.events_log.appendleft(event_dict)

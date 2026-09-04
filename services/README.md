@@ -25,6 +25,7 @@ The `services` package manages persistent system service lifecycle (NSSM Windows
 | [onvif_client.py](onvif_client.py) | ONVIF protocol client querying network CCTV camera capabilities and RTSP stream URIs |
 | [recognition_worker.py](recognition_worker.py) | Module/resource file recognition_worker.py |
 | [reference_job_manager.py](reference_job_manager.py) | Persistent reference job manager coordinating background video enrollment states and execution queues |
+| [upload_session_manager.py](upload_session_manager.py) | Module/resource file upload_session_manager.py |
 | [vendor_adapters.py](vendor_adapters.py) | Vendor-specific camera stream adapters (Hikvision, Dahua, Axis, generic RTSP) |
 <!-- END SYNC: KEY_MODULES -->
 

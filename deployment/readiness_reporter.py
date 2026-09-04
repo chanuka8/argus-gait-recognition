@@ -3,8 +3,8 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+from deployment.doctor import run_doctor
 from models.inference.backend import BackendValidator, get_inference_backend
-from scripts.doctor import run_doctor
 from utils.config_validator import ConfigValidator, sanitize_rtsp_url
 
 SCHEMA_VERSION = "1.0.0"

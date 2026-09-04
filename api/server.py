@@ -17,8 +17,11 @@ FRONTEND_DIST_DIR = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    gait_service = GaitService()
-    app.state.gait_service = gait_service
+    if not hasattr(app.state, "gait_service") or app.state.gait_service is None:
+        gait_service = GaitService()
+        app.state.gait_service = gait_service
+    else:
+        gait_service = app.state.gait_service
 
     asyncio.create_task(gait_service.warmup_async())
     print("[*] ARGUS Gait Recognition Service initialized on FastAPI startup.")

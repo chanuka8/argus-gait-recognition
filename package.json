@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node scripts/dev.js",
+    "dev": "node tools/dev.js",
     "dev:frontend": "npm --prefix frontend run dev:frontend",
     "build": "npm --prefix frontend run build",
     "lint": "npm --prefix frontend run lint",

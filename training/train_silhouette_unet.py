@@ -19,7 +19,7 @@ from torch import nn, optim
 from torch.utils.data import DataLoader
 
 from models.architectures.silhouette_unet import SilhouetteUNet
-from scripts.export_silhouette_unet_onnx import export_and_validate_onnx
+from models.export.silhouette_unet_onnx import export_and_validate_onnx
 from training.silhouette_dataset import SilhouetteSegmentationDataset
 
 

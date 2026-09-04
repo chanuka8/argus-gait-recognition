@@ -1,7 +1,3 @@
 @echo off
-if exist .venv\Scripts\activate.bat (
-    call .venv\Scripts\activate.bat
-) else if exist venv\Scripts\activate.bat (
-    call venv\Scripts\activate.bat
-)
-python main.py
+REM ARGUS AI - Backward-compatibility shim for scripts/start_system.bat
+call tools\start_system.bat

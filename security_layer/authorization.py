@@ -25,13 +25,15 @@ class Role(str, Enum):
 def normalize_role(role_raw: str | None) -> str:
     """Normalize user role string across representations."""
     if not role_raw:
-        return Role.INVESTIGATOR.value
+        return ""
     clean = role_raw.strip().lower().replace(" ", "_")
     if clean in ("root_admin", "rootadmin", "superadmin"):
         return Role.ROOT_ADMIN.value
     if clean in ("admin", "administrator"):
         return Role.ADMIN.value
-    return Role.INVESTIGATOR.value
+    if clean in ("investigator",):
+        return Role.INVESTIGATOR.value
+    return clean
 
 
 class Permission(str, Enum):
@@ -71,6 +73,10 @@ class Permission(str, Enum):
     CAMERA_STREAM = "camera:stream"
     CAMERA_CONTROL = "camera:control"
     CAMERA_CREDENTIAL_MANAGE = "camera:credential_manage"
+    CAMERA_VIEW = "camera:view"
+    CAMERA_START = "camera:start"
+    CAMERA_STOP = "camera:stop"
+    CAMERA_MANAGE = "camera:manage"
 
     # Continual Learning & Model Ops
     LEARNING_VIEW = "learning:view"
@@ -109,6 +115,10 @@ ROLE_PERMISSIONS: dict[str, set[Permission]] = {
         Permission.CAMERA_STREAM,
         Permission.CAMERA_CONTROL,
         Permission.CAMERA_CREDENTIAL_MANAGE,
+        Permission.CAMERA_VIEW,
+        Permission.CAMERA_START,
+        Permission.CAMERA_STOP,
+        Permission.CAMERA_MANAGE,
         Permission.LEARNING_VIEW,
         Permission.LEARNING_MANAGE,
         Permission.SYSTEM_AUDIT,
@@ -130,6 +140,10 @@ ROLE_PERMISSIONS: dict[str, set[Permission]] = {
         Permission.BIOMETRIC_SEARCH,
         Permission.CAMERA_LIST,
         Permission.CAMERA_STREAM,
+        Permission.CAMERA_VIEW,
+        Permission.CAMERA_START,
+        Permission.CAMERA_STOP,
+        Permission.CAMERA_CONTROL,
     },
 }
 
@@ -256,3 +270,18 @@ def verify_operator_management_access(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Administrators cannot modify Root Administrator accounts",
             )
+
+
+def require_camera_operator(
+    session: Annotated[SessionToken, Depends(get_authenticated_operator)],
+) -> SessionToken:
+    """Ensure operator possesses camera operational permissions (admin, root_admin, or investigator)."""
+    if not (
+        has_permission(session.role, Permission.CAMERA_START)
+        or has_permission(session.role, Permission.CAMERA_CONTROL)
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Operation not permitted for role '{session.role}'",
+        )
+    return session
