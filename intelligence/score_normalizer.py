@@ -1,4 +1,3 @@
-
 class ScoreNormalizer:
     def __init__(
         self,

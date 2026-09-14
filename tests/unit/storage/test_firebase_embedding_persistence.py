@@ -61,9 +61,6 @@ def tmp_env():
     shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
-
-
-
 def test_a_firebase_embedding_persistence_success(tmp_env):
     fb_store = FirebaseEmbeddingStore(
         mode="offline",
@@ -83,14 +80,10 @@ def test_a_firebase_embedding_persistence_success(tmp_env):
     assert res.success is True
     assert res.embedding_id == "emb-001"
 
-
     retrieved = fb_store.get_embeddings_by_person("Subject_01")
     assert len(retrieved) == 1
     assert retrieved[0].embedding_id == "emb-001"
     assert len(retrieved[0].vector) == 256
-
-
-
 
 
 def test_b_firebase_failure_isolation(tmp_env):
@@ -116,13 +109,9 @@ def test_b_firebase_failure_isolation(tmp_env):
     assert res["success"] is True
     assert res["persistence_verified"] is True
 
-
     _, labels, _ = db.gait_store.load()
     assert len(labels) == 1
     assert labels[0] == "Subject_Iso"
-
-
-
 
 
 def test_c_idempotent_duplicate_writes(tmp_env):
@@ -149,9 +138,6 @@ def test_c_idempotent_duplicate_writes(tmp_env):
     assert len(all_embs) == 1
 
 
-
-
-
 def test_d_dimension_isolation_and_rejection(tmp_env):
     fb_store = FirebaseEmbeddingStore(
         mode="offline",
@@ -170,7 +156,6 @@ def test_d_dimension_isolation_and_rejection(tmp_env):
     assert res_bad.success is False
     assert "Gait embedding dimension mismatch" in res_bad.error_message
 
-
     bad_app = FirebaseEmbeddingDocument(
         embedding_id="emb-bad-2",
         person_id="Sub_Dim",
@@ -182,7 +167,6 @@ def test_d_dimension_isolation_and_rejection(tmp_env):
     res_bad2 = fb_store.persist_embedding(bad_app)
     assert res_bad2.success is False
     assert "Appearance embedding dimension mismatch" in res_bad2.error_message
-
 
     good_gait = FirebaseEmbeddingDocument(
         embedding_id="emb-good-gait",
@@ -203,9 +187,6 @@ def test_d_dimension_isolation_and_rejection(tmp_env):
     )
     assert fb_store.persist_embedding(good_gait).success is True
     assert fb_store.persist_embedding(good_app).success is True
-
-
-
 
 
 def test_e_model_version_lineage_preservation(tmp_env):
@@ -232,9 +213,6 @@ def test_e_model_version_lineage_preservation(tmp_env):
     assert docs[0].case_id == "Case-1234"
 
 
-
-
-
 def test_f_date_aware_job_creation(tmp_env):
     collector = OperationalEmbeddingCollector(output_dir=tmp_env["obs_dir"])
     db = EmbeddingDatabase(
@@ -249,7 +227,6 @@ def test_f_date_aware_job_creation(tmp_env):
         min_training_embeddings=2,
         min_identities=2,
     )
-
 
     obs1 = collector.record_observation(
         camera_id="cam-1",
@@ -301,9 +278,6 @@ def test_f_date_aware_job_creation(tmp_env):
     assert jobs[0].identities_count == 2
 
 
-
-
-
 def test_g_zero_jobs_for_empty_date(tmp_env):
     collector = OperationalEmbeddingCollector(output_dir=tmp_env["obs_dir"])
     db = EmbeddingDatabase(
@@ -321,9 +295,6 @@ def test_g_zero_jobs_for_empty_date(tmp_env):
     assert len(jobs) == 0
 
 
-
-
-
 def test_h_duplicate_date_idempotency(tmp_env):
     collector = OperationalEmbeddingCollector(output_dir=tmp_env["obs_dir"])
     db = EmbeddingDatabase(
@@ -338,7 +309,6 @@ def test_h_duplicate_date_idempotency(tmp_env):
         min_training_embeddings=2,
         min_identities=2,
     )
-
 
     obs1 = collector.record_observation(
         camera_id="cam-1",
@@ -364,12 +334,8 @@ def test_h_duplicate_date_idempotency(tmp_env):
     jobs1 = scheduler.check_and_schedule_new_dates(model_type="dual_modal_fusion")
     assert len(jobs1) == 1
 
-
     jobs2 = scheduler.check_and_schedule_new_dates(model_type="dual_modal_fusion")
     assert len(jobs2) == 0
-
-
-
 
 
 def test_i_only_training_eligible_enter_training(tmp_env):
@@ -402,9 +368,6 @@ def test_i_only_training_eligible_enter_training(tmp_env):
     assert obs_unverified.observation_id not in eligible_ids
 
 
-
-
-
 def test_j_historical_replay_data_included(tmp_env):
     collector = OperationalEmbeddingCollector()
     db = EmbeddingDatabase(
@@ -433,9 +396,6 @@ def test_j_historical_replay_data_included(tmp_env):
     assert len(labels) > 0
 
 
-
-
-
 def test_k_candidate_model_artifact_generation(tmp_env):
     tuner = NNFineTuner(
         candidate_dir=tmp_env["candidates_dir"],
@@ -443,17 +403,10 @@ def test_k_candidate_model_artifact_generation(tmp_env):
         learning_rate=1e-5,
     )
 
-    gei_data = [
-        {"image": np.random.rand(64, 128).astype(np.float32), "label": "Sub1"}
-        for _ in range(4)
-    ] + [
-        {"image": np.random.rand(64, 128).astype(np.float32), "label": "Sub2"}
-        for _ in range(4)
+    gei_data = [{"image": np.random.rand(64, 128).astype(np.float32), "label": "Sub1"} for _ in range(4)] + [
+        {"image": np.random.rand(64, 128).astype(np.float32), "label": "Sub2"} for _ in range(4)
     ]
-    hist_data = [
-        {"image": np.random.rand(64, 128).astype(np.float32), "label": "Sub1"}
-        for _ in range(2)
-    ]
+    hist_data = [{"image": np.random.rand(64, 128).astype(np.float32), "label": "Sub1"} for _ in range(2)]
 
     res = tuner.fine_tune_bygait_light(
         active_weights_path="non_existent_path.pth",
@@ -465,9 +418,6 @@ def test_k_candidate_model_artifact_generation(tmp_env):
     assert Path(res["artifact_path"]).exists()
     assert res["checksum_sha256"] != ""
     assert res["embedding_dim"] == 256
-
-
-
 
 
 def test_l_candidate_validation_rejects_regression():
@@ -484,9 +434,6 @@ def test_l_candidate_validation_rejects_regression():
     )
     assert val_res.passed is False
     assert any("Security Regression" in r for r in val_res.rejection_reasons)
-
-
-
 
 
 def test_m_candidate_promotion_atomic(tmp_env):
@@ -518,9 +465,6 @@ def test_m_candidate_promotion_atomic(tmp_env):
     assert registry.get_active_model("dual_modal_fusion").model_version == cand_ver
 
 
-
-
-
 def test_n_safety_rollback_restores_previous(tmp_env):
     registry = ModelRegistry(registry_file=tmp_env["registry_file"])
     v1_rec = registry.get_active_model("dual_modal_fusion")
@@ -545,13 +489,9 @@ def test_n_safety_rollback_restores_previous(tmp_env):
     registry.promote_version("v2.0.0-temp", "dual_modal_fusion")
     assert registry.get_active_model("dual_modal_fusion").model_version == "v2.0.0-temp"
 
-
     rolled_back = registry.rollback("dual_modal_fusion", reason="Runtime regression detected")
     assert rolled_back.model_version == v1_ver
     assert registry.get_active_model("dual_modal_fusion").model_version == v1_ver
-
-
-
 
 
 def test_o_training_failure_preserves_active_model(tmp_env):
@@ -586,9 +526,6 @@ def test_o_training_failure_preserves_active_model(tmp_env):
         assert active_before.model_version == active_after.model_version
 
 
-
-
-
 def test_p_firebase_unavailable_inference_safe(tmp_env):
 
     fb_store = FirebaseEmbeddingStore(
@@ -613,9 +550,6 @@ def test_p_firebase_unavailable_inference_safe(tmp_env):
     assert "Sub_Safe_01" in labels
 
 
-
-
-
 def test_q_enrollment_lifecycle_embedding_only(tmp_env):
     fb_store = FirebaseEmbeddingStore(
         mode="offline",
@@ -632,7 +566,6 @@ def test_q_enrollment_lifecycle_embedding_only(tmp_env):
         firebase_store=fb_store,
     )
 
-
     import cv2
 
     gei_file = Path(tmp_env["root"]) / "dummy_gei.png"
@@ -646,9 +579,6 @@ def test_q_enrollment_lifecycle_embedding_only(tmp_env):
     assert res.status == EnrollmentStatus.EMBEDDING_ONLY
     assert not gei_file.exists()
     assert res.gait_embeddings_count == 1
-
-
-
 
 
 def test_r_persistence_failure_retains_raw_media(tmp_env):
@@ -672,9 +602,6 @@ def test_r_persistence_failure_retains_raw_media(tmp_env):
     assert str(raw_photo) in res.raw_files_retained
 
 
-
-
-
 def test_s_interrupted_job_recovery(tmp_env):
     scheduler = DateAwareLearningScheduler(jobs_file=tmp_env["jobs_file"])
 
@@ -685,14 +612,10 @@ def test_s_interrupted_job_recovery(tmp_env):
     )
     scheduler.update_job(crashed_job)
 
-
     new_scheduler = DateAwareLearningScheduler(jobs_file=tmp_env["jobs_file"])
     recovered = new_scheduler.get_job("job-crashed-01")
     assert recovered.status == LearningJobStatus.INTERRUPTED
     assert "interrupted" in recovered.error_message.lower()
-
-
-
 
 
 def test_t_read_after_write_verification(tmp_env):
@@ -715,12 +638,8 @@ def test_t_read_after_write_verification(tmp_env):
     assert verified is True
     assert "verified" in msg.lower()
 
-
     bad_verified, _ = fb_store.verify_persistence("emb-nonexistent")
     assert bad_verified is False
-
-
-
 
 
 def test_u_disaster_recovery_rebuild(tmp_env):
@@ -751,7 +670,6 @@ def test_u_disaster_recovery_rebuild(tmp_env):
             model_version="v1.0.0",
         )
     )
-
 
     db = EmbeddingDatabase(
         db_dir=tmp_env["db_dir"],

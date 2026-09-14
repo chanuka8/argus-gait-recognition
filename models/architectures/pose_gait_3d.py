@@ -55,23 +55,19 @@ class SkeletonNormalizer3D(nn.Module):
         B, T, V, C = joints_3d.shape
         normalized = joints_3d.clone()
 
-
         if self.smooth_kernel > 1 and T >= self.smooth_kernel:
             pad = self.smooth_kernel // 2
             flat = normalized.permute(0, 2, 3, 1).reshape(B * V * C, 1, T)
             smoothed = F.avg_pool1d(F.pad(flat, (pad, pad), mode="replicate"), kernel_size=self.smooth_kernel, stride=1)
             normalized = smoothed.view(B, V, C, T).permute(0, 3, 1, 2)
 
-
         pelvis = (normalized[:, :, L_HIP, :] + normalized[:, :, R_HIP, :]) / 2.0
         normalized = normalized - pelvis.unsqueeze(2)
-
 
         neck = (normalized[:, :, L_SHOULDER, :] + normalized[:, :, R_SHOULDER, :]) / 2.0
         torso_len = torch.norm(neck, p=2, dim=-1, keepdim=True).unsqueeze(-1)
         torso_len = torch.clamp(torso_len, min=self.eps)
         normalized = normalized / torso_len
-
 
         hip_vec = normalized[:, :, R_HIP, :] - normalized[:, :, L_HIP, :]
         yaw = torch.atan2(hip_vec[:, :, 2], hip_vec[:, :, 0])
@@ -125,7 +121,6 @@ class PoseLifter3D(nn.Module):
 
         z = self.depth_head(h_out).unsqueeze(-1)
 
-
         xy = keypoints_2d[:, :, :, :2]
         joints_3d = torch.cat([xy, z], dim=-1)
 
@@ -140,11 +135,9 @@ def compute_enriched_skeleton_features(norm_joints: torch.Tensor) -> torch.Tenso
     v_zero = torch.zeros_like(norm_joints[:, :1, :, :])
     vel = torch.cat([v_zero, v_diff], dim=1)
 
-
     a_diff = vel[:, 1:, :, :] - vel[:, :-1, :, :]
     a_zero = torch.zeros_like(vel[:, :1, :, :])
     acc = torch.cat([a_zero, a_diff], dim=1)
-
 
     feat = torch.cat([norm_joints, vel, acc], dim=-1)
     return feat
@@ -221,7 +214,6 @@ class STGCNBlock(nn.Module):
         B, C, V, T = x.shape
         x_flat = x.permute(0, 2, 1, 3).reshape(B * V, C, T)
 
-
         if isinstance(self.residual, nn.Sequential):
             res_flat = self.residual(x_flat)
             T_new = res_flat.shape[-1]
@@ -229,7 +221,6 @@ class STGCNBlock(nn.Module):
         else:
             res = x
             T_new = T
-
 
         x_g = torch.einsum("bcvt,vw->bcwt", x, A)
         x_g = x_g.permute(0, 2, 1, 3).reshape(B * V, C, T)
@@ -248,7 +239,6 @@ class STGCNGait3DNet(nn.Module):
         self.embedding_dim = embedding_dim
         self.normalizer = SkeletonNormalizer3D()
         self.register_buffer("A", build_coco17_adjacency_matrix())
-
 
         self.in_proj = nn.Conv2d(9, 64, kernel_size=1)
         self.block1 = STGCNBlock(64, 128, stride=2)
@@ -270,13 +260,11 @@ class STGCNGait3DNet(nn.Module):
         norm_joints = self.normalizer(joints_3d)
         feat = compute_enriched_skeleton_features(norm_joints)
 
-
         x = feat.permute(0, 3, 2, 1)
 
         h = F.relu(self.in_proj(x))
         h = self.block1(h, self.A)
         h = self.block2(h, self.A)
-
 
         attn = self.joint_attn(h.mean(dim=(1, 3))).unsqueeze(1).unsqueeze(-1)
         h = h * attn
@@ -298,7 +286,6 @@ class CTRGCNGait3DNet(nn.Module):
         self.embedding_dim = embedding_dim
         self.normalizer = SkeletonNormalizer3D()
         self.register_buffer("A_static", build_coco17_adjacency_matrix())
-
 
         self.PA = nn.Parameter(torch.zeros(17, 17))
         nn.init.uniform_(self.PA, -1e-4, 1e-4)
@@ -346,7 +333,6 @@ class TemporalPoseBuffer:
             self.buffers[track_id] = []
         self.buffers[track_id].append(keypoints.copy())
 
-
         if len(self.buffers[track_id]) > self.max_length:
             self.buffers[track_id].pop(0)
 
@@ -356,7 +342,6 @@ class TemporalPoseBuffer:
 
         seq = np.stack(self.buffers[track_id], axis=0)
         T, V, _ = seq.shape
-
 
         for v in range(V):
             confs = seq[:, v, 2]

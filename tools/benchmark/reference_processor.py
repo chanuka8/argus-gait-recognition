@@ -21,7 +21,9 @@ from pipeline.steps.silhouette_step import SilhouetteStep
 from services.missing_person_processor import MissingPersonVideoProcessor
 
 
-def create_benchmark_video(filepath: Path, num_frames: int = 90, width: int = 320, height: int = 240, fps: float = 30.0) -> Path:
+def create_benchmark_video(
+    filepath: Path, num_frames: int = 90, width: int = 320, height: int = 240, fps: float = 30.0
+) -> Path:
     """Generates a standard 90-frame (3-second) benchmark video of walking human figure."""
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
     writer = cv2.VideoWriter(str(filepath), fourcc, fps, (width, height))
@@ -70,6 +72,7 @@ def run_baseline_pipeline(video_path: Path, temp_work_dir: Path, mock_tracking: 
     gei_dir.mkdir(parents=True, exist_ok=True)
 
     import supervision as sv
+
     mock_detections = sv.Detections(
         xyxy=np.array([[80, 30, 180, 230]], dtype=np.float32),
         confidence=np.array([0.95], dtype=np.float32),
@@ -88,7 +91,7 @@ def run_baseline_pipeline(video_path: Path, temp_work_dir: Path, mock_tracking: 
             box = xyxy[0]
             x1, y1, x2, y2 = map(int, box)
             h, w = frame.shape[:2]
-            crop = frame[max(0, y1):min(h, y2), max(0, x1):min(w, x2)]
+            crop = frame[max(0, y1) : min(h, y2), max(0, x1) : min(w, x2)]
             sil = silhouette_step.extract_from_crop(crop)
             if sil is not None:
                 live_gei.add(sil)
@@ -114,7 +117,9 @@ def run_baseline_pipeline(video_path: Path, temp_work_dir: Path, mock_tracking: 
     return elapsed, frame_count, len(embeddings)
 
 
-def run_optimized_pipeline(video_path: Path, temp_work_dir: Path, mock_tracking: bool = True) -> tuple[float, int, dict]:
+def run_optimized_pipeline(
+    video_path: Path, temp_work_dir: Path, mock_tracking: bool = True
+) -> tuple[float, int, dict]:
     """Optimized approach (MissingPersonVideoProcessor):
     - torch.inference_mode()
     - Zero intermediate disk I/O (in-memory GEIs)
@@ -133,6 +138,7 @@ def run_optimized_pipeline(video_path: Path, temp_work_dir: Path, mock_tracking:
         from unittest.mock import MagicMock
 
         import supervision as sv
+
         mock_det = sv.Detections(
             xyxy=np.array([[80, 30, 180, 230]], dtype=np.float32),
             confidence=np.array([0.95], dtype=np.float32),
@@ -232,7 +238,7 @@ def main():
             "hardware": {
                 "cuda_available": torch.cuda.is_available(),
                 "device_name": torch.cuda.get_device_name(0) if torch.cuda.is_available() else "CPU",
-            }
+            },
         }
 
         out_path = Path("outputs/reports/benchmark/reference_processor_benchmark.json")

@@ -63,16 +63,11 @@ def isolated_cl_env():
     shutil.rmtree(temp_dir, ignore_errors=True)
 
 
-
-
-
-
 class TestTrainingDatasetBuilder:
     def test_strict_train_val_test_isolation(self, isolated_cl_env):
         env = isolated_cl_env
         collector = OperationalEmbeddingCollector(output_dir=env["obs_dir"])
         db = EmbeddingDatabase(db_dir=env["db_dir"])
-
 
         date_str = "2026-08-31"
         for ident in ["Subject_01", "Subject_02", "Subject_03"]:
@@ -108,7 +103,6 @@ class TestTrainingDatasetBuilder:
         assert len(val) > 0
         assert len(test) > 0
 
-
         train_ids = {s.sample_id for s in train}
         val_ids = {s.sample_id for s in val}
         test_ids = {s.sample_id for s in test}
@@ -116,7 +110,6 @@ class TestTrainingDatasetBuilder:
         assert len(train_ids.intersection(test_ids)) == 0, "Train and Test sample IDs intersect!"
         assert len(train_ids.intersection(val_ids)) == 0, "Train and Val sample IDs intersect!"
         assert len(val_ids.intersection(test_ids)) == 0, "Val and Test sample IDs intersect!"
-
 
         assert manifest.manifest_sha256 != ""
         assert len(manifest.manifest_sha256) == 64
@@ -129,7 +122,6 @@ class TestTrainingDatasetBuilder:
         db = EmbeddingDatabase(db_dir=env["db_dir"])
         date_str = "2026-08-31"
 
-
         vec1 = np.random.randn(256).astype(np.float32)
         collector.record_observation(
             camera_id="cam_01",
@@ -140,7 +132,6 @@ class TestTrainingDatasetBuilder:
             modality="gait",
             observation_date=date_str,
         )
-
 
         vec_nan = np.random.randn(256).astype(np.float32)
         vec_nan[10] = np.nan
@@ -162,10 +153,6 @@ class TestTrainingDatasetBuilder:
         assert len(val) == 0
         assert len(test) == 0
         assert manifest.total_samples == 0
-
-
-
-
 
 
 class TestContinualLearningEvaluator:
@@ -230,25 +217,38 @@ class TestContinualLearningEvaluator:
         assert metrics.evidence_class == "INSUFFICIENT_EVIDENCE"
 
 
-
-
-
-
 class TestAccuracyValidationGate:
     def test_catastrophic_forgetting_blocks_promotion(self):
         gate = AccuracyValidationGate(max_allowed_historical_drop=0.5)
 
         base_metrics = EvaluationMetrics(
-            rank1_accuracy=90.0, tar=95.0, far=0.5, frr=5.0, eer=2.75, auc=0.98,
-            historical_retention_tar=95.0, new_condition_tar=90.0,
-            genuine_trials=20, impostor_trials=40, sample_count=10, identities_count=2,
+            rank1_accuracy=90.0,
+            tar=95.0,
+            far=0.5,
+            frr=5.0,
+            eer=2.75,
+            auc=0.98,
+            historical_retention_tar=95.0,
+            new_condition_tar=90.0,
+            genuine_trials=20,
+            impostor_trials=40,
+            sample_count=10,
+            identities_count=2,
             evidence_class="SUFFICIENT_EVIDENCE",
         )
         cand_metrics = EvaluationMetrics(
-            rank1_accuracy=85.0, tar=88.0, far=0.5, frr=12.0, eer=6.25, auc=0.92,
+            rank1_accuracy=85.0,
+            tar=88.0,
+            far=0.5,
+            frr=12.0,
+            eer=6.25,
+            auc=0.92,
             historical_retention_tar=80.0,
             new_condition_tar=96.0,
-            genuine_trials=20, impostor_trials=40, sample_count=10, identities_count=2,
+            genuine_trials=20,
+            impostor_trials=40,
+            sample_count=10,
+            identities_count=2,
             evidence_class="SUFFICIENT_EVIDENCE",
         )
 
@@ -282,9 +282,18 @@ class TestAccuracyValidationGate:
         gate = AccuracyValidationGate(min_required_improvement_delta=0.5)
 
         metrics = EvaluationMetrics(
-            rank1_accuracy=88.0, tar=90.0, far=1.0, frr=10.0, eer=5.5, auc=0.95,
-            historical_retention_tar=90.0, new_condition_tar=90.0,
-            genuine_trials=20, impostor_trials=40, sample_count=10, identities_count=2,
+            rank1_accuracy=88.0,
+            tar=90.0,
+            far=1.0,
+            frr=10.0,
+            eer=5.5,
+            auc=0.95,
+            historical_retention_tar=90.0,
+            new_condition_tar=90.0,
+            genuine_trials=20,
+            impostor_trials=40,
+            sample_count=10,
+            identities_count=2,
             evidence_class="SUFFICIENT_EVIDENCE",
         )
 
@@ -322,16 +331,33 @@ class TestAccuracyValidationGate:
         )
 
         base_metrics = EvaluationMetrics(
-            rank1_accuracy=80.0, tar=85.0, far=1.0, frr=15.0, eer=8.0, auc=0.90,
-            historical_retention_tar=85.0, new_condition_tar=80.0,
-            genuine_trials=20, impostor_trials=40, sample_count=10, identities_count=2,
+            rank1_accuracy=80.0,
+            tar=85.0,
+            far=1.0,
+            frr=15.0,
+            eer=8.0,
+            auc=0.90,
+            historical_retention_tar=85.0,
+            new_condition_tar=80.0,
+            genuine_trials=20,
+            impostor_trials=40,
+            sample_count=10,
+            identities_count=2,
             evidence_class="SUFFICIENT_EVIDENCE",
         )
         cand_metrics = EvaluationMetrics(
-            rank1_accuracy=86.0, tar=90.0, far=0.8, frr=10.0, eer=5.4, auc=0.94,
+            rank1_accuracy=86.0,
+            tar=90.0,
+            far=0.8,
+            frr=10.0,
+            eer=5.4,
+            auc=0.94,
             historical_retention_tar=86.0,
             new_condition_tar=90.0,
-            genuine_trials=20, impostor_trials=40, sample_count=10, identities_count=2,
+            genuine_trials=20,
+            impostor_trials=40,
+            sample_count=10,
+            identities_count=2,
             evidence_class="SUFFICIENT_EVIDENCE",
         )
 
@@ -362,10 +388,6 @@ class TestAccuracyValidationGate:
         assert len(decision.rejection_reasons) == 0
 
 
-
-
-
-
 class TestContinualLearningAuditTrail:
     def test_event_recording_and_restart_recovery(self, isolated_cl_env):
         env = isolated_cl_env
@@ -388,17 +410,12 @@ class TestContinualLearningAuditTrail:
 
         assert event.event_id != ""
 
-
         trail_reloaded = ContinualLearningAuditTrail(audit_file=env["audit_file"])
         events = trail_reloaded.list_events()
         assert len(events) == 1
         assert events[0].event_id == event.event_id
         assert events[0].parameters_changed == 23
         assert events[0].promotion_status == "PROMOTED"
-
-
-
-
 
 
 class TestEndToEndWorkerAccuracyValidation:
@@ -424,7 +441,6 @@ class TestEndToEndWorkerAccuracyValidation:
             timeout_seconds=60.0,
         )
 
-
         date_str = "2026-08-31"
         for ident in ["Subject_Alpha", "Subject_Beta"]:
             for i in range(4):
@@ -446,17 +462,16 @@ class TestEndToEndWorkerAccuracyValidation:
         job = scheduler.create_learning_job(training_date=date_str, model_type="bygait_light")
         assert job is not None
 
-
         executed_job = worker.execute_job_synchronous(job)
         assert executed_job.status in (LearningJobStatus.PROMOTED, LearningJobStatus.REJECTED)
 
-
-        cand_models = [m for m in registry.list_models("bygait_light") if m.model_version == executed_job.candidate_version]
+        cand_models = [
+            m for m in registry.list_models("bygait_light") if m.model_version == executed_job.candidate_version
+        ]
         assert len(cand_models) == 1
         cand_rec = cand_models[0]
         assert "dataset_id" in cand_rec.metadata
         assert "manifest_sha256" in cand_rec.metadata
-
 
         audit_events = worker.audit_trail.list_events()
         assert len(audit_events) >= 1
@@ -484,7 +499,6 @@ class TestEndToEndWorkerAccuracyValidation:
             timeout_seconds=60.0,
         )
 
-
         date_str = "2026-08-31"
         for ident in ["Subject_Gamma", "Subject_Delta"]:
             for i in range(4):
@@ -506,12 +520,12 @@ class TestEndToEndWorkerAccuracyValidation:
         job = scheduler.create_learning_job(training_date=date_str, model_type="osnet_reid")
         assert job is not None
 
-
         executed_job = worker.execute_job_synchronous(job)
         assert executed_job.status in (LearningJobStatus.PROMOTED, LearningJobStatus.REJECTED)
 
-
-        cand_models = [m for m in registry.list_models("osnet_reid") if m.model_version == executed_job.candidate_version]
+        cand_models = [
+            m for m in registry.list_models("osnet_reid") if m.model_version == executed_job.candidate_version
+        ]
         assert len(cand_models) == 1
         assert cand_models[0].embedding_dim == 512
 
@@ -523,10 +537,8 @@ class TestEndToEndWorkerAccuracyValidation:
         assert active_before is not None
         assert active_before.model_version == "v1.0.0"
 
-
         cand_path = Path(env["candidates_dir"]) / "bygait_v2.pth"
         cand_path.write_bytes(b"dummy_weights_v2")
-
 
         registry.register_candidate(
             model_version="v2.0.0",
@@ -542,11 +554,9 @@ class TestEndToEndWorkerAccuracyValidation:
         assert active_after is not None
         assert active_after.model_version == "v2.0.0"
 
-
         rolled_back = registry.rollback("bygait_light")
         assert rolled_back.model_version == "v1.0.0"
         assert rolled_back.deployment_status == ModelDeploymentStatus.ACTIVE
-
 
         active_restored = registry.get_active_model("bygait_light")
         assert active_restored is not None

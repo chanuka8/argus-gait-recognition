@@ -1,4 +1,3 @@
-
 class DynamicFusionWeights:
     def __init__(
         self,

@@ -187,9 +187,7 @@ class MissingPersonVideoProcessor:
             return None, "NO_PERSON_DETECTED: No individuals detected in video"
 
         # Filter out brief transient noise (< min_gait_frames)
-        viable_tracks = {
-            tid: summary for tid, summary in tracks.items() if summary.frame_count >= self.min_gait_frames
-        }
+        viable_tracks = {tid: summary for tid, summary in tracks.items() if summary.frame_count >= self.min_gait_frames}
 
         if not viable_tracks:
             max_len = max(s.frame_count for s in tracks.values())
@@ -326,7 +324,11 @@ class MissingPersonVideoProcessor:
             existing_job = self.job_manager.get_job(job_id)
             if existing_job and existing_job.status == ReferenceJobStatus.COMPLETED:
                 self.logger.info(f"Job '{job_id}' is already COMPLETED. Returning cached result.")
-                return existing_job.result or {"success": True, "status": "COMPLETED", "person_id": normalized_person_id}
+                return existing_job.result or {
+                    "success": True,
+                    "status": "COMPLETED",
+                    "person_id": normalized_person_id,
+                }
 
         # Check for previous checkpoint state
         chk_data = self.job_manager.load_checkpoint_data(job_id) if job_id else None
@@ -353,9 +355,10 @@ class MissingPersonVideoProcessor:
             self.job_manager.update_progress(job_id, status=ReferenceJobStatus.RESUMING)
 
         # 1. Validation pass (only run if not already validated in checkpoint)
-        need_validation = not (chk_data and chk_data.get("stage") in (
-            "TRACKING", "TRACKING_DONE", "FEATURE_EXTRACTION", "MATCHING", "PERSISTING"
-        ))
+        need_validation = not (
+            chk_data
+            and chk_data.get("stage") in ("TRACKING", "TRACKING_DONE", "FEATURE_EXTRACTION", "MATCHING", "PERSISTING")
+        )
 
         if need_validation:
             if job_id:
@@ -452,7 +455,11 @@ class MissingPersonVideoProcessor:
                                     frames_processed=frame_idx,
                                     total_frames=total_frames,
                                     status=ReferenceJobStatus.INTERRUPTED,
-                                    checkpoint_data={"stage": "TRACKING", "tracks": tracks, "last_safe_frame": frame_idx},
+                                    checkpoint_data={
+                                        "stage": "TRACKING",
+                                        "tracks": tracks,
+                                        "last_safe_frame": frame_idx,
+                                    },
                                 )
                             return {
                                 "success": False,
@@ -502,7 +509,9 @@ class MissingPersonVideoProcessor:
 
                         # Periodic checkpoint: every 25 frames or 1.5 seconds (whichever first)
                         now_perf = time.perf_counter()
-                        if (frame_idx - last_checkpoint_frame >= 25 or (now_perf - last_checkpoint_time >= 1.5)) and job_id:
+                        if (
+                            frame_idx - last_checkpoint_frame >= 25 or (now_perf - last_checkpoint_time >= 1.5)
+                        ) and job_id:
                             last_checkpoint_frame = frame_idx
                             last_checkpoint_time = now_perf
                             fps_calc = frame_idx / max(0.001, now_perf - decode_start)
@@ -768,8 +777,7 @@ class MissingPersonVideoProcessor:
         # 7. Consistent Atomic Persistence & Gallery Activation with Deterministic Embedding Keys
         # Idempotent persistence guarantee: deterministic IDs prevent duplicates across restarts (Requirement 6)
         deterministic_ids = [
-            f"gait_{normalized_person_id}_{job_id or 'ref'}_seq_{e.sequence_index}"
-            for e in dedup_embeddings
+            f"gait_{normalized_person_id}_{job_id or 'ref'}_seq_{e.sequence_index}" for e in dedup_embeddings
         ]
         raw_vectors = [e.vector for e in dedup_embeddings]
         persist_res = self.embedding_db.commit_and_activate_embeddings(
@@ -854,7 +862,11 @@ class MissingPersonVideoProcessor:
             existing_job = self.job_manager.get_job(job_id)
             if existing_job and existing_job.status == ReferenceJobStatus.COMPLETED:
                 self.logger.info(f"Photo job '{job_id}' is already COMPLETED. Returning cached result.")
-                return existing_job.result or {"success": True, "status": "COMPLETED", "person_id": normalized_person_id}
+                return existing_job.result or {
+                    "success": True,
+                    "status": "COMPLETED",
+                    "person_id": normalized_person_id,
+                }
 
         if job_id:
             self.job_manager.update_progress(
@@ -959,13 +971,13 @@ class MissingPersonVideoProcessor:
         # 4. Atomic Gallery Activation & Retirement with Deterministic IDs
         raw_vectors = [e.vector for e in dedup_embeddings]
         photo_gait_ids = [
-            f"gait_{normalized_person_id}_{job_id or 'photo'}_img_{e.sequence_index}"
-            for e in dedup_embeddings
+            f"gait_{normalized_person_id}_{job_id or 'photo'}_img_{e.sequence_index}" for e in dedup_embeddings
         ]
-        photo_app_ids = [
-            f"app_{normalized_person_id}_{job_id or 'photo'}_img_{i}"
-            for i in range(len(app_embeddings))
-        ] if app_embeddings else None
+        photo_app_ids = (
+            [f"app_{normalized_person_id}_{job_id or 'photo'}_img_{i}" for i in range(len(app_embeddings))]
+            if app_embeddings
+            else None
+        )
 
         persist_res = self.embedding_db.commit_and_activate_embeddings(
             person_id=normalized_person_id,

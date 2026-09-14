@@ -96,8 +96,6 @@ class ContinuousImprovementEngine:
             f"version={new_version} artifact={artifact_path}"
         )
 
-
-
     def get_learning_history(self) -> list[LearningJobRecord]:
         return self.scheduler.list_jobs()
 
@@ -116,7 +114,6 @@ class ContinuousImprovementEngine:
         metadata: dict[str, Any] | None = None,
     ) -> tuple[bool, ValidationGateResult, ModelVersionRecord]:
         with self._lock:
-
             candidate_rec = self.registry.register_candidate(
                 model_version=candidate_version,
                 model_type=model_type,
@@ -126,10 +123,8 @@ class ContinuousImprovementEngine:
                 metadata=metadata or {},
             )
 
-
             active_base = self.registry.get_active_model(model_type)
             baseline_metrics = active_base.validation_metrics if active_base else {}
-
 
             val_result = self.validator.validate_candidate(
                 candidate_version=candidate_version,
@@ -139,7 +134,6 @@ class ContinuousImprovementEngine:
                 confusion_pair_eval=confusion_pair_eval,
             )
 
-
             rejection_str = "; ".join(val_result.rejection_reasons) if not val_result.passed else None
             candidate_rec = self.registry.record_validation_result(
                 model_version=candidate_version,
@@ -148,7 +142,6 @@ class ContinuousImprovementEngine:
                 metrics=candidate_metrics,
                 rejection_reason=rejection_str,
             )
-
 
             if val_result.passed:
                 promoted_rec = self.registry.promote_version(

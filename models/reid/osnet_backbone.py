@@ -310,7 +310,6 @@ class _OSNet(nn.Module):
 
         self.feature_dim = feature_dim
 
-
         self.conv1 = _ConvLayer(
             3,
             channels[0],
@@ -324,7 +323,6 @@ class _OSNet(nn.Module):
             stride=2,
             padding=1,
         )
-
 
         self.conv2 = self._make_layer(
             blocks[0],
@@ -349,7 +347,6 @@ class _OSNet(nn.Module):
             channels[3],
             reduce_spatial_size=False,
         )
-
 
         self.conv5 = _Conv1x1(
             channels[3],
@@ -420,13 +417,8 @@ def _build_osnet_x0_25() -> _OSNet:
     )
 
 
-
-
 _IMAGENET_MEAN = [0.485, 0.456, 0.406]
 _IMAGENET_STD = [0.229, 0.224, 0.225]
-
-
-
 
 
 class OSNetBackbone:
@@ -501,7 +493,6 @@ class OSNetBackbone:
                         weights_only=False,
                     )
 
-
                 if isinstance(checkpoint, dict):
                     if "state_dict" in checkpoint:
                         state_dict = checkpoint["state_dict"]
@@ -511,8 +502,6 @@ class OSNetBackbone:
                         state_dict = checkpoint
                 else:
                     state_dict = checkpoint
-
-
 
                 cleaned = {}
 
@@ -539,7 +528,6 @@ class OSNetBackbone:
 
             self._mean = self._mean.to(self.device)
             self._std = self._std.to(self.device)
-
 
             try:
                 with torch.inference_mode():
@@ -576,7 +564,9 @@ class OSNetBackbone:
             interpolation=cv2.INTER_LINEAR,
         )
 
-        tensor = torch.from_numpy(resized).permute(2, 0, 1).float().unsqueeze(0).to(self.device, non_blocking=True) / 255.0
+        tensor = (
+            torch.from_numpy(resized).permute(2, 0, 1).float().unsqueeze(0).to(self.device, non_blocking=True) / 255.0
+        )
         tensor = (tensor - self._mean) / self._std
 
         return tensor

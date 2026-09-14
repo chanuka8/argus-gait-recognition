@@ -35,7 +35,6 @@ def test_photo_to_512d_appearance_embedding(sample_crop):
     assert embedding.shape == (512,)
     assert embedding.dtype == np.float32
 
-
     norm = float(np.linalg.norm(embedding))
     assert np.isclose(norm, 1.0, atol=1e-5)
 
@@ -58,7 +57,6 @@ def test_appearance_gallery_single_person_enrollment(temp_gallery_dir, sample_cr
 
     emb = extractor.extract(sample_crop)
     updater.add_person("Person_001", [emb])
-
 
     store = VectorStore(gallery_dir=temp_gallery_dir)
     loaded = store.load()
@@ -123,10 +121,8 @@ def test_appearance_matching_known_match(temp_gallery_dir, sample_crop):
 def test_appearance_matching_unknown_below_threshold(temp_gallery_dir):
     updater = AppearanceGalleryUpdater(gallery_dir=temp_gallery_dir)
 
-
     v1 = np.zeros((512,), dtype=np.float32)
     v1[0] = 1.0
-
 
     v2 = np.zeros((512,), dtype=np.float32)
     v2[1] = 1.0
@@ -191,10 +187,8 @@ def test_dimension_isolation_rejection(temp_gallery_dir):
     vec_256 = np.random.randn(256).astype(np.float32)
     vec_512 = np.random.randn(512).astype(np.float32)
 
-
     with pytest.raises(ValueError, match=r"512-dimensional"):
         appearance_updater.add_person("TestPerson", [vec_256])
-
 
     with pytest.raises(ValueError, match=r"256-dimensional"):
         gait_updater.add_person("TestPerson", [vec_512])
@@ -203,7 +197,6 @@ def test_dimension_isolation_rejection(temp_gallery_dir):
 def test_enrollment_manager_appearance_flow(tmp_path, temp_gallery_dir):
     person_folder = tmp_path / "Subject_42"
     person_folder.mkdir()
-
 
     img1 = np.random.randint(0, 256, (200, 100, 3), dtype=np.uint8)
     img2 = np.random.randint(0, 256, (200, 100, 3), dtype=np.uint8)
@@ -217,7 +210,6 @@ def test_enrollment_manager_appearance_flow(tmp_path, temp_gallery_dir):
     assert res["success"] is True
     assert res["gallery"] == "appearance"
     assert res["embeddings_added"] == 2
-
 
     valid, _, count = validate_gallery_files(temp_gallery_dir, expected_dim=512)
     assert valid is True

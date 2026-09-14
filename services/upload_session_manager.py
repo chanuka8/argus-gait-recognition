@@ -229,17 +229,23 @@ class UploadSessionManager:
             if chunk_file.exists() and chunk_file.stat().st_size == expected_len:
                 session.chunks_received.add(chunk_index)
                 session.bytes_received = sum(
-                    session.chunk_size if idx < session.total_chunks - 1 else (session.total_size - (session.chunk_size * (session.total_chunks - 1)))
+                    session.chunk_size
+                    if idx < session.total_chunks - 1
+                    else (session.total_size - (session.chunk_size * (session.total_chunks - 1)))
                     for idx in session.chunks_received
                 )
                 self._persist_session(session)
-                return True, "Chunk already received (idempotent)", {
-                    "chunk_index": chunk_index,
-                    "chunks_received": len(session.chunks_received),
-                    "total_chunks": session.total_chunks,
-                    "bytes_received": session.bytes_received,
-                    "is_complete": len(session.chunks_received) == session.total_chunks,
-                }
+                return (
+                    True,
+                    "Chunk already received (idempotent)",
+                    {
+                        "chunk_index": chunk_index,
+                        "chunks_received": len(session.chunks_received),
+                        "total_chunks": session.total_chunks,
+                        "bytes_received": session.bytes_received,
+                        "is_complete": len(session.chunks_received) == session.total_chunks,
+                    },
+                )
 
             # Atomically write chunk to disk
             tmp_chunk = s_dir / f"chunk_{chunk_index:06d}.tmp"
@@ -254,19 +260,25 @@ class UploadSessionManager:
 
             session.chunks_received.add(chunk_index)
             session.bytes_received = sum(
-                session.chunk_size if idx < session.total_chunks - 1 else (session.total_size - (session.chunk_size * (session.total_chunks - 1)))
+                session.chunk_size
+                if idx < session.total_chunks - 1
+                else (session.total_size - (session.chunk_size * (session.total_chunks - 1)))
                 for idx in session.chunks_received
             )
             self._persist_session(session)
 
             is_complete = len(session.chunks_received) == session.total_chunks
-            return True, "Chunk stored successfully", {
-                "chunk_index": chunk_index,
-                "chunks_received": len(session.chunks_received),
-                "total_chunks": session.total_chunks,
-                "bytes_received": session.bytes_received,
-                "is_complete": is_complete,
-            }
+            return (
+                True,
+                "Chunk stored successfully",
+                {
+                    "chunk_index": chunk_index,
+                    "chunks_received": len(session.chunks_received),
+                    "total_chunks": session.total_chunks,
+                    "bytes_received": session.bytes_received,
+                    "is_complete": is_complete,
+                },
+            )
 
     def assemble_and_commit(
         self,

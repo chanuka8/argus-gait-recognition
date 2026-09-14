@@ -29,7 +29,6 @@ def run_stage_profiling() -> dict:
 
     timings = {}
 
-
     _, timings["import_yaml_json_pathlib"] = time_block(
         "1. import yaml, json, pathlib",
         lambda: (__import__("yaml"), __import__("json"), __import__("pathlib")),
@@ -42,12 +41,10 @@ def run_stage_profiling() -> dict:
     _, timings["import_torchvision"] = time_block("7. import torchvision", lambda: __import__("torchvision"))
     _, timings["import_ultralytics"] = time_block("8. import ultralytics", lambda: __import__("ultralytics"))
 
-
     _, timings["logging_and_config_init"] = time_block(
         "9. logging and configs init",
         lambda: __import__("monitoring.logging_config"),
     )
-
 
     _, timings["import_bygait_extractor"] = time_block(
         "10. import ByGaitLight extraction step",
@@ -85,7 +82,6 @@ def run_stage_profiling() -> dict:
         "18. import CameraSourceResolver",
         lambda: __import__("services.camera_source_resolver"),
     )
-
 
     from pipeline.steps.feature_extraction import FeatureExtractionStep
 
@@ -160,14 +156,12 @@ def run_stage_profiling() -> dict:
         lambda: CameraSourceResolver(),
     )
 
-
     from services.gait_service import GaitService
 
     _, timings["init_full_gait_service"] = time_block(
         "28. Full GaitService() instantiation",
         lambda: GaitService(),
     )
-
 
     _, timings["import_app_and_routers"] = time_block(
         "29. Import api.server & build routers",

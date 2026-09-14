@@ -107,7 +107,6 @@ class TestMultiCameraFusionAndAggregation:
                 total_ram_mb=2048.0,
             )
 
-
             gallery_features = np.random.randn(2, 256).astype(np.float32)
             gallery_labels = ["Subject_A", "Subject_B"]
             app_gallery_features = np.random.randn(2, 512).astype(np.float32)
@@ -129,8 +128,7 @@ class TestMultiCameraFusionAndAggregation:
             assert engine.track_aggregator is aggregator
             assert engine.fusion_engine is fusion
 
-
-            dummy_frame = (np.ones((240, 320, 3), dtype=np.uint8) * 128)
+            dummy_frame = np.ones((240, 320, 3), dtype=np.uint8) * 128
             success = engine.put_frame("cam-01", dummy_frame, frame_id=1)
             assert success is True
 
@@ -148,24 +146,20 @@ class TestCameraManagerDynamicConfig:
             manager = CameraManager(config_path=str(cfg_path))
             assert len(manager.cameras_config) == 0
 
-
             with patch.object(
                 DeploymentReadinessManager,
                 "request_camera_admission",
                 return_value=MagicMock(admitted=True),
             ):
-
                 added = manager.add_camera("cam-dyn-01", {"type": "webcam", "device_index": 0})
                 assert added is True
                 assert "cam-dyn-01" in manager.cameras_config
-
 
                 saved = manager.save_config()
                 assert saved is True
                 assert cfg_path.exists()
                 content = cfg_path.read_text(encoding="utf-8")
                 assert "cam-dyn-01" in content
-
 
                 removed = manager.remove_camera("cam-dyn-01")
                 assert removed is True

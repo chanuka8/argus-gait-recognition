@@ -79,6 +79,7 @@ def mcnemar_exact_test(b: int, c: int) -> tuple[float, float]:
     chi2 = (abs(b - c) - 1.0) ** 2 / total
 
     from math import erfc, sqrt
+
     p_val = erfc(sqrt(chi2 / 2.0))
     effect_size = (b - c) / max(total, 1)
     return round(float(p_val), 4), round(float(effect_size), 4)
@@ -99,9 +100,6 @@ def run_full_forensic_audit():
             "python_version": sys.version,
         },
     }
-
-
-
 
     print("\n[A] Auditing Operational Data Collection & Persistence...")
     obs_file = Path("data/operational_observations/recent_observations.json")
@@ -139,7 +137,6 @@ def run_full_forensic_audit():
         dims.add(dim)
         if o.get("metadata"):
             metadata_keys.update(o.get("metadata").keys())
-
 
         if len(vec) not in (256, 512):
             invalid_count += 1
@@ -208,11 +205,12 @@ def run_full_forensic_audit():
         },
     }
     print(f"  Total observations: {total_obs}")
-    print(f"  PREDICTED: {state_counts.get('PREDICTED', 0)} ({state_counts.get('PREDICTED', 0)/max(total_obs, 1)*100:.1f}%)")
-    print(f"  TRAINING_ELIGIBLE: {state_counts.get('TRAINING_ELIGIBLE', 0)} ({state_counts.get('TRAINING_ELIGIBLE', 0)/max(total_obs, 1)*100:.1f}%)")
-
-
-
+    print(
+        f"  PREDICTED: {state_counts.get('PREDICTED', 0)} ({state_counts.get('PREDICTED', 0) / max(total_obs, 1) * 100:.1f}%)"
+    )
+    print(
+        f"  TRAINING_ELIGIBLE: {state_counts.get('TRAINING_ELIGIBLE', 0)} ({state_counts.get('TRAINING_ELIGIBLE', 0) / max(total_obs, 1) * 100:.1f}%)"
+    )
 
     print("\n[B] Running Negative-Path Training Eligibility Forensic Tests...")
     neg_results = []
@@ -223,175 +221,220 @@ def run_full_forensic_audit():
         db = EmbeddingDatabase(db_dir=str(tmp_test_dir / "db"))
         builder = TrainingDatasetBuilder(collector=col, db=db, manifest_dir=str(tmp_test_dir / "manifests"))
 
-
-        vec_valid_256 = (np.random.randn(256).astype(np.float32) / 10.0)
+        vec_valid_256 = np.random.randn(256).astype(np.float32) / 10.0
         vec_valid_256 /= np.linalg.norm(vec_valid_256)
         obs_pred = col.record_observation(
-            camera_id="cam-01", track_id=1, vector=vec_valid_256,
-            predicted_identity="Subject_Unverified", confidence=0.85,
-            modality="gait", observation_date="2026-08-31"
+            camera_id="cam-01",
+            track_id=1,
+            vector=vec_valid_256,
+            predicted_identity="Subject_Unverified",
+            confidence=0.85,
+            modality="gait",
+            observation_date="2026-08-31",
         )
         t1_train, _, _, _, _, _, m1 = builder.build_dataset_for_date("2026-08-31", model_type="bygait_light")
-        neg_results.append({
-            "test": "PREDICTED observation -> training",
-            "input_state": "PREDICTED (unverified)",
-            "expected": "REJECTED (0 train samples)",
-            "actual": f"REJECTED ({len(t1_train)} train samples)",
-            "passed": len(t1_train) == 0,
-            "rejection_reason": "State is PREDICTED; requires TRAINING_ELIGIBLE",
-        })
+        neg_results.append(
+            {
+                "test": "PREDICTED observation -> training",
+                "input_state": "PREDICTED (unverified)",
+                "expected": "REJECTED (0 train samples)",
+                "actual": f"REJECTED ({len(t1_train)} train samples)",
+                "passed": len(t1_train) == 0,
+                "rejection_reason": "State is PREDICTED; requires TRAINING_ELIGIBLE",
+            }
+        )
 
-
-        neg_results.append({
-            "test": "Unverified identity -> training",
-            "input_state": "verified_identity is None",
-            "expected": "REJECTED",
-            "actual": f"REJECTED ({len(t1_train)} train samples)",
-            "passed": len(t1_train) == 0,
-            "rejection_reason": "Missing ground-truth verified identity",
-        })
-
-
+        neg_results.append(
+            {
+                "test": "Unverified identity -> training",
+                "input_state": "verified_identity is None",
+                "expected": "REJECTED",
+                "actual": f"REJECTED ({len(t1_train)} train samples)",
+                "passed": len(t1_train) == 0,
+                "rejection_reason": "Missing ground-truth verified identity",
+            }
+        )
 
         obs_dup = col.record_observation(
-            camera_id="cam-01", track_id=1, vector=vec_valid_256,
-            predicted_identity="Subject_Unverified", confidence=0.85,
-            modality="gait", observation_date="2026-08-31"
+            camera_id="cam-01",
+            track_id=1,
+            vector=vec_valid_256,
+            predicted_identity="Subject_Unverified",
+            confidence=0.85,
+            modality="gait",
+            observation_date="2026-08-31",
         )
-        neg_results.append({
-            "test": "Duplicate observation -> training",
-            "input_state": "Identical vector, track, camera within dedup window",
-            "expected": "REJECTED (Deduplicated)",
-            "actual": "REJECTED (Deduplicated, buffer length unmodified)",
-            "passed": obs_dup.observation_id == obs_pred.observation_id,
-            "rejection_reason": "OperationalEmbeddingCollector deduplication filter",
-        })
-
+        neg_results.append(
+            {
+                "test": "Duplicate observation -> training",
+                "input_state": "Identical vector, track, camera within dedup window",
+                "expected": "REJECTED (Deduplicated)",
+                "actual": "REJECTED (Deduplicated, buffer length unmodified)",
+                "passed": obs_dup.observation_id == obs_pred.observation_id,
+                "rejection_reason": "OperationalEmbeddingCollector deduplication filter",
+            }
+        )
 
         obs_outlier = col.record_observation(
-            camera_id="cam-02", track_id=2, vector=vec_valid_256,
-            predicted_identity="Subject_Outlier", confidence=0.40,
-            quality_score=0.40, modality="gait", observation_date="2026-08-31"
+            camera_id="cam-02",
+            track_id=2,
+            vector=vec_valid_256,
+            predicted_identity="Subject_Outlier",
+            confidence=0.40,
+            quality_score=0.40,
+            modality="gait",
+            observation_date="2026-08-31",
         )
         col.verify_observation(obs_outlier.observation_id, verified_identity="Subject_Outlier")
 
-        neg_results.append({
-            "test": "Outlier observation (quality < 0.70) -> training",
-            "input_state": "quality_score=0.40",
-            "expected": "REJECTED (State stays VERIFIED, not TRAINING_ELIGIBLE)",
-            "actual": f"REJECTED (State: {obs_outlier.state.value})",
-            "passed": obs_outlier.state == ObservationState.VERIFIED,
-            "rejection_reason": "Quality gate (< 0.70) blocked TRAINING_ELIGIBLE",
-        })
-
+        neg_results.append(
+            {
+                "test": "Outlier observation (quality < 0.70) -> training",
+                "input_state": "quality_score=0.40",
+                "expected": "REJECTED (State stays VERIFIED, not TRAINING_ELIGIBLE)",
+                "actual": f"REJECTED (State: {obs_outlier.state.value})",
+                "passed": obs_outlier.state == ObservationState.VERIFIED,
+                "rejection_reason": "Quality gate (< 0.70) blocked TRAINING_ELIGIBLE",
+            }
+        )
 
         vec_zero = np.zeros(256, dtype=np.float32)
         obs_zero = col.record_observation(
-            camera_id="cam-03", track_id=3, vector=vec_zero,
-            predicted_identity="Subject_Zero", confidence=0.90,
-            modality="gait", observation_date="2026-08-31"
+            camera_id="cam-03",
+            track_id=3,
+            vector=vec_zero,
+            predicted_identity="Subject_Zero",
+            confidence=0.90,
+            modality="gait",
+            observation_date="2026-08-31",
         )
         col.verify_observation(obs_zero.observation_id, verified_identity="Subject_Zero")
-        neg_results.append({
-            "test": "Invalid embedding (zero norm) -> training",
-            "input_state": "norm = 0.0",
-            "expected": "REJECTED (quality_score reset to 0.0, state VERIFIED)",
-            "actual": f"REJECTED (State: {obs_zero.state.value}, quality: {obs_zero.quality_score})",
-            "passed": obs_zero.state == ObservationState.VERIFIED and obs_zero.quality_score == 0.0,
-            "rejection_reason": "Zero-norm vector quality validation gate failure",
-        })
-
+        neg_results.append(
+            {
+                "test": "Invalid embedding (zero norm) -> training",
+                "input_state": "norm = 0.0",
+                "expected": "REJECTED (quality_score reset to 0.0, state VERIFIED)",
+                "actual": f"REJECTED (State: {obs_zero.state.value}, quality: {obs_zero.quality_score})",
+                "passed": obs_zero.state == ObservationState.VERIFIED and obs_zero.quality_score == 0.0,
+                "rejection_reason": "Zero-norm vector quality validation gate failure",
+            }
+        )
 
         vec_128 = np.ones(128, dtype=np.float32)
         obs_128 = col.record_observation(
-            camera_id="cam-04", track_id=4, vector=vec_128,
-            predicted_identity="Subject_128", confidence=0.90,
-            modality="gait", observation_date="2026-08-31"
+            camera_id="cam-04",
+            track_id=4,
+            vector=vec_128,
+            predicted_identity="Subject_128",
+            confidence=0.90,
+            modality="gait",
+            observation_date="2026-08-31",
         )
         col.verify_observation(obs_128.observation_id, verified_identity="Subject_128")
-        neg_results.append({
-            "test": "Wrong embedding dimension (128D) -> training",
-            "input_state": "embedding_dim=128",
-            "expected": "REJECTED (Not 256 or 512)",
-            "actual": f"REJECTED (State: {obs_128.state.value})",
-            "passed": obs_128.state == ObservationState.VERIFIED and obs_128.quality_score == 0.0,
-            "rejection_reason": "Dimension validation gate (allowed: 256, 512)",
-        })
-
+        neg_results.append(
+            {
+                "test": "Wrong embedding dimension (128D) -> training",
+                "input_state": "embedding_dim=128",
+                "expected": "REJECTED (Not 256 or 512)",
+                "actual": f"REJECTED (State: {obs_128.state.value})",
+                "passed": obs_128.state == ObservationState.VERIFIED and obs_128.quality_score == 0.0,
+                "rejection_reason": "Dimension validation gate (allowed: 256, 512)",
+            }
+        )
 
         vec_nan = np.random.randn(256).astype(np.float32)
         vec_nan[5] = np.nan
         obs_nan = col.record_observation(
-            camera_id="cam-05", track_id=5, vector=vec_nan,
-            predicted_identity="Subject_NaN", confidence=0.90,
-            modality="gait", observation_date="2026-08-31"
+            camera_id="cam-05",
+            track_id=5,
+            vector=vec_nan,
+            predicted_identity="Subject_NaN",
+            confidence=0.90,
+            modality="gait",
+            observation_date="2026-08-31",
         )
         col.verify_observation(obs_nan.observation_id, verified_identity="Subject_NaN")
-        neg_results.append({
-            "test": "NaN embedding -> training",
-            "input_state": "vector contains NaN",
-            "expected": "REJECTED",
-            "actual": f"REJECTED (State: {obs_nan.state.value})",
-            "passed": obs_nan.state == ObservationState.VERIFIED and obs_nan.quality_score == 0.0,
-            "rejection_reason": "Non-finite math validation gate failure",
-        })
-
+        neg_results.append(
+            {
+                "test": "NaN embedding -> training",
+                "input_state": "vector contains NaN",
+                "expected": "REJECTED",
+                "actual": f"REJECTED (State: {obs_nan.state.value})",
+                "passed": obs_nan.state == ObservationState.VERIFIED and obs_nan.quality_score == 0.0,
+                "rejection_reason": "Non-finite math validation gate failure",
+            }
+        )
 
         vec_inf = np.random.randn(256).astype(np.float32)
         vec_inf[12] = np.inf
         obs_inf = col.record_observation(
-            camera_id="cam-06", track_id=6, vector=vec_inf,
-            predicted_identity="Subject_Inf", confidence=0.90,
-            modality="gait", observation_date="2026-08-31"
+            camera_id="cam-06",
+            track_id=6,
+            vector=vec_inf,
+            predicted_identity="Subject_Inf",
+            confidence=0.90,
+            modality="gait",
+            observation_date="2026-08-31",
         )
         col.verify_observation(obs_inf.observation_id, verified_identity="Subject_Inf")
-        neg_results.append({
-            "test": "Infinite embedding -> training",
-            "input_state": "vector contains +Inf",
-            "expected": "REJECTED",
-            "actual": f"REJECTED (State: {obs_inf.state.value})",
-            "passed": obs_inf.state == ObservationState.VERIFIED and obs_inf.quality_score == 0.0,
-            "rejection_reason": "Non-finite math validation gate failure",
-        })
-
-
+        neg_results.append(
+            {
+                "test": "Infinite embedding -> training",
+                "input_state": "vector contains +Inf",
+                "expected": "REJECTED",
+                "actual": f"REJECTED (State: {obs_inf.state.value})",
+                "passed": obs_inf.state == ObservationState.VERIFIED and obs_inf.quality_score == 0.0,
+                "rejection_reason": "Non-finite math validation gate failure",
+            }
+        )
 
         ev_mgr = OperationalEvidenceManager(storage_dir=str(tmp_test_dir / "evidence"))
         gei_sample = np.random.randint(0, 255, size=(64, 128), dtype=np.uint8)
         rec = ev_mgr.store_evidence(
-            observation_id="obs_corrupt_test", camera_id="cam_01", track_id=99,
-            person_id="SubCorrupt", modality="gait", media_array=gei_sample
+            observation_id="obs_corrupt_test",
+            camera_id="cam_01",
+            track_id=99,
+            person_id="SubCorrupt",
+            modality="gait",
+            media_array=gei_sample,
         )
 
         with open(rec.file_path, "wb") as f:
             f.write(b"CORRUPTED_BYTES")
         loaded_arr = ev_mgr.load_evidence(rec.evidence_id)
-        neg_results.append({
-            "test": "Corrupted persisted embedding/evidence -> training",
-            "input_state": "SHA-256 mismatch on persisted file",
-            "expected": "REJECTED (load_evidence returns None)",
-            "actual": f"REJECTED (Returned: {loaded_arr})",
-            "passed": loaded_arr is None,
-            "rejection_reason": "Cryptographic SHA-256 integrity verification failure",
-        })
-
+        neg_results.append(
+            {
+                "test": "Corrupted persisted embedding/evidence -> training",
+                "input_state": "SHA-256 mismatch on persisted file",
+                "expected": "REJECTED (load_evidence returns None)",
+                "actual": f"REJECTED (Returned: {loaded_arr})",
+                "passed": loaded_arr is None,
+                "rejection_reason": "Cryptographic SHA-256 integrity verification failure",
+            }
+        )
 
         obs_noid = col.record_observation(
-            camera_id="cam-07", track_id=7, vector=vec_valid_256,
-            predicted_identity="UNKNOWN", confidence=0.20,
-            modality="gait", observation_date="2026-08-31"
+            camera_id="cam-07",
+            track_id=7,
+            vector=vec_valid_256,
+            predicted_identity="UNKNOWN",
+            confidence=0.20,
+            modality="gait",
+            observation_date="2026-08-31",
         )
 
         col.verify_observation(obs_noid.observation_id, verified_identity="")
         train_s, _, _, _, _, _, _ = builder.build_dataset_for_date("2026-08-31", model_type="bygait_light")
-        neg_results.append({
-            "test": "Missing identity label (empty string) -> training",
-            "input_state": "verified_identity=''",
-            "expected": "REJECTED",
-            "actual": f"REJECTED ({len(train_s)} train samples)",
-            "passed": len(train_s) == 0,
-            "rejection_reason": "Empty identity string excluded from dataset builder",
-        })
+        neg_results.append(
+            {
+                "test": "Missing identity label (empty string) -> training",
+                "input_state": "verified_identity=''",
+                "expected": "REJECTED",
+                "actual": f"REJECTED ({len(train_s)} train samples)",
+                "passed": len(train_s) == 0,
+                "rejection_reason": "Empty identity string excluded from dataset builder",
+            }
+        )
 
     finally:
         shutil.rmtree(tmp_test_dir, ignore_errors=True)
@@ -404,29 +447,30 @@ def run_full_forensic_audit():
     for t in neg_results:
         print(f"  [{'PASS' if t['passed'] else 'FAIL'}] {t['test']}: {t['actual']}")
 
-
-
-
     print("\n[C] Auditing Real Neural Network Learning (PyTorch Optimization & Weight Mutation)...")
     nn_results = {}
     tmp_train_dir = Path(tempfile.mkdtemp(prefix="argus_audit_c_"))
 
     try:
         device = "cuda" if torch.cuda.is_available() else "cpu"
-        fine_tuner = NNFineTuner(candidate_dir=str(tmp_train_dir / "candidates"), device=device, max_epochs=2, batch_size=4)
-
+        fine_tuner = NNFineTuner(
+            candidate_dir=str(tmp_train_dir / "candidates"), device=device, max_epochs=2, batch_size=4
+        )
 
         print("  Testing ByGaitLight weight optimization...")
         bygait_baseline = ByGaitLight(embedding_dim=256, part_bins=1)
         active_bygait_path = "runs/exp_001/best_model.pth"
         if Path(active_bygait_path).exists():
             state = torch.load(active_bygait_path, map_location="cpu", weights_only=True)
-            clean = {k.replace("backbone.", ""): v for k, v in state.items() if k.replace("backbone.", "") in bygait_baseline.state_dict()}
+            clean = {
+                k.replace("backbone.", ""): v
+                for k, v in state.items()
+                if k.replace("backbone.", "") in bygait_baseline.state_dict()
+            }
             bygait_baseline.load_state_dict(clean, strict=False)
 
         total_bygait_params = sum(p.numel() for p in bygait_baseline.parameters())
         trainable_bygait_params = sum(p.numel() for p in bygait_baseline.parameters() if p.requires_grad)
-
 
         gei_train_data = []
         for pid in ["SubA", "SubB"]:
@@ -471,7 +515,6 @@ def run_full_forensic_audit():
             "success": bygait_res.get("success", False),
             "duration_seconds": bygait_res.get("duration", 0.0),
         }
-
 
         print("  Testing OSNet-x0.25 weight optimization...")
         osnet_baseline = _build_osnet_x0_25()
@@ -530,31 +573,24 @@ def run_full_forensic_audit():
         shutil.rmtree(tmp_train_dir, ignore_errors=True)
 
     evidence["dimension_c_neural_network_learning"] = nn_results
-    print(f"  ByGaitLight: {nn_results['bygait_light']['parameters_updated']}/{nn_results['bygait_light']['parameters_with_gradient']} tensors updated, Max Delta: {nn_results['bygait_light']['max_parameter_delta']:.6e}")
-    print(f"  OSNet-x0.25: {nn_results['osnet_x0_25']['parameters_updated']}/{nn_results['osnet_x0_25']['parameters_with_gradient']} tensors updated, Max Delta: {nn_results['osnet_x0_25']['max_parameter_delta']:.6e}")
-
-
-
+    print(
+        f"  ByGaitLight: {nn_results['bygait_light']['parameters_updated']}/{nn_results['bygait_light']['parameters_with_gradient']} tensors updated, Max Delta: {nn_results['bygait_light']['max_parameter_delta']:.6e}"
+    )
+    print(
+        f"  OSNet-x0.25: {nn_results['osnet_x0_25']['parameters_updated']}/{nn_results['osnet_x0_25']['parameters_with_gradient']} tensors updated, Max Delta: {nn_results['osnet_x0_25']['max_parameter_delta']:.6e}"
+    )
 
     print("\n[D, E, G, H] Evaluating Independent Accuracy, Retention, & Generalization...")
     evaluator = ContinualLearningEvaluator(min_statistical_trials=8)
-
-
 
     op_train_count = 0
     op_val_count = 0
     op_test_count = 0
 
-
-
     casia_gei_dir = Path("data/casia_processed/gei")
     subjects = sorted([d.name for d in casia_gei_dir.iterdir() if d.is_dir()]) if casia_gei_dir.exists() else []
 
     print(f"  Available CASIA-B processed subjects: {len(subjects)}")
-
-
-
-
 
     train_subjects = [s for s in subjects if int(s) <= 74]
     val_subjects = [s for s in subjects if 75 <= int(s) <= 100]
@@ -562,15 +598,13 @@ def run_full_forensic_audit():
 
     print(f"  Split: {len(train_subjects)} Train, {len(val_subjects)} Val, {len(test_subjects)} Independent Test")
 
-
     test_samples: list[DatasetSampleRecord] = []
     historical_samples: list[DatasetSampleRecord] = []
-
 
     bygait_baseline.eval()
     bygait_candidate = copy.deepcopy(bygait_baseline)
 
-    if 'cand_bygait_path' in locals() and Path(cand_bygait_path).exists():
+    if "cand_bygait_path" in locals() and Path(cand_bygait_path).exists():
         c_state = torch.load(cand_bygait_path, map_location="cpu", weights_only=True)
         bygait_candidate.load_state_dict(c_state, strict=False)
     bygait_candidate.eval()
@@ -586,7 +620,6 @@ def run_full_forensic_audit():
             emb = model(t).cpu().numpy().flatten()
             norm = np.linalg.norm(emb)
             return emb / norm if norm > 1e-6 else emb
-
 
     eval_subjects = test_subjects[:10] if len(test_subjects) >= 10 else test_subjects
 
@@ -609,15 +642,23 @@ def run_full_forensic_audit():
 
     if eval_subjects:
         import cv2
+
         for sid in eval_subjects:
             s_dir = casia_gei_dir / sid
 
             g_files = list(s_dir.glob(f"{sid}_nm-0[1-4]_*.png")) + list(s_dir.glob(f"{sid}_nm-0[1-4]_*.jpg"))
-            p_files = list(s_dir.glob(f"{sid}_nm-0[5-6]_*.png")) + list(s_dir.glob(f"{sid}_cl-*.png")) + list(s_dir.glob(f"{sid}_bg-*.png"))
+            p_files = (
+                list(s_dir.glob(f"{sid}_nm-0[5-6]_*.png"))
+                + list(s_dir.glob(f"{sid}_cl-*.png"))
+                + list(s_dir.glob(f"{sid}_bg-*.png"))
+            )
 
             if g_files:
-
-                g_imgs = [cv2.imread(str(f), cv2.IMREAD_GRAYSCALE) for f in g_files[:4] if cv2.imread(str(f), cv2.IMREAD_GRAYSCALE) is not None]
+                g_imgs = [
+                    cv2.imread(str(f), cv2.IMREAD_GRAYSCALE)
+                    for f in g_files[:4]
+                    if cv2.imread(str(f), cv2.IMREAD_GRAYSCALE) is not None
+                ]
                 if g_imgs:
                     g_avg = np.mean(g_imgs, axis=0).astype(np.uint8)
                     gallery_embs_base[sid] = extract_bygait_emb(bygait_baseline, g_avg)
@@ -628,19 +669,16 @@ def run_full_forensic_audit():
                 if p_img is not None:
                     probe_list.append((sid, pf.name, p_img))
 
-
         for sid, pf_name, p_img in probe_list:
             total_probes += 1
             p_emb_base = extract_bygait_emb(bygait_baseline, p_img)
             p_emb_cand = extract_bygait_emb(bygait_candidate, p_img)
-
 
             sims_base = {g_sid: float(np.dot(p_emb_base, g_vec)) for g_sid, g_vec in gallery_embs_base.items()}
             sims_cand = {g_sid: float(np.dot(p_emb_cand, g_vec)) for g_sid, g_vec in gallery_embs_cand.items()}
 
             sorted_base = sorted(sims_base.items(), key=lambda x: x[1], reverse=True)
             sorted_cand = sorted(sims_cand.items(), key=lambda x: x[1], reverse=True)
-
 
             for g_sid, s_val in sims_base.items():
                 if g_sid == sid:
@@ -653,7 +691,6 @@ def run_full_forensic_audit():
                     genuine_scores_cand.append(s_val)
                 else:
                     impostor_scores_cand.append(s_val)
-
 
             top_base_ids = [k for k, _ in sorted_base]
             top_cand_ids = [k for k, _ in sorted_cand]
@@ -672,7 +709,6 @@ def run_full_forensic_audit():
             if sid in top_cand_ids[:10]:
                 rank10_cand_correct += 1
 
-
     N_probes = max(total_probes, 1)
     rank1_base = round(rank1_base_correct / N_probes * 100, 2) if total_probes > 0 else 0.0
     rank5_base = round(rank5_base_correct / N_probes * 100, 2) if total_probes > 0 else 0.0
@@ -682,16 +718,30 @@ def run_full_forensic_audit():
     rank5_cand = round(rank5_cand_correct / N_probes * 100, 2) if total_probes > 0 else 0.0
     rank10_cand = round(rank10_cand_correct / N_probes * 100, 2) if total_probes > 0 else 0.0
 
-
     thresh = 0.50
-    tar_base = round(sum(1 for s in genuine_scores_base if s >= thresh) / max(len(genuine_scores_base), 1) * 100, 2) if genuine_scores_base else 0.0
-    far_base = round(sum(1 for s in impostor_scores_base if s >= thresh) / max(len(impostor_scores_base), 1) * 100, 2) if impostor_scores_base else 0.0
+    tar_base = (
+        round(sum(1 for s in genuine_scores_base if s >= thresh) / max(len(genuine_scores_base), 1) * 100, 2)
+        if genuine_scores_base
+        else 0.0
+    )
+    far_base = (
+        round(sum(1 for s in impostor_scores_base if s >= thresh) / max(len(impostor_scores_base), 1) * 100, 2)
+        if impostor_scores_base
+        else 0.0
+    )
     frr_base = round(100.0 - tar_base, 2)
 
-    tar_cand = round(sum(1 for s in genuine_scores_cand if s >= thresh) / max(len(genuine_scores_cand), 1) * 100, 2) if genuine_scores_cand else 0.0
-    far_cand = round(sum(1 for s in impostor_scores_cand if s >= thresh) / max(len(impostor_scores_cand), 1) * 100, 2) if genuine_scores_cand else 0.0
+    tar_cand = (
+        round(sum(1 for s in genuine_scores_cand if s >= thresh) / max(len(genuine_scores_cand), 1) * 100, 2)
+        if genuine_scores_cand
+        else 0.0
+    )
+    far_cand = (
+        round(sum(1 for s in impostor_scores_cand if s >= thresh) / max(len(impostor_scores_cand), 1) * 100, 2)
+        if genuine_scores_cand
+        else 0.0
+    )
     frr_cand = round(100.0 - tar_cand, 2)
-
 
     tp_base = sum(1 for s in genuine_scores_base if s >= thresh)
     fp_base = sum(1 for s in impostor_scores_base if s >= thresh)
@@ -706,7 +756,6 @@ def run_full_forensic_audit():
     prec_cand = round(tp_cand / max(tp_cand + fp_cand, 1) * 100, 2)
     rec_cand = round(tp_cand / max(tp_cand + fn_cand, 1) * 100, 2)
     f1_cand = round(2 * (prec_cand * rec_cand) / max(prec_cand + rec_cand, 1e-6), 2)
-
 
     def compute_eer_auc(gen_scores, imp_scores):
         if not gen_scores or not imp_scores:
@@ -738,7 +787,6 @@ def run_full_forensic_audit():
     eer_base, auc_base = compute_eer_auc(genuine_scores_base, impostor_scores_base)
     eer_cand, auc_cand = compute_eer_auc(genuine_scores_cand, impostor_scores_cand)
 
-
     b_cand_better = 0
     c_base_better = 0
 
@@ -750,72 +798,305 @@ def run_full_forensic_audit():
     ci_cand = wilson_score_interval(rank1_cand_correct, total_probes)
 
     master_metrics = [
-        {"metric": "Rank-1", "baseline": rank1_base, "candidate": rank1_cand, "delta": round(rank1_cand - rank1_base, 2), "ci": f"[{ci_base[0]}, {ci_base[1]}]", "p_value": p_val, "n": total_probes, "status": "VALIDATED" if total_probes >= 8 else "INSUFFICIENT_DATA"},
-        {"metric": "Rank-5", "baseline": rank5_base, "candidate": rank5_cand, "delta": round(rank5_cand - rank5_base, 2), "ci": "-", "p_value": p_val, "n": total_probes, "status": "VALIDATED" if total_probes >= 8 else "INSUFFICIENT_DATA"},
-        {"metric": "Rank-10", "baseline": rank10_base, "candidate": rank10_cand, "delta": round(rank10_cand - rank10_base, 2), "ci": "-", "p_value": p_val, "n": total_probes, "status": "VALIDATED" if total_probes >= 8 else "INSUFFICIENT_DATA"},
-        {"metric": "Precision", "baseline": prec_base, "candidate": prec_cand, "delta": round(prec_cand - prec_base, 2), "ci": "-", "p_value": "-", "n": len(genuine_scores_base) + len(impostor_scores_base), "status": "VALIDATED"},
-        {"metric": "Recall", "baseline": rec_base, "candidate": rec_cand, "delta": round(rec_cand - rec_base, 2), "ci": "-", "p_value": "-", "n": len(genuine_scores_base), "status": "VALIDATED"},
-        {"metric": "F1", "baseline": f1_base, "candidate": f1_cand, "delta": round(f1_cand - f1_base, 2), "ci": "-", "p_value": "-", "n": len(genuine_scores_base) + len(impostor_scores_base), "status": "VALIDATED"},
-        {"metric": "TAR", "baseline": tar_base, "candidate": tar_cand, "delta": round(tar_cand - tar_base, 2), "ci": f"[{ci_base[0]}, {ci_base[1]}]", "p_value": p_val, "n": len(genuine_scores_base), "status": "VALIDATED"},
-        {"metric": "FAR", "baseline": far_base, "candidate": far_cand, "delta": round(far_cand - far_base, 2), "ci": "-", "p_value": "-", "n": len(impostor_scores_base), "status": "VALIDATED"},
-        {"metric": "FRR", "baseline": frr_base, "candidate": frr_cand, "delta": round(frr_cand - frr_base, 2), "ci": "-", "p_value": "-", "n": len(genuine_scores_base), "status": "VALIDATED"},
-        {"metric": "EER", "baseline": eer_base, "candidate": eer_cand, "delta": round(eer_cand - eer_base, 2), "ci": "-", "p_value": "-", "n": len(genuine_scores_base) + len(impostor_scores_base), "status": "VALIDATED"},
-        {"metric": "ROC-AUC", "baseline": auc_base, "candidate": auc_cand, "delta": round(auc_cand - auc_base, 4), "ci": "-", "p_value": "-", "n": len(genuine_scores_base) + len(impostor_scores_base), "status": "VALIDATED"},
-        {"metric": "PR-AUC", "baseline": round(auc_base * 0.95, 4), "candidate": round(auc_cand * 0.95, 4), "delta": round(auc_cand * 0.95 - auc_base * 0.95, 4), "ci": "-", "p_value": "-", "n": len(genuine_scores_base) + len(impostor_scores_base), "status": "VALIDATED"},
+        {
+            "metric": "Rank-1",
+            "baseline": rank1_base,
+            "candidate": rank1_cand,
+            "delta": round(rank1_cand - rank1_base, 2),
+            "ci": f"[{ci_base[0]}, {ci_base[1]}]",
+            "p_value": p_val,
+            "n": total_probes,
+            "status": "VALIDATED" if total_probes >= 8 else "INSUFFICIENT_DATA",
+        },
+        {
+            "metric": "Rank-5",
+            "baseline": rank5_base,
+            "candidate": rank5_cand,
+            "delta": round(rank5_cand - rank5_base, 2),
+            "ci": "-",
+            "p_value": p_val,
+            "n": total_probes,
+            "status": "VALIDATED" if total_probes >= 8 else "INSUFFICIENT_DATA",
+        },
+        {
+            "metric": "Rank-10",
+            "baseline": rank10_base,
+            "candidate": rank10_cand,
+            "delta": round(rank10_cand - rank10_base, 2),
+            "ci": "-",
+            "p_value": p_val,
+            "n": total_probes,
+            "status": "VALIDATED" if total_probes >= 8 else "INSUFFICIENT_DATA",
+        },
+        {
+            "metric": "Precision",
+            "baseline": prec_base,
+            "candidate": prec_cand,
+            "delta": round(prec_cand - prec_base, 2),
+            "ci": "-",
+            "p_value": "-",
+            "n": len(genuine_scores_base) + len(impostor_scores_base),
+            "status": "VALIDATED",
+        },
+        {
+            "metric": "Recall",
+            "baseline": rec_base,
+            "candidate": rec_cand,
+            "delta": round(rec_cand - rec_base, 2),
+            "ci": "-",
+            "p_value": "-",
+            "n": len(genuine_scores_base),
+            "status": "VALIDATED",
+        },
+        {
+            "metric": "F1",
+            "baseline": f1_base,
+            "candidate": f1_cand,
+            "delta": round(f1_cand - f1_base, 2),
+            "ci": "-",
+            "p_value": "-",
+            "n": len(genuine_scores_base) + len(impostor_scores_base),
+            "status": "VALIDATED",
+        },
+        {
+            "metric": "TAR",
+            "baseline": tar_base,
+            "candidate": tar_cand,
+            "delta": round(tar_cand - tar_base, 2),
+            "ci": f"[{ci_base[0]}, {ci_base[1]}]",
+            "p_value": p_val,
+            "n": len(genuine_scores_base),
+            "status": "VALIDATED",
+        },
+        {
+            "metric": "FAR",
+            "baseline": far_base,
+            "candidate": far_cand,
+            "delta": round(far_cand - far_base, 2),
+            "ci": "-",
+            "p_value": "-",
+            "n": len(impostor_scores_base),
+            "status": "VALIDATED",
+        },
+        {
+            "metric": "FRR",
+            "baseline": frr_base,
+            "candidate": frr_cand,
+            "delta": round(frr_cand - frr_base, 2),
+            "ci": "-",
+            "p_value": "-",
+            "n": len(genuine_scores_base),
+            "status": "VALIDATED",
+        },
+        {
+            "metric": "EER",
+            "baseline": eer_base,
+            "candidate": eer_cand,
+            "delta": round(eer_cand - eer_base, 2),
+            "ci": "-",
+            "p_value": "-",
+            "n": len(genuine_scores_base) + len(impostor_scores_base),
+            "status": "VALIDATED",
+        },
+        {
+            "metric": "ROC-AUC",
+            "baseline": auc_base,
+            "candidate": auc_cand,
+            "delta": round(auc_cand - auc_base, 4),
+            "ci": "-",
+            "p_value": "-",
+            "n": len(genuine_scores_base) + len(impostor_scores_base),
+            "status": "VALIDATED",
+        },
+        {
+            "metric": "PR-AUC",
+            "baseline": round(auc_base * 0.95, 4),
+            "candidate": round(auc_cand * 0.95, 4),
+            "delta": round(auc_cand * 0.95 - auc_base * 0.95, 4),
+            "ci": "-",
+            "p_value": "-",
+            "n": len(genuine_scores_base) + len(impostor_scores_base),
+            "status": "VALIDATED",
+        },
     ]
 
     evidence["dimension_d_master_metrics_table"] = master_metrics
     print(f"  Master Evaluation on {total_probes} independent held-out probes:")
-    print(f"    Baseline Rank-1: {rank1_base}%, Candidate Rank-1: {rank1_cand}%, Delta Rank-1: {rank1_cand - rank1_base:+.2f}%")
+    print(
+        f"    Baseline Rank-1: {rank1_base}%, Candidate Rank-1: {rank1_cand}%, Delta Rank-1: {rank1_cand - rank1_base:+.2f}%"
+    )
     print(f"    Baseline TAR: {tar_base}%, Candidate TAR: {tar_cand}%, Delta TAR: {tar_cand - tar_base:+.2f}%")
     print(f"    Baseline FAR: {far_base}%, Candidate FAR: {far_cand}%, Delta FAR: {far_cand - far_base:+.2f}%")
     print(f"    Baseline EER: {eer_base}%, Candidate EER: {eer_cand}%, Delta EER: {eer_cand - eer_base:+.2f}%")
 
-
-
-
     print("\n[F] Auditing Real-World Condition Generalization...")
 
     condition_table = [
-        {"condition": "1. Walking pattern variation (NM / Fast / Slow)", "n": "NOT AVAILABLE", "baseline": "NOT VALIDATED", "candidate": "NOT VALIDATED", "delta": "NOT VALIDATED", "ci": "NOT VALIDATED", "status": "NOT VALIDATED (No speed/pattern annotations in operational data)"},
-        {"condition": "2. Body movement variation (Arm swing, head tilt)", "n": "NOT AVAILABLE", "baseline": "NOT VALIDATED", "candidate": "NOT VALIDATED", "delta": "NOT VALIDATED", "ci": "NOT VALIDATED", "status": "NOT VALIDATED"},
-        {"condition": "3. Gait-cycle characteristics (Stride length/freq)", "n": "NOT AVAILABLE", "baseline": "NOT VALIDATED", "candidate": "NOT VALIDATED", "delta": "NOT VALIDATED", "ci": "NOT VALIDATED", "status": "NOT VALIDATED"},
-        {"condition": "4. Camera viewpoint variation (0 deg, 18 deg, 36 deg, ..., 180 deg)", "n": total_probes, "baseline": f"{rank1_base}%", "candidate": f"{rank1_cand}%", "delta": f"{rank1_cand - rank1_base:+.2f}%", "ci": f"[{ci_base[0]}, {ci_base[1]}]", "status": "VALIDATED (Held-out CASIA-B angles 0-180 deg)"},
-        {"condition": "5. Clothing variation (Coat, Jacket, Shorts, NM)", "n": total_probes, "baseline": f"{round(rank1_base * 0.70, 1)}%", "candidate": f"{round(rank1_cand * 0.70, 1)}%", "delta": "0.00%", "ci": "-", "status": "VALIDATED (CASIA-B CL probes)"},
-        {"condition": "6. Carrying-condition variation (Backpack, Bag)", "n": total_probes, "baseline": f"{round(rank1_base * 0.75, 1)}%", "candidate": f"{round(rank1_cand * 0.75, 1)}%", "delta": "0.00%", "ci": "-", "status": "VALIDATED (CASIA-B BG probes)"},
-        {"condition": "7. Silhouette / temporal variation", "n": 36, "baseline": "NOT VALIDATED", "candidate": "NOT VALIDATED", "delta": "NOT VALIDATED", "ci": "NOT VALIDATED", "status": "NOT VALIDATED (Operational media arrays absent)"},
-        {"condition": "8. Illumination variation (Day, Night, Glare)", "n": "NOT AVAILABLE", "baseline": "NOT VALIDATED", "candidate": "NOT VALIDATED", "delta": "NOT VALIDATED", "ci": "NOT VALIDATED", "status": "NOT VALIDATED"},
-        {"condition": "9. Camera-specific variation (cam-1 vs cam-2)", "n": 80, "baseline": "NOT VALIDATED", "candidate": "NOT VALIDATED", "delta": "NOT VALIDATED", "ci": "NOT VALIDATED", "status": "NOT VALIDATED (Zero ground-truth verified probes)"},
-        {"condition": "10. Distance / scale variation", "n": "NOT AVAILABLE", "baseline": "NOT VALIDATED", "candidate": "NOT VALIDATED", "delta": "NOT VALIDATED", "ci": "NOT VALIDATED", "status": "NOT VALIDATED"},
-        {"condition": "11. Partial occlusion", "n": "NOT AVAILABLE", "baseline": "NOT VALIDATED", "candidate": "NOT VALIDATED", "delta": "NOT VALIDATED", "ci": "NOT VALIDATED", "status": "NOT VALIDATED"},
-        {"condition": "12. Same-camera recognition", "n": 44, "baseline": "25.00%", "candidate": "25.00%", "delta": "0.00%", "ci": "[7.15, 59.07]", "status": "EVIDENCE_INSUFFICIENT (N=4 genuine trials)"},
-        {"condition": "13. Cross-camera recognition (cam-1 <-> cam-2)", "n": 36, "baseline": "0.00%", "candidate": "0.00%", "delta": "0.00%", "ci": "[0.00, 0.00]", "status": "EVIDENCE_INSUFFICIENT (0 genuine cross-camera matches in verified set)"},
+        {
+            "condition": "1. Walking pattern variation (NM / Fast / Slow)",
+            "n": "NOT AVAILABLE",
+            "baseline": "NOT VALIDATED",
+            "candidate": "NOT VALIDATED",
+            "delta": "NOT VALIDATED",
+            "ci": "NOT VALIDATED",
+            "status": "NOT VALIDATED (No speed/pattern annotations in operational data)",
+        },
+        {
+            "condition": "2. Body movement variation (Arm swing, head tilt)",
+            "n": "NOT AVAILABLE",
+            "baseline": "NOT VALIDATED",
+            "candidate": "NOT VALIDATED",
+            "delta": "NOT VALIDATED",
+            "ci": "NOT VALIDATED",
+            "status": "NOT VALIDATED",
+        },
+        {
+            "condition": "3. Gait-cycle characteristics (Stride length/freq)",
+            "n": "NOT AVAILABLE",
+            "baseline": "NOT VALIDATED",
+            "candidate": "NOT VALIDATED",
+            "delta": "NOT VALIDATED",
+            "ci": "NOT VALIDATED",
+            "status": "NOT VALIDATED",
+        },
+        {
+            "condition": "4. Camera viewpoint variation (0 deg, 18 deg, 36 deg, ..., 180 deg)",
+            "n": total_probes,
+            "baseline": f"{rank1_base}%",
+            "candidate": f"{rank1_cand}%",
+            "delta": f"{rank1_cand - rank1_base:+.2f}%",
+            "ci": f"[{ci_base[0]}, {ci_base[1]}]",
+            "status": "VALIDATED (Held-out CASIA-B angles 0-180 deg)",
+        },
+        {
+            "condition": "5. Clothing variation (Coat, Jacket, Shorts, NM)",
+            "n": total_probes,
+            "baseline": f"{round(rank1_base * 0.70, 1)}%",
+            "candidate": f"{round(rank1_cand * 0.70, 1)}%",
+            "delta": "0.00%",
+            "ci": "-",
+            "status": "VALIDATED (CASIA-B CL probes)",
+        },
+        {
+            "condition": "6. Carrying-condition variation (Backpack, Bag)",
+            "n": total_probes,
+            "baseline": f"{round(rank1_base * 0.75, 1)}%",
+            "candidate": f"{round(rank1_cand * 0.75, 1)}%",
+            "delta": "0.00%",
+            "ci": "-",
+            "status": "VALIDATED (CASIA-B BG probes)",
+        },
+        {
+            "condition": "7. Silhouette / temporal variation",
+            "n": 36,
+            "baseline": "NOT VALIDATED",
+            "candidate": "NOT VALIDATED",
+            "delta": "NOT VALIDATED",
+            "ci": "NOT VALIDATED",
+            "status": "NOT VALIDATED (Operational media arrays absent)",
+        },
+        {
+            "condition": "8. Illumination variation (Day, Night, Glare)",
+            "n": "NOT AVAILABLE",
+            "baseline": "NOT VALIDATED",
+            "candidate": "NOT VALIDATED",
+            "delta": "NOT VALIDATED",
+            "ci": "NOT VALIDATED",
+            "status": "NOT VALIDATED",
+        },
+        {
+            "condition": "9. Camera-specific variation (cam-1 vs cam-2)",
+            "n": 80,
+            "baseline": "NOT VALIDATED",
+            "candidate": "NOT VALIDATED",
+            "delta": "NOT VALIDATED",
+            "ci": "NOT VALIDATED",
+            "status": "NOT VALIDATED (Zero ground-truth verified probes)",
+        },
+        {
+            "condition": "10. Distance / scale variation",
+            "n": "NOT AVAILABLE",
+            "baseline": "NOT VALIDATED",
+            "candidate": "NOT VALIDATED",
+            "delta": "NOT VALIDATED",
+            "ci": "NOT VALIDATED",
+            "status": "NOT VALIDATED",
+        },
+        {
+            "condition": "11. Partial occlusion",
+            "n": "NOT AVAILABLE",
+            "baseline": "NOT VALIDATED",
+            "candidate": "NOT VALIDATED",
+            "delta": "NOT VALIDATED",
+            "ci": "NOT VALIDATED",
+            "status": "NOT VALIDATED",
+        },
+        {
+            "condition": "12. Same-camera recognition",
+            "n": 44,
+            "baseline": "25.00%",
+            "candidate": "25.00%",
+            "delta": "0.00%",
+            "ci": "[7.15, 59.07]",
+            "status": "EVIDENCE_INSUFFICIENT (N=4 genuine trials)",
+        },
+        {
+            "condition": "13. Cross-camera recognition (cam-1 <-> cam-2)",
+            "n": 36,
+            "baseline": "0.00%",
+            "candidate": "0.00%",
+            "delta": "0.00%",
+            "ci": "[0.00, 0.00]",
+            "status": "EVIDENCE_INSUFFICIENT (0 genuine cross-camera matches in verified set)",
+        },
     ]
     evidence["dimension_f_condition_table"] = condition_table
 
-
-
-
     print("\n[I] Auditing Continual Learning Ablation...")
     ablation_results = [
-        {"model_variant": "A. Original Production Model (v1.0.0)", "training_setup": "Baseline weights without operational fine-tuning", "rank1": rank1_base, "tar": tar_base, "far": far_base, "eer": eer_base, "delta_from_baseline": "0.00% (Reference)"},
-        {"model_variant": "B. Candidate trained WITH operational observations", "training_setup": "Transfer learning with 2 verified operational IDs + 50% replay", "rank1": rank1_cand, "tar": tar_cand, "far": far_cand, "eer": eer_cand, "delta_from_baseline": f"{rank1_cand - rank1_base:+.2f}%"},
-        {"model_variant": "C. Candidate trained WITHOUT operational observations", "training_setup": "Transfer learning with 50% historical replay only (no new IDs)", "rank1": rank1_base, "tar": tar_base, "far": far_base, "eer": eer_base, "delta_from_baseline": "0.00%"},
-        {"model_variant": "D. Historical-Replay-Only Candidate", "training_setup": "Trained exclusively on historical reference gallery", "rank1": rank1_base, "tar": tar_base, "far": far_base, "eer": eer_base, "delta_from_baseline": "0.00%"},
+        {
+            "model_variant": "A. Original Production Model (v1.0.0)",
+            "training_setup": "Baseline weights without operational fine-tuning",
+            "rank1": rank1_base,
+            "tar": tar_base,
+            "far": far_base,
+            "eer": eer_base,
+            "delta_from_baseline": "0.00% (Reference)",
+        },
+        {
+            "model_variant": "B. Candidate trained WITH operational observations",
+            "training_setup": "Transfer learning with 2 verified operational IDs + 50% replay",
+            "rank1": rank1_cand,
+            "tar": tar_cand,
+            "far": far_cand,
+            "eer": eer_cand,
+            "delta_from_baseline": f"{rank1_cand - rank1_base:+.2f}%",
+        },
+        {
+            "model_variant": "C. Candidate trained WITHOUT operational observations",
+            "training_setup": "Transfer learning with 50% historical replay only (no new IDs)",
+            "rank1": rank1_base,
+            "tar": tar_base,
+            "far": far_base,
+            "eer": eer_base,
+            "delta_from_baseline": "0.00%",
+        },
+        {
+            "model_variant": "D. Historical-Replay-Only Candidate",
+            "training_setup": "Trained exclusively on historical reference gallery",
+            "rank1": rank1_base,
+            "tar": tar_base,
+            "far": far_base,
+            "eer": eer_base,
+            "delta_from_baseline": "0.00%",
+        },
     ]
     evidence["dimension_i_ablation_results"] = ablation_results
-    evidence["dimension_i_ablation_finding"] = "Zero generalization gain observed across all ablation variants due to bounded operational evidence sample size (7 verified items across 2 subjects)."
-
-
-
+    evidence["dimension_i_ablation_finding"] = (
+        "Zero generalization gain observed across all ablation variants due to bounded operational evidence sample size (7 verified items across 2 subjects)."
+    )
 
     print("\n[J] Separating Gallery Expansion Effect from Neural Network Learning...")
-
-
-
-
-
-
 
     gallery_old_base = {k: v for k, v in list(gallery_embs_base.items())[:5]}
     gallery_exp_base = gallery_embs_base
@@ -854,10 +1135,38 @@ def run_full_forensic_audit():
     r1_g4, tar_g4, far_g4, eer_g4 = eval_gallery_setup(gallery_exp_cand, probe_list)
 
     gallery_analysis_table = [
-        {"model": "Baseline Model (v1.0.0)", "gallery": "Old Gallery (5 IDs)", "rank1": r1_g1, "tar": tar_g1, "far": far_g1, "eer": eer_g1},
-        {"model": "Baseline Model (v1.0.0)", "gallery": "Expanded Gallery (10 IDs)", "rank1": r1_g2, "tar": tar_g2, "far": far_g2, "eer": eer_g2},
-        {"model": "Candidate Model", "gallery": "Old Gallery (5 IDs)", "rank1": r1_g3, "tar": tar_g3, "far": far_g3, "eer": eer_g3},
-        {"model": "Candidate Model", "gallery": "Expanded Gallery (10 IDs)", "rank1": r1_g4, "tar": tar_g4, "far": far_g4, "eer": eer_g4},
+        {
+            "model": "Baseline Model (v1.0.0)",
+            "gallery": "Old Gallery (5 IDs)",
+            "rank1": r1_g1,
+            "tar": tar_g1,
+            "far": far_g1,
+            "eer": eer_g1,
+        },
+        {
+            "model": "Baseline Model (v1.0.0)",
+            "gallery": "Expanded Gallery (10 IDs)",
+            "rank1": r1_g2,
+            "tar": tar_g2,
+            "far": far_g2,
+            "eer": eer_g2,
+        },
+        {
+            "model": "Candidate Model",
+            "gallery": "Old Gallery (5 IDs)",
+            "rank1": r1_g3,
+            "tar": tar_g3,
+            "far": far_g3,
+            "eer": eer_g3,
+        },
+        {
+            "model": "Candidate Model",
+            "gallery": "Expanded Gallery (10 IDs)",
+            "rank1": r1_g4,
+            "tar": tar_g4,
+            "far": far_g4,
+            "eer": eer_g4,
+        },
     ]
     evidence["dimension_j_gallery_analysis"] = {
         "table": gallery_analysis_table,
@@ -869,18 +1178,22 @@ def run_full_forensic_audit():
     print("  Gallery vs Model Learning Separation:")
     print(f"    Gallery-only Delta: {r1_g2 - r1_g1:+.2f}%, Model-only Delta: {r1_g3 - r1_g1:+.2f}%")
 
-
-
-
     print("\n[K] Auditing Threshold Effect...")
-
 
     opt_thresh_base = 0.48
     opt_thresh_cand = 0.48
-    tar_opt_base = round(sum(1 for s in genuine_scores_base if s >= opt_thresh_base) / max(len(genuine_scores_base), 1) * 100, 2)
-    far_opt_base = round(sum(1 for s in impostor_scores_base if s >= opt_thresh_base) / max(len(impostor_scores_base), 1) * 100, 2)
-    tar_opt_cand = round(sum(1 for s in genuine_scores_cand if s >= opt_thresh_cand) / max(len(genuine_scores_cand), 1) * 100, 2)
-    far_opt_cand = round(sum(1 for s in impostor_scores_cand if s >= opt_thresh_cand) / max(len(impostor_scores_cand), 1) * 100, 2)
+    tar_opt_base = round(
+        sum(1 for s in genuine_scores_base if s >= opt_thresh_base) / max(len(genuine_scores_base), 1) * 100, 2
+    )
+    far_opt_base = round(
+        sum(1 for s in impostor_scores_base if s >= opt_thresh_base) / max(len(impostor_scores_base), 1) * 100, 2
+    )
+    tar_opt_cand = round(
+        sum(1 for s in genuine_scores_cand if s >= opt_thresh_cand) / max(len(genuine_scores_cand), 1) * 100, 2
+    )
+    far_opt_cand = round(
+        sum(1 for s in impostor_scores_cand if s >= opt_thresh_cand) / max(len(impostor_scores_cand), 1) * 100, 2
+    )
 
     evidence["dimension_k_threshold_effect"] = {
         "test_1_same_threshold": {
@@ -905,9 +1218,6 @@ def run_full_forensic_audit():
         "classification": "THRESHOLD_INDEPENDENT (Model deltas remain consistent regardless of decision operating threshold)",
     }
 
-
-
-
     print("\n[L] Auditing Data Leakage Across Splits & Manifests...")
     man_dir = Path("data/dataset_manifests")
     man_files = list(man_dir.glob("*.json")) if man_dir.exists() else []
@@ -916,14 +1226,12 @@ def run_full_forensic_audit():
     leakage_detected = False
     leakage_findings = []
 
-
     for mf in man_files[:10]:
         try:
             with open(mf, "r", encoding="utf-8") as f:
                 mdata = json.load(f)
 
             stored_hash = mdata.get("manifest_sha256", "")
-
 
         except (OSError, json.JSONDecodeError) as err:
             leakage_findings.append(f"Error reading manifest {mf.name}: {err}")
@@ -942,65 +1250,236 @@ def run_full_forensic_audit():
     }
     print(f"  Data Leakage Audit: PASS_ZERO_LEAKAGE (0 leaks across {total_manifests_audited} manifests)")
 
-
-
-
     print("\n[N] Testing Candidate Promotion Safety Gates...")
-    gate = AccuracyValidationGate(max_allowed_far_increase=0.0, max_allowed_historical_drop=0.5, min_required_improvement_delta=0.5)
-
+    gate = AccuracyValidationGate(
+        max_allowed_far_increase=0.0, max_allowed_historical_drop=0.5, min_required_improvement_delta=0.5
+    )
 
     comp_improved = ModelComparisonResult(
-        baseline_version="v1.0.0", candidate_version="v2.0.0-improved", dataset_id="ds-test-1",
+        baseline_version="v1.0.0",
+        candidate_version="v2.0.0-improved",
+        dataset_id="ds-test-1",
         model_type="bygait_light",
-        baseline_metrics=EvaluationMetrics(rank1_accuracy=80.0, tar=85.0, far=1.0, frr=15.0, eer=7.5, auc=0.92, historical_retention_tar=85.0, new_condition_tar=85.0, genuine_trials=20, impostor_trials=40, sample_count=20, identities_count=5, evidence_class="SUFFICIENT_EVIDENCE"),
-        candidate_metrics=EvaluationMetrics(rank1_accuracy=86.0, tar=90.0, far=0.8, frr=10.0, eer=5.0, auc=0.96, historical_retention_tar=85.0, new_condition_tar=89.0, genuine_trials=20, impostor_trials=40, sample_count=20, identities_count=5, evidence_class="SUFFICIENT_EVIDENCE"),
-        delta_rank1=6.0, delta_tar=5.0, delta_far=-0.2, delta_frr=-5.0, delta_eer=-2.5, delta_auc=0.04,
-        historical_tar_delta=0.0, new_condition_tar_delta=4.0, is_improved=True, is_regressed=False,
-        is_statistically_significant=True, verdict="CONTINUAL_LEARNING_IMPROVEMENT_VERIFIED"
+        baseline_metrics=EvaluationMetrics(
+            rank1_accuracy=80.0,
+            tar=85.0,
+            far=1.0,
+            frr=15.0,
+            eer=7.5,
+            auc=0.92,
+            historical_retention_tar=85.0,
+            new_condition_tar=85.0,
+            genuine_trials=20,
+            impostor_trials=40,
+            sample_count=20,
+            identities_count=5,
+            evidence_class="SUFFICIENT_EVIDENCE",
+        ),
+        candidate_metrics=EvaluationMetrics(
+            rank1_accuracy=86.0,
+            tar=90.0,
+            far=0.8,
+            frr=10.0,
+            eer=5.0,
+            auc=0.96,
+            historical_retention_tar=85.0,
+            new_condition_tar=89.0,
+            genuine_trials=20,
+            impostor_trials=40,
+            sample_count=20,
+            identities_count=5,
+            evidence_class="SUFFICIENT_EVIDENCE",
+        ),
+        delta_rank1=6.0,
+        delta_tar=5.0,
+        delta_far=-0.2,
+        delta_frr=-5.0,
+        delta_eer=-2.5,
+        delta_auc=0.04,
+        historical_tar_delta=0.0,
+        new_condition_tar_delta=4.0,
+        is_improved=True,
+        is_regressed=False,
+        is_statistically_significant=True,
+        verdict="CONTINUAL_LEARNING_IMPROVEMENT_VERIFIED",
     )
     dec_improved = gate.evaluate_promotion(comp_improved, confusion_pair_far=0.0)
 
-
     comp_neutral = ModelComparisonResult(
-        baseline_version="v1.0.0", candidate_version="v2.0.0-neutral", dataset_id="ds-test-2",
+        baseline_version="v1.0.0",
+        candidate_version="v2.0.0-neutral",
+        dataset_id="ds-test-2",
         model_type="bygait_light",
-        baseline_metrics=EvaluationMetrics(rank1_accuracy=80.0, tar=85.0, far=1.0, frr=15.0, eer=7.5, auc=0.92, historical_retention_tar=85.0, new_condition_tar=85.0, genuine_trials=20, impostor_trials=40, sample_count=20, identities_count=5, evidence_class="SUFFICIENT_EVIDENCE"),
-        candidate_metrics=EvaluationMetrics(rank1_accuracy=80.1, tar=85.1, far=1.0, frr=14.9, eer=7.4, auc=0.92, historical_retention_tar=85.0, new_condition_tar=85.1, genuine_trials=20, impostor_trials=40, sample_count=20, identities_count=5, evidence_class="SUFFICIENT_EVIDENCE"),
-        delta_rank1=0.1, delta_tar=0.1, delta_far=0.0, delta_frr=-0.1, delta_eer=-0.1, delta_auc=0.0,
-        historical_tar_delta=0.0, new_condition_tar_delta=0.1, is_improved=False, is_regressed=False,
-        is_statistically_significant=False, verdict="NO_GENERALIZATION_PROOF"
+        baseline_metrics=EvaluationMetrics(
+            rank1_accuracy=80.0,
+            tar=85.0,
+            far=1.0,
+            frr=15.0,
+            eer=7.5,
+            auc=0.92,
+            historical_retention_tar=85.0,
+            new_condition_tar=85.0,
+            genuine_trials=20,
+            impostor_trials=40,
+            sample_count=20,
+            identities_count=5,
+            evidence_class="SUFFICIENT_EVIDENCE",
+        ),
+        candidate_metrics=EvaluationMetrics(
+            rank1_accuracy=80.1,
+            tar=85.1,
+            far=1.0,
+            frr=14.9,
+            eer=7.4,
+            auc=0.92,
+            historical_retention_tar=85.0,
+            new_condition_tar=85.1,
+            genuine_trials=20,
+            impostor_trials=40,
+            sample_count=20,
+            identities_count=5,
+            evidence_class="SUFFICIENT_EVIDENCE",
+        ),
+        delta_rank1=0.1,
+        delta_tar=0.1,
+        delta_far=0.0,
+        delta_frr=-0.1,
+        delta_eer=-0.1,
+        delta_auc=0.0,
+        historical_tar_delta=0.0,
+        new_condition_tar_delta=0.1,
+        is_improved=False,
+        is_regressed=False,
+        is_statistically_significant=False,
+        verdict="NO_GENERALIZATION_PROOF",
     )
     dec_neutral = gate.evaluate_promotion(comp_neutral, confusion_pair_far=0.0)
 
-
     comp_degraded = ModelComparisonResult(
-        baseline_version="v1.0.0", candidate_version="v2.0.0-degraded", dataset_id="ds-test-3",
+        baseline_version="v1.0.0",
+        candidate_version="v2.0.0-degraded",
+        dataset_id="ds-test-3",
         model_type="bygait_light",
-        baseline_metrics=EvaluationMetrics(rank1_accuracy=80.0, tar=85.0, far=1.0, frr=15.0, eer=7.5, auc=0.92, historical_retention_tar=85.0, new_condition_tar=85.0, genuine_trials=20, impostor_trials=40, sample_count=20, identities_count=5, evidence_class="SUFFICIENT_EVIDENCE"),
-        candidate_metrics=EvaluationMetrics(rank1_accuracy=82.0, tar=88.0, far=3.5, frr=12.0, eer=9.0, auc=0.90, historical_retention_tar=80.0, new_condition_tar=86.0, genuine_trials=20, impostor_trials=40, sample_count=20, identities_count=5, evidence_class="SUFFICIENT_EVIDENCE"),
-        delta_rank1=2.0, delta_tar=3.0, delta_far=2.5, delta_frr=-3.0, delta_eer=1.5, delta_auc=-0.02,
-        historical_tar_delta=-5.0, new_condition_tar_delta=1.0, is_improved=False, is_regressed=True,
-        is_statistically_significant=False, verdict="DEGRADATION"
+        baseline_metrics=EvaluationMetrics(
+            rank1_accuracy=80.0,
+            tar=85.0,
+            far=1.0,
+            frr=15.0,
+            eer=7.5,
+            auc=0.92,
+            historical_retention_tar=85.0,
+            new_condition_tar=85.0,
+            genuine_trials=20,
+            impostor_trials=40,
+            sample_count=20,
+            identities_count=5,
+            evidence_class="SUFFICIENT_EVIDENCE",
+        ),
+        candidate_metrics=EvaluationMetrics(
+            rank1_accuracy=82.0,
+            tar=88.0,
+            far=3.5,
+            frr=12.0,
+            eer=9.0,
+            auc=0.90,
+            historical_retention_tar=80.0,
+            new_condition_tar=86.0,
+            genuine_trials=20,
+            impostor_trials=40,
+            sample_count=20,
+            identities_count=5,
+            evidence_class="SUFFICIENT_EVIDENCE",
+        ),
+        delta_rank1=2.0,
+        delta_tar=3.0,
+        delta_far=2.5,
+        delta_frr=-3.0,
+        delta_eer=1.5,
+        delta_auc=-0.02,
+        historical_tar_delta=-5.0,
+        new_condition_tar_delta=1.0,
+        is_improved=False,
+        is_regressed=True,
+        is_statistically_significant=False,
+        verdict="DEGRADATION",
     )
     dec_degraded = gate.evaluate_promotion(comp_degraded, confusion_pair_far=0.0)
 
-
     comp_invalid = ModelComparisonResult(
-        baseline_version="v1.0.0", candidate_version="v2.0.0-invalid", dataset_id="ds-test-4",
+        baseline_version="v1.0.0",
+        candidate_version="v2.0.0-invalid",
+        dataset_id="ds-test-4",
         model_type="bygait_light",
-        baseline_metrics=EvaluationMetrics(rank1_accuracy=0.0, tar=0.0, far=0.0, frr=100.0, eer=50.0, auc=0.5, genuine_trials=0, impostor_trials=6, sample_count=4, identities_count=4, evidence_class="INSUFFICIENT_EVIDENCE"),
-        candidate_metrics=EvaluationMetrics(rank1_accuracy=0.0, tar=0.0, far=0.0, frr=100.0, eer=50.0, auc=0.5, genuine_trials=0, impostor_trials=6, sample_count=4, identities_count=4, evidence_class="INSUFFICIENT_EVIDENCE"),
-        delta_rank1=0.0, delta_tar=0.0, delta_far=0.0, delta_frr=0.0, delta_eer=0.0, delta_auc=0.0,
-        historical_tar_delta=0.0, new_condition_tar_delta=0.0, is_improved=False, is_regressed=False,
-        is_statistically_significant=False, verdict="INSUFFICIENT_EVIDENCE"
+        baseline_metrics=EvaluationMetrics(
+            rank1_accuracy=0.0,
+            tar=0.0,
+            far=0.0,
+            frr=100.0,
+            eer=50.0,
+            auc=0.5,
+            genuine_trials=0,
+            impostor_trials=6,
+            sample_count=4,
+            identities_count=4,
+            evidence_class="INSUFFICIENT_EVIDENCE",
+        ),
+        candidate_metrics=EvaluationMetrics(
+            rank1_accuracy=0.0,
+            tar=0.0,
+            far=0.0,
+            frr=100.0,
+            eer=50.0,
+            auc=0.5,
+            genuine_trials=0,
+            impostor_trials=6,
+            sample_count=4,
+            identities_count=4,
+            evidence_class="INSUFFICIENT_EVIDENCE",
+        ),
+        delta_rank1=0.0,
+        delta_tar=0.0,
+        delta_far=0.0,
+        delta_frr=0.0,
+        delta_eer=0.0,
+        delta_auc=0.0,
+        historical_tar_delta=0.0,
+        new_condition_tar_delta=0.0,
+        is_improved=False,
+        is_regressed=False,
+        is_statistically_significant=False,
+        verdict="INSUFFICIENT_EVIDENCE",
     )
     dec_invalid = gate.evaluate_promotion(comp_invalid, confusion_pair_far=0.0)
 
     promotion_tests = [
-        {"candidate_type": "1. Improved Candidate (Delta TAR: +5.0%, Delta FAR: -0.2%)", "expected": "PROMOTE", "actual": dec_improved.decision, "passed": dec_improved.decision == "PROMOTE", "gates": dec_improved.gate_evaluations},
-        {"candidate_type": "2. Neutral Candidate (Delta Rank1: +0.1%, within noise)", "expected": "REJECT", "actual": dec_neutral.decision, "passed": dec_neutral.decision == "REJECT", "reasons": dec_neutral.rejection_reasons},
-        {"candidate_type": "3. Degraded Candidate (FAR increased +2.5%)", "expected": "REJECT", "actual": dec_degraded.decision, "passed": dec_degraded.decision == "REJECT", "reasons": dec_degraded.rejection_reasons},
-        {"candidate_type": "4. Invalid Candidate (0 genuine trials, small data)", "expected": "REJECT", "actual": dec_invalid.decision, "passed": dec_invalid.decision == "REJECT", "reasons": dec_invalid.rejection_reasons},
+        {
+            "candidate_type": "1. Improved Candidate (Delta TAR: +5.0%, Delta FAR: -0.2%)",
+            "expected": "PROMOTE",
+            "actual": dec_improved.decision,
+            "passed": dec_improved.decision == "PROMOTE",
+            "gates": dec_improved.gate_evaluations,
+        },
+        {
+            "candidate_type": "2. Neutral Candidate (Delta Rank1: +0.1%, within noise)",
+            "expected": "REJECT",
+            "actual": dec_neutral.decision,
+            "passed": dec_neutral.decision == "REJECT",
+            "reasons": dec_neutral.rejection_reasons,
+        },
+        {
+            "candidate_type": "3. Degraded Candidate (FAR increased +2.5%)",
+            "expected": "REJECT",
+            "actual": dec_degraded.decision,
+            "passed": dec_degraded.decision == "REJECT",
+            "reasons": dec_degraded.rejection_reasons,
+        },
+        {
+            "candidate_type": "4. Invalid Candidate (0 genuine trials, small data)",
+            "expected": "REJECT",
+            "actual": dec_invalid.decision,
+            "passed": dec_invalid.decision == "REJECT",
+            "reasons": dec_invalid.rejection_reasons,
+        },
     ]
 
     evidence["dimension_n_promotion_safety"] = {
@@ -1009,10 +1488,9 @@ def run_full_forensic_audit():
         "status": "PASS_PROMOTION_SAFETY_VERIFIED",
     }
     for pt in promotion_tests:
-        print(f"  [{'PASS' if pt['passed'] else 'FAIL'}] {pt['candidate_type']} -> {pt['actual']} (Expected: {pt['expected']})")
-
-
-
+        print(
+            f"  [{'PASS' if pt['passed'] else 'FAIL'}] {pt['candidate_type']} -> {pt['actual']} (Expected: {pt['expected']})"
+        )
 
     print("\n[O] Auditing Atomic Model Registry Rollback...")
     tmp_reg_dir = Path(tempfile.mkdtemp(prefix="argus_audit_o_"))
@@ -1023,31 +1501,27 @@ def run_full_forensic_audit():
         active_before = reg.get_active_model("bygait_light")
         hash_before = active_before.checksum_sha256 if active_before else "HASH_A"
 
-
         cand_b = reg.register_candidate(
-            model_version="v2.0.0-candidate-b", model_type="bygait_light",
-            architecture="ByGaitLight-CNN-256D", embedding_dim=256,
+            model_version="v2.0.0-candidate-b",
+            model_type="bygait_light",
+            architecture="ByGaitLight-CNN-256D",
+            embedding_dim=256,
             artifact_path=active_before.artifact_path if active_before else "runs/exp_001/best_model.pth",
-            parent_version=active_before.model_version if active_before else "v1.0.0"
+            parent_version=active_before.model_version if active_before else "v1.0.0",
         )
         reg.record_validation_result(
-            model_version="v2.0.0-candidate-b", model_type="bygait_light",
-            passed=True, metrics={"rank1": 85.0}
+            model_version="v2.0.0-candidate-b", model_type="bygait_light", passed=True, metrics={"rank1": 85.0}
         )
         reg.promote_version("v2.0.0-candidate-b", "bygait_light")
 
         active_promoted = reg.get_active_model("bygait_light")
         assert active_promoted.model_version == "v2.0.0-candidate-b"
 
-
         rolled_back = reg.rollback("bygait_light", reason="Forensic Audit Verification Test")
         active_after = reg.get_active_model("bygait_light")
         hash_after = active_after.checksum_sha256
 
-        rollback_verified = (
-            active_after.model_version == active_before.model_version
-            and hash_after == hash_before
-        )
+        rollback_verified = active_after.model_version == active_before.model_version and hash_after == hash_before
 
         evidence["dimension_o_rollback_safety"] = {
             "model_a_version_before": active_before.model_version if active_before else "v1.0.0",
@@ -1060,30 +1534,14 @@ def run_full_forensic_audit():
             "hash_equality": hash_before == hash_after,
             "rollback_status": "PASS_ROLLBACK_VERIFIED",
         }
-        print(f"  Rollback Audit: PASS_ROLLBACK_VERIFIED (Restored {active_after.model_version}, Hash equality: {hash_before == hash_after})")
+        print(
+            f"  Rollback Audit: PASS_ROLLBACK_VERIFIED (Restored {active_after.model_version}, Hash equality: {hash_before == hash_after})"
+        )
 
     finally:
         shutil.rmtree(tmp_reg_dir, ignore_errors=True)
 
-
-
-
     print("\n[Q] Generating Mandatory Final Classification & Answers...")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     cl_level = "LEVEL 3: REAL NEURAL NETWORK LEARNING VERIFIED"
 
@@ -1129,7 +1587,6 @@ def run_full_forensic_audit():
         "IMPROVEMENT AND REAL-WORLD GENERALIZATION ARE NOT YET PROVEN."
     )
 
-
     out_dir = Path("outputs")
     out_dir.mkdir(parents=True, exist_ok=True)
     evidence_path = out_dir / "continual_learning_real_world_effectiveness_evidence.json"
@@ -1147,7 +1604,3 @@ def run_full_forensic_audit():
 
 if __name__ == "__main__":
     run_full_forensic_audit()
-
-
-
-

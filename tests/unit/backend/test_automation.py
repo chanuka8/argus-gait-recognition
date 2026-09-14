@@ -88,7 +88,6 @@ class TestAutomationSubsystem(unittest.TestCase):
         self.assertEqual(resp.device, "cuda")
         self.assertIsNone(resp.compute)
 
-
         compute_data = ComputeInfo(
             backend="cuda",
             device="cuda:0",
@@ -121,7 +120,6 @@ class TestAutomationSubsystem(unittest.TestCase):
         self.assertEqual(dm_cpu.resolve_component_device("cuda"), "cpu")
         self.assertEqual(dm_cpu.resolve_component_device("cpu"), "cpu")
 
-
         dm_auto = DeviceManager.get_instance(force_refresh=True, force_cpu=False)
         self.assertIsNotNone(dm_auto.backend)
 
@@ -129,7 +127,6 @@ class TestAutomationSubsystem(unittest.TestCase):
         import numpy as np
 
         from pipeline.detection.person_detector import PersonDetector
-
 
         DeviceManager.get_instance(force_refresh=True, force_cpu=True)
         detector = PersonDetector()
@@ -139,7 +136,6 @@ class TestAutomationSubsystem(unittest.TestCase):
         _ = detector.detect(dummy)
         param_dev = next(detector.model.model.parameters()).device
         self.assertEqual(param_dev.type, "cpu")
-
 
         DeviceManager.get_instance(force_refresh=True, force_cpu=False)
 

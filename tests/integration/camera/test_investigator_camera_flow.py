@@ -63,7 +63,9 @@ def test_investigator_camera_flow_and_rbac(test_client, auth_headers):
     mock_cap = MagicMock()
     mock_cap.isOpened.return_value = True
     mock_cap.read.return_value = (True, dummy_frame)
-    mock_cap.get.side_effect = lambda prop: 640 if prop == cv2.CAP_PROP_FRAME_WIDTH else (480 if prop == cv2.CAP_PROP_FRAME_HEIGHT else 30)
+    mock_cap.get.side_effect = lambda prop: (
+        640 if prop == cv2.CAP_PROP_FRAME_WIDTH else (480 if prop == cv2.CAP_PROP_FRAME_HEIGHT else 30)
+    )
 
     with patch("cv2.VideoCapture", return_value=mock_cap):
         # 2. Investigator starts camera: MUST SUCCEED (200, NOT 403!)
@@ -78,7 +80,9 @@ def test_investigator_camera_flow_and_rbac(test_client, auth_headers):
             json=start_payload,
             headers=auth_headers["investigator"],
         )
-        assert start_resp.status_code == 200, f"Expected 200 for investigator start, got {start_resp.status_code}: {start_resp.text}"
+        assert start_resp.status_code == 200, (
+            f"Expected 200 for investigator start, got {start_resp.status_code}: {start_resp.text}"
+        )
         cam_info = start_resp.json()
         assert cam_info["camera_id"] == "cam_investigator_test_01"
         assert cam_info["status"] in ("ACTIVE", "connected")

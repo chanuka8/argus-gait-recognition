@@ -102,7 +102,9 @@ class ModelSyncEvent:
     attempt_count: int = 0
     last_attempt_at: float | None = None
     next_retry_at: float = 0.0
-    status: str = "CLOUD_SYNC_PENDING"  # "CLOUD_SYNC_PENDING", "RETRYING", "SYNCHRONIZED", "RECONCILIATION_REQUIRED", "FAILED"
+    status: str = (
+        "CLOUD_SYNC_PENDING"  # "CLOUD_SYNC_PENDING", "RETRYING", "SYNCHRONIZED", "RECONCILIATION_REQUIRED", "FAILED"
+    )
     checksum_sha256: str = ""
     error_info: str | None = None
 
@@ -279,10 +281,12 @@ class ModelRegistry:
                 metadata={"note": "Baseline OSNet-x0.25 ReID appearance feature extraction model"},
             )
 
-            self._save_registry({
-                "registry_revision": 1,
-                "models": [base_gait.to_dict(), base_osnet.to_dict(), base_fusion.to_dict()],
-            })
+            self._save_registry(
+                {
+                    "registry_revision": 1,
+                    "models": [base_gait.to_dict(), base_osnet.to_dict(), base_fusion.to_dict()],
+                }
+            )
 
     def _calculate_checksum(self, file_path: str | Path) -> str:
         p = Path(file_path)

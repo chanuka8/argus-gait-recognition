@@ -49,7 +49,6 @@ def test_case_2_gait_only_fallback(fusion_engine):
     assert res_none["modality_state"] == "GAIT_ONLY"
     assert res_none["conflict"] is False
 
-
     res_unknown = fusion_engine.decide_identity(
         gait_identity="Person_001",
         gait_score=0.91,
@@ -108,7 +107,6 @@ def test_case_5_conflicting_identities_handling(fusion_engine):
         appearance_threshold=0.60,
     )
 
-
     assert res["conflict"] is True
     assert res["decision"] == "REVIEW_REQUIRED"
     assert res["status"] == "REVIEW_REQUIRED"
@@ -150,7 +148,6 @@ def test_custom_fusion_weights_configuration():
         appearance_threshold=0.60,
     )
 
-
     assert res["final_score"] == pytest.approx(0.88, abs=1e-3)
     assert res["final_identity"] == "Subject_X"
 
@@ -162,7 +159,6 @@ def test_recognition_worker_fusion_enabled_vs_disabled():
         fusion_engine=fusion_on,
     )
     assert worker_on.fusion_engine.is_enabled() is True
-
 
     fusion_off = DualModalFusion(enabled=False)
     worker_off = RecognitionWorker(

@@ -1,42 +1,19 @@
 import React, { useEffect } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { db } from '../firebaseConfig';
-import { collection, query, where, getDocs } from 'firebase/firestore';
 
 const ProtectedRoute = ({ children, allowedRole }) => {
     const { currentUser, logout } = useAuth();
     const navigate = useNavigate();
 
+    // Note: Operator active status, suspension, and revocation are authoritatively tracked
+    // in real-time by AuthContext's onSnapshot listener. Eliminating redundant blocking Firestore getDocs
+    // here ensures instant route transitions without weakening security.
     useEffect(() => {
-        const verifyActiveStatus = async () => {
-            if (!currentUser) return;
-            try {
-                const roleLower = currentUser.role.toLowerCase();
-                const targetCollection = (roleLower === 'admin' || roleLower === 'root admin') ? 'admins' : 'investigators';
-                const userQuery = query(
-                    collection(db, targetCollection),
-                    where('username', '==', currentUser.username)
-                );
-                const querySnapshot = await getDocs(userQuery);
-                if (!querySnapshot.empty) {
-                    const userData = querySnapshot.docs[0].data();
-                    if (userData.status === 'Suspended') {
-                        alert('Your account has been suspended. Logging out.');
-                        await logout();
-                        navigate('/');
-                    }
-                } else {
-                    alert('Operator account no longer exists. Logging out.');
-                    await logout();
-                    navigate('/');
-                }
-            } catch (err) {
-                console.error("Error verifying active status:", err);
-            }
-        };
-
-        verifyActiveStatus();
+        if (currentUser && currentUser.status === 'Suspended') {
+            logout();
+            navigate('/');
+        }
     }, [currentUser, navigate, logout]);
 
     if (!currentUser) {

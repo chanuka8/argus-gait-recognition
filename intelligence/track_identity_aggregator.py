@@ -85,13 +85,11 @@ class TrackIdentityAggregator:
             stats["total_frames"] += 1
             frame_idx = stats["total_frames"]
 
-
             valid_votes = [r["identity"] for r in window if self._is_valid_identity(r["identity"])]
             counts = Counter(valid_votes)
 
             window_len = len(window)
             if not counts or window_len < self.min_frames_for_decision:
-
                 return {
                     "track_id": track_id,
                     "decision": "UNKNOWN",
@@ -109,13 +107,10 @@ class TrackIdentityAggregator:
             best_candidate, vote_count = counts.most_common(1)[0]
             consensus_fraction = vote_count / window_len
 
-
             agreeing_scores = [r["score"] for r in window if r["identity"] == best_candidate]
             avg_score = float(sum(agreeing_scores) / len(agreeing_scores)) if agreeing_scores else 0.0
 
-
             if consensus_fraction >= self.consensus_threshold and avg_score >= self.confirm_threshold:
-
                 is_confusion_risk = False
                 for group in self.high_risk_confusion_groups:
                     if best_candidate in group:
@@ -144,7 +139,7 @@ class TrackIdentityAggregator:
                     self._confirmed_identities[track_id] = best_candidate
                     self._logger.info(
                         f"Track {track_id} CONFIRMED as '{best_candidate}' at frame {frame_idx} "
-                        f"(Consensus: {vote_count}/{window_len} = {consensus_fraction*100:.1f}%, Avg Score: {avg_score:.4f})"
+                        f"(Consensus: {vote_count}/{window_len} = {consensus_fraction * 100:.1f}%, Avg Score: {avg_score:.4f})"
                     )
 
                 return {
@@ -160,7 +155,6 @@ class TrackIdentityAggregator:
                     "modality_state": "TEMPORAL_CONFIRMED",
                     "is_aggregated": True,
                 }
-
 
             review_lower_bound = self.confirm_threshold - self.near_miss_margin
             if consensus_fraction >= self.consensus_threshold and avg_score >= review_lower_bound:
@@ -179,7 +173,6 @@ class TrackIdentityAggregator:
                     "alert_reason": f"Score {avg_score:.4f} within near-miss margin of threshold {self.confirm_threshold:.2f}",
                 }
 
-
             if consensus_fraction >= self.consensus_threshold:
                 return {
                     "track_id": track_id,
@@ -194,7 +187,6 @@ class TrackIdentityAggregator:
                     "modality_state": "LOW_CONFIDENCE",
                     "is_aggregated": True,
                 }
-
 
             return {
                 "track_id": track_id,
@@ -248,7 +240,10 @@ class TrackIdentityAggregator:
                     if confirmed_id is not None
                     else (
                         "REVIEW_REQUIRED"
-                        if (avg_score >= (self.confirm_threshold - self.near_miss_margin) and consensus_fraction >= self.consensus_threshold)
+                        if (
+                            avg_score >= (self.confirm_threshold - self.near_miss_margin)
+                            and consensus_fraction >= self.consensus_threshold
+                        )
                         else "LOW_CONFIDENCE"
                     )
                 ),

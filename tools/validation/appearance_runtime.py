@@ -27,9 +27,6 @@ def run_runtime_validation():
     print("ARGUS AI - REAL-RUNTIME APPEARANCE MODEL VALIDATION SUITE")
     print("=" * 80)
 
-
-
-
     print("\n--- TEST 1: REAL OSNET MODEL LOAD ---")
     ckpt_path = "models/weights/osnet_x0_25.pth"
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -55,9 +52,6 @@ def run_runtime_validation():
     results["test_1_model_load"] = test1_info
     print(json.dumps(test1_info, indent=2))
 
-
-
-
     print("\n--- TEST 2: REAL REFERENCE PHOTO ENROLLMENT ---")
     devhan_dir = Path("data/auto_enrollment/photos/Devhan")
     devhan_photos = sorted(list(devhan_dir.glob("*.jpeg")) + list(devhan_dir.glob("*.jpg")))
@@ -68,7 +62,6 @@ def run_runtime_validation():
     photo_1_path = str(devhan_photos[0])
     img_bgr = cv2.imread(photo_1_path)
     h, w, c = img_bgr.shape
-
 
     detector = PersonDetector()
     detections = detector.detect(img_bgr)
@@ -99,7 +92,6 @@ def run_runtime_validation():
     has_nan = bool(np.isnan(emb_1).any())
     has_inf = bool(np.isinf(emb_1).any())
 
-
     test_gallery_dir = Path("outputs/test_runtime_appearance_gallery")
     test_gallery_dir.mkdir(parents=True, exist_ok=True)
     updater = AppearanceGalleryUpdater(gallery_dir=str(test_gallery_dir))
@@ -115,13 +107,16 @@ def run_runtime_validation():
         "has_nan": has_nan,
         "has_inf": has_inf,
         "enrolled_person": "Devhan",
-        "passed": (emb_1.shape == (512,) and emb_1.dtype == np.float32 and abs(emb_norm - 1.0) < 1e-4 and not has_nan and not has_inf),
+        "passed": (
+            emb_1.shape == (512,)
+            and emb_1.dtype == np.float32
+            and abs(emb_norm - 1.0) < 1e-4
+            and not has_nan
+            and not has_inf
+        ),
     }
     results["test_2_single_photo_enrollment"] = test2_info
     print(json.dumps(test2_info, indent=2))
-
-
-
 
     print("\n--- TEST 3: MULTIPLE REFERENCE PHOTOS ---")
     multi_photos = devhan_photos[:3]
@@ -135,10 +130,10 @@ def run_runtime_validation():
         assert abs(np.linalg.norm(p_emb) - 1.0) < 1e-4
         devhan_embeddings.append(p_emb)
 
-
     test_multi_gallery_dir = Path("outputs/test_runtime_appearance_multi_gallery")
     if test_multi_gallery_dir.exists():
         import shutil
+
         shutil.rmtree(test_multi_gallery_dir)
     test_multi_gallery_dir.mkdir(parents=True, exist_ok=True)
     updater_multi = AppearanceGalleryUpdater(gallery_dir=str(test_multi_gallery_dir))
@@ -158,16 +153,12 @@ def run_runtime_validation():
     results["test_3_multiple_photos_enrollment"] = test3_info
     print(json.dumps(test3_info, indent=2))
 
-
-
-
     print("\n--- TEST 4: GALLERY PERSISTENCE ---")
     feat_file = test_multi_gallery_dir / "gallery_features.npy"
     lbl_file = test_multi_gallery_dir / "gallery_labels.npy"
     meta_file = test_multi_gallery_dir / "gallery_metadata.json"
 
     files_exist = feat_file.exists() and lbl_file.exists() and meta_file.exists()
-
 
     reloaded_updater = AppearanceGalleryUpdater(gallery_dir=str(test_multi_gallery_dir))
     rel_feat, rel_lbl, rel_meta = reloaded_updater.store.load()
@@ -183,12 +174,8 @@ def run_runtime_validation():
     results["test_4_gallery_persistence"] = test4_info
     print(json.dumps(test4_info, indent=2))
 
-
-
-
     print("\n--- TEST 5: SAME-PERSON MATCHING ---")
     matcher = AppearanceMatchingStep(threshold=0.60)
-
 
     query_photo_devhan = str(devhan_photos[3])
     query_img_devhan = cv2.imread(query_photo_devhan)
@@ -212,9 +199,6 @@ def run_runtime_validation():
     results["test_5_same_person_matching"] = test5_info
     print(json.dumps(test5_info, indent=2))
 
-
-
-
     print("\n--- TEST 6: DIFFERENT-PERSON NEGATIVE TEST ---")
     person01_dir = Path("data/auto_enrollment/photos/person01")
     person01_photos = sorted(list(person01_dir.glob("*.jpeg")) + list(person01_dir.glob("*.jpg")))
@@ -225,7 +209,6 @@ def run_runtime_validation():
     diff_photo = str(person01_photos[0])
     diff_img = cv2.imread(diff_photo)
     diff_emb = extractor.extract(diff_img)
-
 
     best_cand_diff, best_score_diff = matcher.match(
         query_feature=diff_emb,
@@ -247,9 +230,6 @@ def run_runtime_validation():
     }
     results["test_6_different_person_test"] = test6_info
     print(json.dumps(test6_info, indent=2))
-
-
-
 
     print("\n--- TEST 7: UNKNOWN PERSON TEST ---")
     empty_updater = AppearanceGalleryUpdater(gallery_dir="outputs/test_runtime_empty_gallery")
@@ -275,9 +255,6 @@ def run_runtime_validation():
     }
     results["test_7_unknown_person_test"] = test7_info
     print(json.dumps(test7_info, indent=2))
-
-
-
 
     print("\n--- TEST 8 & 9: REAL VIDEO / CAMERA PIPELINE TEST ---")
     video_path = "data/new_input/_disabled_test_01/walk.mp4.mp4"
@@ -341,9 +318,6 @@ def run_runtime_validation():
     results["test_8_9_real_video_pipeline"] = test8_9_info
     print(json.dumps(test8_9_info, indent=2))
 
-
-
-
     print("\n--- TEST 10: APPEARANCE FAILURE ISOLATION ---")
     empty_crop = np.zeros((0, 0, 3), dtype=np.uint8)
     empty_emb = extractor.extract(empty_crop)
@@ -365,9 +339,6 @@ def run_runtime_validation():
     results["test_10_failure_isolation"] = test10_info
     print(json.dumps(test10_info, indent=2))
 
-
-
-
     print("\n--- TEST 11: GAIT REGRESSION ---")
     gait_updater = GalleryUpdater(gallery_dir="models/gallery")
     gait_res = gait_updater.store.load()
@@ -382,20 +353,15 @@ def run_runtime_validation():
     results["test_11_gait_regression"] = test11_info
     print(json.dumps(test11_info, indent=2))
 
-
-
-
     print("\n--- TEST 12: DIMENSION ISOLATION ---")
     app_updater_iso = AppearanceGalleryUpdater(gallery_dir="outputs/test_iso_app")
     gait_updater_iso = GalleryUpdater(gallery_dir="outputs/test_iso_gait")
-
 
     rejected_256_in_app = False
     try:
         app_updater_iso.add_person("Bad256", [np.zeros((256,), dtype=np.float32)])
     except ValueError:
         rejected_256_in_app = True
-
 
     rejected_512_in_gait = False
     try:
@@ -410,7 +376,6 @@ def run_runtime_validation():
     }
     results["test_12_dimension_isolation"] = test12_info
     print(json.dumps(test12_info, indent=2))
-
 
     report_file = Path("outputs/reports/appearance_runtime_validation_report.json")
     report_file.parent.mkdir(parents=True, exist_ok=True)

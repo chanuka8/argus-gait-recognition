@@ -31,19 +31,15 @@ def verify_bygait_real_training() -> dict[str, Any]:
     print("[TEST 1] Real ByGaitLight CNN Fine-Tuning & Weight Update Verification", flush=True)
     print("=" * 80, flush=True)
 
-
     model = ByGaitLight(embedding_dim=256, part_bins=4)
     model.train()
 
-
-    initial_params = {
-        name: param.clone().detach()
-        for name, param in model.named_parameters()
-        if param.requires_grad
-    }
+    initial_params = {name: param.clone().detach() for name, param in model.named_parameters() if param.requires_grad}
     total_trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(f"  Trainable parameters in ByGaitLight: {total_trainable_params:,} across {len(initial_params)} tensor layers", flush=True)
-
+    print(
+        f"  Trainable parameters in ByGaitLight: {total_trainable_params:,} across {len(initial_params)} tensor layers",
+        flush=True,
+    )
 
     np.random.seed(42)
     torch.manual_seed(42)
@@ -57,12 +53,10 @@ def verify_bygait_real_training() -> dict[str, Any]:
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(full_model.parameters(), lr=1e-3)
 
-
     full_model.eval()
     with torch.no_grad():
         initial_out = full_model(X_data)
         initial_loss = float(criterion(initial_out, y_data).item())
-
 
     full_model.train()
     training_steps = 3
@@ -76,7 +70,6 @@ def verify_bygait_real_training() -> dict[str, Any]:
         optimizer.step()
         final_loss = float(loss.item())
         print(f"    Step {step + 1}/{training_steps} - CrossEntropy Loss: {final_loss:.6f}", flush=True)
-
 
     changed_tensor_count = 0
     max_delta = 0.0
@@ -111,18 +104,15 @@ def verify_osnet_real_training() -> dict[str, Any]:
     print("[TEST 2] Real OSNet ReID Fine-Tuning & Weight Update Verification", flush=True)
     print("=" * 80, flush=True)
 
-
     model = _build_osnet_x0_25()
     model.train()
 
-    initial_params = {
-        name: param.clone().detach()
-        for name, param in model.named_parameters()
-        if param.requires_grad
-    }
+    initial_params = {name: param.clone().detach() for name, param in model.named_parameters() if param.requires_grad}
     total_trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(f"  Trainable parameters in OSNet-x0.25: {total_trainable_params:,} across {len(initial_params)} tensor layers", flush=True)
-
+    print(
+        f"  Trainable parameters in OSNet-x0.25: {total_trainable_params:,} across {len(initial_params)} tensor layers",
+        flush=True,
+    )
 
     np.random.seed(42)
     torch.manual_seed(42)
@@ -134,13 +124,11 @@ def verify_osnet_real_training() -> dict[str, Any]:
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(list(model.parameters()) + list(classifier.parameters()), lr=1e-3)
 
-
     model.eval()
     with torch.no_grad():
         feat = model(X_data)
         initial_out = classifier(feat)
         initial_loss = float(criterion(initial_out, y_data).item())
-
 
     model.train()
     classifier.train()
@@ -156,7 +144,6 @@ def verify_osnet_real_training() -> dict[str, Any]:
         optimizer.step()
         final_loss = float(loss.item())
         print(f"    Step {step + 1}/{training_steps} - CrossEntropy Loss: {final_loss:.6f}", flush=True)
-
 
     changed_tensor_count = 0
     max_delta = 0.0
@@ -202,17 +189,14 @@ def verify_replay_and_candidate_pipeline() -> dict[str, Any]:
         historical_replay_ratio=0.50,
     )
 
-
     new_gei = [{"image": np.random.rand(64, 128).astype(np.float32), "label": "Subject_New"} for _ in range(4)]
     hist_gei = [{"image": np.random.rand(64, 128).astype(np.float32), "label": "Subject_Hist"} for _ in range(4)]
-
 
     total_samples = len(new_gei) + len(hist_gei)
     actual_replay_ratio = len(hist_gei) / total_samples
     print(f"  New date samples: {len(new_gei)} | Historical replay samples: {len(hist_gei)}", flush=True)
     print(f"  Configured replay ratio: 0.50 | Actual batch replay ratio: {actual_replay_ratio:.2f}", flush=True)
     assert actual_replay_ratio == 0.50, "Historical replay ratio mismatch!"
-
 
     res = tuner.fine_tune_bygait_light(
         active_weights_path="",
@@ -253,9 +237,18 @@ def main():
     print("\n" + "=" * 80, flush=True)
     print("VERIFICATION SUMMARY — REAL NEURAL NETWORK LEARNING:", flush=True)
     print("=" * 80, flush=True)
-    print(f"  [VERIFIED] ByGaitLight CNN: {bygait_res['changed_tensors']}/{bygait_res['total_tensors']} tensor layers updated | Loss: {bygait_res['loss_before']:.4f} -> {bygait_res['loss_after']:.4f}", flush=True)
-    print(f"  [VERIFIED] OSNet ReID:      {osnet_res['changed_tensors']}/{osnet_res['total_tensors']} tensor layers updated | Loss: {osnet_res['loss_before']:.4f} -> {osnet_res['loss_after']:.4f}", flush=True)
-    print(f"  [VERIFIED] 50% Replay:     Actual replay ratio: {replay_res['actual_replay_ratio']:.2f} | Candidate SHA-256 computed", flush=True)
+    print(
+        f"  [VERIFIED] ByGaitLight CNN: {bygait_res['changed_tensors']}/{bygait_res['total_tensors']} tensor layers updated | Loss: {bygait_res['loss_before']:.4f} -> {bygait_res['loss_after']:.4f}",
+        flush=True,
+    )
+    print(
+        f"  [VERIFIED] OSNet ReID:      {osnet_res['changed_tensors']}/{osnet_res['total_tensors']} tensor layers updated | Loss: {osnet_res['loss_before']:.4f} -> {osnet_res['loss_after']:.4f}",
+        flush=True,
+    )
+    print(
+        f"  [VERIFIED] 50% Replay:     Actual replay ratio: {replay_res['actual_replay_ratio']:.2f} | Candidate SHA-256 computed",
+        flush=True,
+    )
     print("=" * 80, flush=True)
     print("VERDICT: REAL NEURAL NETWORK LEARNING FULLY PROVEN BY LOCAL EXECUTION.", flush=True)
     print("=" * 80, flush=True)

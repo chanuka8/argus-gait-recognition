@@ -164,4 +164,3 @@ def test_video_upload_chunked_streaming_and_persistence(auth_headers):
                 f.unlink(missing_ok=True)
             except OSError:
                 pass
-

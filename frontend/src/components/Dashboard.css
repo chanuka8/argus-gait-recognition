@@ -232,6 +232,42 @@
     border-top: 3px solid #90A4AE;
 }
 
+/* ── Clickable dossier total card ── */
+.hud-metric-pill.total.dossier-clickable {
+    cursor: pointer;
+    position: relative;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.hud-metric-pill.total.dossier-clickable:hover {
+    border-color: rgba(92, 225, 230, 0.45);
+    border-top-color: #5ce1e6;
+    box-shadow:
+        0 0 18px rgba(92, 225, 230, 0.15),
+        0 6px 25px rgba(0, 0, 0, 0.3);
+    transform: translateY(-4px) scale(1.02);
+}
+
+.hud-metric-pill.total.dossier-clickable:active {
+    transform: translateY(-1px) scale(0.99);
+}
+
+.hud-action-chip {
+    font-size: 0.58rem;
+    font-weight: 800;
+    color: #5ce1e6;
+    letter-spacing: 0.6px;
+    margin-top: 0.3rem;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: all 0.2s ease;
+}
+
+.hud-metric-pill.total.dossier-clickable:hover .hud-action-chip {
+    opacity: 1;
+    transform: translateY(0);
+}
+
 .hud-metric-pill.missing {
     border-top: 3px solid #FF5252;
     box-shadow: 0 0 15px rgba(255, 82, 82, 0.15);

@@ -86,11 +86,13 @@ def test_04_json_missing_required_fields_defaults_to_offline(tmp_path: Path, mon
     # Test 4b: Missing private_key
     incomplete_2 = tmp_path / "incomplete_2.json"
     incomplete_2.write_text(
-        json.dumps({
-            "type": "service_account",
-            "project_id": "argus-17702",
-            "client_email": "argus-sa@argus-17702.iam.gserviceaccount.com",
-        }),
+        json.dumps(
+            {
+                "type": "service_account",
+                "project_id": "argus-17702",
+                "client_email": "argus-sa@argus-17702.iam.gserviceaccount.com",
+            }
+        ),
         encoding="utf-8",
     )
     is_valid, reason, _ = validate_service_account_file(incomplete_2)
@@ -100,11 +102,13 @@ def test_04_json_missing_required_fields_defaults_to_offline(tmp_path: Path, mon
     # Test 4c: Missing client_email
     incomplete_3 = tmp_path / "incomplete_3.json"
     incomplete_3.write_text(
-        json.dumps({
-            "type": "service_account",
-            "project_id": "argus-17702",
-            "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASC...\n-----END PRIVATE KEY-----\n",
-        }),
+        json.dumps(
+            {
+                "type": "service_account",
+                "project_id": "argus-17702",
+                "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASC...\n-----END PRIVATE KEY-----\n",
+            }
+        ),
         encoding="utf-8",
     )
     is_valid, reason, _ = validate_service_account_file(incomplete_3)
@@ -122,16 +126,18 @@ def test_05_valid_service_account_structure_initializes_firebase(tmp_path: Path,
     """INVARIANT 5: Valid service-account structure initializes Firebase Admin SDK via mock."""
     valid_sa = tmp_path / "valid_service_account.json"
     valid_sa.write_text(
-        json.dumps({
-            "type": "service_account",
-            "project_id": "argus-17702",
-            "private_key_id": "mock_key_id_123",
-            "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC6...\n-----END PRIVATE KEY-----\n",
-            "client_email": "argus-sa@argus-17702.iam.gserviceaccount.com",
-            "client_id": "123456789012345678901",
-            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-            "token_uri": "https://oauth2.googleapis.com/token",
-        }),
+        json.dumps(
+            {
+                "type": "service_account",
+                "project_id": "argus-17702",
+                "private_key_id": "mock_key_id_123",
+                "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC6...\n-----END PRIVATE KEY-----\n",
+                "client_email": "argus-sa@argus-17702.iam.gserviceaccount.com",
+                "client_id": "123456789012345678901",
+                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                "token_uri": "https://oauth2.googleapis.com/token",
+            }
+        ),
         encoding="utf-8",
     )
     monkeypatch.setenv("FIREBASE_SERVICE_ACCOUNT_PATH", str(valid_sa))
@@ -139,11 +145,12 @@ def test_05_valid_service_account_structure_initializes_firebase(tmp_path: Path,
     mock_firestore_client = MagicMock()
     mock_storage_bucket = MagicMock()
 
-    with patch("firebase_admin.credentials.Certificate"), \
-         patch("firebase_admin.initialize_app"), \
-         patch("firebase_admin.firestore.client", return_value=mock_firestore_client), \
-         patch("firebase_admin.storage.bucket", return_value=mock_storage_bucket):
-
+    with (
+        patch("firebase_admin.credentials.Certificate"),
+        patch("firebase_admin.initialize_app"),
+        patch("firebase_admin.firestore.client", return_value=mock_firestore_client),
+        patch("firebase_admin.storage.bucket", return_value=mock_storage_bucket),
+    ):
         offline_file = tmp_path / "offline_store.json"
         store = FirebaseEmbeddingStore(mode="auto", offline_store_path=str(offline_file))
 
@@ -282,14 +289,16 @@ def test_10_no_secret_or_private_key_appears_in_logs_or_diagnostics(tmp_path: Pa
 
     valid_sa = tmp_path / "secret_service_account.json"
     valid_sa.write_text(
-        json.dumps({
-            "type": "service_account",
-            "project_id": "argus-17702",
-            "private_key_id": "super_secret_key_id",
-            "private_key": raw_secret_key,
-            "client_email": "argus-sa@argus-17702.iam.gserviceaccount.com",
-            "client_id": "123456789012345678901",
-        }),
+        json.dumps(
+            {
+                "type": "service_account",
+                "project_id": "argus-17702",
+                "private_key_id": "super_secret_key_id",
+                "private_key": raw_secret_key,
+                "client_email": "argus-sa@argus-17702.iam.gserviceaccount.com",
+                "client_id": "123456789012345678901",
+            }
+        ),
         encoding="utf-8",
     )
     monkeypatch.setenv("FIREBASE_SERVICE_ACCOUNT_PATH", str(valid_sa))

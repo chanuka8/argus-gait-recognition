@@ -51,7 +51,6 @@ class PyTorchManager:
             info["is_cpu_build"] = not bool(cuda_tag)
             info["cuda_available"] = torch.cuda.is_available()
 
-
             dev = "cuda" if info["cuda_available"] else "cpu"
             a = torch.zeros((128, 128), device=dev)
             b = torch.ones((128, 128), device=dev)
@@ -112,16 +111,13 @@ class PyTorchManager:
         print(f"\n[ARGUS] PyTorch installation required for target: {target_backend.value}")
         spec = PyTorchInstallSpec(backend=target_backend)
 
-
         if current["installed"]:
             self.uninstall_pytorch()
-
 
         if target_backend == ComputeBackend.CUDA:
             print("[ARGUS] Installing PyTorch CUDA build (2.5.1+cu121)...")
             torch_wheel_path = self.cache_dir / spec.torch_wheel_name
             vision_wheel_path = self.cache_dir / spec.vision_wheel_name
-
 
             if not torch_wheel_path.exists():
                 ok = DownloadManager.download_file(
@@ -142,7 +138,6 @@ class PyTorchManager:
                 if not ok:
                     print("[ARGUS ERROR] Failed to download TorchVision CUDA wheel. Falling back to CPU index...")
                     return self._install_cpu_pytorch()
-
 
             install_ok = self._run_pip_unbuffered(
                 [

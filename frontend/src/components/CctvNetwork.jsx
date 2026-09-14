@@ -35,12 +35,12 @@ function findJpegEnd(buf, startIndex) {
     return -1;
 }
 
-const LiveCameraFeed = ({ cameraId, cameraName, workerActive, telemetry }) => {
+const LiveCameraFeed = ({ cameraId, cameraName, workerActive, isConnecting = false, telemetry }) => {
+    const [isLoaded, setIsLoaded] = useState(false);
     const [streamError, setStreamError] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
-    const [isLoaded, setIsLoaded] = useState(false);
-    const [retryKey, setRetryKey] = useState(0);
     const [frameUrl, setFrameUrl] = useState(null);
+    const [retryKey, setRetryKey] = useState(0);
 
     const handleRetry = () => {
         setStreamError(false);
@@ -178,6 +178,24 @@ const LiveCameraFeed = ({ cameraId, cameraName, workerActive, telemetry }) => {
         };
     }, [cameraId, workerActive, retryKey]);
 
+    if (isConnecting && !workerActive) {
+        return (
+            <div className="simulated-feed-box" style={{ position: 'relative', overflow: 'hidden', minHeight: '180px' }}>
+                <div className="feed-watermark" style={{ zIndex: 3 }}>
+                    <span style={{ color: '#00E5FF', fontWeight: 800 }}>⬤ CONNECTING...</span>
+                    <span>{new Date().toLocaleTimeString()}</span>
+                </div>
+                <div className="radar-target-box" style={{ borderColor: '#00E5FF', color: '#00E5FF', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                    <Loader size={26} className="activity-spin" color="#00E5FF" />
+                    <span style={{ fontSize: '0.82rem', letterSpacing: '1px', fontWeight: 600 }}>CONNECTING TO CAMERA SOURCE...</span>
+                </div>
+                <div className="feed-telemetry" style={{ zIndex: 3, background: 'rgba(5, 15, 25, 0.8)' }}>
+                    Hardware Node: {cameraId} | Status: CONNECTING
+                </div>
+            </div>
+        );
+    }
+
     if (!workerActive) {
         return (
             <div className="simulated-feed-box">
@@ -213,7 +231,8 @@ const LiveCameraFeed = ({ cameraId, cameraName, workerActive, telemetry }) => {
                         left: 0,
                         width: '100%',
                         height: '100%',
-                        objectFit: 'cover',
+                        objectFit: 'contain',
+                        backgroundColor: '#020813',
                         zIndex: 1,
                         opacity: isLoaded ? 1 : 0,
                         transition: 'opacity 0.25s ease-in-out',
@@ -369,6 +388,7 @@ const CctvNetwork = ({ isAdmin = false }) => {
     };
 
     const handleToggleGaitWorker = async (cam) => {
+        if (actionLoading[cam.id]) return;
         setActionLoading(prev => ({ ...prev, [cam.id]: true }));
         setActionErrors(prev => ({ ...prev, [cam.id]: null }));
         setActionFeedback(null);
@@ -654,6 +674,7 @@ const CctvNetwork = ({ isAdmin = false }) => {
                                                 cameraId={cam.id}
                                                 cameraName={cam.name}
                                                 workerActive={workerActive}
+                                                isConnecting={loading}
                                                 telemetry={gaitCam}
                                             />
 
@@ -711,13 +732,13 @@ const CctvNetwork = ({ isAdmin = false }) => {
                                                     <button
                                                         className="stream-details-btn"
                                                         style={{
-                                                            background: workerActive ? 'rgba(255, 107, 107, 0.2)' : 'rgba(0, 229, 255, 0.2)',
-                                                            borderColor: workerActive ? '#FF6B6B' : '#00E5FF',
-                                                            color: workerActive ? '#FF6B6B' : '#00E5FF',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center',
-                                                            gap: '0.3rem',
+                                                             background: workerActive ? 'rgba(255, 107, 107, 0.2)' : 'rgba(0, 229, 255, 0.2)',
+                                                             borderColor: workerActive ? '#FF6B6B' : '#00E5FF',
+                                                             color: workerActive ? '#FF6B6B' : '#00E5FF',
+                                                             display: 'flex',
+                                                             alignItems: 'center',
+                                                             justifyContent: 'center',
+                                                             gap: '0.3rem',
                                                         }}
                                                         disabled={loading}
                                                         onClick={() => handleToggleGaitWorker(cam)}
@@ -729,7 +750,7 @@ const CctvNetwork = ({ isAdmin = false }) => {
                                                         ) : (
                                                             <Play size={14} />
                                                         )}
-                                                        <span>{loading ? 'Processing...' : workerActive ? 'Stop Stream' : 'Start Stream'}</span>
+                                                        <span>{loading ? 'Connecting...' : workerActive ? 'Stop Stream' : 'Start Stream'}</span>
                                                     </button>
                                                 </div>
                                             </div>
@@ -758,6 +779,7 @@ const CctvNetwork = ({ isAdmin = false }) => {
                                     cameraId={selectedCamStream.id}
                                     cameraName={selectedCamStream.name}
                                     workerActive={isGaitWorkerActive(selectedCamStream.id)}
+                                    isConnecting={Boolean(actionLoading[selectedCamStream.id])}
                                     telemetry={getGaitCamera(selectedCamStream.id)}
                                 />
                             </div>

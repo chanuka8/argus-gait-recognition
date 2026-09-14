@@ -60,7 +60,6 @@ class TensorRTBackend(BaseInferenceBackend):
                 return self._fallback_backend.predict(x)
             raise RuntimeError("TensorRT backend is not available and fallback is disabled.")
 
-
         try:
             if isinstance(x, torch.Tensor):
                 arr = x.detach().cpu().numpy().astype(np.float32)
@@ -71,7 +70,6 @@ class TensorRTBackend(BaseInferenceBackend):
                 arr = np.expand_dims(np.expand_dims(arr, 0), 0)
             elif arr.ndim == 3:
                 arr = np.expand_dims(arr, 0)
-
 
             gpu_input = torch.from_numpy(arr).cuda()
             gpu_output = torch.empty((arr.shape[0], 256), dtype=torch.float32, device="cuda")

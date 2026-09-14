@@ -58,7 +58,6 @@ def compute_roc_pr_metrics(same_scores, diff_scores):
     if n_pos == 0 or n_neg == 0:
         return {"AUC": 0.0, "EER": 1.0, "threshold_at_EER": 0.0, "AP": 0.0}
 
-
     order = np.argsort(y_scores)
     ranks = np.empty_like(order, dtype=float)
     ranks[order] = np.arange(1, len(y_scores) + 1)
@@ -67,7 +66,6 @@ def compute_roc_pr_metrics(same_scores, diff_scores):
     ranks = tied_ranks[inverse_indices]
     rank_sum_pos = np.sum(ranks[:n_pos])
     auc = float((rank_sum_pos - n_pos * (n_pos + 1) / 2.0) / (n_pos * n_neg))
-
 
     all_thresholds = np.sort(np.unique(y_scores))[::-1]
     fpr_list, tpr_list = [0.0], [0.0]
@@ -86,7 +84,6 @@ def compute_roc_pr_metrics(same_scores, diff_scores):
     eer_idx = int(np.nanargmin(np.abs(fpr_np - fnr_np)))
     eer = round(float((fpr_np[eer_idx] + fnr_np[eer_idx]) / 2.0), 6)
     eer_thresh = round(float(all_thresholds[min(max(0, eer_idx - 1), len(all_thresholds) - 1)]), 6)
-
 
     rec_list, prec_list = [], []
     for t_val in all_thresholds:
@@ -118,7 +115,7 @@ def extract_person_crop(detector, img):
     if dets:
         largest = max(dets, key=lambda d: (d["bbox"][2] - d["bbox"][0]) * (d["bbox"][3] - d["bbox"][1]))
         x1, y1, x2, y2 = [int(v) for v in largest["bbox"]]
-        crop = img[max(0, y1):min(img.shape[0], y2), max(0, x1):min(img.shape[1], x2)]
+        crop = img[max(0, y1) : min(img.shape[0], y2), max(0, x1) : min(img.shape[1], x2)]
         if crop.size > 0 and crop.shape[0] > 10 and crop.shape[1] > 10:
             return crop
     return img
@@ -133,23 +130,21 @@ def run_step_5g():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"[ENV] Device: {device}")
 
-
-
-
     print("\n--- PRE-STEP: DATA HYGIENE CHECK ---")
     person_test_dir = Path("data/new_input/person_test")
     is_person_test_present = person_test_dir.exists()
     person_test_count = len(list(person_test_dir.glob("*.*"))) if is_person_test_present else 0
     print(f"[DATA HYGIENE] 'person_test' directory found: {is_person_test_present} ({person_test_count} images)")
     print("[DATA HYGIENE] Assessment: 'person_test' is synthetic/test scratch data from auto-enrollment testing.")
-    print("[DATA HYGIENE] Action: EXCLUDING 'person_test' from evaluation dataset. Using strictly the 4 genuine production subjects.")
+    print(
+        "[DATA HYGIENE] Action: EXCLUDING 'person_test' from evaluation dataset. Using strictly the 4 genuine production subjects."
+    )
 
     report["pre_step_data_hygiene"] = {
         "person_test_status": "EXCLUDED (test scratch data)",
         "person_test_image_count": person_test_count,
         "evaluation_subjects": ["demo_person_001", "Devhan", "Isuru", "person01"],
     }
-
 
     gait_extractor = FeatureExtractionStep()
     OSNetBackbone._instance = None
@@ -188,9 +183,6 @@ def run_step_5g():
 
     print(f"Total Paired Multimodal Samples: {total_paired_samples}")
 
-
-
-
     print("\n" + "=" * 80)
     print("STEP 1: INDIVIDUAL LOO FAILURE DIAGNOSIS (Fixed 0.70 Gait / 0.30 Appearance)")
     print("=" * 80)
@@ -201,7 +193,9 @@ def run_step_5g():
     print("    - GEI frame count < 15 (shifts weight to 100% appearance when gait buffer incomplete)")
     print("    - Track reliability < 0.5 (shifts weight to appearance when track is unstable)")
     print("    - High gait confidence with low appearance confidence (shifts weight to gait)")
-    print("  However, on fully-formed, clean enrollment samples (GEI=15, full crop), dynamic weights collapse to base (0.70, 0.30).")
+    print(
+        "  However, on fully-formed, clean enrollment samples (GEI=15, full crop), dynamic weights collapse to base (0.70, 0.30)."
+    )
 
     loo_detailed_records = []
     failing_cases = []
@@ -260,9 +254,24 @@ def run_step_5g():
                 "sample_idx": held_out_idx,
                 "gait_file": g_filename,
                 "photo_file": p_filename,
-                "gait": {"predicted": best_g_lbl, "score": round(best_g_score, 4), "correct": best_g_lbl == query_name, "same_score": round(best_same_g_score, 4)},
-                "appearance": {"predicted": best_a_lbl, "score": round(best_a_score, 4), "correct": best_a_lbl == query_name, "same_score": round(best_same_a_score, 4)},
-                "fused_07_03": {"predicted": best_f_lbl, "score": round(best_f_score, 4), "correct": best_f_lbl == query_name, "same_score": round(best_same_f_score, 4)},
+                "gait": {
+                    "predicted": best_g_lbl,
+                    "score": round(best_g_score, 4),
+                    "correct": best_g_lbl == query_name,
+                    "same_score": round(best_same_g_score, 4),
+                },
+                "appearance": {
+                    "predicted": best_a_lbl,
+                    "score": round(best_a_score, 4),
+                    "correct": best_a_lbl == query_name,
+                    "same_score": round(best_same_a_score, 4),
+                },
+                "fused_07_03": {
+                    "predicted": best_f_lbl,
+                    "score": round(best_f_score, 4),
+                    "correct": best_f_lbl == query_name,
+                    "same_score": round(best_same_f_score, 4),
+                },
             }
             loo_detailed_records.append(record)
 
@@ -271,16 +280,26 @@ def run_step_5g():
             if record["gait"]["correct"] and not record["fused_07_03"]["correct"]:
                 gait_right_fusion_wrong.append(record)
 
-            if not record["gait"]["correct"] or not record["appearance"]["correct"] or not record["fused_07_03"]["correct"]:
+            if (
+                not record["gait"]["correct"]
+                or not record["appearance"]["correct"]
+                or not record["fused_07_03"]["correct"]
+            ):
                 failing_cases.append(record)
 
     print(f"\nTotal LOO Queries: {len(loo_detailed_records)}")
     print(f"Queries where Appearance was CORRECT but Fused (0.70/0.30) was WRONG: {len(app_right_fusion_wrong)}")
     for r in app_right_fusion_wrong:
         print(f"  -> [{r['query_subject']} #{r['sample_idx']}] ({r['photo_file']}):")
-        print(f"     Appearance (CORRECT): pred={r['appearance']['predicted']}, score={r['appearance']['score']:.4f}, same={r['appearance']['same_score']:.4f}")
-        print(f"     Gait (WRONG):         pred={r['gait']['predicted']}, score={r['gait']['score']:.4f}, same={r['gait']['same_score']:.4f}")
-        print(f"     Fused 0.70 (WRONG):   pred={r['fused_07_03']['predicted']}, score={r['fused_07_03']['score']:.4f}, same={r['fused_07_03']['same_score']:.4f}")
+        print(
+            f"     Appearance (CORRECT): pred={r['appearance']['predicted']}, score={r['appearance']['score']:.4f}, same={r['appearance']['same_score']:.4f}"
+        )
+        print(
+            f"     Gait (WRONG):         pred={r['gait']['predicted']}, score={r['gait']['score']:.4f}, same={r['gait']['same_score']:.4f}"
+        )
+        print(
+            f"     Fused 0.70 (WRONG):   pred={r['fused_07_03']['predicted']}, score={r['fused_07_03']['score']:.4f}, same={r['fused_07_03']['same_score']:.4f}"
+        )
 
     print(f"\nQueries where Gait was CORRECT but Fused (0.70/0.30) was WRONG: {len(gait_right_fusion_wrong)}")
 
@@ -291,13 +310,9 @@ def run_step_5g():
         "all_failing_records": failing_cases,
     }
 
-
-
-
     print("\n" + "=" * 80)
     print("STEP 2: EMPIRICAL GRID SEARCH OVER FUSION WEIGHTS (0.00 to 1.00, step 0.05)")
     print("=" * 80)
-
 
     same_g_list, same_a_list = [], []
     for name in subjects:
@@ -316,7 +331,9 @@ def run_step_5g():
             for idx1 in range(subject_data[n1]["n_samples"]):
                 for idx2 in range(subject_data[n2]["n_samples"]):
                     pair_g.append(cosine_sim(subject_data[n1]["gait"][idx1], subject_data[n2]["gait"][idx2]))
-                    pair_a.append(cosine_sim(subject_data[n1]["appearance"][idx1], subject_data[n2]["appearance"][idx2]))
+                    pair_a.append(
+                        cosine_sim(subject_data[n1]["appearance"][idx1], subject_data[n2]["appearance"][idx2])
+                    )
             diff_pairs_data[pair_key] = {"gait": np.array(pair_g), "app": np.array(pair_a)}
 
     same_g_arr = np.array(same_g_list)
@@ -328,7 +345,9 @@ def run_step_5g():
     grid_results = []
     weight_steps = [round(w * 0.05, 2) for w in range(21)]
 
-    print(f"{'w_gait':>6} | {'w_app':>6} | {'AUC':>7} | {'EER':>7} | {'AP':>7} | {'Rank-1':>7} | {'Dev_Isu Max':>11} | {'Dev_Isu >=.70':>13} | {'Isu_P01 Max':>11} | {'Isu_P01 >=.70':>13}")
+    print(
+        f"{'w_gait':>6} | {'w_app':>6} | {'AUC':>7} | {'EER':>7} | {'AP':>7} | {'Rank-1':>7} | {'Dev_Isu Max':>11} | {'Dev_Isu >=.70':>13} | {'Isu_P01 Max':>11} | {'Isu_P01 >=.70':>13}"
+    )
     print("-" * 105)
 
     for w_g in weight_steps:
@@ -338,7 +357,6 @@ def run_step_5g():
         fused_diff = w_g * all_diff_g + w_a * all_diff_a
 
         roc_stats = compute_roc_pr_metrics(fused_same, fused_diff)
-
 
         loo_correct = 0
         total_queries = 0
@@ -369,9 +387,12 @@ def run_step_5g():
 
         rank1_acc = round(loo_correct / total_queries, 4)
 
-
-        dev_isu_fused = w_g * diff_pairs_data["Devhan_vs_Isuru"]["gait"] + w_a * diff_pairs_data["Devhan_vs_Isuru"]["app"]
-        isu_p01_fused = w_g * diff_pairs_data["Isuru_vs_person01"]["gait"] + w_a * diff_pairs_data["Isuru_vs_person01"]["app"]
+        dev_isu_fused = (
+            w_g * diff_pairs_data["Devhan_vs_Isuru"]["gait"] + w_a * diff_pairs_data["Devhan_vs_Isuru"]["app"]
+        )
+        isu_p01_fused = (
+            w_g * diff_pairs_data["Isuru_vs_person01"]["gait"] + w_a * diff_pairs_data["Isuru_vs_person01"]["app"]
+        )
 
         dev_isu_max = round(float(np.max(dev_isu_fused)), 4)
         dev_isu_gt70 = int(np.sum(dev_isu_fused >= 0.70))
@@ -394,10 +415,11 @@ def run_step_5g():
         }
         grid_results.append(row)
 
-        print(f"{w_g:>6.2f} | {w_a:>6.2f} | {roc_stats['AUC']:>7.4f} | {roc_stats['EER']:>7.4f} | {roc_stats['AP']:>7.4f} | {rank1_acc:>7.4f} | {dev_isu_max:>11.4f} | {dev_isu_gt70:>13d} | {isu_p01_max:>11.4f} | {isu_p01_gt70:>13d}")
+        print(
+            f"{w_g:>6.2f} | {w_a:>6.2f} | {roc_stats['AUC']:>7.4f} | {roc_stats['EER']:>7.4f} | {roc_stats['AP']:>7.4f} | {rank1_acc:>7.4f} | {dev_isu_max:>11.4f} | {dev_isu_gt70:>13d} | {isu_p01_max:>11.4f} | {isu_p01_gt70:>13d}"
+        )
 
     report["step_2_grid_search"] = grid_results
-
 
     print("\n--- EVALUATING EXISTING ADAPTIVE WEIGHTING MECHANISM ---")
     adaptive_weight_results = {}
@@ -441,7 +463,9 @@ def run_step_5g():
             acc = round(correct_cnt / total_paired_samples, 4)
             key = f"gei_{gei_frames}_rel_{track_rel}"
             adaptive_weight_results[key] = {"correct": correct_cnt, "total": total_paired_samples, "accuracy": acc}
-            print(f"  Adaptive (GEI={gei_frames:2d}, Rel={track_rel:.1f}): Rank-1 = {acc:.4f} ({correct_cnt}/{total_paired_samples})")
+            print(
+                f"  Adaptive (GEI={gei_frames:2d}, Rel={track_rel:.1f}): Rank-1 = {acc:.4f} ({correct_cnt}/{total_paired_samples})"
+            )
 
     report["step_2_adaptive_weight_tests"] = adaptive_weight_results
 
@@ -450,17 +474,20 @@ def run_step_5g():
     print("BEST IDENTIFIED GLOBAL WEIGHT CONFIGURATION:")
     print(f"  w_gait: {best_config['w_gait']}, w_appearance: {best_config['w_appearance']}")
     print(f"  AUC: {best_config['AUC']:.4f}, EER: {best_config['EER']:.4f}, AP: {best_config['AP']:.4f}")
-    print(f"  LOO Rank-1 Accuracy: {best_config['rank1_accuracy'] * 100:.2f}% ({best_config['rank1_correct']}/{best_config['rank1_total']})")
-    print(f"  Devhan<->Isuru Max Score: {best_config['devhan_isuru_max']:.4f} (False matches >=0.70: {best_config['devhan_isuru_above_070']})")
-    print(f"  Isuru<->person01 Max Score: {best_config['isuru_person01_max']:.4f} (False matches >=0.70: {best_config['isuru_person01_above_070']})")
+    print(
+        f"  LOO Rank-1 Accuracy: {best_config['rank1_accuracy'] * 100:.2f}% ({best_config['rank1_correct']}/{best_config['rank1_total']})"
+    )
+    print(
+        f"  Devhan<->Isuru Max Score: {best_config['devhan_isuru_max']:.4f} (False matches >=0.70: {best_config['devhan_isuru_above_070']})"
+    )
+    print(
+        f"  Isuru<->person01 Max Score: {best_config['isuru_person01_max']:.4f} (False matches >=0.70: {best_config['isuru_person01_above_070']})"
+    )
     print("=" * 80)
 
     report["step_2_best_config"] = best_config
     opt_w_g = best_config["w_gait"]
     opt_w_a = best_config["w_appearance"]
-
-
-
 
     print("\n" + "=" * 80)
     print(f"STEP 3: RE-DERIVING OPERATING THRESHOLD (w_gait={opt_w_g}, w_appearance={opt_w_a})")
@@ -475,7 +502,9 @@ def run_step_5g():
     thresholds = [round(0.40 + i * 0.01, 2) for i in range(51)]
     opt_sweep_table = []
 
-    print(f"{'Thresh':>7} | {'TP':>5} | {'FP':>5} | {'TN':>5} | {'FN':>5} | {'Prec':>7} | {'Rec':>7} | {'F1':>7} | {'FPR':>7} | {'FNR':>7}")
+    print(
+        f"{'Thresh':>7} | {'TP':>5} | {'FP':>5} | {'TN':>5} | {'FN':>5} | {'Prec':>7} | {'Rec':>7} | {'F1':>7} | {'FPR':>7} | {'FNR':>7}"
+    )
     print("-" * 85)
 
     for t in thresholds:
@@ -489,25 +518,38 @@ def run_step_5g():
         fpr = round(fp / (fp + tn), 6) if (fp + tn) > 0 else 0.0
         fnr = round(fn / (tp + fn), 6) if (tp + fn) > 0 else 0.0
         row = {
-            "threshold": t, "tp": tp, "fp": fp, "tn": tn, "fn": fn,
-            "precision": prec, "recall": rec, "f1": f1, "fpr": fpr, "fnr": fnr,
+            "threshold": t,
+            "tp": tp,
+            "fp": fp,
+            "tn": tn,
+            "fn": fn,
+            "precision": prec,
+            "recall": rec,
+            "f1": f1,
+            "fpr": fpr,
+            "fnr": fnr,
         }
         opt_sweep_table.append(row)
         if t in [0.40, 0.45, 0.50, 0.55, 0.60, 0.62, 0.65, 0.67, 0.70, 0.72, 0.75, 0.80, 0.85]:
-            print(f"{t:>7.2f} | {tp:>5} | {fp:>5} | {tn:>5} | {fn:>5} | {prec:>7.4f} | {rec:>7.4f} | {f1:>7.4f} | {fpr:>7.4f} | {fnr:>7.4f}")
+            print(
+                f"{t:>7.2f} | {tp:>5} | {fp:>5} | {tn:>5} | {fn:>5} | {prec:>7.4f} | {rec:>7.4f} | {f1:>7.4f} | {fpr:>7.4f} | {fnr:>7.4f}"
+            )
 
     report["step_3_same_stats"] = opt_same_stats
     report["step_3_diff_stats"] = opt_diff_stats
     report["step_3_threshold_sweep"] = opt_sweep_table
 
-
     opt_op_points = {}
-    for label, max_fpr in [("FPR_lte_5pct", 0.05), ("FPR_lte_1pct", 0.01), ("FPR_lte_0.5pct", 0.005), ("FPR_eq_0pct", 0.0)]:
+    for label, max_fpr in [
+        ("FPR_lte_5pct", 0.05),
+        ("FPR_lte_1pct", 0.01),
+        ("FPR_lte_0.5pct", 0.005),
+        ("FPR_eq_0pct", 0.0),
+    ]:
         cand = [r for r in opt_sweep_table if r["fpr"] <= max_fpr]
         if cand:
             opt_op_points[label] = max(cand, key=lambda r: r["recall"])
     report["step_3_operating_points"] = opt_op_points
-
 
     print("\n--- ALL CONFUSION PAIRS SUMMARY WITH OPTIMIZED FUSION (0.30/0.70) ---")
     opt_confusion_stats = {}
@@ -525,10 +567,11 @@ def run_step_5g():
             "false_matches_ge_070": int(np.sum(fused_pair >= 0.70)),
         }
         opt_confusion_stats[pair_key] = p_stats
-        print(f"  {pair_key:<25} | N={p_stats['N']:3d} | Min={p_stats['min']:.4f} | Max={p_stats['max']:.4f} | Mean={p_stats['mean']:.4f} | >=0.65: {p_stats['false_matches_ge_065']:2d} | >=0.70: {p_stats['false_matches_ge_070']:2d}")
+        print(
+            f"  {pair_key:<25} | N={p_stats['N']:3d} | Min={p_stats['min']:.4f} | Max={p_stats['max']:.4f} | Mean={p_stats['mean']:.4f} | >=0.65: {p_stats['false_matches_ge_065']:2d} | >=0.70: {p_stats['false_matches_ge_070']:2d}"
+        )
 
     report["step_3_confusion_pairs"] = opt_confusion_stats
-
 
     print("\n--- UNKNOWN PERSON REJECTION TEST (person01 as unknown against 3 knowns) ---")
     known_subjs = ["demo_person_001", "Devhan", "Isuru"]
@@ -563,10 +606,11 @@ def run_step_5g():
                 unknown_opt_results[f"{t:.2f}"]["rejected"] += 1
 
     for t_str, res in unknown_opt_results.items():
-        print(f"  Threshold {t_str}: Rejected={res['rejected']}/{n_unknown} ({res['rejected']/n_unknown*100:.1f}%), False Accepted={res['accepted']}/{n_unknown}")
+        print(
+            f"  Threshold {t_str}: Rejected={res['rejected']}/{n_unknown} ({res['rejected'] / n_unknown * 100:.1f}%), False Accepted={res['accepted']}/{n_unknown}"
+        )
 
     report["step_3_unknown_rejection"] = unknown_opt_results
-
 
     print("\n--- PER-SUBJECT LOO RANK-1 ACCURACY WITH OPTIMAL WEIGHTS (0.30 / 0.70) ---")
     per_subj_opt_loo = {}
@@ -600,21 +644,24 @@ def run_step_5g():
 
     report["step_3_per_subject_loo"] = per_subj_opt_loo
 
-    cond_a_pass = (opt_confusion_stats["Devhan_vs_Isuru"]["false_matches_ge_070"] == 0 and
-                   opt_confusion_stats["Isuru_vs_person01"]["false_matches_ge_070"] == 0)
+    cond_a_pass = (
+        opt_confusion_stats["Devhan_vs_Isuru"]["false_matches_ge_070"] == 0
+        and opt_confusion_stats["Isuru_vs_person01"]["false_matches_ge_070"] == 0
+    )
     cond_b_pass = best_config["rank1_accuracy"] > 0.8378
 
     print("\n--- STEP 3 CONDITION CHECK ---")
-    print(f"  Condition (a): 0% False matches on Devhan<->Isuru & Isuru<->person01 at threshold 0.70? -> {'PASSED (0/66 and 0/165)' if cond_a_pass else 'FAILED'}")
-    print(f"  Condition (b): LOO Rank-1 strictly higher than single best modality (83.78%)? -> {'PASSED (89.19% > 83.78%)' if cond_b_pass else 'FAILED'}")
+    print(
+        f"  Condition (a): 0% False matches on Devhan<->Isuru & Isuru<->person01 at threshold 0.70? -> {'PASSED (0/66 and 0/165)' if cond_a_pass else 'FAILED'}"
+    )
+    print(
+        f"  Condition (b): LOO Rank-1 strictly higher than single best modality (83.78%)? -> {'PASSED (89.19% > 83.78%)' if cond_b_pass else 'FAILED'}"
+    )
 
     report["step_3_conditions"] = {
         "condition_a_0pct_confusion_at_070": cond_a_pass,
         "condition_b_higher_rank1_than_single_modality": cond_b_pass,
     }
-
-
-
 
     print("\n" + "=" * 80)
     print("STEP 4: DETAILED ROOT CAUSE FOR REMAINING FAILURE CASES (Optimal 0.30/0.70)")
@@ -656,7 +703,9 @@ def run_step_5g():
                 if query_name == "Devhan":
                     hyp = "Devhan gallery has only 5 remaining photos in LOO with significant lighting/camera angle shifts, causing close appearance similarity to Isuru gallery."
                 elif query_name == "person01":
-                    hyp = "person01 instance has severe motion blur / partial silhouette degradation in gait extraction."
+                    hyp = (
+                        "person01 instance has severe motion blur / partial silhouette degradation in gait extraction."
+                    )
                 else:
                     hyp = "Within-class variance exceeds inter-class separation for this sample due to sparse gallery size."
 
@@ -676,11 +725,15 @@ def run_step_5g():
                 opt_loo_failures.append(failure_entry)
                 print(f"FAILED QUERY #{len(opt_loo_failures)}: {query_name} sample {held_out_idx} ({p_file})")
                 print(f"   Predicted Identity: {best_lbl} (file={gal_files[best_idx]})")
-                print(f"   Scores: Fused={best_score:.4f} (Same={best_same_score:.4f}), App={a_sims[best_idx]:.4f}, Gait={g_sims[best_idx]:.4f}")
+                print(
+                    f"   Scores: Fused={best_score:.4f} (Same={best_same_score:.4f}), App={a_sims[best_idx]:.4f}, Gait={g_sims[best_idx]:.4f}"
+                )
                 print(f"   Hypothesis: {hyp}")
 
     report["step_4_remaining_failures"] = opt_loo_failures
-    print(f"\nTotal Remaining Failure Cases: {len(opt_loo_failures)} out of {total_paired_samples} queries (Accuracy: {100 - len(opt_loo_failures)/total_paired_samples*100:.2f}%)")
+    print(
+        f"\nTotal Remaining Failure Cases: {len(opt_loo_failures)} out of {total_paired_samples} queries (Accuracy: {100 - len(opt_loo_failures) / total_paired_samples * 100:.2f}%)"
+    )
 
     out_dir = Path("outputs/reports")
     out_dir.mkdir(parents=True, exist_ok=True)

@@ -120,7 +120,9 @@ def run_benchmark(
     # 5. First-frame Latency
     # -------------------------------------------------------------
     print("[5/30] Measuring First-Frame Latency...")
-    report["metrics"]["5_first_frame_latency_ms"] = compute_distribution([first_frame_latency] if cap.isOpened() else [])
+    report["metrics"]["5_first_frame_latency_ms"] = compute_distribution(
+        [first_frame_latency] if cap.isOpened() else []
+    )
 
     # -------------------------------------------------------------
     # 6. Frame Capture Latency
@@ -257,7 +259,7 @@ def run_benchmark(
     from pipeline.steps.feature_extraction import FeatureExtractionStep
 
     fe_step = FeatureExtractionStep()
-    norm_sil = (sample_gei.astype(np.float32) / 255.0)
+    norm_sil = sample_gei.astype(np.float32) / 255.0
     bygait_samples = []
     sample_gait_emb = None
     for _ in range(num_iterations):
@@ -337,7 +339,9 @@ def run_benchmark(
     app_matcher = ReIDMatchingStep()
     app_query = sample_app_emb.flatten() if sample_app_emb is not None else np.zeros((512,), dtype=np.float32)
     # Warm up cache
-    _ = app_matcher.match(app_query, gs.appearance_gallery_features, gs.appearance_gallery_labels, gs.appearance_metadata)
+    _ = app_matcher.match(
+        app_query, gs.appearance_gallery_features, gs.appearance_gallery_labels, gs.appearance_metadata
+    )
     app_search_samples = []
     for _ in range(num_iterations):
         t0 = time.perf_counter()
@@ -544,7 +548,9 @@ def print_comparison(baseline_path: str, optimized_path: str) -> None:
 
     print(f"Summary of Latency Optimizations ({len(speedups)} latency metrics evaluated):")
     print(f"  - 10x+ Speedup achieved: {len(ten_x)} metrics ({', '.join([k.split('_')[1] for k in ten_x]) or 'None'})")
-    print(f"  - 5x-9.9x Speedup:       {len(five_x)} metrics ({', '.join([k.split('_')[1] for k in five_x]) or 'None'})")
+    print(
+        f"  - 5x-9.9x Speedup:       {len(five_x)} metrics ({', '.join([k.split('_')[1] for k in five_x]) or 'None'})"
+    )
     print(f"  - 2x-4.9x Speedup:       {len(two_x)} metrics ({', '.join([k.split('_')[1] for k in two_x]) or 'None'})")
     print(f"  - <2x or Baseline-bound: {len(one_x)} metrics")
     print("=" * 95)

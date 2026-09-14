@@ -76,7 +76,6 @@ def run_verification() -> bool:
 
     overall_pass = True
 
-
     print("\n[PHASE 1] Checking Core Package Imports...")
     packages = [
         ("fastapi", "FastAPI Web Framework"),
@@ -98,7 +97,6 @@ def run_verification() -> bool:
         except ImportError as err:
             print(f"  [VERIFY] {desc:<35} : FAIL ({err})")
             overall_pass = False
-
 
     print("\n[PHASE 2] Probing Compute Hardware & Acceleration...")
     gpu_name = "None"
@@ -131,7 +129,6 @@ def run_verification() -> bool:
         print(f"  [ARGUS CUDA] Probe Error                     : FAIL ({err})")
         overall_pass = False
 
-
     print("\n[PHASE 3] Executing Tensor MatMul Probe (1024x1024)...")
     try:
         import torch
@@ -151,7 +148,6 @@ def run_verification() -> bool:
     except (RuntimeError, ValueError, TypeError, OSError) as err:
         print(f"  [ARGUS CUDA] Tensor probe error              : FAIL ({err})")
         overall_pass = False
-
 
     print("\n[PHASE 4] Verifying ByGaitLight Gait Recognition CNN...")
     try:
@@ -184,7 +180,6 @@ def run_verification() -> bool:
         print(f"  [ARGUS MODEL] Model execution error          : FAIL ({err})")
         overall_pass = False
 
-
     print("\n[PHASE 5] Verifying PersonDetector (YOLOv8) Runtime Device...")
     yolo_cuda_ready = False
     yolo_runtime_dev = "cpu"
@@ -206,7 +201,6 @@ def run_verification() -> bool:
     except (RuntimeError, ValueError, TypeError, OSError) as err:
         print(f"  [ARGUS YOLO] Initialization error            : FAIL ({err})")
         overall_pass = False
-
 
     print("\n[PHASE 6] Verifying ONNX Runtime CUDA Acceleration...")
     onnx_ver = "N/A"
@@ -252,7 +246,6 @@ def run_verification() -> bool:
     except (RuntimeError, ValueError, TypeError, OSError) as err:
         print(f"  [ARGUS ONNX CUDA] Provider verification error : FAIL ({err})")
         overall_pass = False
-
 
     target_compute = "CUDA" if is_cuda_avail else "CPU"
     if pytorch_cuda_ready and yolo_cuda_ready and onnx_cuda_ready:

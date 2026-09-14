@@ -171,7 +171,6 @@ class RecognitionWorker:
         self.matcher = matcher or MatchingStep(threshold=self.threshold)
         self.open_set_recognizer = open_set_recognizer or OpenSetRecognizer(known_threshold=self.threshold)
 
-
         self.appearance_extractor = appearance_extractor
         if self.appearance_extractor is None:
             try:
@@ -197,13 +196,23 @@ class RecognitionWorker:
                 self.appearance_matcher = None
 
         self.appearance_gallery_features = appearance_gallery_features
-        self.appearance_gallery_labels = list(appearance_gallery_labels) if appearance_gallery_labels is not None else []
+        self.appearance_gallery_labels = (
+            list(appearance_gallery_labels) if appearance_gallery_labels is not None else []
+        )
         if isinstance(appearance_metadata, dict):
             self.appearance_metadata = appearance_metadata
-        elif isinstance(appearance_metadata, list) and len(appearance_metadata) > 0 and isinstance(appearance_metadata[0], dict):
-            self.appearance_metadata = {str(m.get("person_id", m.get("label", i))): m for i, m in enumerate(appearance_metadata)}
+        elif (
+            isinstance(appearance_metadata, list)
+            and len(appearance_metadata) > 0
+            and isinstance(appearance_metadata[0], dict)
+        ):
+            self.appearance_metadata = {
+                str(m.get("person_id", m.get("label", i))): m for i, m in enumerate(appearance_metadata)
+            }
         else:
-            self.appearance_metadata = {str(lbl): {"status": "ACTIVE", "enabled": True} for lbl in self.appearance_gallery_labels}
+            self.appearance_metadata = {
+                str(lbl): {"status": "ACTIVE", "enabled": True} for lbl in self.appearance_gallery_labels
+            }
 
         self.fusion_engine = fusion_engine
         if self.fusion_engine is None:
@@ -216,7 +225,6 @@ class RecognitionWorker:
                 self._logger.debug(f"Dual-Modal Fusion init skipped: {exc}")
                 self.fusion_engine = None
 
-
         self.track_aggregator = track_aggregator
         if self.track_aggregator is None:
             try:
@@ -228,7 +236,6 @@ class RecognitionWorker:
             except (ImportError, RuntimeError, ValueError, TypeError, OSError) as exc:
                 self._logger.debug(f"TrackIdentityAggregator init skipped: {exc}")
                 self.track_aggregator = None
-
 
         self.operational_collector = operational_collector
         if self.operational_collector is None:
@@ -275,9 +282,13 @@ class RecognitionWorker:
             if isinstance(metadata, dict):
                 self.appearance_metadata = metadata
             elif isinstance(metadata, list) and len(metadata) > 0 and isinstance(metadata[0], dict):
-                self.appearance_metadata = {str(m.get("person_id", m.get("label", i))): m for i, m in enumerate(metadata)}
+                self.appearance_metadata = {
+                    str(m.get("person_id", m.get("label", i))): m for i, m in enumerate(metadata)
+                }
             else:
-                self.appearance_metadata = {str(lbl): {"status": "ACTIVE", "enabled": True} for lbl in self.appearance_gallery_labels}
+                self.appearance_metadata = {
+                    str(lbl): {"status": "ACTIVE", "enabled": True} for lbl in self.appearance_gallery_labels
+                }
             self._logger.info(
                 f"Updated live appearance gallery for camera {self.camera_id}: {len(self.appearance_gallery_labels)} identities"
             )
@@ -392,13 +403,11 @@ class RecognitionWorker:
                     bbox = [int(b) for b in obj["bbox"]]
                     obj_conf = float(obj.get("confidence", 0.85))
 
-
                     is_val, mob_state, gait_elig, app_elig, val_reason = self.detection_validator.assess_detection(
                         bbox=bbox,
                         confidence=obj_conf,
                         frame_shape=frame.shape,
                     )
-
 
                     h, w = frame.shape[:2]
                     x1 = max(0, min(w - 1, bbox[0]))
@@ -407,18 +416,21 @@ class RecognitionWorker:
                     y2 = max(0, min(h, bbox[3]))
                     crop = frame[y1:y2, x1:x2] if (x2 > x1 and y2 > y1) else None
 
-
                     if gait_elig:
                         silhouette = self.silhouette_extractor.extract_from_frame(frame, bbox)
                         if silhouette is not None:
                             self.gei_builder.add_silhouette(track_id, silhouette)
 
-
                     app_identity = "UNKNOWN_PERSON"
                     app_score = 0.0
                     app_status = "UNKNOWN"
 
-                    if app_elig and self.appearance_extractor is not None and crop is not None and getattr(crop, "size", 0) > 0:
+                    if (
+                        app_elig
+                        and self.appearance_extractor is not None
+                        and crop is not None
+                        and getattr(crop, "size", 0) > 0
+                    ):
                         try:
                             app_emb = self.appearance_extractor.extract(
                                 crop=crop,
@@ -442,11 +454,12 @@ class RecognitionWorker:
                                 )
                                 app_identity = str(matched_app_id)
                                 app_score = float(matched_app_score)
-                                if app_identity not in ("UNKNOWN_PERSON", "UNKNOWN") and app_score >= getattr(self.appearance_matcher, "threshold", 0.60):
+                                if app_identity not in ("UNKNOWN_PERSON", "UNKNOWN") and app_score >= getattr(
+                                    self.appearance_matcher, "threshold", 0.60
+                                ):
                                     app_status = "MATCH"
                                 else:
                                     app_status = "UNKNOWN"
-
 
                             if self.operational_collector is not None and app_emb is not None:
                                 try:
@@ -508,14 +521,15 @@ class RecognitionWorker:
                     if gei_ready and time_since_rec >= self.cooldown_seconds:
                         gei = self.gei_builder.build_gei(track_id)
                         if gei is not None:
-                            gait_identity, gait_similarity, gait_decision, gait_status, gait_embedding = self._recognize_gei(gei)
+                            gait_identity, gait_similarity, gait_decision, gait_status, gait_embedding = (
+                                self._recognize_gei(gei)
+                            )
 
                             final_identity = gait_identity
                             final_similarity = gait_similarity
                             final_decision = gait_decision
                             final_status = gait_status
                             fusion_details = None
-
 
                             if self.operational_collector is not None and gait_embedding is not None:
                                 try:
@@ -548,7 +562,9 @@ class RecognitionWorker:
                                     appearance_identity=app_identity,
                                     appearance_score=app_score,
                                     gait_threshold=self.threshold,
-                                    appearance_threshold=self.appearance_matcher.threshold if self.appearance_matcher else 0.60,
+                                    appearance_threshold=self.appearance_matcher.threshold
+                                    if self.appearance_matcher
+                                    else 0.60,
                                     crop=crop,
                                     gei_frame_count=gei_count,
                                     gei=gei,
@@ -566,7 +582,9 @@ class RecognitionWorker:
                                     track_id=track_id,
                                     identity=final_identity,
                                     score=final_similarity,
-                                    modality_state=fusion_details.get("modality_state", final_status) if fusion_details else final_status,
+                                    modality_state=fusion_details.get("modality_state", final_status)
+                                    if fusion_details
+                                    else final_status,
                                     details=fusion_details,
                                 )
                                 if agg_res.get("is_aggregated", False):
@@ -576,10 +594,14 @@ class RecognitionWorker:
                                     final_status = agg_res["status"]
                                     temporal_details = agg_res
 
-
                             if final_status == "CONFIRMED" and final_identity not in ("UNKNOWN_PERSON", "UNKNOWN", ""):
                                 display_state = "CONFIRMED"
-                            elif not gait_elig and mob_state in ("WHEELCHAIR", "CRUTCHES_AID", "STATIONARY_SEATED", "NON_STANDARD_GAIT") and app_status != "MATCH":
+                            elif (
+                                not gait_elig
+                                and mob_state
+                                in ("WHEELCHAIR", "CRUTCHES_AID", "STATIONARY_SEATED", "NON_STANDARD_GAIT")
+                                and app_status != "MATCH"
+                            ):
                                 display_state = "BIOMETRIC_INAPPLICABLE"
                             else:
                                 display_state = "ASSESSING"
@@ -619,7 +641,11 @@ class RecognitionWorker:
                                         "status": gait_status,
                                     },
                                     **({"dual_modal": fusion_details} if fusion_details is not None else {}),
-                                    **({"temporal_aggregation": temporal_details} if temporal_details is not None else {}),
+                                    **(
+                                        {"temporal_aggregation": temporal_details}
+                                        if temporal_details is not None
+                                        else {}
+                                    ),
                                 },
                             )
                             self.cache.put(res)
@@ -649,7 +675,11 @@ class RecognitionWorker:
                                                 "status": gait_status,
                                             },
                                             **({"dual_modal": fusion_details} if fusion_details is not None else {}),
-                                            **({"temporal_aggregation": temporal_details} if temporal_details is not None else {}),
+                                            **(
+                                                {"temporal_aggregation": temporal_details}
+                                                if temporal_details is not None
+                                                else {}
+                                            ),
                                         }
                                     )
                                 except (RuntimeError, ValueError, TypeError, OSError) as cb_err:
@@ -667,11 +697,7 @@ class RecognitionWorker:
                     final_prov_decision = provisional_status
                     fusion_prov_details = None
 
-                    if (
-                        self.fusion_engine is not None
-                        and self.fusion_engine.is_enabled()
-                        and app_status == "MATCH"
-                    ):
+                    if self.fusion_engine is not None and self.fusion_engine.is_enabled() and app_status == "MATCH":
                         decision_res = self.fusion_engine.decide_identity(
                             gait_identity=provisional_identity,
                             gait_score=provisional_similarity,
@@ -696,20 +722,32 @@ class RecognitionWorker:
                             track_id=track_id,
                             identity=final_prov_identity,
                             score=final_prov_similarity,
-                            modality_state=fusion_prov_details.get("modality_state", final_prov_status) if fusion_prov_details else final_prov_status,
+                            modality_state=fusion_prov_details.get("modality_state", final_prov_status)
+                            if fusion_prov_details
+                            else final_prov_status,
                             details=fusion_prov_details,
                         )
-                        if agg_res.get("is_aggregated", False) and agg_res["status"] in ("CONFIRMED", "REVIEW_REQUIRED"):
+                        if agg_res.get("is_aggregated", False) and agg_res["status"] in (
+                            "CONFIRMED",
+                            "REVIEW_REQUIRED",
+                        ):
                             final_prov_identity = agg_res["identity"]
                             final_prov_similarity = agg_res["confidence"]
                             final_prov_decision = agg_res["decision"]
                             final_prov_status = agg_res["status"]
                             temporal_prov_details = agg_res
 
-
-                    if final_prov_status == "CONFIRMED" and final_prov_identity not in ("UNKNOWN_PERSON", "UNKNOWN", ""):
+                    if final_prov_status == "CONFIRMED" and final_prov_identity not in (
+                        "UNKNOWN_PERSON",
+                        "UNKNOWN",
+                        "",
+                    ):
                         prov_display_state = "CONFIRMED"
-                    elif not gait_elig and mob_state in ("WHEELCHAIR", "CRUTCHES_AID", "STATIONARY_SEATED", "NON_STANDARD_GAIT") and app_status != "MATCH":
+                    elif (
+                        not gait_elig
+                        and mob_state in ("WHEELCHAIR", "CRUTCHES_AID", "STATIONARY_SEATED", "NON_STANDARD_GAIT")
+                        and app_status != "MATCH"
+                    ):
                         prov_display_state = "BIOMETRIC_INAPPLICABLE"
                     else:
                         prov_display_state = "ASSESSING"
@@ -749,29 +787,37 @@ class RecognitionWorker:
                                 "status": provisional_status,
                             },
                             **({"dual_modal": fusion_prov_details} if fusion_prov_details is not None else {}),
-                            **({"temporal_aggregation": temporal_prov_details} if temporal_prov_details is not None else {}),
+                            **(
+                                {"temporal_aggregation": temporal_prov_details}
+                                if temporal_prov_details is not None
+                                else {}
+                            ),
                         },
                     )
                     self.cache.put(res)
-
 
                 tracked_boxes = [obj["bbox"] for obj in tracked_objects]
                 untracked_idx = 0
                 for det in raw_detections:
                     det_box = det.get("bbox", [0, 0, 0, 0])
                     is_associated = any(
-                        abs(det_box[0] - tb[0]) <= 5 and abs(det_box[1] - tb[1]) <= 5
-                        for tb in tracked_boxes
+                        abs(det_box[0] - tb[0]) <= 5 and abs(det_box[1] - tb[1]) <= 5 for tb in tracked_boxes
                     )
                     if not is_associated:
                         untracked_idx += 1
                         det_conf = float(det.get("confidence", 0.0))
-                        det_valid, det_mob, det_gait_elig, det_app_elig, det_reason = self.detection_validator.assess_detection(
-                            bbox=det_box,
-                            confidence=det_conf,
-                            frame_shape=frame.shape,
+                        det_valid, det_mob, det_gait_elig, det_app_elig, det_reason = (
+                            self.detection_validator.assess_detection(
+                                bbox=det_box,
+                                confidence=det_conf,
+                                frame_shape=frame.shape,
+                            )
                         )
-                        det_display = "BIOMETRIC_INAPPLICABLE" if (not det_valid or det_mob == "WHEELCHAIR" or not det_gait_elig) else "ASSESSING"
+                        det_display = (
+                            "BIOMETRIC_INAPPLICABLE"
+                            if (not det_valid or det_mob == "WHEELCHAIR" or not det_gait_elig)
+                            else "ASSESSING"
+                        )
 
                         untracked_result = RecognitionResult(
                             camera_id=self.camera_id,

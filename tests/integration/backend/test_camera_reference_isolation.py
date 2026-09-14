@@ -290,7 +290,9 @@ def test_camera_off_photo_upload_e2e(test_env, auth_headers):
         _, labels, _ = g_data
         assert "MP_OFF_PHOTO_01" in list(labels)
 
-        print(f"\n[METRIC] Camera OFF Photo: Upload={upload_duration*1000:.1f}ms, Processing={proc_duration*1000:.1f}ms")
+        print(
+            f"\n[METRIC] Camera OFF Photo: Upload={upload_duration * 1000:.1f}ms, Processing={proc_duration * 1000:.1f}ms"
+        )
 
 
 def test_camera_off_video_upload_e2e(test_env, auth_headers):
@@ -355,8 +357,8 @@ def test_camera_off_video_upload_e2e(test_env, auth_headers):
             assert 0.95 <= np.linalg.norm(e.vector) <= 1.05
 
         print(
-            f"\n[METRIC] Camera OFF Video: Upload={upload_duration*1000:.1f}ms, "
-            f"Processing={proc_duration*1000:.1f}ms, FPS={res.get('effective_fps', 0)}"
+            f"\n[METRIC] Camera OFF Video: Upload={upload_duration * 1000:.1f}ms, "
+            f"Processing={proc_duration * 1000:.1f}ms, FPS={res.get('effective_fps', 0)}"
         )
 
 
@@ -432,8 +434,8 @@ def test_camera_on_photo_upload_e2e(test_env, auth_headers):
         assert "MP_ON_PHOTO_01" in rec_worker.gallery_labels
 
         print(
-            f"\n[METRIC] Camera ON Photo: Upload={upload_duration*1000:.1f}ms, "
-            f"Processing={proc_duration*1000:.1f}ms, CamFramesDelta={final_frames - initial_frames}"
+            f"\n[METRIC] Camera ON Photo: Upload={upload_duration * 1000:.1f}ms, "
+            f"Processing={proc_duration * 1000:.1f}ms, CamFramesDelta={final_frames - initial_frames}"
         )
 
 
@@ -501,8 +503,8 @@ def test_camera_on_video_upload_e2e(test_env, auth_headers):
         assert "MP_ON_VID_01" in worker.recognition_worker.gallery_labels
 
         print(
-            f"\n[METRIC] Camera ON Video: Upload={upload_duration*1000:.1f}ms, "
-            f"Processing={proc_duration*1000:.1f}ms, CamFramesDelta={final_cam_frames - initial_cam_frames}"
+            f"\n[METRIC] Camera ON Video: Upload={upload_duration * 1000:.1f}ms, "
+            f"Processing={proc_duration * 1000:.1f}ms, CamFramesDelta={final_cam_frames - initial_cam_frames}"
         )
 
 

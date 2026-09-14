@@ -128,7 +128,6 @@ class TrainingDatasetBuilder:
         modality = "gait" if model_type == "bygait_light" else "appearance"
         expected_dim = 256 if model_type == "bygait_light" else 512
 
-
         raw_obs = self.collector.get_eligible_by_date(training_date)
         eligible_samples: list[DatasetSampleRecord] = []
 
@@ -146,17 +145,17 @@ class TrainingDatasetBuilder:
             if not ident or ident in ("UNKNOWN", "UNKNOWN_PERSON"):
                 continue
 
-
             img = getattr(obs, "gei_image", None) if modality == "gait" else getattr(obs, "crop_image", None)
             if img is None and self.evidence_manager is not None:
-
                 for rec in self.evidence_manager._records.values():
                     if rec.observation_id == obs.observation_id and rec.modality == modality:
                         img = self.evidence_manager.load_evidence(rec.evidence_id)
                         break
 
             media_status = "AVAILABLE" if img is not None else "TRAINING_MEDIA_UNAVAILABLE"
-            session_id = obs.metadata.get("session_id", f"sess_{obs.camera_id}_{obs.track_id}_{int(obs.created_at // 3600)}")
+            session_id = obs.metadata.get(
+                "session_id", f"sess_{obs.camera_id}_{obs.track_id}_{int(obs.created_at // 3600)}"
+            )
 
             sample = DatasetSampleRecord(
                 sample_id=obs.observation_id,
@@ -175,8 +174,6 @@ class TrainingDatasetBuilder:
                 provenance="operational_observation",
             )
             eligible_samples.append(sample)
-
-
 
         by_identity: dict[str, dict[str, list[DatasetSampleRecord]]] = {}
         for s in eligible_samples:
@@ -237,7 +234,6 @@ class TrainingDatasetBuilder:
                         s.split_type = "independent_test"
                         independent_test_samples.append(s)
 
-
         historical_replay_samples: list[DatasetSampleRecord] = []
         historical_test_samples: list[DatasetSampleRecord] = []
 
@@ -261,7 +257,11 @@ class TrainingDatasetBuilder:
 
                 for idx, e in enumerate(hist_records[:4]):
                     s_id = f"hist_{e.embedding_id}"
-                    split = "historical_test" if idx == len(hist_records[:4]) - 1 and len(hist_records[:4]) > 1 else "historical_replay"
+                    split = (
+                        "historical_test"
+                        if idx == len(hist_records[:4]) - 1 and len(hist_records[:4]) > 1
+                        else "historical_replay"
+                    )
                     sample = DatasetSampleRecord(
                         sample_id=s_id,
                         person_id=p.person_id,
@@ -279,7 +279,6 @@ class TrainingDatasetBuilder:
                         historical_test_samples.append(sample)
                     else:
                         historical_replay_samples.append(sample)
-
 
         future_holdout_samples: list[DatasetSampleRecord] = []
         if future_date and future_date > training_date:
@@ -303,9 +302,14 @@ class TrainingDatasetBuilder:
                         )
                         future_holdout_samples.append(fut_sample)
 
-
-        self._verify_zero_leakage(train_samples, val_samples, independent_test_samples, historical_replay_samples, historical_test_samples, future_holdout_samples)
-
+        self._verify_zero_leakage(
+            train_samples,
+            val_samples,
+            independent_test_samples,
+            historical_replay_samples,
+            historical_test_samples,
+            future_holdout_samples,
+        )
 
         dataset_id = f"ds-{training_date.replace('-', '')}-{model_type[:4]}-{uuid.uuid4().hex[:6]}"
         manifest_dict = {
@@ -388,16 +392,22 @@ class TrainingDatasetBuilder:
         test_ids = {s.sample_id for s in test}
         future_ids = {s.sample_id for s in future_holdout}
 
-
         if train_ids.intersection(test_ids):
-            raise ValueError(f"CRITICAL LEAKAGE: Training IDs found in independent test set: {train_ids.intersection(test_ids)}")
+            raise ValueError(
+                f"CRITICAL LEAKAGE: Training IDs found in independent test set: {train_ids.intersection(test_ids)}"
+            )
         if train_ids.intersection(val_ids):
-            raise ValueError(f"CRITICAL LEAKAGE: Training IDs found in validation set: {train_ids.intersection(val_ids)}")
+            raise ValueError(
+                f"CRITICAL LEAKAGE: Training IDs found in validation set: {train_ids.intersection(val_ids)}"
+            )
         if val_ids.intersection(test_ids):
-            raise ValueError(f"CRITICAL LEAKAGE: Validation IDs found in independent test set: {val_ids.intersection(test_ids)}")
+            raise ValueError(
+                f"CRITICAL LEAKAGE: Validation IDs found in independent test set: {val_ids.intersection(test_ids)}"
+            )
         if train_ids.intersection(future_ids):
-            raise ValueError(f"CRITICAL LEAKAGE: Training IDs found in future holdout set: {train_ids.intersection(future_ids)}")
-
+            raise ValueError(
+                f"CRITICAL LEAKAGE: Training IDs found in future holdout set: {train_ids.intersection(future_ids)}"
+            )
 
         train_sessions = {f"{s.person_id}_{s.session_id}_{s.track_id}" for s in train}
         test_sessions = {f"{s.person_id}_{s.session_id}_{s.track_id}" for s in test}

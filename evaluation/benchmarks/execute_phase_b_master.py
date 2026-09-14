@@ -23,7 +23,9 @@ from pipeline.detection.person_detector import PersonDetector
 from pipeline.steps.feature_extraction import FeatureExtractionStep
 
 
-def compute_map_minp(similarity_matrix: np.ndarray, query_labels: list[str], gallery_labels: list[str]) -> tuple[float, float]:
+def compute_map_minp(
+    similarity_matrix: np.ndarray, query_labels: list[str], gallery_labels: list[str]
+) -> tuple[float, float]:
     num_queries = len(query_labels)
     gallery_labels_arr = np.array(gallery_labels)
     aps, inps = [], []
@@ -47,7 +49,9 @@ def compute_map_minp(similarity_matrix: np.ndarray, query_labels: list[str], gal
     return float(np.mean(aps)) if aps else 0.0, float(np.mean(inps)) if inps else 0.0
 
 
-def compute_cmc(similarity_matrix: np.ndarray, query_labels: list[str], gallery_labels: list[str], max_k: int = 20) -> tuple[list[float], dict[int, float]]:
+def compute_cmc(
+    similarity_matrix: np.ndarray, query_labels: list[str], gallery_labels: list[str], max_k: int = 20
+) -> tuple[list[float], dict[int, float]]:
     num_queries = len(query_labels)
     gallery_labels_arr = np.array(gallery_labels)
     k_counts = np.zeros(max_k, dtype=int)
@@ -70,7 +74,9 @@ def compute_cmc(similarity_matrix: np.ndarray, query_labels: list[str], gallery_
     return cmc_curve, rank_k
 
 
-def compute_roc_eer_tar_at_far(same_scores: list[float] | np.ndarray, diff_scores: list[float] | np.ndarray, num_thresholds: int = 1000) -> dict:
+def compute_roc_eer_tar_at_far(
+    same_scores: list[float] | np.ndarray, diff_scores: list[float] | np.ndarray, num_thresholds: int = 1000
+) -> dict:
     same_arr = np.asarray(same_scores, dtype=np.float32)
     diff_arr = np.asarray(diff_scores, dtype=np.float32)
     n_pos = len(same_arr)
@@ -187,9 +193,6 @@ def main():
     osnet_backbone = OSNetBackbone(model_path="models/weights/osnet_x0_25.pth", device=device)
     fusion_engine = DualModalFusion(default_gait_weight=0.30, default_reid_weight=0.70, enabled=True)
 
-
-
-
     subjects = ["demo_person_001", "Devhan", "Isuru", "person01"]
     base_gei = Path("data/auto_enrollment/gei")
     base_photos = Path("data/auto_enrollment/photos")
@@ -207,9 +210,9 @@ def main():
             dets = detector.detect(img)
             crop = img
             if dets:
-                d = max(dets, key=lambda x: (x["bbox"][2]-x["bbox"][0])*(x["bbox"][3]-x["bbox"][1]))
+                d = max(dets, key=lambda x: (x["bbox"][2] - x["bbox"][0]) * (x["bbox"][3] - x["bbox"][1]))
                 x1, y1, x2, y2 = [int(v) for v in d["bbox"]]
-                crop = img[max(0, y1):min(img.shape[0], y2), max(0, x1):min(img.shape[1], x2)]
+                crop = img[max(0, y1) : min(img.shape[0], y2), max(0, x1) : min(img.shape[1], x2)]
             p_embs.append(osnet_backbone.extract(crop))
 
         n = min(len(g_embs), len(p_embs))
@@ -219,7 +222,6 @@ def main():
     print(f"Loaded {total_multimodal_pairs} synchronized multimodal samples across {len(subjects)} subjects:")
     for s in subjects:
         print(f"  - {s:15}: {data[s]['n']} synchronized GEI + Photo samples")
-
 
     query_gait = []
     query_app = []
@@ -234,7 +236,6 @@ def main():
             query_meta.append((s, idx))
 
     N = len(query_labels)
-
 
     sim_matrix_gait = np.zeros((N, N - 1), dtype=np.float32)
     sim_matrix_app = np.zeros((N, N - 1), dtype=np.float32)
@@ -267,23 +268,23 @@ def main():
             sim_matrix_app[i, gal_idx] = a_sim
             sim_matrix_fused[i, gal_idx] = f_sim
 
-
-
-
     print("\n" + "=" * 100)
     print("PART 2: RECONCILIATION — CLOSED-SET RANK-1 VS THRESHOLD-GATED VERIFICATION (N=37)")
     print("=" * 100)
 
-
-    rank1_gait_hits = sum(1 for i in range(N) if loo_gallery_labels[int(np.argmax(sim_matrix_gait[i]))] == query_labels[i])
-    rank1_app_hits = sum(1 for i in range(N) if loo_gallery_labels[int(np.argmax(sim_matrix_app[i]))] == query_labels[i])
-    rank1_fused_hits = sum(1 for i in range(N) if loo_gallery_labels[int(np.argmax(sim_matrix_fused[i]))] == query_labels[i])
+    rank1_gait_hits = sum(
+        1 for i in range(N) if loo_gallery_labels[int(np.argmax(sim_matrix_gait[i]))] == query_labels[i]
+    )
+    rank1_app_hits = sum(
+        1 for i in range(N) if loo_gallery_labels[int(np.argmax(sim_matrix_app[i]))] == query_labels[i]
+    )
+    rank1_fused_hits = sum(
+        1 for i in range(N) if loo_gallery_labels[int(np.argmax(sim_matrix_fused[i]))] == query_labels[i]
+    )
 
     rank1_gait_acc = rank1_gait_hits / N
     rank1_app_acc = rank1_app_hits / N
     rank1_fused_acc = rank1_fused_hits / N
-
-
 
     gated_correct = {"gait": 0, "app": 0, "fused": 0}
     gated_false = {"gait": 0, "app": 0, "fused": 0}
@@ -299,7 +300,6 @@ def main():
         a_score = float(sim_matrix_app[i, best_a_idx])
         a_id = loo_gallery_labels[best_a_idx]
 
-
         if g_score >= 0.89:
             if g_id == q_lbl:
                 gated_correct["gait"] += 1
@@ -308,7 +308,6 @@ def main():
         else:
             gated_unknown["gait"] += 1
 
-
         if a_score >= 0.72:
             if a_id == q_lbl:
                 gated_correct["app"] += 1
@@ -316,7 +315,6 @@ def main():
                 gated_false["app"] += 1
         else:
             gated_unknown["app"] += 1
-
 
         dec = fusion_engine.decide_identity(
             gait_identity=g_id,
@@ -335,9 +333,6 @@ def main():
         else:
             gated_unknown["fused"] += 1
 
-
-
-
     frr_gait = gated_unknown["gait"] / N
     tar_gait = gated_correct["gait"] / N
     far_gait = gated_false["gait"] / N
@@ -353,14 +348,21 @@ def main():
     print("\n--- RECONCILED ACCURACY & RATE MATRIX ---")
     print(f"{'Operational Metric':<35} | {'Gait-Only':<15} | {'Appearance-Only':<17} | {'Dual-Modal Fused (0.3/0.7)'}")
     print("-" * 95)
-    print(f"{'Closed-Set Rank-1 (No Gate)':<35} | {rank1_gait_acc*100:>13.2f}% | {rank1_app_acc*100:>15.2f}% | {rank1_fused_acc*100:>23.2f}%")
-    print(f"{'Gated Accept Rate (TAR)':<35} | {tar_gait*100:>13.2f}% | {tar_app*100:>15.2f}% | {tar_fused*100:>23.2f}%")
-    print(f"{'False Rejection Rate (FRR)':<35} | {frr_gait*100:>13.2f}% | {frr_app*100:>15.2f}% | {frr_fused*100:>23.2f}%")
-    print(f"{'False Acceptance Rate (FAR)':<35} | {far_gait*100:>13.2f}% | {far_app*100:>15.2f}% | {far_fused*100:>23.2f}%")
-    print(f"{'Total Unknown/Rejected Count':<35} | {gated_unknown['gait']:>11}/37   | {gated_unknown['app']:>13}/37   | {gated_unknown['fused']:>21}/37")
-
-
-
+    print(
+        f"{'Closed-Set Rank-1 (No Gate)':<35} | {rank1_gait_acc * 100:>13.2f}% | {rank1_app_acc * 100:>15.2f}% | {rank1_fused_acc * 100:>23.2f}%"
+    )
+    print(
+        f"{'Gated Accept Rate (TAR)':<35} | {tar_gait * 100:>13.2f}% | {tar_app * 100:>15.2f}% | {tar_fused * 100:>23.2f}%"
+    )
+    print(
+        f"{'False Rejection Rate (FRR)':<35} | {frr_gait * 100:>13.2f}% | {frr_app * 100:>15.2f}% | {frr_fused * 100:>23.2f}%"
+    )
+    print(
+        f"{'False Acceptance Rate (FAR)':<35} | {far_gait * 100:>13.2f}% | {far_app * 100:>15.2f}% | {far_fused * 100:>23.2f}%"
+    )
+    print(
+        f"{'Total Unknown/Rejected Count':<35} | {gated_unknown['gait']:>11}/37   | {gated_unknown['app']:>13}/37   | {gated_unknown['fused']:>21}/37"
+    )
 
     print("\n" + "=" * 100)
     print("PART 3: THRESHOLD CALIBRATION AUDIT — NESTED 5-FOLD STRATIFIED CROSS-VALIDATION")
@@ -380,18 +382,22 @@ def main():
         test_idx = folds[fold_idx]
         train_idx = np.concatenate([folds[f] for f in range(5) if f != fold_idx])
 
-
         train_diff_scores = []
         for i_idx in train_idx:
             for j_idx in train_idx:
                 if query_labels[i_idx] != query_labels[j_idx]:
-                    s_g = float(np.dot(query_gait[i_idx], query_gait[j_idx]) / (np.linalg.norm(query_gait[i_idx]) * np.linalg.norm(query_gait[j_idx])))
-                    s_a = float(np.dot(query_app[i_idx], query_app[j_idx]) / (np.linalg.norm(query_app[i_idx]) * np.linalg.norm(query_app[j_idx])))
+                    s_g = float(
+                        np.dot(query_gait[i_idx], query_gait[j_idx])
+                        / (np.linalg.norm(query_gait[i_idx]) * np.linalg.norm(query_gait[j_idx]))
+                    )
+                    s_a = float(
+                        np.dot(query_app[i_idx], query_app[j_idx])
+                        / (np.linalg.norm(query_app[i_idx]) * np.linalg.norm(query_app[j_idx]))
+                    )
                     train_diff_scores.append(0.30 * s_g + 0.70 * s_a)
 
         fold_calib_thresh = float(np.max(train_diff_scores) + 0.001) if train_diff_scores else 0.72
         calibrated_thresholds.append(fold_calib_thresh)
-
 
         test_correct = 0
         test_false = 0
@@ -425,13 +431,16 @@ def main():
         cv_test_frr_scores.append(test_unknown / len(test_idx))
 
     print("5-Fold Nested Cross-Validation (Out-of-Sample Results):")
-    print(f"  Mean Calibrated Threshold : {np.mean(calibrated_thresholds):.4f} (Fold Range: [{np.min(calibrated_thresholds):.4f}, {np.max(calibrated_thresholds):.4f}])")
-    print(f"  Out-of-Sample Gated TAR   : {np.mean(cv_test_recalls)*100:.2f}% (Std: {np.std(cv_test_recalls)*100:.2f}%)")
-    print(f"  Out-of-Sample Gated FRR   : {np.mean(cv_test_frr_scores)*100:.2f}% (Std: {np.std(cv_test_frr_scores)*100:.2f}%)")
-    print(f"  Out-of-Sample Gated FAR   : {np.mean(cv_test_far_scores)*100:.2f}% (0.00% across all 5 folds)")
-
-
-
+    print(
+        f"  Mean Calibrated Threshold : {np.mean(calibrated_thresholds):.4f} (Fold Range: [{np.min(calibrated_thresholds):.4f}, {np.max(calibrated_thresholds):.4f}])"
+    )
+    print(
+        f"  Out-of-Sample Gated TAR   : {np.mean(cv_test_recalls) * 100:.2f}% (Std: {np.std(cv_test_recalls) * 100:.2f}%)"
+    )
+    print(
+        f"  Out-of-Sample Gated FRR   : {np.mean(cv_test_frr_scores) * 100:.2f}% (Std: {np.std(cv_test_frr_scores) * 100:.2f}%)"
+    )
+    print(f"  Out-of-Sample Gated FAR   : {np.mean(cv_test_far_scores) * 100:.2f}% (0.00% across all 5 folds)")
 
     print("\n" + "=" * 100)
     print("PART 4: FUSION WEIGHT SWEEP ABLATION WITH RANK-1 AND FRR")
@@ -442,8 +451,12 @@ def main():
 
     for i in range(N):
         for j in range(i + 1, N):
-            s_g = float(np.dot(query_gait[i], query_gait[j]) / (np.linalg.norm(query_gait[i]) * np.linalg.norm(query_gait[j])))
-            s_a = float(np.dot(query_app[i], query_app[j]) / (np.linalg.norm(query_app[i]) * np.linalg.norm(query_app[j])))
+            s_g = float(
+                np.dot(query_gait[i], query_gait[j]) / (np.linalg.norm(query_gait[i]) * np.linalg.norm(query_gait[j]))
+            )
+            s_a = float(
+                np.dot(query_app[i], query_app[j]) / (np.linalg.norm(query_app[i]) * np.linalg.norm(query_app[j]))
+            )
             if query_labels[i] == query_labels[j]:
                 same_g.append(s_g)
                 same_a.append(s_a)
@@ -462,11 +475,9 @@ def main():
         _, sw_rank = compute_cmc(sweep_sim_matrix, query_labels, loo_gallery_labels, max_k=5)
         sw_map, _sw_minp = compute_map_minp(sweep_sim_matrix, query_labels, loo_gallery_labels)
 
-
         sw_same = [w_g * sg + w_a * sa for sg, sa in zip(same_g, same_a)]
         sw_diff = [w_g * dg + w_a * da for dg, da in zip(diff_g, diff_a)]
         sw_roc = compute_roc_eer_tar_at_far(sw_same, sw_diff)
-
 
         th_zero_far = float(np.max(sw_diff) + 0.001)
 
@@ -484,7 +495,6 @@ def main():
 
         gated_tar = hits / N * 100
         gated_frr = unknowns / N * 100
-
 
         correct_margins = []
         for i in range(N):
@@ -508,14 +518,19 @@ def main():
         }
         sweep_records.append(rec)
 
-    print(f"{'Gait Wt':>8} | {'App Wt':>8} | {'Rank-1 Acc':>11} | {'Gated TAR':>10} | {'Gated FRR':>10} | {'mAP':>8} | {'ROC-AUC':>9} | {'EER':>8} | {'Avg Margin'}")
+    print(
+        f"{'Gait Wt':>8} | {'App Wt':>8} | {'Rank-1 Acc':>11} | {'Gated TAR':>10} | {'Gated FRR':>10} | {'mAP':>8} | {'ROC-AUC':>9} | {'EER':>8} | {'Avg Margin'}"
+    )
     print("-" * 105)
     for r in sweep_records:
-        marker = " <-- Production Split" if r["w_gait"] == 0.30 else (" <-- App-Alone" if r["w_gait"] == 0.0 else (" <-- Gait-Alone" if r["w_gait"] == 1.0 else ""))
-        print(f"{r['w_gait']:>8.2f} | {r['w_app']:>8.2f} | {r['rank1']:>10.2f}% | {r['gated_tar']:>9.2f}% | {r['gated_frr']:>9.2f}% | {r['map']:>7.2f}% | {r['auc']:>9.4f} | {r['eer']:>7.2f}% | {r['avg_margin']:>10.4f}{marker}")
-
-
-
+        marker = (
+            " <-- Production Split"
+            if r["w_gait"] == 0.30
+            else (" <-- App-Alone" if r["w_gait"] == 0.0 else (" <-- Gait-Alone" if r["w_gait"] == 1.0 else ""))
+        )
+        print(
+            f"{r['w_gait']:>8.2f} | {r['w_app']:>8.2f} | {r['rank1']:>10.2f}% | {r['gated_tar']:>9.2f}% | {r['gated_frr']:>9.2f}% | {r['map']:>7.2f}% | {r['auc']:>9.4f} | {r['eer']:>7.2f}% | {r['avg_margin']:>10.4f}{marker}"
+        )
 
     print("\n" + "=" * 100)
     print("PART 5: PRIMARY MULTIMODAL COMPARISON TABLE (IDENTICAL 37 MULTIMODAL SAMPLES)")
@@ -544,23 +559,46 @@ def main():
     cls_app = compute_classification_metrics(query_labels, y_pred_app, subjects)
     cls_fused = compute_classification_metrics(query_labels, y_pred_fused, subjects)
 
-    print(f"{'Metric Category':<25} | {'Metric Name':<28} | {'Gait-Only':<15} | {'App-Only':<15} | {'Dual-Modal Fused (0.3/0.7)':<25}")
+    print(
+        f"{'Metric Category':<25} | {'Metric Name':<28} | {'Gait-Only':<15} | {'App-Only':<15} | {'Dual-Modal Fused (0.3/0.7)':<25}"
+    )
     print("-" * 115)
-    print(f"{'Identification (Closed)':<25} | {'Rank-1 Accuracy (Top-1)':<28} | {rank_gait[1]*100:>13.2f}% | {rank_app[1]*100:>13.2f}% | {rank_fused[1]*100:>23.2f}%")
-    print(f"{'Identification (Closed)':<25} | {'Rank-5 Accuracy':<28} | {rank_gait[5]*100:>13.2f}% | {rank_app[5]*100:>13.2f}% | {rank_fused[5]*100:>23.2f}%")
-    print(f"{'Identification (Closed)':<25} | {'Rank-10 Accuracy':<28} | {rank_gait[10]*100:>13.2f}% | {rank_app[10]*100:>13.2f}% | {rank_fused[10]*100:>23.2f}%")
-    print(f"{'Retrieval Quality':<25} | {'mAP (Mean Average Prec.)':<28} | {map_gait*100:>13.2f}% | {map_app*100:>13.2f}% | {map_fused*100:>23.2f}%")
-    print(f"{'Retrieval Quality':<25} | {'mINP (Mean Inv. Neg. Pen.)':<28} | {minp_gait*100:>13.2f}% | {minp_app*100:>13.2f}% | {minp_fused*100:>23.2f}%")
-    print(f"{'Verification & Separation':<25} | {'ROC-AUC':<28} | {roc_gait['auc']:>15.4f} | {roc_app['auc']:>15.4f} | {roc_fused['auc']:>25.4f}")
-    print(f"{'Verification & Separation':<25} | {'Equal Error Rate (EER)':<28} | {roc_gait['eer']*100:>13.2f}% | {roc_app['eer']*100:>13.2f}% | {roc_fused['eer']*100:>23.2f}%")
-    print(f"{'Verification (Gated)':<25} | {'Gated TAR (at 0.89/0.72)':<28} | {tar_gait*100:>13.2f}% | {tar_app*100:>13.2f}% | {tar_fused*100:>23.2f}%")
-    print(f"{'Verification (Gated)':<25} | {'Gated FRR (at 0.89/0.72)':<28} | {frr_gait*100:>13.2f}% | {frr_app*100:>13.2f}% | {frr_fused*100:>23.2f}%")
-    print(f"{'Verification (Gated)':<25} | {'Gated FAR (at 0.89/0.72)':<28} | {far_gait*100:>13.2f}% | {far_app*100:>13.2f}% | {far_fused*100:>23.2f}%")
-    print(f"{'Classification (Top-1)':<25} | {'Macro F1-Score':<28} | {cls_gait['macro_f1']*100:>13.2f}% | {cls_app['macro_f1']*100:>13.2f}% | {cls_fused['macro_f1']*100:>23.2f}%")
-    print(f"{'Classification (Top-1)':<25} | {'Weighted F1-Score':<28} | {cls_gait['weighted_f1']*100:>13.2f}% | {cls_app['weighted_f1']*100:>13.2f}% | {cls_fused['weighted_f1']*100:>23.2f}%")
-
-
-
+    print(
+        f"{'Identification (Closed)':<25} | {'Rank-1 Accuracy (Top-1)':<28} | {rank_gait[1] * 100:>13.2f}% | {rank_app[1] * 100:>13.2f}% | {rank_fused[1] * 100:>23.2f}%"
+    )
+    print(
+        f"{'Identification (Closed)':<25} | {'Rank-5 Accuracy':<28} | {rank_gait[5] * 100:>13.2f}% | {rank_app[5] * 100:>13.2f}% | {rank_fused[5] * 100:>23.2f}%"
+    )
+    print(
+        f"{'Identification (Closed)':<25} | {'Rank-10 Accuracy':<28} | {rank_gait[10] * 100:>13.2f}% | {rank_app[10] * 100:>13.2f}% | {rank_fused[10] * 100:>23.2f}%"
+    )
+    print(
+        f"{'Retrieval Quality':<25} | {'mAP (Mean Average Prec.)':<28} | {map_gait * 100:>13.2f}% | {map_app * 100:>13.2f}% | {map_fused * 100:>23.2f}%"
+    )
+    print(
+        f"{'Retrieval Quality':<25} | {'mINP (Mean Inv. Neg. Pen.)':<28} | {minp_gait * 100:>13.2f}% | {minp_app * 100:>13.2f}% | {minp_fused * 100:>23.2f}%"
+    )
+    print(
+        f"{'Verification & Separation':<25} | {'ROC-AUC':<28} | {roc_gait['auc']:>15.4f} | {roc_app['auc']:>15.4f} | {roc_fused['auc']:>25.4f}"
+    )
+    print(
+        f"{'Verification & Separation':<25} | {'Equal Error Rate (EER)':<28} | {roc_gait['eer'] * 100:>13.2f}% | {roc_app['eer'] * 100:>13.2f}% | {roc_fused['eer'] * 100:>23.2f}%"
+    )
+    print(
+        f"{'Verification (Gated)':<25} | {'Gated TAR (at 0.89/0.72)':<28} | {tar_gait * 100:>13.2f}% | {tar_app * 100:>13.2f}% | {tar_fused * 100:>23.2f}%"
+    )
+    print(
+        f"{'Verification (Gated)':<25} | {'Gated FRR (at 0.89/0.72)':<28} | {frr_gait * 100:>13.2f}% | {frr_app * 100:>13.2f}% | {frr_fused * 100:>23.2f}%"
+    )
+    print(
+        f"{'Verification (Gated)':<25} | {'Gated FAR (at 0.89/0.72)':<28} | {far_gait * 100:>13.2f}% | {far_app * 100:>13.2f}% | {far_fused * 100:>23.2f}%"
+    )
+    print(
+        f"{'Classification (Top-1)':<25} | {'Macro F1-Score':<28} | {cls_gait['macro_f1'] * 100:>13.2f}% | {cls_app['macro_f1'] * 100:>13.2f}% | {cls_fused['macro_f1'] * 100:>23.2f}%"
+    )
+    print(
+        f"{'Classification (Top-1)':<25} | {'Weighted F1-Score':<28} | {cls_gait['weighted_f1'] * 100:>13.2f}% | {cls_app['weighted_f1'] * 100:>13.2f}% | {cls_fused['weighted_f1'] * 100:>23.2f}%"
+    )
 
     print("\n" + "=" * 100)
     print("PART 6: LARGE-SCALE DISJOINT GAIT BENCHMARK & 11-VIEW ANGLE MATRIX (CASIA-B 5,466 SEQS)")
@@ -598,12 +636,14 @@ def main():
                 gallery_ids.append(sid)
                 gallery_views.append(view)
             else:
-                probe_records.append({
-                    "emb": emb,
-                    "id": sid,
-                    "cond_type": "CL" if "cl" in cond else ("BG" if "bg" in cond else "NM"),
-                    "view": view,
-                })
+                probe_records.append(
+                    {
+                        "emb": emb,
+                        "id": sid,
+                        "cond_type": "CL" if "cl" in cond else ("BG" if "bg" in cond else "NM"),
+                        "view": view,
+                    }
+                )
 
     cond_counts = {"NM": {"correct": 0, "total": 0}, "BG": {"correct": 0, "total": 0}, "CL": {"correct": 0, "total": 0}}
     view_cond_counts = {c: {v: {"correct": 0, "total": 0} for v in all_angles} for c in ["NM", "BG", "CL"]}
@@ -618,7 +658,7 @@ def main():
 
         best_idx = int(np.argmax(sims))
         pred_id = gallery_ids[best_idx]
-        is_correct = (pred_id == p["id"])
+        is_correct = pred_id == p["id"]
 
         c_type = p["cond_type"]
         v_angle = p["view"]
@@ -652,9 +692,6 @@ def main():
         mean_acc = float(np.mean(row_vals))
         print(f"{c_type:<12} | " + " | ".join([f"{v:>7.1f}%" for v in row_vals]) + f" | {mean_acc:>6.1f}%")
 
-
-
-
     print("\n" + "=" * 100)
     print("PART 7: OPEN-SET OUT-OF-GALLERY (OOG) HELD-OUT INTRUDER EVALUATION")
     print("=" * 100)
@@ -672,19 +709,22 @@ def main():
     intruder_false_accepts = 0
 
     for q_g in intruder_gei_embs:
-        sims = [float(np.dot(q_g, g)/(np.linalg.norm(q_g)*np.linalg.norm(g))) for g in gal_g_prod]
+        sims = [float(np.dot(q_g, g) / (np.linalg.norm(q_g) * np.linalg.norm(g))) for g in gal_g_prod]
         best_s = max(sims)
         intruder_max_scores.append(best_s)
         if best_s >= 0.89:
             intruder_false_accepts += 1
 
-    print(f"Tested {len(intruder_gei_embs)} held-out gait sequences across {len(unseen_casia_subjects)} unseen subjects:")
+    print(
+        f"Tested {len(intruder_gei_embs)} held-out gait sequences across {len(unseen_casia_subjects)} unseen subjects:"
+    )
     print(f"  - Max Intruder Score vs Gallery : {max(intruder_max_scores):.4f}")
-    print(f"  - Mean Intruder Score           : {np.mean(intruder_max_scores):.4f} (Std: {np.std(intruder_max_scores):.4f})")
-    print(f"  - Open-Set FAR at gate 0.89     : {intruder_false_accepts}/{len(intruder_gei_embs)} ({intruder_false_accepts/len(intruder_gei_embs)*100:.2f}% FAR)")
-
-
-
+    print(
+        f"  - Mean Intruder Score           : {np.mean(intruder_max_scores):.4f} (Std: {np.std(intruder_max_scores):.4f})"
+    )
+    print(
+        f"  - Open-Set FAR at gate 0.89     : {intruder_false_accepts}/{len(intruder_gei_embs)} ({intruder_false_accepts / len(intruder_gei_embs) * 100:.2f}% FAR)"
+    )
 
     print("\n" + "=" * 100)
     print("PART 8: EFFICIENCY, LATENCY & MODEL PARAMETER FOOTPRINT BENCHMARK")
@@ -743,25 +783,47 @@ def main():
     size_gait_mb = Path("runs/exp_001/best_model.pth").stat().st_size / (1024 * 1024)
     size_app_mb = Path("models/weights/osnet_x0_25.pth").stat().st_size / (1024 * 1024)
 
-    print(f"\n{'Subsystem / Branch':<25} | {'Params (M)':<12} | {'Disk Size':<12} | {'GPU Latency':<14} | {'CPU Latency':<14}")
+    print(
+        f"\n{'Subsystem / Branch':<25} | {'Params (M)':<12} | {'Disk Size':<12} | {'GPU Latency':<14} | {'CPU Latency':<14}"
+    )
     print("-" * 85)
-    print(f"{'Gait (ByGaitLight)':<25} | {params_gait/1e6:>10.3f}M | {size_gait_mb:>10.2f}MB | {lat_gait_gpu:>11.2f}ms | {lat_gait_cpu:>11.2f}ms")
-    print(f"{'Appearance (OSNet-x0.25)':<25} | {params_app/1e6:>10.3f}M | {size_app_mb:>10.2f}MB | {lat_app_gpu:>11.2f}ms | {lat_app_cpu:>11.2f}ms")
-    print(f"{'Total Dual-Modal Pipeline':<25} | {(params_gait+params_app)/1e6:>10.3f}M | {size_gait_mb+size_app_mb:>10.2f}MB | {lat_gait_gpu+lat_app_gpu:>11.2f}ms | {lat_gait_cpu+lat_app_cpu:>11.2f}ms")
-
-
-
+    print(
+        f"{'Gait (ByGaitLight)':<25} | {params_gait / 1e6:>10.3f}M | {size_gait_mb:>10.2f}MB | {lat_gait_gpu:>11.2f}ms | {lat_gait_cpu:>11.2f}ms"
+    )
+    print(
+        f"{'Appearance (OSNet-x0.25)':<25} | {params_app / 1e6:>10.3f}M | {size_app_mb:>10.2f}MB | {lat_app_gpu:>11.2f}ms | {lat_app_cpu:>11.2f}ms"
+    )
+    print(
+        f"{'Total Dual-Modal Pipeline':<25} | {(params_gait + params_app) / 1e6:>10.3f}M | {size_gait_mb + size_app_mb:>10.2f}MB | {lat_gait_gpu + lat_app_gpu:>11.2f}ms | {lat_gait_cpu + lat_app_cpu:>11.2f}ms"
+    )
 
     print("\n" + "=" * 100)
     print("PART 9: GENERATING VISUAL EVALUATION PLOTS")
     print("=" * 100)
 
-
     plt.figure(figsize=(8, 6), dpi=300)
     ks = np.arange(1, 11)
-    plt.plot(ks, [v * 100 for v in cmc_gait[:10]], "r--o", linewidth=2, label=f"Gait-Only (Rank-1: {rank_gait[1]*100:.1f}%)")
-    plt.plot(ks, [v * 100 for v in cmc_app[:10]], "b-s", linewidth=2, label=f"Appearance-Only (Rank-1: {rank_app[1]*100:.1f}%)")
-    plt.plot(ks, [v * 100 for v in cmc_fused[:10]], "g-^", linewidth=2.5, label=f"Dual-Modal Fused (Rank-1: {rank_fused[1]*100:.1f}%)")
+    plt.plot(
+        ks,
+        [v * 100 for v in cmc_gait[:10]],
+        "r--o",
+        linewidth=2,
+        label=f"Gait-Only (Rank-1: {rank_gait[1] * 100:.1f}%)",
+    )
+    plt.plot(
+        ks,
+        [v * 100 for v in cmc_app[:10]],
+        "b-s",
+        linewidth=2,
+        label=f"Appearance-Only (Rank-1: {rank_app[1] * 100:.1f}%)",
+    )
+    plt.plot(
+        ks,
+        [v * 100 for v in cmc_fused[:10]],
+        "g-^",
+        linewidth=2.5,
+        label=f"Dual-Modal Fused (Rank-1: {rank_fused[1] * 100:.1f}%)",
+    )
     plt.title("Cumulative Match Characteristic (CMC) Curve Comparison", fontsize=14, fontweight="bold")
     plt.xlabel("Rank (k)", fontsize=12)
     plt.ylabel("Identification Accuracy (%)", fontsize=12)
@@ -774,11 +836,28 @@ def main():
     plt.close()
     print("Saved: evaluation/results/cmc_curves.png")
 
-
     plt.figure(figsize=(8, 6), dpi=300)
-    plt.plot(roc_gait["far_curve"], roc_gait["tar_curve"], "r--", linewidth=2, label=f"Gait-Only (AUC: {roc_gait['auc']:.4f}, EER: {roc_gait['eer']*100:.1f}%)")
-    plt.plot(roc_app["far_curve"], roc_app["tar_curve"], "b-", linewidth=2, label=f"Appearance-Only (AUC: {roc_app['auc']:.4f}, EER: {roc_app['eer']*100:.1f}%)")
-    plt.plot(roc_fused["far_curve"], roc_fused["tar_curve"], "g-", linewidth=2.5, label=f"Dual-Modal Fused (AUC: {roc_fused['auc']:.4f}, EER: {roc_fused['eer']*100:.1f}%)")
+    plt.plot(
+        roc_gait["far_curve"],
+        roc_gait["tar_curve"],
+        "r--",
+        linewidth=2,
+        label=f"Gait-Only (AUC: {roc_gait['auc']:.4f}, EER: {roc_gait['eer'] * 100:.1f}%)",
+    )
+    plt.plot(
+        roc_app["far_curve"],
+        roc_app["tar_curve"],
+        "b-",
+        linewidth=2,
+        label=f"Appearance-Only (AUC: {roc_app['auc']:.4f}, EER: {roc_app['eer'] * 100:.1f}%)",
+    )
+    plt.plot(
+        roc_fused["far_curve"],
+        roc_fused["tar_curve"],
+        "g-",
+        linewidth=2.5,
+        label=f"Dual-Modal Fused (AUC: {roc_fused['auc']:.4f}, EER: {roc_fused['eer'] * 100:.1f}%)",
+    )
     plt.plot([0, 1], [0, 1], "k:", alpha=0.5, label="Random Guess (AUC: 0.5000)")
     plt.title("Receiver Operating Characteristic (ROC) Curve Comparison", fontsize=14, fontweight="bold")
     plt.xlabel("False Accept Rate (FAR)", fontsize=12)
@@ -789,7 +868,6 @@ def main():
     plt.savefig(out_dir / "roc_curves.png")
     plt.close()
     print("Saved: evaluation/results/roc_curves.png")
-
 
     plt.figure(figsize=(8, 6), dpi=300)
     w_gaits = [r["w_gait"] for r in sweep_records]
@@ -813,7 +891,6 @@ def main():
     plt.close()
     print("Saved: evaluation/results/fusion_weight_sweep.png")
 
-
     _fig, axes = plt.subplots(1, 3, figsize=(16, 5), dpi=300)
     titles = ["Gait-Only", "Appearance-Only", "Dual-Modal Fused"]
     matrices = [cls_gait["confusion_matrix"], cls_app["confusion_matrix"], cls_fused["confusion_matrix"]]
@@ -827,7 +904,15 @@ def main():
         ax.set_yticklabels([s[:8] for s in subjects])
         for row in range(len(subjects)):
             for col in range(len(subjects)):
-                ax.text(col, row, str(m[row][col]), ha="center", va="center", color="red" if row != col and m[row][col] > 0 else ("white" if m[row][col] > 5 else "black"), fontweight="bold")
+                ax.text(
+                    col,
+                    row,
+                    str(m[row][col]),
+                    ha="center",
+                    va="center",
+                    color="red" if row != col and m[row][col] > 0 else ("white" if m[row][col] > 5 else "black"),
+                    fontweight="bold",
+                )
         ax.set_xlabel("Predicted")
         ax.set_ylabel("True")
 
@@ -835,7 +920,6 @@ def main():
     plt.savefig(out_dir / "confusion_matrices.png")
     plt.close()
     print("Saved: evaluation/results/confusion_matrices.png")
-
 
     report_dict = {
         "dataset_summary": {
@@ -864,7 +948,7 @@ def main():
                 "gated_frr_pct": round(frr_fused * 100, 2),
                 "gated_far_pct": round(far_fused * 100, 2),
                 "gated_unknown_count": gated_unknown["fused"],
-            }
+            },
         },
         "nested_cross_validation": {
             "mean_calibrated_threshold": float(np.mean(calibrated_thresholds)),
@@ -917,14 +1001,17 @@ def main():
                 "macro_recall": cls_fused["macro_recall"],
                 "macro_f1": cls_fused["macro_f1"],
                 "weighted_f1": cls_fused["weighted_f1"],
-            }
+            },
         },
         "fusion_weight_sweep": sweep_records,
         "casia_b_disjoint_benchmark": {
             "test_subjects_count": len(test_subjects),
             "gallery_sequences": len(gallery_embs),
             "probe_sequences": len(probe_records),
-            "condition_accuracy": {c: round(cond_counts[c]["correct"] / max(cond_counts[c]["total"], 1) * 100, 2) for c in ["NM", "BG", "CL"]},
+            "condition_accuracy": {
+                c: round(cond_counts[c]["correct"] / max(cond_counts[c]["total"], 1) * 100, 2)
+                for c in ["NM", "BG", "CL"]
+            },
             "view_angle_accuracy_matrix": view_acc_matrix,
         },
         "open_set_intruder_evaluation": {
@@ -934,10 +1021,25 @@ def main():
             "open_set_far_at_089": float(intruder_false_accepts / len(intruder_gei_embs)),
         },
         "efficiency_latency": {
-            "gait_bygait": {"gpu_latency_ms": lat_gait_gpu, "cpu_latency_ms": lat_gait_cpu, "params_m": params_gait/1e6, "size_mb": size_gait_mb},
-            "appearance_osnet": {"gpu_latency_ms": lat_app_gpu, "cpu_latency_ms": lat_app_cpu, "params_m": params_app/1e6, "size_mb": size_app_mb},
-            "dual_modal_total": {"gpu_latency_ms": lat_gait_gpu + lat_app_gpu, "cpu_latency_ms": lat_gait_cpu + lat_app_cpu, "params_m": (params_gait + params_app)/1e6, "size_mb": size_gait_mb + size_app_mb},
-        }
+            "gait_bygait": {
+                "gpu_latency_ms": lat_gait_gpu,
+                "cpu_latency_ms": lat_gait_cpu,
+                "params_m": params_gait / 1e6,
+                "size_mb": size_gait_mb,
+            },
+            "appearance_osnet": {
+                "gpu_latency_ms": lat_app_gpu,
+                "cpu_latency_ms": lat_app_cpu,
+                "params_m": params_app / 1e6,
+                "size_mb": size_app_mb,
+            },
+            "dual_modal_total": {
+                "gpu_latency_ms": lat_gait_gpu + lat_app_gpu,
+                "cpu_latency_ms": lat_gait_cpu + lat_app_cpu,
+                "params_m": (params_gait + params_app) / 1e6,
+                "size_mb": size_gait_mb + size_app_mb,
+            },
+        },
     }
 
     with open(out_dir / "comprehensive_metrics.json", "w", encoding="utf-8") as f:
@@ -945,6 +1047,7 @@ def main():
 
     print(f"\n[DONE] All evaluation phases completed! Artifacts saved to: {out_dir}/")
     print("=" * 100)
+
 
 if __name__ == "__main__":
     main()

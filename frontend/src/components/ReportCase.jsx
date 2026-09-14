@@ -124,6 +124,7 @@ const ReportCase = () => {
     const [enrollmentResult, setEnrollmentResult] = useState(null);
     const [enrollmentWarning, setEnrollmentWarning] = useState(null);
     const [cloudSyncWarning, setCloudSyncWarning] = useState(null);
+    const [cloudSyncStatus, setCloudSyncStatus] = useState('IDLE');
 
     const imageInputRef = useRef(null);
     const videoInputRef = useRef(null);
@@ -202,8 +203,17 @@ const ReportCase = () => {
     const handleClose = () => navigate('/dashboard');
 
     const handleSubmit = async () => {
-        if (!formData.caseType || !formData.name || !formData.nic || !formData.age || !formData.gender || !formData.locationName || !formData.latitude || !formData.longitude) {
-            alert("Please fill in all mandatory details, including geolocation coordinates (or click Auto-Detect GPS).");
+        const missingFields = [];
+        if (!formData.caseType) missingFields.push("Case Type");
+        if (!formData.name) missingFields.push("Name");
+        if (!formData.nic) missingFields.push("NIC");
+        if (!formData.age) missingFields.push("Age");
+        if (!formData.gender) missingFields.push("Gender");
+        if (!formData.locationName) missingFields.push("Location Name");
+        if (!formData.latitude || !formData.longitude) missingFields.push("Geolocation Coordinates (Lat/Lng)");
+
+        if (missingFields.length > 0) {
+            alert(`Please fill in the following mandatory field(s):\n• ${missingFields.join("\n• ")}`);
             return;
         }
 
@@ -215,132 +225,128 @@ const ReportCase = () => {
 
         setIsUploading(true);
         setProcessingPhase('uploading');
+        setCloudSyncStatus('SYNCING');
+        setCloudSyncWarning(null);
+        setEnrollmentWarning(null);
 
         try {
             const caseId = formData.caseId;
-            console.log('Submitting case', caseId, 'NIC', formData.nic);
+            console.log('[ARGUS] Submitting case', caseId, 'NIC', formData.nic);
 
-            let imageUrls = [];
-            let videoUrls = [];
+            const totalMediaBytes = [...images, ...videos].reduce((sum, f) => sum + (f.size || 0), 0);
+            const primaryMediaType = videos.length > 0 ? 'video' : 'image';
 
-            // 1. Cloud storage sync (resilient to offline or network drops, never blocks local ARGUS pipeline)
-            try {
-                const totalFirebaseBytes = [...images, ...videos].reduce((sum, f) => sum + (f.size || 0), 0);
-                const transferredMap = {};
+            // 1. Initialize local ARGUS AI upload progress immediately
+            setUploadProgress({
+                phase: 'BIOMETRIC_UPLOAD',
+                percent: 0,
+                loaded: 0,
+                total: totalMediaBytes,
+                speedMBs: '0.00',
+                etaSeconds: 0,
+                connectionStatus: 'stable',
+                label: primaryMediaType === 'video'
+                    ? 'Connecting to local ARGUS AI surveillance engine...'
+                    : 'Uploading reference photo(s) to local ARGUS AI...',
+                mediaType: primaryMediaType,
+            });
 
-                const updateFirebaseProgress = (fileKey, bytesTransferred) => {
-                    transferredMap[fileKey] = bytesTransferred;
-                    const currentTotal = Object.values(transferredMap).reduce((a, b) => a + b, 0);
-                    const pct = totalFirebaseBytes > 0
-                        ? Math.min(100, Math.round((currentTotal / totalFirebaseBytes) * 100))
-                        : 100;
-                    setUploadProgress({
-                        phase: 'FIREBASE',
-                        percent: pct,
-                        loaded: currentTotal,
-                        total: totalFirebaseBytes,
-                        label: `Syncing files with cloud storage (${pct}%)...`,
-                        mediaType: null,
+            // 2. Cloud storage sync runs decoupled in parallel/background with strict 3.5s per-file timeout.
+            // Under no circumstance will a hanging Firebase connection stall the local ARGUS pipeline.
+            const cloudSyncPromise = (async () => {
+                let imageUrls = [];
+                let videoUrls = [];
+
+                const uploadFileWithTimeout = (file, storagePath, timeoutMs = 3500) => {
+                    return new Promise((resolve, reject) => {
+                        try {
+                            const fileRef = ref(storage, storagePath);
+                            const uploadTask = uploadBytesResumable(fileRef, file);
+                            uploadTasksRef.current.push(uploadTask);
+
+                            const timer = setTimeout(() => {
+                                try {
+                                    uploadTask.cancel();
+                                } catch (cancelErr) {
+                                    console.debug('[ARGUS] Cloud upload cancellation notice:', cancelErr);
+                                }
+                                reject(new Error(`Cloud upload timed out (${timeoutMs / 1000}s limit for ${file.name})`));
+                            }, timeoutMs);
+
+                            uploadTask.on(
+                                'state_changed',
+                                null,
+                                (err) => {
+                                    clearTimeout(timer);
+                                    reject(err);
+                                },
+                                async () => {
+                                    clearTimeout(timer);
+                                    try {
+                                        const url = await getDownloadURL(fileRef);
+                                        resolve(url);
+                                    } catch (urlErr) {
+                                        reject(urlErr);
+                                    }
+                                }
+                            );
+                        } catch (err) {
+                            reject(err);
+                        }
                     });
                 };
 
-                setUploadProgress({
-                    phase: 'FIREBASE',
-                    percent: 0,
-                    loaded: 0,
-                    total: totalFirebaseBytes,
-                    label: 'Syncing files with cloud storage...',
-                    mediaType: null,
-                });
-
-                for (let i = 0; i < images.length; i++) {
-                    const file = images[i];
-                    const fileKey = `img_${i}_${file.name}`;
-                    const fileRef = ref(storage, `cases/${caseId}/images/${file.name}`);
-                    const uploadTask = uploadBytesResumable(fileRef, file);
-                    uploadTasksRef.current.push(uploadTask);
-                    await new Promise((resolve, reject) => {
-                        uploadTask.on(
-                            'state_changed',
-                            (snapshot) => updateFirebaseProgress(fileKey, snapshot.bytesTransferred),
-                            reject,
-                            () => {
-                                updateFirebaseProgress(fileKey, file.size || 0);
-                                resolve();
-                            }
-                        );
-                    });
-                    const url = await getDownloadURL(fileRef);
-                    imageUrls.push(url);
+                try {
+                    for (let i = 0; i < images.length; i++) {
+                        const url = await uploadFileWithTimeout(images[i], `cases/${caseId}/images/${images[i].name}`);
+                        imageUrls.push(url);
+                    }
+                    for (let i = 0; i < videos.length; i++) {
+                        const url = await uploadFileWithTimeout(videos[i], `cases/${caseId}/videos/${videos[i].name}`);
+                        videoUrls.push(url);
+                    }
+                    setCloudSyncStatus('SYNCED');
+                } catch (cloudErr) {
+                    console.warn('[ARGUS] Cloud storage sync notice (operating in local-first mode):', cloudErr.message);
+                    setCloudSyncStatus('LOCAL_FIRST');
+                    setCloudSyncWarning('Operating in local-first mode. Reference biometrics and case media are secured on local ARGUS surveillance storage.');
                 }
 
-                for (let i = 0; i < videos.length; i++) {
-                    const file = videos[i];
-                    const fileKey = `vid_${i}_${file.name}`;
-                    const fileRef = ref(storage, `cases/${caseId}/videos/${file.name}`);
-                    const uploadTask = uploadBytesResumable(fileRef, file);
-                    uploadTasksRef.current.push(uploadTask);
-                    await new Promise((resolve, reject) => {
-                        uploadTask.on(
-                            'state_changed',
-                            (snapshot) => updateFirebaseProgress(fileKey, snapshot.bytesTransferred),
-                            reject,
-                            () => {
-                                updateFirebaseProgress(fileKey, file.size || 0);
-                                resolve();
-                            }
-                        );
-                    });
-                    const url = await getDownloadURL(fileRef);
-                    videoUrls.push(url);
+                try {
+                    const lastSeenLocation = {
+                        name: formData.locationName,
+                        lat: parseFloat(formData.latitude),
+                        lng: parseFloat(formData.longitude),
+                        source: 'Hybrid GPS / Camera Geocoding'
+                    };
+
+                    const victimRef = doc(db, 'victims', caseId);
+                    await setDoc(victimRef, {
+                        ...formData,
+                        caseId: caseId,
+                        status: 'Investigating',
+                        lastSeenLocation: lastSeenLocation,
+                        createdAt: serverTimestamp(),
+                        storageMode: (imageUrls.length > 0 || videoUrls.length > 0) ? 'cloud_and_local' : 'local_argus',
+                    }, { merge: true });
+
+                    const mediaRef = doc(db, 'person_media', caseId);
+                    await setDoc(mediaRef, {
+                        caseId: caseId,
+                        nic: formData.nic,
+                        imageUrls: imageUrls,
+                        videoUrls: videoUrls,
+                        localMediaPersisted: true,
+                        linkedAt: serverTimestamp(),
+                        createdAt: serverTimestamp()
+                    }, { merge: true });
+                } catch (fsErr) {
+                    console.warn('[ARGUS] Firestore case indexing notice:', fsErr.message);
                 }
+            })();
 
-                const lastSeenLocation = {
-                    name: formData.locationName,
-                    lat: parseFloat(formData.latitude),
-                    lng: parseFloat(formData.longitude),
-                    source: "Hybrid GPS / Camera Geocoding"
-                };
-
-                const victimRef = doc(db, 'victims', caseId);
-                await setDoc(victimRef, {
-                    ...formData,
-                    caseId: caseId,
-                    status: 'Investigating',
-                    lastSeenLocation: lastSeenLocation,
-                    createdAt: serverTimestamp()
-                });
-
-                const mediaRef = doc(db, 'person_media', caseId);
-                await setDoc(mediaRef, {
-                    caseId: caseId,
-                    nic: formData.nic,
-                    imageUrls: imageUrls,
-                    videoUrls: videoUrls,
-                    linkedAt: serverTimestamp(),
-                    createdAt: serverTimestamp()
-                });
-            } catch (cloudErr) {
-                if (cloudErr.code === 'storage/canceled') {
-                    console.log("Cloud upload cancelled by user.");
-                    return;
-                }
-                console.warn("[ARGUS] Cloud storage sync notice (proceeding with local ARGUS AI ingestion):", cloudErr);
-                setCloudSyncWarning("Operating in local-first mode. Biometrics and case data are enrolled and secured in local ARGUS surveillance storage.");
-            }
-
+            // 3. Primary Path: Local ARGUS AI Media Upload & Biometric Extraction
             if (images.length > 0 || videos.length > 0) {
-                setUploadProgress({
-                    phase: 'BIOMETRIC_UPLOAD',
-                    percent: 0,
-                    loaded: 0,
-                    total: 0,
-                    label: videos.length > 0
-                        ? 'Uploading reference video to ARGUS AI...'
-                        : 'Uploading photos to ARGUS AI...',
-                    mediaType: videos.length > 0 ? 'video' : 'image',
-                });
-
                 try {
                     const modelResult = await sendMediaToModel(
                         caseId,
@@ -371,14 +377,14 @@ const ReportCase = () => {
                                     speedMBs: '0.00',
                                     etaSeconds: 0,
                                     connectionStatus: 'stable',
-                                    label: 'Upload complete. Biometric processing dispatched asynchronously.',
+                                    label: 'Media upload complete. Processing reference biometrics asynchronously...',
                                 }));
                             } else if (progressData.phase === 'PROCESSING' || status) {
                                 setUploadProgress(prev => ({
                                     ...prev,
                                     phase: 'UPLOAD_COMPLETE',
                                     percent: 100,
-                                    label: 'Upload complete.',
+                                    label: 'Media upload complete.',
                                 }));
                                 setProcessingPhase('extracting');
                                 const framesProc = progressData.frames_processed || 0;
@@ -408,6 +414,7 @@ const ReportCase = () => {
                             }
                         }
                     );
+
                     if (!modelResult.success || (modelResult.errors && modelResult.errors.length > 0)) {
                         console.warn('[ARGUS] Biometric enrollment notice/warning:', modelResult.errors);
                         setEnrollmentWarning(modelResult.errors.join(' | '));
@@ -421,13 +428,19 @@ const ReportCase = () => {
                 }
             }
 
+            // Await cloud sync completion or cap at 1.5s max so it never delays the success modal
+            await Promise.race([
+                cloudSyncPromise,
+                new Promise(resolve => setTimeout(resolve, 1500))
+            ]);
+
             setShowSuccessModal(true);
         } catch (error) {
             if (error.code === 'storage/canceled') {
-                console.log("Upload was cancelled by the user.");
+                console.log('Upload was cancelled by the user.');
             } else {
-                console.error("Error uploading case:", error);
-                alert("Firebase Error: " + error.message + "\n\nPlease check your Firebase Security Rules or ensure you selected valid files.");
+                console.error('[ARGUS] Error processing case:', error);
+                alert('Submission Error: ' + (error.message || 'Unknown error occurred. Please check network connection.'));
             }
         } finally {
             setIsUploading(false);
@@ -780,15 +793,48 @@ const ReportCase = () => {
                                         </div>
                                     )}
                                 </div>
+
+                                <div style={{
+                                    margin: '0.85rem auto 0',
+                                    padding: '0.35rem 0.75rem',
+                                    borderRadius: '16px',
+                                    fontSize: '0.74rem',
+                                    fontWeight: '600',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.4rem',
+                                    background: cloudSyncStatus === 'SYNCED'
+                                        ? 'rgba(46, 213, 115, 0.12)'
+                                        : cloudSyncStatus === 'LOCAL_FIRST'
+                                        ? 'rgba(255, 171, 0, 0.12)'
+                                        : 'rgba(92, 225, 230, 0.1)',
+                                    color: cloudSyncStatus === 'SYNCED'
+                                        ? '#2ed573'
+                                        : cloudSyncStatus === 'LOCAL_FIRST'
+                                        ? '#ffab00'
+                                        : '#5ce1e6',
+                                    border: `1px solid ${
+                                        cloudSyncStatus === 'SYNCED'
+                                            ? 'rgba(46, 213, 115, 0.3)'
+                                            : cloudSyncStatus === 'LOCAL_FIRST'
+                                            ? 'rgba(255, 171, 0, 0.3)'
+                                            : 'rgba(92, 225, 230, 0.2)'
+                                    }`
+                                }}>
+                                    {cloudSyncStatus === 'SYNCED' && '☁️ Cloud Storage: Synchronized'}
+                                    {cloudSyncStatus === 'LOCAL_FIRST' && '🛡️ Storage Mode: Local-First (Surveillance Storage Secured)'}
+                                    {cloudSyncStatus === 'SYNCING' && '☁️ Cloud Sync: Synchronizing in background...'}
+                                    {cloudSyncStatus === 'IDLE' && '🛡️ Storage Mode: Local Surveillance Server'}
+                                </div>
                             </>
                         ) : (
                             <>
                                 <h3 style={{ color: 'var(--ice)', marginTop: '1.25rem', fontSize: '1.25rem' }}>
                                     {uploadProgress.mediaType === 'video'
-                                        ? 'Uploading Reference Video...'
+                                        ? 'Uploading Reference Video to ARGUS AI...'
                                         : uploadProgress.mediaType === 'image'
-                                        ? 'Uploading Reference Photos...'
-                                        : 'Uploading Case Data...'}
+                                        ? 'Uploading Reference Photos to ARGUS AI...'
+                                        : 'Uploading Case Media to ARGUS AI...'}
                                 </h3>
 
                                 <div className="progress-bar-container">
@@ -798,7 +844,7 @@ const ReportCase = () => {
                                     ></div>
                                 </div>
                                 <div className="progress-stats">
-                                    <span>Upload: {uploadProgress.percent}%</span>
+                                    <span>Local Ingestion: {uploadProgress.percent}%</span>
                                     <span>{uploadProgress.total > 0 ? `${formatBytes(uploadProgress.loaded)} / ${formatBytes(uploadProgress.total)}` : ''}</span>
                                 </div>
                                 {uploadProgress.speedMBs && uploadProgress.speedMBs !== '0.00' && (
@@ -812,9 +858,45 @@ const ReportCase = () => {
                                 )}
 
                                 <p style={{ marginTop: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.84rem' }}>
-                                    {uploadProgress.label || 'Please wait, securing case files...'}
+                                    {uploadProgress.label || 'Securing media on ARGUS surveillance server...'}
                                 </p>
-                                <button className="cancel-upload-btn" onClick={handleCancelUpload}>Cancel Upload</button>
+
+                                <div style={{
+                                    margin: '0.6rem auto 0.8rem',
+                                    padding: '0.35rem 0.75rem',
+                                    borderRadius: '16px',
+                                    fontSize: '0.74rem',
+                                    fontWeight: '600',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.4rem',
+                                    background: cloudSyncStatus === 'SYNCED'
+                                        ? 'rgba(46, 213, 115, 0.12)'
+                                        : cloudSyncStatus === 'LOCAL_FIRST'
+                                        ? 'rgba(255, 171, 0, 0.12)'
+                                        : 'rgba(92, 225, 230, 0.1)',
+                                    color: cloudSyncStatus === 'SYNCED'
+                                        ? '#2ed573'
+                                        : cloudSyncStatus === 'LOCAL_FIRST'
+                                        ? '#ffab00'
+                                        : '#5ce1e6',
+                                    border: `1px solid ${
+                                        cloudSyncStatus === 'SYNCED'
+                                            ? 'rgba(46, 213, 115, 0.3)'
+                                            : cloudSyncStatus === 'LOCAL_FIRST'
+                                            ? 'rgba(255, 171, 0, 0.3)'
+                                            : 'rgba(92, 225, 230, 0.2)'
+                                    }`
+                                }}>
+                                    {cloudSyncStatus === 'SYNCED' && '☁️ Cloud Storage: Synchronized'}
+                                    {cloudSyncStatus === 'LOCAL_FIRST' && '🛡️ Storage Mode: Local-First (Surveillance Storage Secured)'}
+                                    {cloudSyncStatus === 'SYNCING' && '☁️ Cloud Sync: Synchronizing in background...'}
+                                    {cloudSyncStatus === 'IDLE' && '🛡️ Storage Mode: Local Surveillance Server'}
+                                </div>
+
+                                <div>
+                                    <button className="cancel-upload-btn" onClick={handleCancelUpload}>Cancel Upload</button>
+                                </div>
                             </>
                         )}
                     </div>

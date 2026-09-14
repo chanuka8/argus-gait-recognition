@@ -99,7 +99,6 @@ class ContinualLearningEvaluator:
                 evidence_class="INSUFFICIENT_EVIDENCE",
             )
 
-
         embeddings: list[np.ndarray] = []
         labels: list[str] = []
         cameras: list[str] = []
@@ -144,9 +143,7 @@ class ContinualLearningEvaluator:
         N = len(X)
         unique_identities = sorted(set(labels))
 
-
         sim_matrix = np.dot(X, X.T)
-
 
         rank1_correct = 0
         same_cam_correct = 0
@@ -173,7 +170,6 @@ class ContinualLearningEvaluator:
         rank1_acc = round(float((rank1_correct / N) * 100.0), 2)
         same_cam_acc = round(float((same_cam_correct / max(1, same_cam_total)) * 100.0), 2)
         cross_cam_acc = round(float((cross_cam_correct / max(1, cross_cam_total)) * 100.0), 2)
-
 
         genuine_scores: list[float] = []
         impostor_scores: list[float] = []
@@ -203,38 +199,37 @@ class ContinualLearningEvaluator:
                     else:
                         new_impostor.append(score)
 
-
         tar = round(float(np.mean([s >= threshold for s in genuine_scores]) * 100.0), 2) if genuine_scores else 0.0
         far = round(float(np.mean([s >= threshold for s in impostor_scores]) * 100.0), 2) if impostor_scores else 0.0
         frr = round(float(100.0 - tar), 2)
         eer = round(float((far + frr) / 2.0), 2)
 
-
         hist_tar = round(float(np.mean([s >= threshold for s in hist_genuine]) * 100.0), 2) if hist_genuine else tar
         hist_far = round(float(np.mean([s >= threshold for s in hist_impostor]) * 100.0), 2) if hist_impostor else far
-
 
         new_tar = round(float(np.mean([s >= threshold for s in new_genuine]) * 100.0), 2) if new_genuine else tar
         new_far = round(float(np.mean([s >= threshold for s in new_impostor]) * 100.0), 2) if new_impostor else far
 
-
         auc = 0.5
         if genuine_scores and impostor_scores:
-            u_stat = sum(1.0 if g > imp else 0.5 if g == imp else 0.0 for g in genuine_scores for imp in impostor_scores)
+            u_stat = sum(
+                1.0 if g > imp else 0.5 if g == imp else 0.0 for g in genuine_scores for imp in impostor_scores
+            )
             auc = round(float(u_stat / (len(genuine_scores) * len(impostor_scores))), 4)
-
 
         se = np.sqrt((rank1_acc * (100.0 - rank1_acc)) / max(N, 1))
         ci_low = max(0.0, round(rank1_acc - 1.96 * se, 2))
         ci_high = min(100.0, round(rank1_acc + 1.96 * se, 2))
 
-
-        evidence_class = "SUFFICIENT_EVIDENCE" if len(genuine_scores) >= self.min_statistical_trials and len(impostor_scores) >= self.min_statistical_trials else "INSUFFICIENT_EVIDENCE"
-
+        evidence_class = (
+            "SUFFICIENT_EVIDENCE"
+            if len(genuine_scores) >= self.min_statistical_trials
+            and len(impostor_scores) >= self.min_statistical_trials
+            else "INSUFFICIENT_EVIDENCE"
+        )
 
         per_id_summary = {
-            ident: round(float(np.mean(hits) * 100.0), 2) if hits else 0.0
-            for ident, hits in per_id_correct.items()
+            ident: round(float(np.mean(hits) * 100.0), 2) if hits else 0.0 for ident, hits in per_id_correct.items()
         }
 
         return EvaluationMetrics(
@@ -278,15 +273,18 @@ class ContinualLearningEvaluator:
         delta_eer = round(candidate_metrics.eer - baseline_metrics.eer, 2)
         delta_auc = round(candidate_metrics.auc - baseline_metrics.auc, 4)
 
-        hist_tar_delta = round(candidate_metrics.historical_retention_tar - baseline_metrics.historical_retention_tar, 2)
+        hist_tar_delta = round(
+            candidate_metrics.historical_retention_tar - baseline_metrics.historical_retention_tar, 2
+        )
         new_tar_delta = round(candidate_metrics.new_condition_tar - baseline_metrics.new_condition_tar, 2)
-
 
         is_regressed = delta_far > 0.0 or hist_tar_delta < -1.0 or delta_rank1 < -2.0
 
-
-        is_improved = not is_regressed and (delta_rank1 >= self.significance_threshold_delta or delta_tar >= self.significance_threshold_delta or new_tar_delta >= self.significance_threshold_delta)
-
+        is_improved = not is_regressed and (
+            delta_rank1 >= self.significance_threshold_delta
+            or delta_tar >= self.significance_threshold_delta
+            or new_tar_delta >= self.significance_threshold_delta
+        )
 
         is_stat_sig = (
             baseline_metrics.evidence_class == "SUFFICIENT_EVIDENCE"
@@ -294,10 +292,12 @@ class ContinualLearningEvaluator:
             and (abs(delta_rank1) >= 2.0 or abs(delta_tar) >= 2.0)
         )
 
-
         if is_regressed:
             verdict = "DEGRADATION"
-        elif not is_stat_sig and (baseline_metrics.evidence_class == "INSUFFICIENT_EVIDENCE" or candidate_metrics.evidence_class == "INSUFFICIENT_EVIDENCE"):
+        elif not is_stat_sig and (
+            baseline_metrics.evidence_class == "INSUFFICIENT_EVIDENCE"
+            or candidate_metrics.evidence_class == "INSUFFICIENT_EVIDENCE"
+        ):
             verdict = "INSUFFICIENT_EVIDENCE"
         elif is_improved and is_stat_sig:
             verdict = "CONTINUAL_LEARNING_IMPROVEMENT_VERIFIED"

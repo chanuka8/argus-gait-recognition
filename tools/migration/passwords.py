@@ -73,9 +73,7 @@ class PasswordMigrator:
                         f"[FIREBASE_ADMIN] Initialized Firebase Admin SDK for project '{meta.get('project_id')}' for migration."
                     )
                 else:
-                    logger.warning(
-                        f"[FIREBASE_ADMIN] Service account credential not configured or invalid: {reason}"
-                    )
+                    logger.warning(f"[FIREBASE_ADMIN] Service account credential not configured or invalid: {reason}")
 
             if firebase_admin._apps:
                 self._firestore_client = firestore.client()
@@ -134,9 +132,11 @@ class PasswordMigrator:
             self._migrate_firestore(client, target_collections, dry_run, stats)
         elif mode == "firebase":
             logger.error("[MIGRATION_ERROR] Mode is 'firebase' but Firebase Admin SDK credentials are not configured.")
-            stats["details"].append({
-                "error": "Firebase Admin SDK credentials not configured in environment. Set FIREBASE_SERVICE_ACCOUNT_PATH or GOOGLE_APPLICATION_CREDENTIALS.",
-            })
+            stats["details"].append(
+                {
+                    "error": "Firebase Admin SDK credentials not configured in environment. Set FIREBASE_SERVICE_ACCOUNT_PATH or GOOGLE_APPLICATION_CREDENTIALS.",
+                }
+            )
         else:
             logger.info(f"[SOURCE] Operating against offline store: {self.offline_store_path.as_posix()}")
             self._migrate_offline(target_collections, dry_run, stats)
@@ -165,33 +165,39 @@ class PasswordMigrator:
 
                     if pw_hash and isinstance(pw_hash, str) and pw_hash.startswith("$argon2"):
                         stats["already_migrated"] += 1
-                        stats["details"].append({
-                            "collection": col_name,
-                            "id": doc.id,
-                            "username": username,
-                            "status": "ALREADY_MIGRATED",
-                        })
+                        stats["details"].append(
+                            {
+                                "collection": col_name,
+                                "id": doc.id,
+                                "username": username,
+                                "status": "ALREADY_MIGRATED",
+                            }
+                        )
                         continue
 
                     if not pw_plain or not isinstance(pw_plain, str) or not pw_plain.strip():
                         stats["malformed_records"] += 1
-                        stats["details"].append({
-                            "collection": col_name,
-                            "id": doc.id,
-                            "username": username,
-                            "status": "MALFORMED_NO_PASSWORD",
-                        })
+                        stats["details"].append(
+                            {
+                                "collection": col_name,
+                                "id": doc.id,
+                                "username": username,
+                                "status": "MALFORMED_NO_PASSWORD",
+                            }
+                        )
                         continue
 
                     stats["needs_migration"] += 1
 
                     if dry_run:
-                        stats["details"].append({
-                            "collection": col_name,
-                            "id": doc.id,
-                            "username": username,
-                            "status": "NEEDS_MIGRATION",
-                        })
+                        stats["details"].append(
+                            {
+                                "collection": col_name,
+                                "id": doc.id,
+                                "username": username,
+                                "status": "NEEDS_MIGRATION",
+                            }
+                        )
                         continue
 
                     # Execute Apply
@@ -199,52 +205,61 @@ class PasswordMigrator:
                         new_hash = self.hasher.hash(pw_plain)
                         doc_ref = client.collection(col_name).document(doc.id)
                         # Step 1: Persist password_hash and migrated flag
-                        doc_ref.update({
-                            "password_hash": new_hash,
-                            "password_migrated": True,
-                        })
+                        doc_ref.update(
+                            {
+                                "password_hash": new_hash,
+                                "password_migrated": True,
+                            }
+                        )
 
                         # Step 2: Read back and verify persistence
                         snap = doc_ref.get()
                         persisted = snap.to_dict() or {}
-                        if (
-                            persisted.get("password_hash") != new_hash
-                            or persisted.get("password_migrated") is not True
-                        ):
+                        if persisted.get("password_hash") != new_hash or persisted.get("password_migrated") is not True:
                             stats["migration_failed"] += 1
                             logger.error(
                                 f"Verification read-back failed for {doc.id} in {col_name}. Retaining legacy password."
                             )
-                            stats["details"].append({
+                            stats["details"].append(
+                                {
+                                    "collection": col_name,
+                                    "id": doc.id,
+                                    "username": username,
+                                    "status": "MIGRATION_FAILED",
+                                    "error": "Verification read-back mismatch",
+                                }
+                            )
+                            continue
+
+                        # Step 3: Only after verified persistence, remove legacy plaintext
+                        doc_ref.update(
+                            {
+                                "password": firestore.DELETE_FIELD,
+                            }
+                        )
+                        stats["migrated_success"] += 1
+                        stats["details"].append(
+                            {
+                                "collection": col_name,
+                                "id": doc.id,
+                                "username": username,
+                                "status": "MIGRATED_SUCCESS",
+                            }
+                        )
+                    except Exception as exc:  # noqa: BLE001
+                        stats["migration_failed"] += 1
+                        logger.error(
+                            f"Failed to migrate account {doc.id} in {col_name}: {exc}. Legacy password preserved."
+                        )
+                        stats["details"].append(
+                            {
                                 "collection": col_name,
                                 "id": doc.id,
                                 "username": username,
                                 "status": "MIGRATION_FAILED",
-                                "error": "Verification read-back mismatch",
-                            })
-                            continue
-
-                        # Step 3: Only after verified persistence, remove legacy plaintext
-                        doc_ref.update({
-                            "password": firestore.DELETE_FIELD,
-                        })
-                        stats["migrated_success"] += 1
-                        stats["details"].append({
-                            "collection": col_name,
-                            "id": doc.id,
-                            "username": username,
-                            "status": "MIGRATED_SUCCESS",
-                        })
-                    except Exception as exc:  # noqa: BLE001
-                        stats["migration_failed"] += 1
-                        logger.error(f"Failed to migrate account {doc.id} in {col_name}: {exc}. Legacy password preserved.")
-                        stats["details"].append({
-                            "collection": col_name,
-                            "id": doc.id,
-                            "username": username,
-                            "status": "MIGRATION_FAILED",
-                            "error": str(exc),
-                        })
+                                "error": str(exc),
+                            }
+                        )
 
             except Exception as exc:  # noqa: BLE001
                 logger.error(f"Error accessing collection {col_name} in Firestore: {exc}")
@@ -268,33 +283,39 @@ class PasswordMigrator:
 
                 if pw_hash and isinstance(pw_hash, str) and pw_hash.startswith("$argon2"):
                     stats["already_migrated"] += 1
-                    stats["details"].append({
-                        "collection": col_name,
-                        "id": doc_id,
-                        "username": username,
-                        "status": "ALREADY_MIGRATED",
-                    })
+                    stats["details"].append(
+                        {
+                            "collection": col_name,
+                            "id": doc_id,
+                            "username": username,
+                            "status": "ALREADY_MIGRATED",
+                        }
+                    )
                     continue
 
                 if not pw_plain or not isinstance(pw_plain, str) or not pw_plain.strip():
                     stats["malformed_records"] += 1
-                    stats["details"].append({
-                        "collection": col_name,
-                        "id": doc_id,
-                        "username": username,
-                        "status": "MALFORMED_NO_PASSWORD",
-                    })
+                    stats["details"].append(
+                        {
+                            "collection": col_name,
+                            "id": doc_id,
+                            "username": username,
+                            "status": "MALFORMED_NO_PASSWORD",
+                        }
+                    )
                     continue
 
                 stats["needs_migration"] += 1
 
                 if dry_run:
-                    stats["details"].append({
-                        "collection": col_name,
-                        "id": doc_id,
-                        "username": username,
-                        "status": "NEEDS_MIGRATION",
-                    })
+                    stats["details"].append(
+                        {
+                            "collection": col_name,
+                            "id": doc_id,
+                            "username": username,
+                            "status": "NEEDS_MIGRATION",
+                        }
+                    )
                     continue
 
                 # Execute Apply
@@ -306,22 +327,26 @@ class PasswordMigrator:
                     data.pop("password", None)
                     stats["migrated_success"] += 1
                     dirty = True
-                    stats["details"].append({
-                        "collection": col_name,
-                        "id": doc_id,
-                        "username": username,
-                        "status": "MIGRATED_SUCCESS",
-                    })
+                    stats["details"].append(
+                        {
+                            "collection": col_name,
+                            "id": doc_id,
+                            "username": username,
+                            "status": "MIGRATED_SUCCESS",
+                        }
+                    )
                 except Exception as exc:  # noqa: BLE001
                     stats["migration_failed"] += 1
                     logger.error(f"Failed to hash account {doc_id}: {exc}. Legacy password preserved.")
-                    stats["details"].append({
-                        "collection": col_name,
-                        "id": doc_id,
-                        "username": username,
-                        "status": "MIGRATION_FAILED",
-                        "error": str(exc),
-                    })
+                    stats["details"].append(
+                        {
+                            "collection": col_name,
+                            "id": doc_id,
+                            "username": username,
+                            "status": "MIGRATION_FAILED",
+                            "error": str(exc),
+                        }
+                    )
 
         if dirty and not dry_run:
             success = self._save_offline_store(offline_data)

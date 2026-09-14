@@ -51,7 +51,10 @@ class CameraWorker:
         self.config = camera_config
         self.inference_pipeline = inference_pipeline
         self.detection_processor = detection_processor
-        self.recognition_worker = recognition_worker
+        self._recognition_worker = recognition_worker
+        self._rec_init_event = threading.Event()
+        if recognition_worker is not None:
+            self._rec_init_event.set()
         self.inference_engine = inference_engine
         self._existing_capture = existing_capture
         self._initial_frame = initial_frame
@@ -142,6 +145,40 @@ class CameraWorker:
                 source_val = self.config.get("source", self._device_index)
             return normalize_camera_source(source_val)
 
+    def _apply_capture_properties(self, capture: cv2.VideoCapture) -> None:
+        """Apply capture properties efficiently without redundant DirectShow pin renegotiation.
+
+        On Windows DirectShow, calling cap.set(CAP_PROP_FRAME_HEIGHT) or cap.set(CAP_PROP_FPS)
+        unconditionally forces DirectShow COM pin teardown and format/clock renegotiation,
+        which incurs ~1000-1300ms of synchronous driver delay. By querying current properties
+        first and only setting when different, we eliminate this driver negotiation penalty.
+        Software FPS pacing in _capture_loop accurately maintains target_fps.
+        """
+        if capture is None:
+            return
+
+        try:
+            capture.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+        except (cv2.error, OSError):
+            pass
+
+        try:
+            cur_w = int(capture.get(cv2.CAP_PROP_FRAME_WIDTH) or 0)
+            cur_h = int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT) or 0)
+            if cur_w != self._width:
+                capture.set(cv2.CAP_PROP_FRAME_WIDTH, self._width)
+            if cur_h != self._height:
+                capture.set(cv2.CAP_PROP_FRAME_HEIGHT, self._height)
+        except (cv2.error, OSError):
+            pass
+
+        # Avoid redundant hardware FPS negotiation on webcams/DirectShow
+        if self._source_type not in ("device", "webcam") and self._target_fps > 0:
+            try:
+                capture.set(cv2.CAP_PROP_FPS, self._target_fps)
+            except (cv2.error, OSError):
+                pass
+
     def _wait_for_first_frame(self, safe_source: str) -> bool:
         self._logger.info(f"Waiting for first frame from {safe_source} (timeout={self._startup_timeout}s)")
         deadline = time.monotonic() + self._startup_timeout
@@ -159,7 +196,10 @@ class CameraWorker:
                 success = False
                 enc_buf = None
                 try:
-                    frame_resized = cv2.resize(frame, (self._width, self._height))
+                    if frame.shape[1] == self._width and frame.shape[0] == self._height:
+                        frame_resized = frame
+                    else:
+                        frame_resized = cv2.resize(frame, (self._width, self._height))
                     encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), self._jpeg_quality]
                     success, enc_buf = cv2.imencode(".jpg", frame_resized, encode_param)
                 except (cv2.error, OSError, ValueError) as enc_err:
@@ -201,26 +241,21 @@ class CameraWorker:
             safe_source = sanitize_rtsp_url(str(source))
             self._logger.info(f"Opening camera source: {safe_source}")
 
-
             if self._existing_capture is not None and getattr(self._existing_capture, "isOpened", lambda: False)():
                 self._capture = self._existing_capture
                 self._existing_capture = None
                 self._logger.info(f"Adopted pre-verified camera capture for: {safe_source}")
 
-                try:
-                    self._capture.set(cv2.CAP_PROP_FRAME_WIDTH, self._width)
-                    self._capture.set(cv2.CAP_PROP_FRAME_HEIGHT, self._height)
-                    if self._target_fps > 0:
-                        self._capture.set(cv2.CAP_PROP_FPS, self._target_fps)
-                except (cv2.error, OSError):
-                    pass
-
+                self._apply_capture_properties(self._capture)
 
                 if self._initial_frame is not None and getattr(self._initial_frame, "size", 0) > 0:
                     init_f = self._initial_frame
                     self._initial_frame = None
                     try:
-                        frame_resized = cv2.resize(init_f, (self._width, self._height))
+                        if init_f.shape[1] == self._width and init_f.shape[0] == self._height:
+                            frame_resized = init_f
+                        else:
+                            frame_resized = cv2.resize(init_f, (self._width, self._height))
                         encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), self._jpeg_quality]
                         success, enc_buf = cv2.imencode(".jpg", frame_resized, encode_param)
                         now = time.monotonic()
@@ -280,11 +315,7 @@ class CameraWorker:
                 self._capture = None
                 return False
 
-            self._capture.set(cv2.CAP_PROP_FRAME_WIDTH, self._width)
-            self._capture.set(cv2.CAP_PROP_FRAME_HEIGHT, self._height)
-
-            if self._target_fps > 0:
-                self._capture.set(cv2.CAP_PROP_FPS, self._target_fps)
+            self._apply_capture_properties(self._capture)
 
             if not self._wait_for_first_frame(safe_source):
                 if self._capture is not None:
@@ -356,9 +387,10 @@ class CameraWorker:
             rec_active = False
             confirmed_ids = []
 
-            if self.recognition_worker is not None:
-                rec_active = self.recognition_worker.is_alive()
-                active_tracks = self.recognition_worker.cache.get_active_tracks(self.camera_id)
+            rec = self._recognition_worker
+            if rec is not None:
+                rec_active = rec.is_alive()
+                active_tracks = rec.cache.get_active_tracks(self.camera_id)
                 for res in active_tracks:
                     self._renderer.draw(
                         frame=annotated,
@@ -403,7 +435,8 @@ class CameraWorker:
                 self.stats["recognition_active"] = rec_active
 
             fps_val = self.stats.get("fps", 0.0)
-            status_text = f"[{self.camera_id}] FPS: {fps_val:.1f} | LIVE | Tracks: {len(active_tracks)}"
+            rec_status = f"Tracks: {len(active_tracks)}" if rec is not None else "Recognition: Initializing..."
+            status_text = f"[{self.camera_id}] FPS: {fps_val:.1f} | LIVE | {rec_status}"
             cv2.putText(annotated, status_text, (10, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 255, 0), 2, cv2.LINE_AA)
 
             now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
@@ -419,7 +452,7 @@ class CameraWorker:
             )
             return annotated
         except (RuntimeError, ValueError, TypeError, cv2.error, OSError) as overlay_err:
-            self._logger.debug(f"Overlay rendering error: {overlay_err}")
+            self._logger.warning(f"Overlay rendering error: {overlay_err}")
             return frame
 
     def register_client(self) -> None:
@@ -476,8 +509,11 @@ class CameraWorker:
                 now = time.monotonic()
                 iso_now = datetime.now(timezone.utc).isoformat()
 
-                if self.recognition_worker is not None:
-                    self.recognition_worker.put_frame(frame)
+                rec = self._recognition_worker
+                if rec is not None:
+                    if not rec.is_alive() and not self._stop_event.is_set():
+                        rec.start()
+                    rec.put_frame(frame)
 
                 if self.inference_engine is not None and hasattr(self.inference_engine, "put_frame"):
                     self.inference_engine.put_frame(
@@ -566,8 +602,9 @@ class CameraWorker:
 
     def get_stats(self) -> dict:
         rec_stats = {}
-        if self.recognition_worker is not None:
-            rec_stats = self.recognition_worker.get_stats()
+        rec = self._recognition_worker
+        if rec is not None:
+            rec_stats = rec.get_stats()
 
         with self._lock:
             return {
@@ -586,6 +623,39 @@ class CameraWorker:
     def is_running(self) -> bool:
         with self._lock:
             return self._thread is not None and self._thread.is_alive()
+
+    @property
+    def recognition_worker(self) -> Any:
+        return self._recognition_worker
+
+    @recognition_worker.setter
+    def recognition_worker(self, value: Any) -> None:
+        self._recognition_worker = value
+        if hasattr(self, "_rec_init_event"):
+            self._rec_init_event.set()
+
+    def wait_for_recognition_worker(self, timeout: float = 3.0) -> Any:
+        """Wait for asynchronous background recognition worker attachment (used by tests)."""
+        if self._recognition_worker is None and not self._stop_event.is_set() and hasattr(self, "_rec_init_event"):
+            self._rec_init_event.wait(timeout=timeout)
+        return self._recognition_worker
+
+    def set_recognition_worker(self, recognition_worker: "RecognitionWorker | None") -> None:
+        """Dynamically and thread-safely attach a recognition worker after camera acquisition."""
+        with self._lock:
+            self._recognition_worker = recognition_worker
+            if hasattr(self, "_rec_init_event"):
+                self._rec_init_event.set()
+            if (
+                recognition_worker is not None
+                and self.is_running()
+                and not self._stop_event.is_set()
+                and not recognition_worker.is_alive()
+            ):
+                try:
+                    recognition_worker.start()
+                except (RuntimeError, OSError) as err:
+                    self._logger.warning(f"Notice starting attached recognition worker: {err}")
 
     def start(self) -> bool:
         with self._lock:
@@ -614,8 +684,9 @@ class CameraWorker:
                 self._thread.start()
                 self._is_starting = False
 
-            if self.recognition_worker is not None:
-                self.recognition_worker.start()
+            rec = self._recognition_worker
+            if rec is not None and not rec.is_alive():
+                rec.start()
 
             return True
         except (RuntimeError, ValueError, TypeError, OSError):
@@ -626,6 +697,8 @@ class CameraWorker:
 
     def stop(self, timeout: float = 3.0) -> bool:
         self._stop_event.set()
+        if hasattr(self, "_rec_init_event"):
+            self._rec_init_event.set()
         thread_to_join = None
         with self._lock:
             self._is_starting = False
@@ -635,8 +708,9 @@ class CameraWorker:
         if thread_to_join is not None:
             thread_to_join.join(timeout=timeout)
 
-        if self.recognition_worker is not None:
-            self.recognition_worker.stop(timeout=timeout)
+        rec = self._recognition_worker
+        if rec is not None:
+            rec.stop(timeout=timeout)
 
         self._close_capture()
         with self._lock:

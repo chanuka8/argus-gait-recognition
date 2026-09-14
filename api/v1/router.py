@@ -120,7 +120,12 @@ _fallback_gait_service: GaitService | None = None
 def get_gait_service(request: Request = None) -> GaitService:
     global _fallback_gait_service
 
-    if request is not None and hasattr(request, "app") and hasattr(request.app.state, "gait_service") and request.app.state.gait_service:
+    if (
+        request is not None
+        and hasattr(request, "app")
+        and hasattr(request.app.state, "gait_service")
+        and request.app.state.gait_service
+    ):
         return request.app.state.gait_service
 
     if _fallback_gait_service is None:
@@ -158,7 +163,9 @@ def get_health(
         "recognition_ready": rec_ready,
         "active_backend": backend_name,
         "models": {
-            "person_detector": "active" if states.get("DETECTOR_READY", service._detector is not None) else "initializing",
+            "person_detector": "active"
+            if states.get("DETECTOR_READY", service._detector is not None)
+            else "initializing",
             "silhouette_extractor": "active" if states.get("SILHOUETTE_READY", False) else "initializing",
             "gait_encoder": "active" if states.get("BYGAIT_READY", False) else "initializing",
         },
@@ -563,8 +570,7 @@ def start_camera(
 ):
     session = get_current_operator_session(request)
     if not (
-        has_permission(session.role, Permission.CAMERA_START)
-        or has_permission(session.role, Permission.CAMERA_CONTROL)
+        has_permission(session.role, Permission.CAMERA_START) or has_permission(session.role, Permission.CAMERA_CONTROL)
     ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -607,8 +613,7 @@ def stop_camera(
 ):
     session = get_current_operator_session(request)
     if not (
-        has_permission(session.role, Permission.CAMERA_STOP)
-        or has_permission(session.role, Permission.CAMERA_CONTROL)
+        has_permission(session.role, Permission.CAMERA_STOP) or has_permission(session.role, Permission.CAMERA_CONTROL)
     ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -1394,6 +1399,124 @@ def get_events(
     service: Annotated[GaitService, Depends(get_gait_service)],
 ):
     return list(service.events_log)
+
+
+# ─── Case Dossier Management ────────────────────────────────────────────────
+
+
+@v1_router.get("/cases/dossiers")
+def list_case_dossiers(request: Request):
+    """List all case dossiers stored in data/cases/ with full metadata."""
+    get_current_operator_session(request)
+    from services.case_dossier_manager import CaseDossierManager
+
+    mgr = CaseDossierManager.get_instance()
+    dossiers = mgr.scan_and_sync_all_dossiers()
+    return {
+        "total": len(dossiers),
+        "dossiers": dossiers,
+        "synced_at": time.time(),
+    }
+
+
+@v1_router.get("/cases/dossiers/{case_id}")
+def get_case_dossier(case_id: str, request: Request):
+    """Retrieve full dossier details for a single case."""
+    get_current_operator_session(request)
+    from services.case_dossier_manager import CaseDossierManager
+
+    mgr = CaseDossierManager.get_instance()
+    dossier = mgr.get_dossier(case_id)
+    if not dossier:
+        raise HTTPException(status_code=404, detail=f"Case dossier '{case_id}' not found")
+    return dossier
+
+
+@v1_router.get("/cases/dossiers/{case_id}/files/{file_path:path}")
+def serve_dossier_file(case_id: str, file_path: str, request: Request):
+    """Serve files from the case dossier folder with range-request support for video streaming."""
+    get_current_operator_session(request)
+    import mimetypes
+
+    from services.case_dossier_manager import CaseDossierManager
+
+    mgr = CaseDossierManager.get_instance()
+    resolved = mgr.get_dossier_file(case_id, file_path)
+    if not resolved:
+        raise HTTPException(status_code=404, detail=f"File '{file_path}' not found in case '{case_id}'")
+
+    mime_type, _ = mimetypes.guess_type(resolved.name)
+    mime_type = mime_type or "application/octet-stream"
+    file_size = resolved.stat().st_size
+
+    range_header = request.headers.get("range")
+
+    if range_header and mime_type.startswith("video/"):
+        # HTTP Range request for video streaming
+        range_match = range_header.strip().replace("bytes=", "")
+        parts = range_match.split("-")
+        start = int(parts[0]) if parts[0] else 0
+        end = int(parts[1]) if len(parts) > 1 and parts[1] else file_size - 1
+        end = min(end, file_size - 1)
+        content_length = end - start + 1
+
+        def ranged_file():
+            with open(resolved, "rb") as f:
+                f.seek(start)
+                remaining = content_length
+                while remaining > 0:
+                    chunk_size = min(65536, remaining)
+                    data = f.read(chunk_size)
+                    if not data:
+                        break
+                    remaining -= len(data)
+                    yield data
+
+        return StreamingResponse(
+            ranged_file(),
+            status_code=206,
+            media_type=mime_type,
+            headers={
+                "Content-Range": f"bytes {start}-{end}/{file_size}",
+                "Accept-Ranges": "bytes",
+                "Content-Length": str(content_length),
+                "Content-Disposition": f'inline; filename="{resolved.name}"',
+            },
+        )
+
+    # Full file response
+    def file_iter():
+        with open(resolved, "rb") as f:
+            while True:
+                chunk = f.read(65536)
+                if not chunk:
+                    break
+                yield chunk
+
+    return StreamingResponse(
+        file_iter(),
+        media_type=mime_type,
+        headers={
+            "Content-Length": str(file_size),
+            "Accept-Ranges": "bytes",
+            "Content-Disposition": f'inline; filename="{resolved.name}"',
+        },
+    )
+
+
+@v1_router.post("/cases/dossiers/sync")
+def sync_case_dossiers(request: Request):
+    """Force resynchronization of all case dossiers."""
+    get_current_operator_session(request)
+    from services.case_dossier_manager import CaseDossierManager
+
+    mgr = CaseDossierManager.get_instance()
+    dossiers = mgr.scan_and_sync_all_dossiers()
+    return {
+        "success": True,
+        "total_synced": len(dossiers),
+        "synced_at": time.time(),
+    }
 
 
 @v1_router.websocket("/ws/recognition")

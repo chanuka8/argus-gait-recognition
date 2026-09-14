@@ -76,7 +76,9 @@ class OperationalObservation:
             vector=[float(v) for v in data.get("vector", [])],
             predicted_identity=str(data.get("predicted_identity", "UNKNOWN")),
             confidence=float(data.get("confidence", 0.0)),
-            state=ObservationState(st) if isinstance(st, str) and st in [e.value for e in ObservationState] else ObservationState.PREDICTED,
+            state=ObservationState(st)
+            if isinstance(st, str) and st in [e.value for e in ObservationState]
+            else ObservationState.PREDICTED,
             verified_identity=data.get("verified_identity"),
             verification_source=data.get("verification_source"),
             quality_score=float(data.get("quality_score", 1.0)),
@@ -340,9 +342,7 @@ class OperationalEmbeddingCollector:
             dates = {o.observation_date for o in self.get_training_eligible() if o.observation_date}
             return sorted(dates)
 
-    def get_eligible_by_date(
-        self, observation_date: str, modality: str | None = None
-    ) -> list[OperationalObservation]:
+    def get_eligible_by_date(self, observation_date: str, modality: str | None = None) -> list[OperationalObservation]:
         with self._lock:
             eligible = [
                 o

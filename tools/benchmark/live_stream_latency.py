@@ -23,7 +23,6 @@ def measure_isolated_stages() -> dict[str, Any]:
     print("=" * 70)
     results: dict[str, Any] = {}
 
-
     resolver = CameraSourceResolver()
     t0 = time.perf_counter()
     probe_ok = resolver.probe_usb_webcam(0)
@@ -31,7 +30,6 @@ def measure_isolated_stages() -> dict[str, Any]:
     results["probe_usb_0_duration_s"] = t1 - t0
     results["probe_usb_0_success"] = probe_ok
     print(f"  Stage D-E: probe_usb_webcam(0) [Open+Read+Close] : {t1 - t0:7.4f} s (success={probe_ok})")
-
 
     results["index_probe_breakdown"] = {}
     for idx in range(4):
@@ -54,15 +52,15 @@ def measure_isolated_stages() -> dict[str, Any]:
         }
         print(f"    - Index {idx} DirectShow probe : {dur:7.4f} s (opened={is_opened}, read={ret})")
 
-
     t0 = time.perf_counter()
     res = resolver.resolve_source(camera_id="BENCH-PROBE", requested_source="auto")
     t1 = time.perf_counter()
     resolver.release_source_by_camera_id("BENCH-PROBE")
     results["resolver_full_auto_s"] = t1 - t0
     results["resolved_source"] = res.get("resolved_source")
-    print(f"  Stage D: resolver.resolve_source('auto')          : {t1 - t0:7.4f} s (source={res.get('resolved_source')})")
-
+    print(
+        f"  Stage D: resolver.resolve_source('auto')          : {t1 - t0:7.4f} s (source={res.get('resolved_source')})"
+    )
 
     t0 = time.perf_counter()
     cap = cv2.VideoCapture(0, cv2.CAP_DSHOW) if sys.platform == "win32" else cv2.VideoCapture(0)
@@ -71,7 +69,6 @@ def measure_isolated_stages() -> dict[str, Any]:
     results["vcap_open_s"] = t1 - t0
     results["vcap_opened"] = is_opened
     print(f"  Stage E: VideoCapture(0, CAP_DSHOW) open         : {t1 - t0:7.4f} s (opened={is_opened})")
-
 
     t0 = time.perf_counter()
     ret, frame = cap.read() if is_opened else (False, None)
@@ -82,7 +79,6 @@ def measure_isolated_stages() -> dict[str, Any]:
     results["frame_shape"] = frame_shape
     print(f"  Stage F-G: VideoCapture.read() (first frame)     : {t1 - t0:7.4f} s (read={ret}, shape={frame_shape})")
 
-
     if frame is not None:
         t0 = time.perf_counter()
         resized = cv2.resize(frame, (640, 480))
@@ -90,18 +86,21 @@ def measure_isolated_stages() -> dict[str, Any]:
         t1 = time.perf_counter()
         results["jpeg_encode_s"] = t1 - t0
         results["jpeg_size_bytes"] = len(enc_buf) if enc_ok and enc_buf is not None else 0
-        print(f"  Stage H: cv2.resize + JPEG encode (quality=75)   : {t1 - t0:7.4f} s (bytes={results['jpeg_size_bytes']})")
+        print(
+            f"  Stage H: cv2.resize + JPEG encode (quality=75)   : {t1 - t0:7.4f} s (bytes={results['jpeg_size_bytes']})"
+        )
     cap.release()
 
     return results
 
 
-def run_single_end_to_end_start(run_index: int, service: GaitService, camera_id: str = "CCTV-BENCH") -> dict[str, float]:
+def run_single_end_to_end_start(
+    run_index: int, service: GaitService, camera_id: str = "CCTV-BENCH"
+) -> dict[str, float]:
     gc.collect()
     time.sleep(0.5)
 
     t_start_click = time.perf_counter()
-
 
     t_api_received = time.perf_counter()
     service.start_camera(
@@ -115,7 +114,6 @@ def run_single_end_to_end_start(run_index: int, service: GaitService, camera_id:
     if not worker:
         raise RuntimeError("Worker not created by start_camera")
 
-
     t_stream_request = time.perf_counter()
     first_jpeg = None
     stream_wait_deadline = time.perf_counter() + 10.0
@@ -127,16 +125,13 @@ def run_single_end_to_end_start(run_index: int, service: GaitService, camera_id:
 
     t_first_frame_received = time.perf_counter()
 
-
     if first_jpeg is None or len(first_jpeg) == 0:
         raise RuntimeError("Failed to receive first valid frame from camera worker")
-
 
     nparr = np.frombuffer(first_jpeg, np.uint8)
     img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
     if img is None or img.size == 0:
         raise RuntimeError("First frame JPEG is corrupt or invalid")
-
 
     service.stop_camera(camera_id)
     time.sleep(0.2)
@@ -168,9 +163,7 @@ def run_benchmark(num_runs: int = 5) -> dict[str, Any]:
     print(f"BENCHMARK: {num_runs} REPEATED END-TO-END START STREAM RUNS")
     print("=" * 70)
 
-
     isolated = measure_isolated_stages()
-
 
     service = GaitService()
     runs_data = []

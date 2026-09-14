@@ -90,13 +90,11 @@ class DetectionValidator:
         width = x2 - x1
         height = y2 - y1
 
-
         if width <= 0 or height <= 0:
             return False, "DEGENERATE_BBOX_DIMENSIONS"
 
         if width < self.min_width or height < (self.min_height // 2):
             return False, f"SUB_MINIMUM_SIZE_{width}x{height}_LT_{self.min_width}x{self.min_height // 2}"
-
 
         if frame_shape is not None and len(frame_shape) >= 2:
             frame_h, frame_w = int(frame_shape[0]), int(frame_shape[1])
@@ -104,7 +102,6 @@ class DetectionValidator:
                 width < (self.min_width // 2) or height < (self.min_height // 4)
             ):
                 return False, "OUT_OF_BOUNDS_TRUNCATED"
-
 
         if float(confidence) < max(0.20, self.min_confidence - 0.10):
             return False, f"LOW_CONFIDENCE_{confidence:.2f}_LT_{self.min_confidence:.2f}"
@@ -126,14 +123,11 @@ class DetectionValidator:
         height = max(1, y2 - y1)
         aspect_ratio = float(height) / float(width)
 
-
         if self.min_aspect_ratio <= aspect_ratio <= self.max_aspect_ratio:
             return True, "STANDARD_WALKING", True, True, "STANDARD_UPRIGHT_GAIT_ELIGIBLE"
 
-
         if 0.4 <= aspect_ratio < self.min_aspect_ratio:
             return True, "WHEELCHAIR", False, True, "WHEELCHAIR_SEATED_GAIT_INAPPLICABLE"
-
 
         return True, "NON_STANDARD_GAIT", False, False, f"NON_STANDARD_ASPECT_RATIO_{aspect_ratio:.2f}"
 

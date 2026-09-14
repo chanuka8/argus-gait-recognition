@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """ARGUS AI - Backward-compatibility shim for export_silhouette_unet_onnx.py."""
+
 import sys
 from pathlib import Path
 
@@ -13,4 +14,3 @@ if __name__ == "__main__":
     success, msg = export_and_validate_onnx()
     print(f"ONNX Export Result: {msg}")
     sys.exit(0 if success else 1)
-

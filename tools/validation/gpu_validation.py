@@ -33,9 +33,15 @@ def nvidia_smi_gpu_util() -> dict:
     """Query nvidia-smi for real GPU utilization. Returns dict or error string."""
     try:
         result = subprocess.run(
-            ["nvidia-smi", "--query-gpu=utilization.gpu,utilization.memory,memory.used,memory.total",
-             "--format=csv,noheader,nounits"],
-            capture_output=True, text=True, timeout=5, check=False,
+            [
+                "nvidia-smi",
+                "--query-gpu=utilization.gpu,utilization.memory,memory.used,memory.total",
+                "--format=csv,noheader,nounits",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
         )
         if result.returncode == 0:
             parts = [p.strip() for p in result.stdout.strip().split(",")]
@@ -137,12 +143,14 @@ def main() -> None:
     # ==================================================================
     section("B. BYGAITLIGHT — DEVICE PLACEMENT")
     from automation.device_manager import DeviceManager
+
     dm = DeviceManager.get_instance()
     print(f"  DeviceManager.device        = {dm.device}")
     print(f"  DeviceManager.is_cuda       = {dm.is_cuda}")
     print(f"  resolve_component('auto')   = {dm.resolve_component_device('auto')}")
 
     from pipeline.steps.feature_extraction import FeatureExtractionStep
+
     fe_step = FeatureExtractionStep()
     bygait_backend = fe_step.backend
 
@@ -171,6 +179,7 @@ def main() -> None:
     # ==================================================================
     section("B2. OSNET — DEVICE PLACEMENT")
     from models.reid.osnet_backbone import OSNetBackbone
+
     osnet = OSNetBackbone()
     print(f"  osnet.device                = {osnet.device}")
     print(f"  osnet.device.type           = {osnet.device.type}")
@@ -224,7 +233,9 @@ def main() -> None:
     sample_crop = np.random.randint(0, 255, (256, 128, 3), dtype=np.uint8)
     rgb = cv2.cvtColor(sample_crop, cv2.COLOR_BGR2RGB)
     resized = cv2.resize(rgb, (128, 256))
-    t_osnet = torch.from_numpy(resized).permute(2, 0, 1).float().unsqueeze(0).to(osnet.device, non_blocking=True) / 255.0
+    t_osnet = (
+        torch.from_numpy(resized).permute(2, 0, 1).float().unsqueeze(0).to(osnet.device, non_blocking=True) / 255.0
+    )
     print(f"  After preprocess + .to():    {t_osnet.device}")
     t_osnet = (t_osnet - osnet._mean) / osnet._std
     print(f"  After normalization:         {t_osnet.device}")
@@ -304,7 +315,9 @@ def main() -> None:
         bygait_gpu_times.append((time.perf_counter() - t0) * 1000.0)
 
     # CPU timing
-    bygait_model_cpu = type(bygait_model)(part_bins=bygait_model.embedding.in_features // 128 if hasattr(bygait_model, 'embedding') else 4)
+    bygait_model_cpu = type(bygait_model)(
+        part_bins=bygait_model.embedding.in_features // 128 if hasattr(bygait_model, "embedding") else 4
+    )
     bygait_model_cpu.load_state_dict(bygait_model.state_dict())
     bygait_model_cpu.to("cpu")
     bygait_model_cpu.eval()
@@ -325,8 +338,12 @@ def main() -> None:
     cpu_stats = compute_stats(bygait_cpu_times)
     speedup = round(cpu_stats["mean"] / gpu_stats["mean"], 2) if gpu_stats["mean"] > 0 else 0
 
-    print(f"  ByGaitLight GPU:  mean={gpu_stats['mean']:.4f}ms  p50={gpu_stats['median']:.4f}ms  p95={gpu_stats['p95']:.4f}ms")
-    print(f"  ByGaitLight CPU:  mean={cpu_stats['mean']:.4f}ms  p50={cpu_stats['median']:.4f}ms  p95={cpu_stats['p95']:.4f}ms")
+    print(
+        f"  ByGaitLight GPU:  mean={gpu_stats['mean']:.4f}ms  p50={gpu_stats['median']:.4f}ms  p95={gpu_stats['p95']:.4f}ms"
+    )
+    print(
+        f"  ByGaitLight CPU:  mean={cpu_stats['mean']:.4f}ms  p50={cpu_stats['median']:.4f}ms  p95={cpu_stats['p95']:.4f}ms"
+    )
     print(f"  Speedup (CPU/GPU): {speedup}x")
 
     report["E_bygait_latency"] = {"gpu": gpu_stats, "cpu": cpu_stats, "speedup": speedup}
@@ -386,8 +403,12 @@ def main() -> None:
     osnet_cpu_stats = compute_stats(osnet_cpu_times)
     osnet_speedup = round(osnet_cpu_stats["mean"] / osnet_gpu_stats["mean"], 2) if osnet_gpu_stats["mean"] > 0 else 0
 
-    print(f"  OSNet GPU:  mean={osnet_gpu_stats['mean']:.4f}ms  p50={osnet_gpu_stats['median']:.4f}ms  p95={osnet_gpu_stats['p95']:.4f}ms")
-    print(f"  OSNet CPU:  mean={osnet_cpu_stats['mean']:.4f}ms  p50={osnet_cpu_stats['median']:.4f}ms  p95={osnet_cpu_stats['p95']:.4f}ms")
+    print(
+        f"  OSNet GPU:  mean={osnet_gpu_stats['mean']:.4f}ms  p50={osnet_gpu_stats['median']:.4f}ms  p95={osnet_gpu_stats['p95']:.4f}ms"
+    )
+    print(
+        f"  OSNet CPU:  mean={osnet_cpu_stats['mean']:.4f}ms  p50={osnet_cpu_stats['median']:.4f}ms  p95={osnet_cpu_stats['p95']:.4f}ms"
+    )
     print(f"  Speedup (CPU/GPU): {osnet_speedup}x")
 
     report["E2_osnet_latency"] = {"gpu": osnet_gpu_stats, "cpu": osnet_cpu_stats, "speedup": osnet_speedup}
@@ -459,7 +480,9 @@ def main() -> None:
         gpu_emb = bygait_model(test_tensor.to(bygait_backend.device)).cpu().numpy().flatten()
 
     # CPU inference via fresh model
-    bygait_cpu_check = type(bygait_model)(part_bins=bygait_model.embedding.in_features // 128 if hasattr(bygait_model, 'embedding') else 4)
+    bygait_cpu_check = type(bygait_model)(
+        part_bins=bygait_model.embedding.in_features // 128 if hasattr(bygait_model, "embedding") else 4
+    )
     bygait_cpu_check.load_state_dict(bygait_model.state_dict())
     bygait_cpu_check.to("cpu")
     bygait_cpu_check.eval()
@@ -501,7 +524,9 @@ def main() -> None:
 
     osnet_dim = gpu_osnet_emb.shape[0]
     osnet_max_diff = float(np.max(np.abs(gpu_osnet_emb - cpu_osnet_emb)))
-    osnet_cosine_sim = float(np.dot(gpu_osnet_emb, cpu_osnet_emb) / (np.linalg.norm(gpu_osnet_emb) * np.linalg.norm(cpu_osnet_emb) + 1e-12))
+    osnet_cosine_sim = float(
+        np.dot(gpu_osnet_emb, cpu_osnet_emb) / (np.linalg.norm(gpu_osnet_emb) * np.linalg.norm(cpu_osnet_emb) + 1e-12)
+    )
     osnet_finite = bool(np.all(np.isfinite(gpu_osnet_emb)))
 
     print(f"\n  OSNet embedding dim:          {osnet_dim} (expected: 512)")
@@ -514,13 +539,19 @@ def main() -> None:
 
     report["H_numerical"] = {
         "bygait": {
-            "dim": bygait_dim, "expected": 256, "dim_ok": bygait_dim == 256,
-            "max_abs_diff": bygait_max_diff, "cosine_sim": bygait_cosine_sim,
+            "dim": bygait_dim,
+            "expected": 256,
+            "dim_ok": bygait_dim == 256,
+            "max_abs_diff": bygait_max_diff,
+            "cosine_sim": bygait_cosine_sim,
             "all_finite": bygait_finite,
         },
         "osnet": {
-            "dim": osnet_dim, "expected": 512, "dim_ok": osnet_dim == 512,
-            "max_abs_diff": osnet_max_diff, "cosine_sim": osnet_cosine_sim,
+            "dim": osnet_dim,
+            "expected": 512,
+            "dim_ok": osnet_dim == 512,
+            "max_abs_diff": osnet_max_diff,
+            "cosine_sim": osnet_cosine_sim,
             "all_finite": osnet_finite,
         },
     }
@@ -548,6 +579,7 @@ def main() -> None:
     # Test via AppearanceEmbeddingExtractor (production wrapper)
     print("\n  Testing via AppearanceEmbeddingExtractor.extract() [Production OSNet path]...")
     from intelligence.appearance_embedding import AppearanceEmbeddingExtractor
+
     app_ext = AppearanceEmbeddingExtractor()
     if app_ext.is_available():
         prod_app_emb = app_ext.extract(test_crop_prod, track_id=None)
@@ -564,6 +596,7 @@ def main() -> None:
     # Test via GaitService.process_image_bytes (full production e2e)
     print("\n  Testing via GaitService.process_image_bytes() [Full production e2e]...")
     from services.gait_service import GaitService
+
     gs = GaitService()
     test_frame = np.random.randint(0, 255, (480, 640, 3), dtype=np.uint8)
     ok, buf = cv2.imencode(".jpg", test_frame)
@@ -575,7 +608,7 @@ def main() -> None:
         torch.cuda.synchronize()
         t1 = time.perf_counter()
         vram_after_e2e = torch.cuda.memory_allocated(0) / 1024 / 1024
-        print(f"    Latency:       {(t1-t0)*1000:.2f} ms")
+        print(f"    Latency:       {(t1 - t0) * 1000:.2f} ms")
         print(f"    VRAM delta:    {vram_after_e2e - vram_before_e2e:.2f} MB")
         if isinstance(result, dict):
             print(f"    Result keys:   {list(result.keys())[:10]}")
@@ -642,7 +675,9 @@ def main() -> None:
 
         def print_stats(name, samples):
             s = compute_stats(samples)
-            print(f"  {name:32s}: mean={s['mean']:8.2f}ms  p50={s['median']:8.2f}ms  p95={s['p95']:8.2f}ms  p99={s['p99']:8.2f}ms")
+            print(
+                f"  {name:32s}: mean={s['mean']:8.2f}ms  p50={s['median']:8.2f}ms  p95={s['p95']:8.2f}ms  p99={s['p99']:8.2f}ms"
+            )
             return s
 
         print()

@@ -254,9 +254,7 @@ def run_e2e_verification() -> bool:
 
         # Verify consumed state transition
         for obs_id in [obs1.observation_id, obs2.observation_id, obs3.observation_id, obs4.observation_id]:
-            matched_obs = next(
-                o for o in collector.get_recent_observations() if o.observation_id == obs_id
-            )
+            matched_obs = next(o for o in collector.get_recent_observations() if o.observation_id == obs_id)
             assert matched_obs.state == ObservationState.TRAINING_CONSUMED
             assert matched_obs.training_consumed is True
 

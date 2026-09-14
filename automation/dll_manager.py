@@ -20,7 +20,6 @@ def setup_cuda_dll_paths() -> list[str]:
 
     candidate_paths: list[Path] = []
 
-
     try:
         import torch
 
@@ -30,18 +29,15 @@ def setup_cuda_dll_paths() -> list[str]:
     except (ImportError, AttributeError, OSError):
         pass
 
-
     cuda_path_env = os.environ.get("CUDA_PATH")
     if cuda_path_env:
         cuda_bin = Path(cuda_path_env) / "bin"
         if cuda_bin.exists():
             candidate_paths.append(cuda_bin)
 
-
     system_nv = Path(r"C:\Windows\System32")
     if system_nv.exists():
         candidate_paths.append(system_nv)
-
 
     current_path = os.environ.get("PATH", "")
     path_entries = current_path.split(os.pathsep)

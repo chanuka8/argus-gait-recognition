@@ -49,7 +49,6 @@ class GaitService:
         self.store = VectorStore(gallery_dir=gallery_dir)
         self.appearance_store = VectorStore(gallery_dir=appearance_gallery_dir)
 
-
         self._lock = threading.RLock()
 
         self._firebase_store = None
@@ -465,6 +464,7 @@ class GaitService:
         try:
             from services.missing_person_processor import MissingPersonVideoProcessor
             from services.reference_job_manager import ReferenceJobManager
+
             processor = MissingPersonVideoProcessor(
                 detector=self.detector,
                 tracker=self.tracker,
@@ -499,6 +499,7 @@ class GaitService:
         # Graceful shutdown of reference video job workers and checkpoint persistence
         try:
             from services.reference_job_manager import ReferenceJobManager
+
             loop = asyncio.get_running_loop()
             await loop.run_in_executor(None, ReferenceJobManager.get_instance().shutdown, 5.0)
         except Exception as e:  # noqa: BLE001
@@ -528,7 +529,9 @@ class GaitService:
                 if app_gallery is not None:
                     self.appearance_gallery_features, app_labels, self.appearance_metadata = app_gallery
                     self.appearance_gallery_labels = list(app_labels) if app_labels is not None else []
-                    self.logger.info(f"Loaded appearance gallery with {len(self.appearance_gallery_labels)} embeddings.")
+                    self.logger.info(
+                        f"Loaded appearance gallery with {len(self.appearance_gallery_labels)} embeddings."
+                    )
                 else:
                     self.appearance_gallery_features = np.empty((0, 512), dtype=np.float32)
                     self.appearance_gallery_labels = []
@@ -556,7 +559,9 @@ class GaitService:
                         metadata=self.appearance_metadata,
                     )
             except Exception as w_err:  # noqa: BLE001
-                self.logger.warning(f"Error updating camera worker gallery for {getattr(worker, 'camera_id', 'unknown')}: {w_err}")
+                self.logger.warning(
+                    f"Error updating camera worker gallery for {getattr(worker, 'camera_id', 'unknown')}: {w_err}"
+                )
 
     def _handle_recognition_event(self, event_dict: dict) -> None:
         self.events_log.appendleft(event_dict)
@@ -679,7 +684,6 @@ class GaitService:
             if frame is None or frame.size == 0:
                 continue
 
-
             silhouette = self.silhouette_extractor.extract_from_crop(frame)
             if silhouette is None:
                 gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -689,7 +693,6 @@ class GaitService:
             embedding = self.extractor.backend.predict(sil_norm).flatten().astype(np.float32)
             embeddings.append(embedding)
             added_embeddings += 1
-
 
             if self.appearance_extractor is not None:
                 try:
@@ -725,7 +728,6 @@ class GaitService:
 
         self.store.save(self.gallery_features, self.gallery_labels, self.metadata)
 
-
         if app_embeddings:
             new_app_features = np.vstack(app_embeddings)
             new_app_labels = [person_id] * len(app_embeddings)
@@ -741,7 +743,6 @@ class GaitService:
                 self.appearance_gallery_features, self.appearance_gallery_labels, self.appearance_metadata
             )
 
-
         db_persist_result = None
         if self.embedding_db is not None:
             try:
@@ -754,8 +755,12 @@ class GaitService:
                 self.logger.warning(f"EmbeddingDatabase persistence sync warning: {db_err}")
 
         fb_res = db_persist_result.get("firebase_results", []) if db_persist_result else []
-        fb_status = "CONFIRMED" if fb_res and all(r.get("success", False) for r in fb_res) else (
-            "PENDING" if self.embedding_db and getattr(self.embedding_db, "firebase_store", None) else "LOCAL_ONLY"
+        fb_status = (
+            "CONFIRMED"
+            if fb_res and all(r.get("success", False) for r in fb_res)
+            else (
+                "PENDING" if self.embedding_db and getattr(self.embedding_db, "firebase_store", None) else "LOCAL_ONLY"
+            )
         )
 
         return {
@@ -800,6 +805,57 @@ class GaitService:
 
         return defaults
 
+    def _attach_recognition_worker_async(
+        self,
+        camera_id: str,
+        worker: CameraWorker,
+        worker_cfg: dict,
+    ) -> None:
+        """Asynchronously initialize and attach RecognitionWorker without delaying camera stream preview."""
+
+        def _bg_init():
+            try:
+                # If camera was stopped or disconnected while background init was queued, exit cleanly
+                if camera_id not in self.active_cameras or not worker.is_running():
+                    return
+
+                from services.recognition_worker import RecognitionWorker
+
+                rec_worker = RecognitionWorker(
+                    camera_id=camera_id,
+                    config=worker_cfg.get("recognition", {}),
+                    detector=self.detector,
+                    silhouette_extractor=self.silhouette_extractor,
+                    extractor=self.extractor,
+                    matcher=self.matcher,
+                    open_set_recognizer=self.open_set_recognizer,
+                    gallery_features=self.gallery_features,
+                    gallery_labels=self.gallery_labels,
+                    metadata=self.metadata,
+                    appearance_extractor=self.appearance_extractor,
+                    appearance_matcher=self.appearance_matcher,
+                    appearance_gallery_features=self.appearance_gallery_features,
+                    appearance_gallery_labels=self.appearance_gallery_labels,
+                    appearance_metadata=self.appearance_metadata,
+                    operational_collector=self.continuous_engine.collector if self.continuous_engine else None,
+                    event_callback=self._handle_recognition_event,
+                )
+
+                if camera_id in self.active_cameras and worker.is_running():
+                    worker.set_recognition_worker(rec_worker)
+                    self.logger.info(f"RecognitionWorker successfully attached to camera '{camera_id}'")
+                else:
+                    rec_worker.stop(timeout=1.0)
+            except Exception as rec_err:  # noqa: BLE001
+                self.logger.warning(f"Recognition worker async initialization notice for {camera_id}: {rec_err}")
+
+        init_thread = threading.Thread(
+            target=_bg_init,
+            name=f"rec-init-{camera_id}",
+            daemon=True,
+        )
+        init_thread.start()
+
     def start_camera(
         self,
         camera_id: str,
@@ -843,63 +899,74 @@ class GaitService:
             "device_index": int(resolved_source) if source_type == "webcam" and str(resolved_source).isdigit() else 0,
         }
 
-
         enforce_admission = bool(worker_cfg.get("enforce_admission", False))
         try:
-            from streaming.deployment_readiness import AdmissionDecision, DeploymentReadinessManager
+            adm_res = None
+            if hasattr(self, "_deployment_manager") and self._deployment_manager is not None:
+                adm_res = self._deployment_manager.request_camera_admission(
+                    camera_id=camera_id,
+                    current_active_cameras=len(self.active_cameras),
+                )
+            else:
+                # Fast, lightweight resource sanity check without blocking camera preview on heavy Torch imports
+                import psutil
 
-            if not hasattr(self, "_deployment_manager") or self._deployment_manager is None:
-                self._deployment_manager = DeploymentReadinessManager()
+                cpu_pct = psutil.cpu_percent(interval=None)
+                ram_pct = psutil.virtual_memory().percent
+                if cpu_pct >= 90.0:
+                    msg = f"CPU saturated ({cpu_pct:.1f}% >= 90.0%)"
+                    self.logger.warning(f"Camera admission notice for '{camera_id}': {msg}")
+                    if enforce_admission:
+                        self.source_resolver.release_source_by_camera_id(camera_id)
+                        raise RuntimeError(f"Camera admission rejected for '{camera_id}': {msg}")
+                elif ram_pct >= 90.0:
+                    msg = f"Host RAM saturated ({ram_pct:.1f}% >= 90.0%)"
+                    self.logger.warning(f"Camera admission notice for '{camera_id}': {msg}")
+                    if enforce_admission:
+                        self.source_resolver.release_source_by_camera_id(camera_id)
+                        raise RuntimeError(f"Camera admission rejected for '{camera_id}': {msg}")
 
-            adm_res = self._deployment_manager.request_camera_admission(
-                camera_id=camera_id,
-                current_active_cameras=len(self.active_cameras),
-            )
-            if not adm_res.admitted:
-                self.logger.warning(f"Camera admission notice for '{camera_id}': {adm_res.reason}")
-                if enforce_admission:
-                    self.source_resolver.release_source_by_camera_id(camera_id)
-                    raise RuntimeError(f"Camera admission rejected for '{camera_id}': {adm_res.reason}")
-            elif adm_res.decision == AdmissionDecision.ADMITTED_DEGRADED:
-                self.logger.info(f"Camera '{camera_id}' admitted with degraded FPS ({adm_res.effective_fps:.1f})")
-                worker_cfg["target_fps"] = max(1, int(adm_res.effective_fps))
+                # Asynchronously warm up DeploymentReadinessManager in background
+                if not getattr(self, "_dm_initializing", False):
+                    self._dm_initializing = True
+
+                    def _init_dm():
+                        try:
+                            from streaming.deployment_readiness import DeploymentReadinessManager
+
+                            self._deployment_manager = DeploymentReadinessManager()
+                        except Exception as dm_err:  # noqa: BLE001
+                            self.logger.debug(f"Background deployment readiness init notice: {dm_err}")
+                        finally:
+                            self._dm_initializing = False
+
+                    threading.Thread(target=_init_dm, name="dm-bg-init", daemon=True).start()
+
+            if adm_res is not None:
+                if not adm_res.admitted:
+                    self.logger.warning(f"Camera admission notice for '{camera_id}': {adm_res.reason}")
+                    if enforce_admission:
+                        self.source_resolver.release_source_by_camera_id(camera_id)
+                        raise RuntimeError(f"Camera admission rejected for '{camera_id}': {adm_res.reason}")
+                elif (
+                    getattr(adm_res, "decision", None) is not None
+                    and getattr(adm_res.decision, "name", "") == "ADMITTED_DEGRADED"
+                ):
+                    self.logger.info(f"Camera '{camera_id}' admitted with degraded FPS ({adm_res.effective_fps:.1f})")
+                    worker_cfg["target_fps"] = max(1, int(adm_res.effective_fps))
         except RuntimeError:
             raise
-        except (ImportError, Exception) as adm_err:  # noqa: BLE001
+        except Exception as adm_err:  # noqa: BLE001
             self.logger.debug(f"Admission check note: {adm_err}")
 
-        recognition_worker = None
-        try:
-            from services.recognition_worker import RecognitionWorker
-
-            recognition_worker = RecognitionWorker(
-                camera_id=camera_id,
-                config=worker_cfg.get("recognition", {}),
-                detector=self.detector,
-                silhouette_extractor=self.silhouette_extractor,
-                extractor=self.extractor,
-                matcher=self.matcher,
-                open_set_recognizer=self.open_set_recognizer,
-                gallery_features=self.gallery_features,
-                gallery_labels=self.gallery_labels,
-                metadata=self.metadata,
-                appearance_extractor=self.appearance_extractor,
-                appearance_matcher=self.appearance_matcher,
-                appearance_gallery_features=self.appearance_gallery_features,
-                appearance_gallery_labels=self.appearance_gallery_labels,
-                appearance_metadata=self.appearance_metadata,
-                operational_collector=self.continuous_engine.collector if self.continuous_engine else None,
-                event_callback=self._handle_recognition_event,
-            )
-        except (ImportError, RuntimeError, ValueError, TypeError, OSError) as rec_err:
-            self.logger.warning(f"Recognition worker init deferred for {camera_id}: {rec_err}")
-
+        # Start CameraWorker immediately to acquire the first frame and expose live preview
+        # without waiting for the heavy ML recognition pipeline to load.
         worker = CameraWorker(
             camera_id=camera_id,
             camera_config=worker_cfg,
             inference_pipeline=None,
             detection_processor=None,
-            recognition_worker=recognition_worker,
+            recognition_worker=None,
             existing_capture=retained_capture,
             initial_frame=initial_frame,
         )
@@ -939,12 +1006,21 @@ class GaitService:
             "credential_configured": res_cred_conf,
         }
         self.active_cameras[camera_id] = cam_info
+
+        # Launch independent, asynchronous RecognitionWorker attachment after registration
+        self._attach_recognition_worker_async(camera_id, worker, worker_cfg)
+
         self.logger.info(
             f"Camera worker {camera_id} active with {sanitize_rtsp_url(resolved_label)} [type={source_type}]"
         )
         return cam_info
 
     def stop_camera(self, camera_id: str) -> bool:
+        cam_info = self.active_cameras.pop(camera_id, None)
+        if cam_info:
+            cam_info["status"] = "STOPPED"
+        self.source_resolver.release_source_by_camera_id(camera_id)
+
         worker = self.camera_workers.pop(camera_id, None)
         if worker:
             try:
@@ -952,12 +1028,7 @@ class GaitService:
             except (RuntimeError, ValueError, TypeError, OSError) as e:
                 self.logger.warning(f"Error stopping worker {camera_id}: {sanitize_rtsp_url(str(e))}")
 
-        if camera_id in self.active_cameras:
-            self.active_cameras[camera_id]["status"] = "STOPPED"
-            del self.active_cameras[camera_id]
-            self.source_resolver.release_source_by_camera_id(camera_id)
-            return True
-        return False
+        return cam_info is not None
 
     def get_camera_worker(self, camera_id: str) -> CameraWorker | None:
         return self.camera_workers.get(camera_id)

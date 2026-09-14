@@ -14,7 +14,6 @@ def test_video_quality_gate_initialization() -> None:
 def test_video_quality_gate_assess_clean_clip() -> None:
     gate = DeterministicVideoQualityGate(min_frames=3)
 
-
     frames = [np.full((128, 64, 3), 120, dtype=np.uint8) for _ in range(5)]
 
     for f in frames:
@@ -22,8 +21,7 @@ def test_video_quality_gate_assess_clean_clip() -> None:
 
     silhouettes = [np.zeros((128, 64), dtype=np.uint8) for _ in range(5)]
     for i, s in enumerate(silhouettes):
-
-        s[10:120, (10 + i * 2):(50 + i * 2)] = 255
+        s[10:120, (10 + i * 2) : (50 + i * 2)] = 255
 
     res = gate.assess_video_clip(frames, silhouettes)
     assert res.passed is True
@@ -34,7 +32,6 @@ def test_video_quality_gate_assess_clean_clip() -> None:
 
 def test_video_quality_gate_rejects_blurry_and_dark() -> None:
     gate = DeterministicVideoQualityGate(min_frames=3)
-
 
     dark_frames = [np.full((128, 64, 3), 5, dtype=np.uint8) for _ in range(5)]
     silhouettes = [np.zeros((128, 64), dtype=np.uint8) for _ in range(5)]

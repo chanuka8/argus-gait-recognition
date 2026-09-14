@@ -252,4 +252,3 @@ def test_process_reference_photos_async_flow(temp_db_env):
     assert person is not None
     assert len(person.gait_embeddings) == 1
     assert person.gait_embeddings[0].status == "ACTIVE"
-

@@ -38,9 +38,6 @@ def run_verification() -> int:
         reg_file = tmp_dir / "model_registry.json"
         fb_offline = tmp_dir / "fb_store.json"
 
-
-
-
         fb_store = FirebaseEmbeddingStore(
             mode="auto",
             offline_store_path=str(fb_offline),
@@ -48,9 +45,6 @@ def run_verification() -> int:
         mode = fb_store.mode
         print(f"[CHECK 1] Firebase Store Mode: {mode.upper()}")
         results.append(("Firebase Store Mode", "VERIFIED", f"Running in {mode} mode"))
-
-
-
 
         gait_vec = list(np.random.randn(256).astype(float))
         app_vec = list(np.random.randn(512).astype(float))
@@ -85,9 +79,6 @@ def run_verification() -> int:
         print("[CHECK 2] Multimodal Persistence (256D Gait + 512D Appearance) & Verification: OK")
         results.append(("Multimodal Persistence & Read-after-Write", "VERIFIED", "256D/512D stored and verified"))
 
-
-
-
         bad_doc = FirebaseEmbeddingDocument(
             embedding_id="bad-dim-01",
             person_id="Sub_Bad",
@@ -100,9 +91,6 @@ def run_verification() -> int:
         assert res_bad.success is False, "Store accepted invalid dimension for gait"
         print("[CHECK 3] Dimension Isolation: OK (rejected mismatched dimension)")
         results.append(("Dimension Isolation", "VERIFIED", "Mismatched dimensions strictly rejected"))
-
-
-
 
         db = EmbeddingDatabase(
             db_dir=str(db_dir),
@@ -117,9 +105,6 @@ def run_verification() -> int:
         assert len(p_rec.gait_embeddings) >= 1 and len(p_rec.appearance_embeddings) >= 1
         print("[CHECK 4] Disaster Recovery Rebuild: OK (restored local galleries from Firebase)")
         results.append(("Disaster Recovery Rebuild", "VERIFIED", "Reconstructed local VectorStores from Firebase"))
-
-
-
 
         import cv2
 
@@ -137,20 +122,13 @@ def run_verification() -> int:
         print("[CHECK 5] Enrollment Lifecycle & Safe Raw-Data Cleanup: OK")
         results.append(("Enrollment 7-Step Invariant", "VERIFIED", "EMBEDDING_ONLY reached, raw media cleaned"))
 
-
-
-
         tuner = NNFineTuner(
             candidate_dir=str(cand_dir),
             max_epochs=1,
             learning_rate=1e-5,
         )
-        gei_data = [
-            {"image": np.random.rand(64, 128).astype(np.float32), "label": "Subject_1"}
-            for _ in range(4)
-        ] + [
-            {"image": np.random.rand(64, 128).astype(np.float32), "label": "Subject_2"}
-            for _ in range(4)
+        gei_data = [{"image": np.random.rand(64, 128).astype(np.float32), "label": "Subject_1"} for _ in range(4)] + [
+            {"image": np.random.rand(64, 128).astype(np.float32), "label": "Subject_2"} for _ in range(4)
         ]
         nn_res = tuner.fine_tune_bygait_light(
             active_weights_path="",
@@ -160,11 +138,10 @@ def run_verification() -> int:
         )
         assert nn_res["success"] is True, f"NN fine-tuning failed: {nn_res}"
         assert Path(nn_res["artifact_path"]).exists()
-        print(f"[CHECK 6] Date-Aware ByGaitLight NN Fine-Tuning: OK (Rank-1: {nn_res['metrics']['val_rank1_accuracy']}%)")
+        print(
+            f"[CHECK 6] Date-Aware ByGaitLight NN Fine-Tuning: OK (Rank-1: {nn_res['metrics']['val_rank1_accuracy']}%)"
+        )
         results.append(("ByGaitLight NN Fine-Tuning", "VERIFIED", "Candidate .pth generated with SHA-256 checksum"))
-
-
-
 
         registry = ModelRegistry(registry_file=str(reg_file))
         cand_ver = "vVerifyCand01"
@@ -187,7 +164,9 @@ def run_verification() -> int:
         rolled = registry.rollback("bygait_light", reason="Verification check")
         assert rolled.model_version != cand_ver
         print("[CHECK 7] Candidate Promotion & Automatic Rollback: OK")
-        results.append(("Atomic Promotion & Rollback", "VERIFIED", "Linear version promotion and clean rollback verified"))
+        results.append(
+            ("Atomic Promotion & Rollback", "VERIFIED", "Linear version promotion and clean rollback verified")
+        )
 
         print("\n" + "=" * 80)
         print("VERIFICATION SUMMARY:")

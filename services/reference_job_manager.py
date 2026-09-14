@@ -410,10 +410,7 @@ class ReferenceJobManager:
         with self._lock:
             if owner:
                 owner_clean = owner.strip().lower()
-                filtered = [
-                    j for j in self._jobs.values()
-                    if not j.owner or j.owner.strip().lower() == owner_clean
-                ]
+                filtered = [j for j in self._jobs.values() if not j.owner or j.owner.strip().lower() == owner_clean]
                 all_jobs = sorted(filtered, key=lambda j: j.created_at, reverse=True)
             else:
                 all_jobs = sorted(self._jobs.values(), key=lambda j: j.created_at, reverse=True)
@@ -553,7 +550,8 @@ class ReferenceJobManager:
 
         with self._lock:
             candidate_jobs = [
-                j for j in self._jobs.values()
+                j
+                for j in self._jobs.values()
                 if j.status in RECOVERABLE_STATUSES and j.status != ReferenceJobStatus.COMPLETED
             ]
 
@@ -586,15 +584,14 @@ class ReferenceJobManager:
 
             self.logger.info(f"[RECOVERY] Found unfinished reference job: {job.job_id}")
             self.logger.info(f"[RECOVERY] Stage: {job.progress.stage}")
-            self.logger.info(
-                f"[RECOVERY] Last safe frame: {job.progress.last_safe_frame}/{job.progress.total_frames}"
-            )
+            self.logger.info(f"[RECOVERY] Last safe frame: {job.progress.last_safe_frame}/{job.progress.total_frames}")
             self.logger.info(f"[RECOVERY] Completed sequences: {len(job.progress.completed_sequences)}")
             self.logger.info("[RECOVERY] Resuming job")
 
             recovered_jobs.append(job)
 
             if processor is not None:
+
                 def _run_resume(j: ReferenceJobRecord = job) -> None:
                     try:
                         if j.media_type == "video":

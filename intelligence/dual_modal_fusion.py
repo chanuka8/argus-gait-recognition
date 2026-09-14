@@ -227,7 +227,6 @@ class DualModalFusion:
             track_reliability=track_reliability,
         )
 
-
         if g_passes and a_passes and (raw_g_id == raw_a_id):
             final_identity = raw_g_id
             final_score = fusion_res["final_score"]
@@ -235,7 +234,6 @@ class DualModalFusion:
             decision = "CONFIRMED"
             modality_state = "DUAL_MODAL_MATCH"
             conflict = False
-
 
         elif g_passes and a_passes and (raw_g_id != raw_a_id):
             final_identity = "REVIEW_REQUIRED"
@@ -245,7 +243,6 @@ class DualModalFusion:
             modality_state = "CONFLICT"
             conflict = True
 
-
         elif g_passes and not a_passes:
             final_identity = raw_g_id
             final_score = g_score
@@ -253,7 +250,6 @@ class DualModalFusion:
             decision = "CONFIRMED"
             modality_state = "GAIT_ONLY"
             conflict = False
-
 
         elif a_passes and not g_passes:
             final_identity = raw_a_id
@@ -263,7 +259,6 @@ class DualModalFusion:
             modality_state = "APPEARANCE_ONLY"
             conflict = False
 
-
         else:
             final_identity = unknown_label
             final_score = max(g_score, a_score) if (g_score > 0 or a_score > 0) else 0.0
@@ -271,7 +266,6 @@ class DualModalFusion:
             decision = "UNKNOWN"
             modality_state = "UNAVAILABLE" if (g_score == 0 and a_score == 0) else "BELOW_THRESHOLD"
             conflict = False
-
 
         if decision == "CONFIRMED" and self._is_valid_identity(final_identity):
             for group in self.high_risk_confusion_groups:

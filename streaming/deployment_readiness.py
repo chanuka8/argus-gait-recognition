@@ -176,8 +176,7 @@ class HardwareCapabilityDetector:
             version = torch.version.cuda or "N/A"
             cudnn = (
                 str(torch.backends.cudnn.version())
-                if hasattr(torch.backends, "cudnn")
-                and torch.backends.cudnn.is_available()
+                if hasattr(torch.backends, "cudnn") and torch.backends.cudnn.is_available()
                 else "N/A"
             )
             return CUDAInfo(
@@ -198,7 +197,6 @@ class HardwareCapabilityDetector:
             free = usage.free / (1024 * 1024 * 1024)
             used = usage.used / (1024 * 1024 * 1024)
             pct = (used / tot * 100.0) if tot > 0 else 0.0
-
 
             test_file = os.path.join(target, f".write_test_{os.getpid()}")
             writable = True
@@ -241,11 +239,6 @@ class HardwareCapabilityDetector:
             ip_addresses=ip_addrs[:8],
             estimated_link_mbps=1000.0,
         )
-
-
-
-
-
 
 
 class SystemProfile(enum.Enum):
@@ -295,7 +288,6 @@ class SystemProfileEngine:
         cpu = report.cpu
         ram = report.ram
 
-
         if explicit_profile != SystemProfile.AUTO:
             chosen = explicit_profile
         elif not gpu.available or gpu.vram_total_mb < 2000.0:
@@ -311,7 +303,6 @@ class SystemProfileEngine:
             chosen = SystemProfile.GPU_HIGH
         else:
             chosen = SystemProfile.SERVER
-
 
         if chosen == SystemProfile.LOW_RESOURCE:
             return RuntimeParameters(
@@ -345,7 +336,6 @@ class SystemProfileEngine:
                 device_name="CPU",
             )
         elif chosen == SystemProfile.GPU_SMALL:
-
             workers = max(2, min(4, cpu.logical_cores // 2))
             return RuntimeParameters(
                 profile_name="GPU_SMALL",
@@ -362,7 +352,6 @@ class SystemProfileEngine:
                 device_name=gpu.model,
             )
         elif chosen == SystemProfile.GPU_STANDARD:
-
             workers = max(2, min(8, cpu.logical_cores // 2))
             return RuntimeParameters(
                 profile_name="GPU_STANDARD",
@@ -379,7 +368,6 @@ class SystemProfileEngine:
                 device_name=gpu.model,
             )
         elif chosen == SystemProfile.GPU_HIGH:
-
             workers = max(4, min(12, cpu.logical_cores // 2))
             return RuntimeParameters(
                 profile_name="GPU_HIGH",
@@ -396,7 +384,6 @@ class SystemProfileEngine:
                 device_name=gpu.model,
             )
         else:
-
             workers = max(4, min(16, cpu.logical_cores // 2))
             return RuntimeParameters(
                 profile_name="SERVER",
@@ -412,11 +399,6 @@ class SystemProfileEngine:
                 enable_gpu=True,
                 device_name=gpu.model,
             )
-
-
-
-
-
 
 
 @dataclass
@@ -488,13 +470,7 @@ class ModelProfileRegistry:
         return {k: asdict(v) for k, v in self._profiles.items()}
 
 
-
-
-
-
-
 class NetworkBandwidthEstimator:
-
     CODEC_BITRATES_MBPS: ClassVar[dict[str, dict[str, float]]] = {
         "h264": {
             "480p": 0.8,
@@ -560,11 +536,6 @@ class NetworkBandwidthEstimator:
         }
 
 
-
-
-
-
-
 class ProductionCapacityEstimator:
     def __init__(self, target_camera_fps: float = 10.0) -> None:
         self.target_camera_fps = max(1.0, target_camera_fps)
@@ -591,21 +562,17 @@ class ProductionCapacityEstimator:
                 "constraints_met": False,
             }
 
-
         raw_cams = measured_throughput_fps / self.target_camera_fps
-
 
         limiting_factor = "none"
         confidence = "HIGH"
         scale_factor = 1.0
 
-
         if cpu_percent > 85.0:
-            scale_factor *= (85.0 / max(1.0, cpu_percent))
+            scale_factor *= 85.0 / max(1.0, cpu_percent)
             limiting_factor = "cpu"
         elif cpu_percent > 70.0:
             scale_factor *= 0.90
-
 
         if vram_total_mb > 0:
             vram_pct = (vram_allocated_mb / vram_total_mb) * 100.0
@@ -615,19 +582,16 @@ class ProductionCapacityEstimator:
             elif vram_pct > 80.0:
                 scale_factor *= 0.92
 
-
         if p95_latency_ms > 200.0:
-            scale_factor *= (200.0 / max(1.0, p95_latency_ms))
+            scale_factor *= 200.0 / max(1.0, p95_latency_ms)
             limiting_factor = "latency"
 
-
         if drop_rate > 0.05:
-            scale_factor *= (1.0 - drop_rate)
+            scale_factor *= 1.0 - drop_rate
             limiting_factor = "drop_rate"
 
-
         if network_headroom_pct < 15.0:
-            scale_factor *= (network_headroom_pct / 15.0)
+            scale_factor *= network_headroom_pct / 15.0
             limiting_factor = "network"
 
         sustainable_cams = max(1, int(raw_cams * scale_factor))
@@ -660,16 +624,22 @@ class ProductionCapacityEstimator:
     ) -> dict[str, Any]:
         total_active_persons = max(1, camera_count * persons_per_camera)
 
-
         kb_per_track = 128.0
         total_track_memory_mb = (total_active_persons * kb_per_track) / 1024.0
 
-
-        if cpu_percent > 88.0 or (vram_total_mb > 0 and (vram_allocated_mb / vram_total_mb) > 0.90) or p95_latency_ms > 100.0:
+        if (
+            cpu_percent > 88.0
+            or (vram_total_mb > 0 and (vram_allocated_mb / vram_total_mb) > 0.90)
+            or p95_latency_ms > 100.0
+        ):
             capacity_state = "CAPACITY_REACHED"
             recommended_tier = "DEGRADED_MODE"
             max_sustainable_persons = int(total_active_persons * 0.70)
-        elif cpu_percent > 75.0 or (vram_total_mb > 0 and (vram_allocated_mb / vram_total_mb) > 0.80) or p95_latency_ms > 50.0:
+        elif (
+            cpu_percent > 75.0
+            or (vram_total_mb > 0 and (vram_allocated_mb / vram_total_mb) > 0.80)
+            or p95_latency_ms > 50.0
+        ):
             capacity_state = "SUPPORTED_DEGRADED"
             recommended_tier = "MICRO_BATCHING"
             max_sustainable_persons = int(total_active_persons * 0.90)
@@ -687,13 +657,10 @@ class ProductionCapacityEstimator:
             "recommended_policy_tier": recommended_tier,
             "estimated_track_memory_mb": round(total_track_memory_mb, 2),
             "is_unbounded_supported": True,
-            "limiting_factor": "cpu" if cpu_percent > 80 else ("vram" if (vram_total_mb > 0 and vram_allocated_mb / vram_total_mb > 0.85) else "none"),
+            "limiting_factor": "cpu"
+            if cpu_percent > 80
+            else ("vram" if (vram_total_mb > 0 and vram_allocated_mb / vram_total_mb > 0.85) else "none"),
         }
-
-
-
-
-
 
 
 class AdmissionDecision(enum.Enum):
@@ -743,7 +710,6 @@ class CameraAdmissionController:
         target_fps: float = 15.0,
     ) -> AdmissionResult:
         with self._lock:
-
             if cpu_percent >= self.max_cpu_percent:
                 msg = f"CPU saturated ({cpu_percent:.1f}% >= {self.max_cpu_percent:.1f}%)"
                 self._logger.warning(f"Admission REJECTED for '{camera_id}': {msg}")
@@ -768,7 +734,6 @@ class CameraAdmissionController:
                     current_active_count=current_active_cameras,
                 )
 
-
             if vram_total_mb > 0:
                 vram_pct = (vram_allocated_mb / vram_total_mb) * 100.0
                 if vram_pct >= self.max_vram_percent:
@@ -783,7 +748,6 @@ class CameraAdmissionController:
                         current_active_count=current_active_cameras,
                     )
 
-
             if network_headroom_pct < self.min_network_headroom_pct:
                 msg = f"Network headroom exhausted ({network_headroom_pct:.1f}% < {self.min_network_headroom_pct:.1f}%)"
                 self._logger.warning(f"Admission REJECTED for '{camera_id}': {msg}")
@@ -796,9 +760,7 @@ class CameraAdmissionController:
                     current_active_count=current_active_cameras,
                 )
 
-
             if current_active_cameras >= sustainable_capacity:
-
                 if current_active_cameras < int(sustainable_capacity * 1.25):
                     degraded_fps = max(2.0, target_fps * 0.5)
                     msg = f"Admitted in DEGRADED mode (active={current_active_cameras}, cap={sustainable_capacity})"
@@ -823,7 +785,6 @@ class CameraAdmissionController:
                         current_active_count=current_active_cameras,
                     )
 
-
             msg = f"Admitted successfully (headroom={sustainable_capacity - current_active_cameras})"
             self._logger.info(f"Camera '{camera_id}' {msg}")
             return AdmissionResult(
@@ -834,11 +795,6 @@ class CameraAdmissionController:
                 effective_fps=target_fps,
                 current_active_count=current_active_cameras,
             )
-
-
-
-
-
 
 
 class InferenceQualityMode(enum.Enum):
@@ -883,11 +839,6 @@ class AdaptiveInferencePolicy:
                 self._logger.info(f"Inference quality transition: {old_mode.value} -> {self._mode.value}")
 
             return self._mode
-
-
-
-
-
 
 
 class GPUMemoryGuard:
@@ -935,11 +886,6 @@ class GPUMemoryGuard:
             return False
 
 
-
-
-
-
-
 class StorageSafetyAuditor:
     def __init__(self, storage_dir: str = "data") -> None:
         self.storage_dir = storage_dir
@@ -950,7 +896,6 @@ class StorageSafetyAuditor:
         exists = os.path.exists(abs_path)
         disk_usage = shutil.disk_usage(abs_path if exists else ".")
         free_gb = disk_usage.free / (1024 * 1024 * 1024)
-
 
         test_file = os.path.join(abs_path if exists else ".", f".atomic_test_{os.getpid()}")
         atomic_ok = False
@@ -972,11 +917,6 @@ class StorageSafetyAuditor:
             "atomic_write_verified": atomic_ok,
             "status": "HEALTHY" if (free_gb >= 1.0 and atomic_ok) else "DEGRADED",
         }
-
-
-
-
-
 
 
 class SecurityAuditor:
@@ -1002,11 +942,6 @@ class SecurityAuditor:
         }
 
 
-
-
-
-
-
 class DeploymentReadinessManager:
     def __init__(self, workspace_path: str = ".") -> None:
         self.detector = HardwareCapabilityDetector(workspace_path)
@@ -1026,7 +961,6 @@ class DeploymentReadinessManager:
         vram = self.gpu_guard.get_vram_state()
         storage = self.storage_auditor.audit_storage()
         security = self.security_auditor.audit_system_security()
-
 
         cap = self.capacity_estimator.estimate_capacity(
             measured_throughput_fps=self.runtime_params.max_processing_fps * 15.0,

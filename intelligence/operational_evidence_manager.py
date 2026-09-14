@@ -137,7 +137,6 @@ class OperationalEvidenceManager:
         if arr.size == 0 or not np.isfinite(arr).all():
             return None
 
-
         if modality == "gait":
             if arr.ndim != 2 or arr.shape[0] < 32 or arr.shape[1] < 32:
                 self._logger.debug(f"Invalid GEI dimensions: {arr.shape}")
@@ -151,10 +150,8 @@ class OperationalEvidenceManager:
         session_str = session_id or f"sess_{camera_id}_{track_id}_{int(now // 3600)}"
         condition_meta = dict(condition_metadata or {})
 
-
         arr_bytes = arr.tobytes()
         sha256 = hashlib.sha256(arr_bytes).hexdigest()
-
 
         file_name = f"{ev_id}.npz"
         target_path = self.storage_dir / file_name
@@ -194,8 +191,7 @@ class OperationalEvidenceManager:
             self._enforce_quota_and_cleanup()
 
         self._logger.info(
-            f"[EVIDENCE_STORED] ID={ev_id} person={person_id} mod={modality} "
-            f"shape={arr.shape} SHA256={sha256[:12]}..."
+            f"[EVIDENCE_STORED] ID={ev_id} person={person_id} mod={modality} shape={arr.shape} SHA256={sha256[:12]}..."
         )
         return record
 
@@ -213,7 +209,6 @@ class OperationalEvidenceManager:
                 with np.load(str(target_path)) as data:
                     arr = data["data"]
                     stored_sha = str(data["sha256"])
-
 
                 actual_sha = hashlib.sha256(arr.tobytes()).hexdigest()
                 if actual_sha != stored_sha or actual_sha != record.sha256_hash:
@@ -275,14 +270,9 @@ class OperationalEvidenceManager:
         for eid in evicted:
             self._records.pop(eid, None)
 
-
         current_bytes = self.get_total_storage_bytes()
         if current_bytes > self.max_storage_bytes:
-
-            unlocked = [
-                rec for rec in self._records.values()
-                if not rec.manifest_locks
-            ]
+            unlocked = [rec for rec in self._records.values() if not rec.manifest_locks]
             unlocked.sort(key=lambda r: r.created_at)
 
             for rec in unlocked:

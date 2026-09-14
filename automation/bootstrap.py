@@ -37,15 +37,12 @@ class EnvironmentBootstrap:
         print(" ARGUS AI ENVIRONMENT BOOTSTRAP")
         print("=" * 60)
 
-
         print("\n[01/12] Detecting operating system...")
         sys_hw = HardwareDetector.detect_system()
         print(f"[PASS] {sys_hw.os_name} {sys_hw.os_version} ({sys_hw.architecture})")
 
-
         print("\n[02/12] Detecting Python...")
         print(f"[PASS] Python {sys_hw.python_version}")
-
 
         print("\n[03/12] Detecting hardware...")
         print(f"[PASS] CPU: {sys_hw.cpu_cores} Cores | RAM: {sys_hw.ram_total_gb} GB")
@@ -56,13 +53,11 @@ class EnvironmentBootstrap:
         else:
             print("[INFO] NVIDIA GPU: None detected.")
 
-
         print("\n[04/12] Detecting NVIDIA driver...")
         if gpu_info.present:
             print(f"[PASS] Driver: {gpu_info.driver_version}")
         else:
             print("[INFO] N/A (CPU Mode)")
-
 
         print("\n[05/12] Detecting CUDA compatibility...")
         if self.force_cpu:
@@ -74,7 +69,6 @@ class EnvironmentBootstrap:
         else:
             print("[INFO] Target compute backend: CPU")
             target_backend = ComputeBackend.CPU
-
 
         print("\n[06/12] Checking PyTorch...")
         pt_mgr = PyTorchManager()
@@ -99,7 +93,6 @@ class EnvironmentBootstrap:
             print("[PASS] PyTorch build already compatible.")
             print("[07/12] PyTorch installation required: NO")
 
-
         onnx_mgr = OnnxManager()
         onnx_info = onnx_mgr.inspect_current_onnx()
         onnx_needs_repair = not onnx_mgr.is_compatible(target_backend) or self.force_repair
@@ -112,7 +105,6 @@ class EnvironmentBootstrap:
                 onnx_mgr.ensure_onnx(target_backend=ComputeBackend.CPU)
         else:
             print(f"[PASS] ONNX Runtime already compatible (Provider: {onnx_info.get('active_provider')}).")
-
 
         print("\n[08/12] Validating Compute Device & Tensor Operations...")
         setup_cuda_dll_paths()
@@ -138,9 +130,7 @@ class EnvironmentBootstrap:
                 print(f"[FAIL] CPU validation failed: {cpu_errors}")
                 return False
 
-
         dm = DeviceManager.get_instance(force_refresh=True, force_cpu=(target_backend == ComputeBackend.CPU))
-
 
         print("\n[09/12] Validating YOLO PersonDetector...")
         try:
@@ -155,7 +145,6 @@ class EnvironmentBootstrap:
             print(f"[PASS] Runtime Device: {yolo_dev}")
         except (RuntimeError, ValueError, TypeError, AttributeError, OSError, ImportError) as e:
             print(f"[FAIL] YOLO validation error: {e}")
-
 
         print("\n[10/12] Validating ONNX Runtime...")
         try:
@@ -188,7 +177,6 @@ class EnvironmentBootstrap:
         except (RuntimeError, ValueError, TypeError, AttributeError, OSError, ImportError) as e:
             print(f"[FAIL] ONNX validation error: {e}")
 
-
         print("\n[11/12] Validating ByGaitLight CNN...")
         try:
             import torch
@@ -208,7 +196,6 @@ class EnvironmentBootstrap:
             print(f"[PASS] L2 Norm: {norm:.4f}")
         except (RuntimeError, ValueError, TypeError, AttributeError, OSError, ImportError) as e:
             print(f"[FAIL] ByGaitLight validation error: {e}")
-
 
         print("\n[12/12] Final environment validation...")
         summary = dm.summary()

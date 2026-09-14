@@ -15,7 +15,7 @@ sys.stdout.reconfigure(line_buffering=True)
 import cv2
 import matplotlib
 
-matplotlib.use('Agg')
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -52,7 +52,9 @@ def compute_percentiles(scores: list[float]) -> dict[str, float]:
     return res
 
 
-def bootstrap_ci(gen_scores: list[float], imp_scores: list[float], threshold: float, n_boot: int = 1000) -> dict[str, tuple[float, float]]:
+def bootstrap_ci(
+    gen_scores: list[float], imp_scores: list[float], threshold: float, n_boot: int = 1000
+) -> dict[str, tuple[float, float]]:
     np.random.seed(42)
     gen_arr = np.array(gen_scores)
     imp_arr = np.array(imp_scores)
@@ -81,7 +83,10 @@ def bootstrap_ci(gen_scores: list[float], imp_scores: list[float], threshold: fl
         f1_list.append(f1 * 100.0)
 
     return {
-        "precision_ci_95": (round(float(np.percentile(prec_list, 2.5)), 2), round(float(np.percentile(prec_list, 97.5)), 2)),
+        "precision_ci_95": (
+            round(float(np.percentile(prec_list, 2.5)), 2),
+            round(float(np.percentile(prec_list, 97.5)), 2),
+        ),
         "recall_ci_95": (round(float(np.percentile(rec_list, 2.5)), 2), round(float(np.percentile(rec_list, 97.5)), 2)),
         "f1_ci_95": (round(float(np.percentile(f1_list, 2.5)), 2), round(float(np.percentile(f1_list, 97.5)), 2)),
     }
@@ -91,7 +96,6 @@ def run_f1_diagnostic():
     print("=" * 70)
     print("ARGUS AI: TARGETED F1 SCORE FORENSIC DIAGNOSTIC AUDIT")
     print("=" * 70)
-
 
     print("\n[1] Freezing Current Evaluation State & Hashes...")
     bygait_path = "runs/exp_001/best_model.pth"
@@ -128,7 +132,6 @@ def run_f1_diagnostic():
     print(f"  OSNet-x0.25 SHA-256: {osnet_hash[:16]}...")
     print("  Current Operating Threshold: 0.50")
 
-
     print("\n[2] Extracting Raw Similarity Matching Scores (600 Trials)...")
     casia_gei_dir = Path("data/casia_processed/gei")
     eval_subjects = ["101", "102", "103", "104", "105", "106", "107", "108", "109", "110"]
@@ -136,7 +139,11 @@ def run_f1_diagnostic():
     bygait_model = ByGaitLight(embedding_dim=256, part_bins=1)
     if Path(bygait_path).exists():
         state = torch.load(bygait_path, map_location="cpu", weights_only=True)
-        clean = {k.replace("backbone.", ""): v for k, v in state.items() if k.replace("backbone.", "") in bygait_model.state_dict()}
+        clean = {
+            k.replace("backbone.", ""): v
+            for k, v in state.items()
+            if k.replace("backbone.", "") in bygait_model.state_dict()
+        }
         bygait_model.load_state_dict(clean, strict=False)
     bygait_model.eval()
 
@@ -158,10 +165,18 @@ def run_f1_diagnostic():
     for sid in eval_subjects:
         s_dir = casia_gei_dir / sid
         g_files = list(s_dir.glob(f"{sid}_nm-0[1-4]_*.png")) + list(s_dir.glob(f"{sid}_nm-0[1-4]_*.jpg"))
-        p_files = list(s_dir.glob(f"{sid}_nm-0[5-6]_*.png")) + list(s_dir.glob(f"{sid}_cl-*.png")) + list(s_dir.glob(f"{sid}_bg-*.png"))
+        p_files = (
+            list(s_dir.glob(f"{sid}_nm-0[5-6]_*.png"))
+            + list(s_dir.glob(f"{sid}_cl-*.png"))
+            + list(s_dir.glob(f"{sid}_bg-*.png"))
+        )
 
         if g_files:
-            g_imgs = [cv2.imread(str(f), cv2.IMREAD_GRAYSCALE) for f in g_files[:4] if cv2.imread(str(f), cv2.IMREAD_GRAYSCALE) is not None]
+            g_imgs = [
+                cv2.imread(str(f), cv2.IMREAD_GRAYSCALE)
+                for f in g_files[:4]
+                if cv2.imread(str(f), cv2.IMREAD_GRAYSCALE) is not None
+            ]
             if g_imgs:
                 g_avg = np.mean(g_imgs, axis=0).astype(np.uint8)
                 gallery_embs[sid] = extract_bygait_emb(g_avg)
@@ -174,7 +189,6 @@ def run_f1_diagnostic():
     print(f"  Loaded Gallery: {len(gallery_embs)} identities")
     print(f"  Loaded Probes: {len(probe_list)} sequences")
 
-
     raw_trials = []
     genuine_scores = []
     impostor_scores = []
@@ -182,44 +196,51 @@ def run_f1_diagnostic():
     for probe_idx, (p_sid, pf_name, p_img) in enumerate(probe_list):
         p_emb = extract_bygait_emb(p_img)
 
-
         trial_scores = {}
         for g_sid, g_emb in gallery_embs.items():
             sim = float(np.dot(p_emb, g_emb))
             trial_scores[g_sid] = sim
 
-            is_genuine = (p_sid == g_sid)
+            is_genuine = p_sid == g_sid
             if is_genuine:
                 genuine_scores.append(sim)
             else:
                 impostor_scores.append(sim)
 
-            raw_trials.append({
-                "trial_id": f"trial_{probe_idx:03d}_{g_sid}",
-                "probe_id": f"{p_sid}_{pf_name}",
-                "probe_identity": p_sid,
-                "gallery_identity": g_sid,
-                "is_genuine": is_genuine,
-                "ground_truth": 1 if is_genuine else 0,
-                "similarity_score": round(sim, 6),
-                "threshold_current": 0.50,
-                "modality": "gait",
-            })
+            raw_trials.append(
+                {
+                    "trial_id": f"trial_{probe_idx:03d}_{g_sid}",
+                    "probe_id": f"{p_sid}_{pf_name}",
+                    "probe_identity": p_sid,
+                    "gallery_identity": g_sid,
+                    "is_genuine": is_genuine,
+                    "ground_truth": 1 if is_genuine else 0,
+                    "similarity_score": round(sim, 6),
+                    "threshold_current": 0.50,
+                    "modality": "gait",
+                }
+            )
 
     print(f"  Total Comparison Trials: {len(raw_trials)}")
     print(f"  Genuine Trials (P): {len(genuine_scores)}")
     print(f"  Impostor Trials (N): {len(impostor_scores)}")
 
-
     print("\n[3] Calculating Score Distribution Statistics & Percentiles...")
     genuine_stats = compute_percentiles(genuine_scores)
     impostor_stats = compute_percentiles(impostor_scores)
 
-    print(f"  Genuine Scores: Mean={genuine_stats['mean']:.4f}, Median={genuine_stats['median']:.4f}, Min={genuine_stats['min']:.4f}, Max={genuine_stats['max']:.4f}, Std={genuine_stats['std']:.4f}")
-    print(f"    Percentiles: P1={genuine_stats['P1']}, P5={genuine_stats['P5']}, P10={genuine_stats['P10']}, P25={genuine_stats['P25']}, P50={genuine_stats['P50']}, P75={genuine_stats['P75']}, P90={genuine_stats['P90']}, P95={genuine_stats['P95']}, P99={genuine_stats['P99']}")
-    print(f"  Impostor Scores: Mean={impostor_stats['mean']:.4f}, Median={impostor_stats['median']:.4f}, Min={impostor_stats['min']:.4f}, Max={impostor_stats['max']:.4f}, Std={impostor_stats['std']:.4f}")
-    print(f"    Percentiles: P1={impostor_stats['P1']}, P5={impostor_stats['P5']}, P10={impostor_stats['P10']}, P25={impostor_stats['P25']}, P50={impostor_stats['P50']}, P75={impostor_stats['P75']}, P90={impostor_stats['P90']}, P95={impostor_stats['P95']}, P99={impostor_stats['P99']}")
-
+    print(
+        f"  Genuine Scores: Mean={genuine_stats['mean']:.4f}, Median={genuine_stats['median']:.4f}, Min={genuine_stats['min']:.4f}, Max={genuine_stats['max']:.4f}, Std={genuine_stats['std']:.4f}"
+    )
+    print(
+        f"    Percentiles: P1={genuine_stats['P1']}, P5={genuine_stats['P5']}, P10={genuine_stats['P10']}, P25={genuine_stats['P25']}, P50={genuine_stats['P50']}, P75={genuine_stats['P75']}, P90={genuine_stats['P90']}, P95={genuine_stats['P95']}, P99={genuine_stats['P99']}"
+    )
+    print(
+        f"  Impostor Scores: Mean={impostor_stats['mean']:.4f}, Median={impostor_stats['median']:.4f}, Min={impostor_stats['min']:.4f}, Max={impostor_stats['max']:.4f}, Std={impostor_stats['std']:.4f}"
+    )
+    print(
+        f"    Percentiles: P1={impostor_stats['P1']}, P5={impostor_stats['P5']}, P10={impostor_stats['P10']}, P25={impostor_stats['P25']}, P50={impostor_stats['P50']}, P75={impostor_stats['P75']}, P90={impostor_stats['P90']}, P95={impostor_stats['P95']}, P99={impostor_stats['P99']}"
+    )
 
     min_imp = impostor_stats["min"]
     min_gen = genuine_stats["min"]
@@ -230,10 +251,8 @@ def run_f1_diagnostic():
     print(f"    --> Every single impostor score ({len(impostor_scores)}/540) is GREATER than 0.50 (min={min_imp})!")
     print("    --> At threshold=0.50, FP=540, TN=0, FAR=100.0%, Precision=10.0%, F1=18.18% mathematically guaranteed.")
 
-
     print("\n[4] Performing Full Diagnostic Threshold Sweep (0.00 to 1.00)...")
     threshold_sweep_table = []
-
 
     macro_th = [0.00, 0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.85, 0.90, 0.92, 0.94]
     fine_th = [round(t, 4) for t in np.linspace(0.950, 0.998, 25)] + [1.00]
@@ -297,10 +316,15 @@ def run_f1_diagnostic():
             min_eer_diff = diff
             eer_row = row
 
-    print(f"  Best F1 Threshold: {best_f1_row['threshold']} -> F1={best_f1_row['f1']}%, Prec={best_f1_row['precision']}%, Rec={best_f1_row['recall']}%, FAR={best_f1_row['far']}%, FRR={best_f1_row['frr']}%")
-    print(f"  EER Operating Threshold: {eer_row['threshold']} -> EER={(eer_row['far'] + eer_row['frr'])/2.0:.2f}%, FAR={eer_row['far']}%, FRR={eer_row['frr']}%, F1={eer_row['f1']}%")
-    print(f"  Best Balanced Acc Threshold: {balanced_acc_row['threshold']} -> BalancedAcc={balanced_acc_row['balanced_accuracy']}%, Acc={balanced_acc_row['accuracy']}%, F1={balanced_acc_row['f1']}%")
-
+    print(
+        f"  Best F1 Threshold: {best_f1_row['threshold']} -> F1={best_f1_row['f1']}%, Prec={best_f1_row['precision']}%, Rec={best_f1_row['recall']}%, FAR={best_f1_row['far']}%, FRR={best_f1_row['frr']}%"
+    )
+    print(
+        f"  EER Operating Threshold: {eer_row['threshold']} -> EER={(eer_row['far'] + eer_row['frr']) / 2.0:.2f}%, FAR={eer_row['far']}%, FRR={eer_row['frr']}%, F1={eer_row['f1']}%"
+    )
+    print(
+        f"  Best Balanced Acc Threshold: {balanced_acc_row['threshold']} -> BalancedAcc={balanced_acc_row['balanced_accuracy']}%, Acc={balanced_acc_row['accuracy']}%, F1={balanced_acc_row['f1']}%"
+    )
 
     print("\n[5] Computing Confusion Matrices...")
     cur_row = next(r for r in threshold_sweep_table if math.isclose(r["threshold"], 0.50, abs_tol=1e-3))
@@ -335,12 +359,10 @@ def run_f1_diagnostic():
         "accuracy": best_f1_row["accuracy"],
     }
 
-
     print("\n[6] Precision-Recall Curve & Target Recall Operating Points...")
 
     pr_targets = {}
     for target_rec in [100.0, 95.0, 90.0, 85.0, 80.0, 70.0, 60.0, 50.0]:
-
         candidates = [r for r in threshold_sweep_table if r["recall"] >= target_rec]
         if candidates:
             best_cand = max(candidates, key=lambda x: (x["precision"], x["threshold"]))
@@ -351,7 +373,6 @@ def run_f1_diagnostic():
                 "f1": best_cand["f1"],
                 "far": best_cand["far"],
             }
-
 
     print("\n[7] ROC Curve & EER Operating Points...")
     all_scores = [(s, 1) for s in genuine_scores] + [(s, 0) for s in impostor_scores]
@@ -377,41 +398,51 @@ def run_f1_diagnostic():
         rec = tp_count / N_gen
 
         roc_points.append({"threshold": round(s_val, 4), "tpr": round(tpr * 100.0, 2), "fpr": round(fpr * 100.0, 2)})
-        pr_points.append({"threshold": round(s_val, 4), "precision": round(prec * 100.0, 2), "recall": round(rec * 100.0, 2)})
+        pr_points.append(
+            {"threshold": round(s_val, 4), "precision": round(prec * 100.0, 2), "recall": round(rec * 100.0, 2)}
+        )
 
     auc_roc = round(auc_roc / (N_gen * N_imp), 4)
 
-
     pr_points_sorted = sorted(pr_points, key=lambda x: x["recall"])
     for i in range(1, len(pr_points_sorted)):
-        d_rec = (pr_points_sorted[i]["recall"] - pr_points_sorted[i-1]["recall"]) / 100.0
-        avg_prec = (pr_points_sorted[i]["precision"] + pr_points_sorted[i-1]["precision"]) / 200.0
+        d_rec = (pr_points_sorted[i]["recall"] - pr_points_sorted[i - 1]["recall"]) / 100.0
+        avg_prec = (pr_points_sorted[i]["precision"] + pr_points_sorted[i - 1]["precision"]) / 200.0
         auc_pr += d_rec * avg_prec
     auc_pr = round(auc_pr, 4)
 
     print(f"  ROC-AUC: {auc_roc}")
     print(f"  PR-AUC:  {auc_pr}")
 
-
     print("\n[8] Calculating Bootstrap 95% Confidence Intervals...")
     ci_current = bootstrap_ci(genuine_scores, impostor_scores, threshold=0.50)
     ci_optimal = bootstrap_ci(genuine_scores, impostor_scores, threshold=best_f1_row["threshold"])
 
-    print(f"  Current Threshold (0.50): F1={cur_row['f1']}% CI={ci_current['f1_ci_95']}, Prec={cur_row['precision']}% CI={ci_current['precision_ci_95']}, Rec={cur_row['recall']}% CI={ci_current['recall_ci_95']}")
-    print(f"  Optimal Diagnostic ({best_f1_row['threshold']}): F1={best_f1_row['f1']}% CI={ci_optimal['f1_ci_95']}, Prec={best_f1_row['precision']}% CI={ci_optimal['precision_ci_95']}, Rec={best_f1_row['recall']}% CI={ci_optimal['recall_ci_95']}")
-
+    print(
+        f"  Current Threshold (0.50): F1={cur_row['f1']}% CI={ci_current['f1_ci_95']}, Prec={cur_row['precision']}% CI={ci_current['precision_ci_95']}, Rec={cur_row['recall']}% CI={ci_current['recall_ci_95']}"
+    )
+    print(
+        f"  Optimal Diagnostic ({best_f1_row['threshold']}): F1={best_f1_row['f1']}% CI={ci_optimal['f1_ci_95']}, Prec={best_f1_row['precision']}% CI={ci_optimal['precision_ci_95']}, Rec={best_f1_row['recall']}% CI={ci_optimal['recall_ci_95']}"
+    )
 
     print("\n[9] Generating Diagnostic Artifact Visualizations (PNG)...")
     out_dir = Path("outputs")
     out_dir.mkdir(parents=True, exist_ok=True)
 
-
     fig1, ax1 = plt.subplots(figsize=(8, 5))
     ax1.hist(impostor_scores, bins=35, alpha=0.6, color="#ef4444", density=True, label=f"Impostor Scores (N={N_imp})")
     ax1.hist(genuine_scores, bins=25, alpha=0.6, color="#10b981", density=True, label=f"Genuine Scores (N={N_gen})")
     ax1.axvline(0.50, color="#6366f1", linestyle="--", linewidth=2, label="Current Production Thresh (0.50)")
-    ax1.axvline(best_f1_row["threshold"], color="#f59e0b", linestyle="-.", linewidth=2, label=f"Max-F1 Diagnostic Thresh ({best_f1_row['threshold']})")
-    ax1.axvline(eer_row["threshold"], color="#8b5cf6", linestyle=":", linewidth=2, label=f"EER Thresh ({eer_row['threshold']})")
+    ax1.axvline(
+        best_f1_row["threshold"],
+        color="#f59e0b",
+        linestyle="-.",
+        linewidth=2,
+        label=f"Max-F1 Diagnostic Thresh ({best_f1_row['threshold']})",
+    )
+    ax1.axvline(
+        eer_row["threshold"], color="#8b5cf6", linestyle=":", linewidth=2, label=f"EER Thresh ({eer_row['threshold']})"
+    )
     ax1.set_xlabel("Cosine Similarity Score")
     ax1.set_ylabel("Density")
     ax1.set_title("Genuine vs Impostor Score Distributions & Operating Thresholds")
@@ -421,7 +452,6 @@ def run_f1_diagnostic():
     fig1.tight_layout()
     fig1.savefig(p1_path, dpi=150)
     plt.close(fig1)
-
 
     fig2, ax2 = plt.subplots(figsize=(8, 5))
     sw_th = [r["threshold"] for r in threshold_sweep_table]
@@ -435,7 +465,13 @@ def run_f1_diagnostic():
     ax2.plot(sw_th, sw_f1, label="F1 Score (%)", color="#f59e0b", linewidth=2.5)
     ax2.plot(sw_th, sw_far, label="FAR (%)", color="#ef4444", linewidth=1.5, linestyle="--")
     ax2.axvline(0.50, color="#6366f1", linestyle="--", alpha=0.7, label="Current Thresh (0.50)")
-    ax2.axvline(best_f1_row["threshold"], color="#f59e0b", linestyle="-.", alpha=0.7, label=f"Best F1 Thresh ({best_f1_row['threshold']})")
+    ax2.axvline(
+        best_f1_row["threshold"],
+        color="#f59e0b",
+        linestyle="-.",
+        alpha=0.7,
+        label=f"Best F1 Thresh ({best_f1_row['threshold']})",
+    )
     ax2.set_xlabel("Decision Similarity Threshold")
     ax2.set_ylabel("Metric Value (%)")
     ax2.set_title("Precision, Recall, F1, and FAR vs Decision Threshold")
@@ -446,15 +482,35 @@ def run_f1_diagnostic():
     fig2.savefig(p2_path, dpi=150)
     plt.close(fig2)
 
-
     fig3, ax3 = plt.subplots(figsize=(7, 6))
     fpr_vals = [p["fpr"] for p in roc_points]
     tpr_vals = [p["tpr"] for p in roc_points]
     ax3.plot(fpr_vals, tpr_vals, color="#3b82f6", linewidth=2.5, label=f"ROC Curve (AUC = {auc_roc})")
     ax3.plot([0, 100], [0, 100], color="#9ca3af", linestyle="--", label="Random Chance (AUC = 0.50)")
-    ax3.scatter([cur_row["far"]], [cur_row["tar"]], color="#ef4444", s=100, zorder=5, label=f"Current Thresh 0.50 (FAR={cur_row['far']}%, TAR={cur_row['tar']}%)")
-    ax3.scatter([eer_row["far"]], [eer_row["tar"]], color="#8b5cf6", s=100, zorder=5, label=f"EER Point (FAR={eer_row['far']}%, TAR={eer_row['tar']}%)")
-    ax3.scatter([best_f1_row["far"]], [best_f1_row["tar"]], color="#f59e0b", s=100, zorder=5, label=f"Max-F1 Point (FAR={best_f1_row['far']}%, TAR={best_f1_row['tar']}%)")
+    ax3.scatter(
+        [cur_row["far"]],
+        [cur_row["tar"]],
+        color="#ef4444",
+        s=100,
+        zorder=5,
+        label=f"Current Thresh 0.50 (FAR={cur_row['far']}%, TAR={cur_row['tar']}%)",
+    )
+    ax3.scatter(
+        [eer_row["far"]],
+        [eer_row["tar"]],
+        color="#8b5cf6",
+        s=100,
+        zorder=5,
+        label=f"EER Point (FAR={eer_row['far']}%, TAR={eer_row['tar']}%)",
+    )
+    ax3.scatter(
+        [best_f1_row["far"]],
+        [best_f1_row["tar"]],
+        color="#f59e0b",
+        s=100,
+        zorder=5,
+        label=f"Max-F1 Point (FAR={best_f1_row['far']}%, TAR={best_f1_row['tar']}%)",
+    )
     ax3.set_xlabel("False Accept Rate / FPR (%)")
     ax3.set_ylabel("True Accept Rate / TPR (%)")
     ax3.set_title("Receiver Operating Characteristic (ROC) Curve")
@@ -465,9 +521,7 @@ def run_f1_diagnostic():
     fig3.savefig(p3_path, dpi=150)
     plt.close(fig3)
 
-
     fig4, (ax4a, ax4b) = plt.subplots(1, 2, figsize=(10, 4.5))
-
 
     cm1_arr = np.array([[cur_row["tp"], cur_row["fn"]], [cur_row["fp"], cur_row["tn"]]])
     ax4a.imshow(cm1_arr, cmap="Blues", interpolation="nearest")
@@ -480,12 +534,23 @@ def run_f1_diagnostic():
     ax4a.set_ylabel("Ground Truth")
     for i in range(2):
         for j in range(2):
-            ax4a.text(j, i, f"{cm1_arr[i, j]}", ha="center", va="center", color="black" if cm1_arr[i, j] < 300 else "white", fontsize=14, fontweight="bold")
-
+            ax4a.text(
+                j,
+                i,
+                f"{cm1_arr[i, j]}",
+                ha="center",
+                va="center",
+                color="black" if cm1_arr[i, j] < 300 else "white",
+                fontsize=14,
+                fontweight="bold",
+            )
 
     cm2_arr = np.array([[best_f1_row["tp"], best_f1_row["fn"]], [best_f1_row["fp"], best_f1_row["tn"]]])
     ax4b.imshow(cm2_arr, cmap="Greens", interpolation="nearest")
-    ax4b.set_title(f"Diagnostic Optimal Thresh ({best_f1_row['threshold']})\nPrec: {best_f1_row['precision']}%, Rec: {best_f1_row['recall']}%, F1: {best_f1_row['f1']}%", fontsize=11)
+    ax4b.set_title(
+        f"Diagnostic Optimal Thresh ({best_f1_row['threshold']})\nPrec: {best_f1_row['precision']}%, Rec: {best_f1_row['recall']}%, F1: {best_f1_row['f1']}%",
+        fontsize=11,
+    )
     ax4b.set_xticks([0, 1])
     ax4b.set_yticks([0, 1])
     ax4b.set_xticklabels(["Positive", "Negative"])
@@ -494,7 +559,16 @@ def run_f1_diagnostic():
     ax4b.set_ylabel("Ground Truth")
     for i in range(2):
         for j in range(2):
-            ax4b.text(j, i, f"{cm2_arr[i, j]}", ha="center", va="center", color="black" if cm2_arr[i, j] < 300 else "white", fontsize=14, fontweight="bold")
+            ax4b.text(
+                j,
+                i,
+                f"{cm2_arr[i, j]}",
+                ha="center",
+                va="center",
+                color="black" if cm2_arr[i, j] < 300 else "white",
+                fontsize=14,
+                fontweight="bold",
+            )
 
     p4_path = out_dir / "f1_confusion_matrix.png"
     fig4.tight_layout()
@@ -506,7 +580,6 @@ def run_f1_diagnostic():
     print(f"    2. {p2_path}")
     print(f"    3. {p3_path}")
     print(f"    4. {p4_path}")
-
 
     evidence_payload = {
         "diagnostic_timestamp": time.time(),
@@ -602,6 +675,3 @@ def run_f1_diagnostic():
 
 if __name__ == "__main__":
     run_f1_diagnostic()
-
-
-

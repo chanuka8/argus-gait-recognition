@@ -54,7 +54,6 @@ class DeterministicVideoQualityGate:
         total_pixels = mask.shape[0] * mask.shape[1]
         coverage = area / max(total_pixels, 1)
 
-
         y_indices, x_indices = np.where(mask > 0)
         if len(y_indices) == 0 or len(x_indices) == 0:
             return False, 0.0, 0.0, (0.0, 0.0)
@@ -95,33 +94,41 @@ class DeterministicVideoQualityGate:
         mean_lum = float(np.mean(lum_scores)) if lum_scores else 0.0
         mean_asp = float(np.mean(aspect_ratios)) if aspect_ratios else 0.0
 
-
         motion_dynamism = 0.0
         if len(centroids) >= 2:
             dx_total = sum(abs(centroids[i][0] - centroids[i - 1][0]) for i in range(1, len(centroids)))
             dy_total = sum(abs(centroids[i][1] - centroids[i - 1][1]) for i in range(1, len(centroids)))
             motion_dynamism = float(dx_total + dy_total) / max(len(centroids), 1)
 
-
         if usable_frames < self.min_frames:
-            issues.append(f"Insufficient usable walking frames ({usable_frames} valid < {self.min_frames} required for full gait cycle)")
+            issues.append(
+                f"Insufficient usable walking frames ({usable_frames} valid < {self.min_frames} required for full gait cycle)"
+            )
 
         if mean_blur < self.min_blur_var:
             issues.append(f"Severe video motion blur (Laplacian variance {mean_blur:.1f} < {self.min_blur_var:.1f})")
 
         if mean_lum < self.min_luminance:
-            issues.append(f"Video lighting underexposed / too dark (Mean luminance {mean_lum:.1f} < {self.min_luminance:.1f})")
+            issues.append(
+                f"Video lighting underexposed / too dark (Mean luminance {mean_lum:.1f} < {self.min_luminance:.1f})"
+            )
         elif mean_lum > self.max_luminance:
-            issues.append(f"Video lighting overexposed / washed out (Mean luminance {mean_lum:.1f} > {self.max_luminance:.1f})")
+            issues.append(
+                f"Video lighting overexposed / washed out (Mean luminance {mean_lum:.1f} > {self.max_luminance:.1f})"
+            )
 
         if mean_asp < self.min_aspect_ratio:
-            issues.append(f"Incomplete full-body silhouette visibility (Aspect ratio {mean_asp:.2f} < {self.min_aspect_ratio:.2f}; full vertical body head-to-feet required)")
+            issues.append(
+                f"Incomplete full-body silhouette visibility (Aspect ratio {mean_asp:.2f} < {self.min_aspect_ratio:.2f}; full vertical body head-to-feet required)"
+            )
 
         if motion_dynamism < self.min_motion_displacement and len(centroids) >= self.min_frames:
-            issues.append(f"Static or non-walking motion detected (Centroid displacement {motion_dynamism:.2f} < {self.min_motion_displacement:.2f})")
+            issues.append(
+                f"Static or non-walking motion detected (Centroid displacement {motion_dynamism:.2f} < {self.min_motion_displacement:.2f})"
+            )
 
-        passed = (len(issues) == 0)
-        salvageable = (usable_frames >= 10 and mean_blur >= 15.0 and 20.0 <= mean_lum <= 245.0)
+        passed = len(issues) == 0
+        salvageable = usable_frames >= 10 and mean_blur >= 15.0 and 20.0 <= mean_lum <= 245.0
 
         guidance = ""
         if not passed:
@@ -147,14 +154,12 @@ class DeterministicVideoQualityGate:
 
         img = cv2.bilateralFilter(img, d=5, sigmaColor=35, sigmaSpace=35)
 
-
         hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
         v = hsv[:, :, 2]
         if np.mean(v) < 60.0:
             clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
             hsv[:, :, 2] = clahe.apply(v)
             img = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
-
 
         h, w = img.shape[:2]
         if h < 128 or w < 64:

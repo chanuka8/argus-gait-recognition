@@ -40,7 +40,6 @@ def main():
     proc = subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     try:
-
         ready = False
         health_data = None
         for _ in range(60):
@@ -58,13 +57,11 @@ def main():
         assert ready, "Server failed to reach READY state"
         print(f"[PASS] Server reachable at /health in {startup_time:.3f}s: {health_data}")
 
-
         req = urllib.request.Request(f"{BASE_URL}/status")
         with urllib.request.urlopen(req, timeout=2.0) as resp:
             status_data = json.loads(resp.read().decode("utf-8"))
             assert resp.status == 200
             print(f"[PASS] /status responded 200 OK: {status_data}")
-
 
         req = urllib.request.Request(f"{BASE_URL}/metrics")
         with urllib.request.urlopen(req, timeout=2.0) as resp:
@@ -73,14 +70,12 @@ def main():
             assert "people" in metrics_data
             print(f"[PASS] /metrics responded 200 OK: {metrics_data}")
 
-
         req = urllib.request.Request(f"{BASE_URL}/api/v1/health")
         with urllib.request.urlopen(req, timeout=2.0) as resp:
             v1_health = json.loads(resp.read().decode("utf-8"))
             assert resp.status == 200
             assert v1_health.get("status") == "healthy"
             print(f"[PASS] /api/v1/health responded 200 OK: {v1_health}")
-
 
         req = urllib.request.Request(f"{BASE_URL}/api/v1/status")
         with urllib.request.urlopen(req, timeout=30.0) as resp:
@@ -89,20 +84,21 @@ def main():
             assert "compute" in v1_status
             print(f"[PASS] /api/v1/status responded 200 OK: compute={v1_status['compute']['backend']}")
 
-
-
         img = np.zeros((240, 320, 3), dtype=np.uint8)
         cv2.rectangle(img, (100, 40), (220, 200), (255, 255, 255), -1)
         _, img_buf = cv2.imencode(".jpg", img)
         img_bytes = img_buf.tobytes()
 
-
         boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW"
         body = (
-            f"--{boundary}\r\n"
-            f'Content-Disposition: form-data; name="file"; filename="test.jpg"\r\n'
-            f"Content-Type: image/jpeg\r\n\r\n"
-        ).encode() + img_bytes + f"\r\n--{boundary}--\r\n".encode()
+            (
+                f"--{boundary}\r\n"
+                f'Content-Disposition: form-data; name="file"; filename="test.jpg"\r\n'
+                f"Content-Type: image/jpeg\r\n\r\n"
+            ).encode()
+            + img_bytes
+            + f"\r\n--{boundary}--\r\n".encode()
+        )
 
         req = urllib.request.Request(
             f"{BASE_URL}/api/v1/identify/image",
@@ -114,8 +110,9 @@ def main():
             assert resp.status == 200
             assert "identity" in ident_res
             assert "confidence" in ident_res
-            print(f"[PASS] /api/v1/identify/image identified: identity={ident_res['identity']}, decision={ident_res.get('decision')}, conf={ident_res['confidence']}")
-
+            print(
+                f"[PASS] /api/v1/identify/image identified: identity={ident_res['identity']}, decision={ident_res.get('decision')}, conf={ident_res['confidence']}"
+            )
 
         req = urllib.request.Request(f"{BASE_URL}/")
         with urllib.request.urlopen(req, timeout=2.0) as resp:

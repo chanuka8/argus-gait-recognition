@@ -121,7 +121,6 @@ class DownloadManager:
                     sys.stdout.write("\n")
                     sys.stdout.flush()
 
-
                 if total_size > 0 and part_path.stat().st_size < total_size:
                     print(
                         f"[ARGUS WARN] Downloaded size ({part_path.stat().st_size}) < expected ({total_size}). Retrying..."

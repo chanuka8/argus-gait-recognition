@@ -44,7 +44,6 @@ class AccuracyValidationGate:
         rejection_reasons: list[str] = []
         gates: dict[str, bool] = {}
 
-
         far_passed = comparison.delta_far <= self.max_allowed_far_increase
         gates["far_security_gate"] = far_passed
         if not far_passed:
@@ -53,14 +52,12 @@ class AccuracyValidationGate:
                 f"(Cand: {comparison.candidate_metrics.far:.2f}%, Base: {comparison.baseline_metrics.far:.2f}%)"
             )
 
-
         confusion_passed = confusion_pair_far <= 0.0
         gates["confusion_pair_gate"] = confusion_passed
         if not confusion_passed:
             rejection_reasons.append(
                 f"Confusion-Pair Violation: Candidate produced false accept on confusion pairs (FAR: {confusion_pair_far:.2f}%)"
             )
-
 
         hist_passed = comparison.historical_tar_delta >= -self.max_allowed_historical_drop
         gates["catastrophic_forgetting_gate"] = hist_passed
@@ -70,14 +67,12 @@ class AccuracyValidationGate:
                 f"(tolerance: -{self.max_allowed_historical_drop:.2f}%)"
             )
 
-
         new_cond_passed = comparison.new_condition_tar_delta >= -0.5
         gates["new_condition_gate"] = new_cond_passed
         if not new_cond_passed:
             rejection_reasons.append(
                 f"New-Condition Degradation: New-condition TAR degraded by {comparison.new_condition_tar_delta:+.2f}%"
             )
-
 
         has_meaningful_gain = (
             comparison.delta_rank1 >= self.min_required_improvement_delta
@@ -92,7 +87,6 @@ class AccuracyValidationGate:
                 f"ΔTAR: {comparison.delta_tar:+.2f}%) is within noise threshold. Version churn blocked."
             )
 
-
         stat_passed = (
             comparison.is_statistically_significant
             or not self.require_statistical_significance
@@ -103,7 +97,6 @@ class AccuracyValidationGate:
             rejection_reasons.append(
                 "Statistical Uncertainty: Insufficient trial counts in test split to prove generalization beyond noise."
             )
-
 
         gates["numerical_stability_gate"] = True
 

@@ -34,7 +34,6 @@ class RuntimeConfusionDetector:
             if existing_subj == new_subject or not ex_g_list:
                 continue
 
-
             g_sims = []
             for ng in new_gait_embs:
                 ng_norm = np.linalg.norm(ng)
@@ -47,7 +46,6 @@ class RuntimeConfusionDetector:
                     g_sims.append(float(np.dot(ng, eg) / (ng_norm * eg_norm)))
             max_g = float(np.max(g_sims)) if g_sims else 0.0
             max_g_sims[existing_subj] = round(max_g, 4)
-
 
             ex_a_list = gallery_app.get(existing_subj, [])
             a_sims = []
@@ -63,18 +61,17 @@ class RuntimeConfusionDetector:
             max_a = float(np.max(a_sims)) if a_sims else 0.0
             max_a_sims[existing_subj] = round(max_a, 4)
 
-
-
-
             is_pair_risk = (max_a >= self.app_risk_thresh) or (max_g >= 0.92 and max_a >= 0.55)
 
             if is_pair_risk:
-                flagged_confusions.append({
-                    "confusable_with": existing_subj,
-                    "max_gait_sim": round(max_g, 4),
-                    "max_app_sim": round(max_a, 4),
-                    "reason": f"Cross-similarity exceeds dual-modal co-risk gate (Gait {max_g:.4f} >= 0.92 & App {max_a:.4f} >= 0.55, or App {max_a:.4f} >= {self.app_risk_thresh})",
-                })
+                flagged_confusions.append(
+                    {
+                        "confusable_with": existing_subj,
+                        "max_gait_sim": round(max_g, 4),
+                        "max_app_sim": round(max_a, 4),
+                        "reason": f"Cross-similarity exceeds dual-modal co-risk gate (Gait {max_g:.4f} >= 0.92 & App {max_a:.4f} >= 0.55, or App {max_a:.4f} >= {self.app_risk_thresh})",
+                    }
+                )
 
         is_risk = len(flagged_confusions) > 0
         return {

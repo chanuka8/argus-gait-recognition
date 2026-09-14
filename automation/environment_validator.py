@@ -65,7 +65,6 @@ class EnvironmentValidator:
         errors: list[str] = []
         cpu_ok = True
 
-
         try:
             import torch
 
@@ -80,7 +79,6 @@ class EnvironmentValidator:
         except (RuntimeError, ValueError, TypeError, AttributeError, OSError, ImportError) as e:
             cpu_ok = False
             errors.append(f"PyTorch CPU tensor failed: {e}")
-
 
         try:
             import torch
@@ -105,7 +103,6 @@ class EnvironmentValidator:
         except (RuntimeError, ValueError, TypeError, AttributeError, OSError, ImportError) as e:
             cpu_ok = False
             errors.append(f"ByGaitLight CPU forward pass failed: {e}")
-
 
         try:
             import numpy as np
@@ -163,7 +160,6 @@ class EnvironmentValidator:
                 errors=errors,
             )
 
-
         cuda_report = self.cuda_detector.run_full_detection(gpu_info=hw.gpu)
 
         if cuda_report.all_cuda_stages_passed:
@@ -183,9 +179,7 @@ class EnvironmentValidator:
                 errors=[],
             )
 
-
         errors.extend(cuda_report.failure_reasons)
-
 
         needs_pytorch_repair = not (
             cuda_report.pytorch_installed and cuda_report.pytorch_cuda_build and cuda_report.cuda_is_available
@@ -208,7 +202,6 @@ class EnvironmentValidator:
                 details=details,
                 errors=errors,
             )
-
 
         cpu_ok, cpu_details, cpu_errors = self.validate_cpu_pipeline()
         details.extend(cpu_details)

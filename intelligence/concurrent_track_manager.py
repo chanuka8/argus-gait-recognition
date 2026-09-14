@@ -61,24 +61,20 @@ class PersonTrackContext:
     occlusion_level: str = "LOW"
     consecutive_missing_frames: int = 0
 
-
     appearance_embedding: np.ndarray | None = None
     appearance_identity: str = "UNKNOWN_PERSON"
     appearance_score: float = 0.0
     appearance_last_frame: int = 0
-
 
     gait_embedding: np.ndarray | None = None
     gait_identity: str = "UNKNOWN_PERSON"
     gait_score: float = 0.0
     gait_last_frame: int = 0
 
-
     fused_identity: str = "UNKNOWN_PERSON"
     fused_score: float = 0.0
     decision: str = "UNKNOWN"
     status: str = "UNKNOWN"
-
 
     details: dict[str, Any] = field(default_factory=dict)
     identity_history: list[str] = field(default_factory=list)
@@ -108,14 +104,13 @@ class PersonTrackContext:
             self.assessment_state = PersonAssessmentState.CONFIRMED
             return PersonAssessmentState.CONFIRMED.value
 
-
         if self.details.get("special_attention", False) or self.details.get("security_alert", False):
             self.assessment_state = PersonAssessmentState.SPECIAL_ATTENTION
             return PersonAssessmentState.SPECIAL_ATTENTION.value
 
-
         if not self.gait_eligible and (
-            self.mobility_state in (
+            self.mobility_state
+            in (
                 MobilityState.WHEELCHAIR,
                 MobilityState.CRUTCHES_AID,
                 MobilityState.STATIONARY_SEATED,
@@ -125,7 +120,6 @@ class PersonTrackContext:
         ):
             self.assessment_state = PersonAssessmentState.BIOMETRIC_INAPPLICABLE
             return PersonAssessmentState.BIOMETRIC_INAPPLICABLE.value
-
 
         self.assessment_state = PersonAssessmentState.UNCONFIRMED
         return PersonAssessmentState.UNCONFIRMED.value
@@ -197,7 +191,6 @@ class ConcurrentTrackManager:
         self._recently_lost_tracks: dict[tuple[str, int], PersonTrackContext] = {}
         self._logger = get_logger("concurrent_track_manager")
 
-
         self._total_created_tracks = 0
         self._total_recovered_tracks = 0
         self._total_expired_tracks = 0
@@ -236,7 +229,6 @@ class ConcurrentTrackManager:
         with self._lock:
             track = self._tracks.get(key)
             if track is None:
-
                 recovered_ctx = self._attempt_recovery(camera_id, int(track_id), bbox, now)
                 if recovered_ctx is not None:
                     track = recovered_ctx
@@ -256,7 +248,6 @@ class ConcurrentTrackManager:
                     )
                     return track
 
-
                 track = PersonTrackContext(
                     camera_id=camera_id,
                     track_id=int(track_id),
@@ -273,7 +264,6 @@ class ConcurrentTrackManager:
                 self._tracks[key] = track
                 self._total_created_tracks += 1
                 return track
-
 
             track.bbox = [int(b) for b in bbox]
             track.detection_confidence = float(confidence)
@@ -307,7 +297,6 @@ class ConcurrentTrackManager:
                     track.consecutive_missing_frames += 1
                     track.state = TrackLifecycleState.TEMPORARILY_MISSING
                     missing_tracks.append(track)
-
 
                     self._recently_lost_tracks[(cid, tid)] = track
 
@@ -353,19 +342,18 @@ class ConcurrentTrackManager:
         expired_keys: list[tuple[str, int]] = []
 
         with self._lock:
-
             for key, track in list(self._tracks.items()):
-                if (now - track.last_seen) > idle_threshold or track.consecutive_missing_frames > self.max_missing_frames:
+                if (
+                    now - track.last_seen
+                ) > idle_threshold or track.consecutive_missing_frames > self.max_missing_frames:
                     track.state = TrackLifecycleState.EXPIRED
                     expired_keys.append(key)
                     self._tracks.pop(key, None)
                     self._total_expired_tracks += 1
 
-
             for key, lost_track in list(self._recently_lost_tracks.items()):
                 if (now - lost_track.last_seen) > self.recovery_time_window_seconds:
                     self._recently_lost_tracks.pop(key, None)
-
 
         if cleanup_callbacks and expired_keys:
             for cid, tid in expired_keys:

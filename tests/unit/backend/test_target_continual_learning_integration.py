@@ -58,7 +58,6 @@ def test_1_live_cctv_to_collector_and_persistence(target_env):
     )
     cache = RecognitionResultCache(ttl_seconds=2.0)
 
-
     mock_detector = MagicMock()
     mock_detector.detect.return_value = [{"bbox": [50, 50, 150, 200], "confidence": 0.95, "class_id": 0}]
 
@@ -109,13 +108,16 @@ def test_1_live_cctv_to_collector_and_persistence(target_env):
 
     worker.start()
 
-
     frame = np.zeros((480, 640, 3), dtype=np.uint8)
     for _ in range(25):
         worker.put_frame(frame)
-        time.sleep(0.01)
+        time.sleep(0.04)
 
-    time.sleep(0.4)
+    for _ in range(30):
+        if any(o.modality == "gait" for o in collector.get_recent_observations()):
+            break
+        time.sleep(0.05)
+
     worker.stop()
 
     recent = collector.get_recent_observations()
@@ -124,7 +126,6 @@ def test_1_live_cctv_to_collector_and_persistence(target_env):
     modalities = {obs.modality for obs in recent}
     assert "appearance" in modalities, "Appearance observations must be recorded"
     assert "gait" in modalities, "Gait observations must be recorded"
-
 
     app_obs = next(o for o in recent if o.modality == "appearance")
     assert app_obs.camera_id == "cam_cctv_01"
@@ -139,10 +140,8 @@ def test_1_live_cctv_to_collector_and_persistence(target_env):
     assert gait_obs.model_name == "ByGaitLight"
     assert gait_obs.state == ObservationState.PREDICTED
 
-
     obs_file = Path(target_env["obs_dir"]) / "recent_observations.json"
     assert obs_file.exists(), "recent_observations.json must be persisted to disk"
-
 
     new_collector = OperationalEmbeddingCollector(output_dir=target_env["obs_dir"])
     reloaded = new_collector.get_recent_observations()
@@ -159,7 +158,6 @@ def test_2_deduplication_and_rate_limiting(target_env):
     base_vec = np.random.randn(256).astype(np.float32)
     base_vec /= np.linalg.norm(base_vec)
 
-
     obs1 = collector.record_observation(
         camera_id="cam-01",
         track_id=10,
@@ -170,7 +168,6 @@ def test_2_deduplication_and_rate_limiting(target_env):
     )
     assert obs1 is not None
 
-
     obs2 = collector.record_observation(
         camera_id="cam-01",
         track_id=10,
@@ -180,7 +177,6 @@ def test_2_deduplication_and_rate_limiting(target_env):
         modality="gait",
     )
     assert obs2.observation_id == obs1.observation_id, "Deduplication must return existing observation"
-
 
     assert len(collector.get_recent_observations()) == 1
 
@@ -199,7 +195,6 @@ def test_3_ground_truth_verification_and_scheduling(target_env):
         min_training_embeddings=4,
         min_identities=2,
     )
-
 
     obs_ids = []
     for i in range(3):
@@ -228,10 +223,8 @@ def test_3_ground_truth_verification_and_scheduling(target_env):
         )
         obs_ids.append((obs.observation_id, "Bob"))
 
-
     assert len(collector.get_training_eligible()) == 0
     assert len(scheduler.scan_for_eligible_data()) == 0
-
 
     for oid, true_ident in obs_ids:
         collector.verify_observation(oid, verified_identity=true_ident)
@@ -240,13 +233,11 @@ def test_3_ground_truth_verification_and_scheduling(target_env):
     unprocessed = scheduler.get_unprocessed_dates()
     assert "2026-08-29" in unprocessed
 
-
     job = scheduler.create_learning_job(training_date="2026-08-29", model_type="bygait_light")
     assert job is not None
     assert job.status == LearningJobStatus.PENDING
     assert job.new_embeddings_count == 6
     assert job.identities_count == 2
-
 
     job2 = scheduler.create_learning_job(training_date="2026-08-29", model_type="bygait_light")
     assert job2.job_id == job.job_id
@@ -256,12 +247,10 @@ def test_4_model_registry_validation_and_rollback(target_env):
     registry = ModelRegistry(registry_file=target_env["reg_file"])
     validator = CandidateValidator()
 
-
     base_ver = "v1.0.0"
     base_rec = registry.get_active_model("bygait_light")
     assert base_rec is not None
     assert base_rec.model_version == base_ver
-
 
     cand_ver = "v2.0.0-candidate"
     cand_artifact = str(Path(target_env["cand_dir"]) / "bygait_cand_v2.pth")
@@ -277,10 +266,8 @@ def test_4_model_registry_validation_and_rollback(target_env):
         metadata={"training_date": "2026-08-29"},
     )
 
-
     with pytest.raises(RuntimeError):
         registry.promote_version(cand_ver, model_type="bygait_light")
-
 
     metrics = {"tar": 92.0, "far": 0.2, "val_rank1_accuracy": 92.0}
     val_res = validator.validate_candidate(
@@ -298,12 +285,10 @@ def test_4_model_registry_validation_and_rollback(target_env):
         metrics=metrics,
     )
 
-
     promoted = registry.promote_version(cand_ver, model_type="bygait_light")
     assert promoted.deployment_status == ModelDeploymentStatus.ACTIVE
     assert promoted.previous_production_version == base_ver
     assert registry.get_active_model("bygait_light").model_version == cand_ver
-
 
     rolled_back = registry.rollback(model_type="bygait_light", reason="Regression test")
     assert rolled_back.model_version == base_ver

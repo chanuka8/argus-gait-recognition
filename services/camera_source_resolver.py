@@ -303,13 +303,20 @@ class CameraSourceResolver:
                 "credential_configured": bool(resolved_credential_id),
             }
 
-        for dev_idx in range(max_usb_scan):
+        consecutive_probe_failures = 0
+        effective_usb_scan = min(max_usb_scan, 4)
+        for dev_idx in range(effective_usb_scan):
             source_key = f"usb:{dev_idx}"
 
             if self.is_source_reserved(source_key):
                 continue
 
             if not self.probe_usb_webcam(dev_idx, retain=True):
+                consecutive_probe_failures += 1
+                if consecutive_probe_failures >= 2:
+                    # Windows & Linux index local cameras contiguously from 0.
+                    # If 0 and 1 fail, higher indices will not exist.
+                    break
                 continue
 
             retained_cap, initial_frame = self.pop_retained_capture(source_key)

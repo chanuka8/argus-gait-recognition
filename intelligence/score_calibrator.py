@@ -16,13 +16,11 @@ class PlattScoreCalibrator:
         if len(s_arr) == 0 or len(y_arr) == 0:
             return self
 
-
         n_pos = np.sum(y_arr == 1.0)
         n_neg = np.sum(y_arr == 0.0)
         t_pos = (n_pos + 1.0) / (n_pos + 2.0)
         t_neg = 1.0 / (n_neg + 2.0)
         targets = np.where(y_arr == 1.0, t_pos, t_neg)
-
 
         a, b = 5.0, -2.5
         lr = 0.05

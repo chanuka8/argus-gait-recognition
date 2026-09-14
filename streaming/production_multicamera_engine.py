@@ -62,12 +62,7 @@ def detect_hardware_profile() -> HardwareProfile:
     is_cuda = torch.cuda.is_available()
     dev_type = "cuda" if is_cuda else "cpu"
     dev_name = torch.cuda.get_device_name(0) if is_cuda else "CPU"
-    vram_mb = (
-        torch.cuda.get_device_properties(0).total_memory / (1024 * 1024)
-        if is_cuda
-        else 0.0
-    )
-
+    vram_mb = torch.cuda.get_device_properties(0).total_memory / (1024 * 1024) if is_cuda else 0.0
 
     if is_cuda and vram_mb >= 12000:
         rec_batch = 32
@@ -119,7 +114,6 @@ class StreamIngestionQueue:
         self._queue: Queue[FramePacket] = Queue(maxsize=self.maxsize)
         self._lock = threading.Lock()
 
-
         self.frames_enqueued = 0
         self.frames_dropped_overflow = 0
         self.frames_dropped_stale = 0
@@ -132,7 +126,6 @@ class StreamIngestionQueue:
                 self._queue.put_nowait(packet)
                 return True
             except Full:
-
                 try:
                     _ = self._queue.get_nowait()
                     self.frames_dropped_overflow += 1
@@ -231,9 +224,7 @@ class CentralStreamScheduler:
                 p = self._priorities.get(cid, 5)
                 wait_time = now - self._last_served.get(cid, now)
                 starvation_boost = (
-                    (wait_time / self.starvation_threshold) * 10.0
-                    if wait_time > self.starvation_threshold
-                    else 0.0
+                    (wait_time / self.starvation_threshold) * 10.0 if wait_time > self.starvation_threshold else 0.0
                 )
                 score = float(p) + starvation_boost
 
@@ -245,9 +236,7 @@ class CentralStreamScheduler:
                 packet = self._queues[best_cam].get()
                 if packet is not None:
                     self._last_served[best_cam] = now
-                    self._served_counts[best_cam] = (
-                        self._served_counts.get(best_cam, 0) + 1
-                    )
+                    self._served_counts[best_cam] = self._served_counts.get(best_cam, 0) + 1
                     return packet
 
             return None
@@ -319,9 +308,7 @@ class ProductionMultiCameraEngine:
         self.gallery_labels = list(gallery_labels) if gallery_labels is not None else []
         self.appearance_gallery_features = appearance_gallery_features
         self.appearance_gallery_labels = (
-            list(appearance_gallery_labels)
-            if appearance_gallery_labels is not None
-            else []
+            list(appearance_gallery_labels) if appearance_gallery_labels is not None else []
         )
         self.event_callback = event_callback
 
@@ -329,7 +316,6 @@ class ProductionMultiCameraEngine:
         self._worker_threads: list[threading.Thread] = []
         self._lock = threading.RLock()
         self._running = False
-
 
         self._camera_trackers: dict[str, Any] = {}
         self._camera_last_rec_times: dict[str, dict[int, float]] = {}
@@ -351,7 +337,6 @@ class ProductionMultiCameraEngine:
                 max_stale_age_seconds=max_stale_age_seconds,
             )
 
-
             if camera_id not in self._camera_trackers:
                 try:
                     from pipeline.tracking.tracker import PersonTracker
@@ -371,9 +356,7 @@ class ProductionMultiCameraEngine:
                 "processing_fps": 0.0,
                 "last_active": time.monotonic(),
             }
-            self.logger.info(
-                f"Registered camera '{camera_id}' into production engine (Priority: {priority})"
-            )
+            self.logger.info(f"Registered camera '{camera_id}' into production engine (Priority: {priority})")
             return queue
 
     def unregister_camera(self, camera_id: str) -> None:
@@ -397,7 +380,6 @@ class ProductionMultiCameraEngine:
 
         q = self.scheduler.get_queue(camera_id)
         if q is None:
-
             q = self.register_camera(camera_id)
 
         packet = FramePacket(
@@ -422,9 +404,7 @@ class ProductionMultiCameraEngine:
             self._stop_event.clear()
             self._running = True
 
-            workers_count = num_workers or max(
-                1, min(4, self.profile.cpu_cores // 2)
-            )
+            workers_count = num_workers or max(1, min(4, self.profile.cpu_cores // 2))
             for i in range(workers_count):
                 t = threading.Thread(
                     target=self._shared_inference_loop,
@@ -434,9 +414,7 @@ class ProductionMultiCameraEngine:
                 t.start()
                 self._worker_threads.append(t)
 
-            self.logger.info(
-                f"Production multi-camera inference engine started with {workers_count} shared worker(s)"
-            )
+            self.logger.info(f"Production multi-camera inference engine started with {workers_count} shared worker(s)")
             return True
 
     def stop(self, timeout: float = 3.0) -> bool:
@@ -467,21 +445,17 @@ class ProductionMultiCameraEngine:
             try:
                 self._process_single_frame(packet)
             except (RuntimeError, ValueError, TypeError, KeyError, AttributeError, OSError) as exc:
-                self.logger.warning(
-                    f"Inference error on camera {packet.camera_id}: {exc}"
-                )
+                self.logger.warning(f"Inference error on camera {packet.camera_id}: {exc}")
 
     def _process_single_frame(self, packet: FramePacket) -> None:
         cid = packet.camera_id
         frame = packet.frame
         iso_now = datetime.now(timezone.utc).isoformat()
 
-
         with self._lock:
             if cid in self._camera_metrics:
                 self._camera_metrics[cid]["processed_frames"] += 1
             frame_idx = self._camera_metrics[cid]["processed_frames"] if cid in self._camera_metrics else 0
-
 
         detections = []
         if self.detector is not None:
@@ -490,7 +464,6 @@ class ProductionMultiCameraEngine:
             except (RuntimeError, ValueError, TypeError, KeyError, AttributeError, OSError) as det_err:
                 self.logger.debug(f"Detector error for {cid}: {det_err}")
 
-
         tracker = self._camera_trackers.get(cid)
         tracked_objects = []
         if tracker is not None and detections:
@@ -498,7 +471,6 @@ class ProductionMultiCameraEngine:
                 tracked_objects = tracker.update(detections, frame.shape)
             except (RuntimeError, ValueError, TypeError, KeyError, AttributeError, OSError) as trk_err:
                 self.logger.debug(f"Tracker error for {cid}: {trk_err}")
-
 
         active_tids: set[int] = set()
         track_contexts: list[tuple[dict[str, Any], PersonTrackContext]] = []
@@ -516,7 +488,6 @@ class ProductionMultiCameraEngine:
                     confidence=conf,
                     frame_index=frame_idx,
                 )
-
 
                 _is_val, mob_state, gait_elig, app_elig, val_reason = self.detection_validator.assess_detection(
                     bbox=bbox,
@@ -539,14 +510,12 @@ class ProductionMultiCameraEngine:
             if cid in self._camera_metrics:
                 self._camera_metrics[cid]["active_tracks"] = len(tracked_objects)
 
-
         sched_stats = self.scheduler.get_stats()
         q_depth = sched_stats.get("streams", {}).get(cid, {}).get("queue_depth", 0)
         policy_params = self.person_scheduler.policy_engine.evaluate_policy(
             queue_depth=q_depth,
             active_tracks_count=len(self.track_manager.get_active_tracks()),
         )
-
 
         for _, ctx in track_contexts:
             if not ctx.gait_eligible:
@@ -567,7 +536,6 @@ class ProductionMultiCameraEngine:
                         self.gei_builder.add_silhouette(track_id, sil)
                 except (RuntimeError, ValueError, TypeError, KeyError, AttributeError, OSError) as sil_err:
                     self.logger.debug(f"Silhouette error for track {track_id}: {sil_err}")
-
 
         candidate_items = []
         for _, ctx in track_contexts:
@@ -610,11 +578,7 @@ class ProductionMultiCameraEngine:
                         frame_index=frame_idx,
                     )
                 else:
-                    batch_embs = [
-                        self.appearance_extractor.extract(c, tid)
-                        for c, tid in zip(batch_crops, batch_tids)
-                    ]
-
+                    batch_embs = [self.appearance_extractor.extract(c, tid) for c, tid in zip(batch_crops, batch_tids)]
 
                 for item, emb in zip(selected_batch, batch_embs):
                     if emb is not None and self.appearance_matcher is not None:
@@ -648,7 +612,6 @@ class ProductionMultiCameraEngine:
                                 self.logger.debug(f"Collector observation error: {obs_err}")
             except (RuntimeError, ValueError, TypeError, KeyError, AttributeError, OSError) as app_batch_err:
                 self.logger.debug(f"Appearance batch extraction error: {app_batch_err}")
-
 
         for _, ctx in track_contexts:
             track_id = ctx.track_id
@@ -693,7 +656,6 @@ class ProductionMultiCameraEngine:
                                     self.logger.debug(f"Gait collector error: {gait_obs_err}")
                     except (RuntimeError, ValueError, TypeError, OSError) as gait_err:
                         self.logger.debug(f"Gait extraction error for {track_id}: {gait_err}")
-
 
         for _, ctx in track_contexts:
             track_id = ctx.track_id
@@ -760,16 +722,21 @@ class ProductionMultiCameraEngine:
 
             ctx.update_fusion(final_identity, final_score, decision, status, fusion_details)
 
-
             if status == "CONFIRMED" and final_identity not in ("UNKNOWN_PERSON", "UNKNOWN", ""):
                 display_state = "CONFIRMED"
-            elif not ctx.gait_eligible and ctx.mobility_state in ("WHEELCHAIR", "CRUTCHES_AID", "STATIONARY_SEATED", "NON_STANDARD_GAIT") and app_id == "UNKNOWN_PERSON":
+            elif (
+                not ctx.gait_eligible
+                and ctx.mobility_state in ("WHEELCHAIR", "CRUTCHES_AID", "STATIONARY_SEATED", "NON_STANDARD_GAIT")
+                and app_id == "UNKNOWN_PERSON"
+            ):
                 display_state = "BIOMETRIC_INAPPLICABLE"
             else:
                 display_state = "ASSESSING"
 
-            track_conf = ctx.detection_confidence if ctx.detection_confidence > 0 else (
-                ctx.track_confidence if ctx.track_confidence > 0 else (final_score if final_score > 0 else 0.85)
+            track_conf = (
+                ctx.detection_confidence
+                if ctx.detection_confidence > 0
+                else (ctx.track_confidence if ctx.track_confidence > 0 else (final_score if final_score > 0 else 0.85))
             )
             is_valid, val_reason = self.detection_validator.validate_detection(
                 bbox=bbox,
@@ -835,16 +802,12 @@ class ProductionMultiCameraEngine:
                 except (RuntimeError, ValueError, TypeError, OSError) as cb_err:
                     self.logger.debug(f"Event callback error: {cb_err}")
 
-
         tracked_boxes = [obj["bbox"] for obj in tracked_objects]
         untracked_idx = 0
         for det in detections:
             det_box = det.get("bbox", [0, 0, 0, 0])
 
-            is_associated = any(
-                abs(det_box[0] - tb[0]) <= 5 and abs(det_box[1] - tb[1]) <= 5
-                for tb in tracked_boxes
-            )
+            is_associated = any(abs(det_box[0] - tb[0]) <= 5 and abs(det_box[1] - tb[1]) <= 5 for tb in tracked_boxes)
             if not is_associated:
                 untracked_idx += 1
                 det_conf = float(det.get("confidence", 0.0))
@@ -853,7 +816,11 @@ class ProductionMultiCameraEngine:
                     confidence=det_conf,
                     frame_shape=frame.shape,
                 )
-                det_display = "BIOMETRIC_INAPPLICABLE" if (not det_valid or det_mob == "WHEELCHAIR" or not det_gait_elig) else "ASSESSING"
+                det_display = (
+                    "BIOMETRIC_INAPPLICABLE"
+                    if (not det_valid or det_mob == "WHEELCHAIR" or not det_gait_elig)
+                    else "ASSESSING"
+                )
 
                 untracked_result = RecognitionResult(
                     camera_id=cid,
@@ -878,7 +845,6 @@ class ProductionMultiCameraEngine:
                 )
                 self.cache.put(untracked_result)
 
-
         now_mono = time.monotonic()
         if (now_mono - self._last_gc_time) >= self._gc_interval:
             self._last_gc_time = now_mono
@@ -901,16 +867,8 @@ class ProductionMultiCameraEngine:
         rss_mb = proc.memory_info().rss / (1024 * 1024)
         cpu_pct = psutil.cpu_percent(interval=None)
 
-        vram_alloc_mb = (
-            torch.cuda.memory_allocated() / (1024 * 1024)
-            if torch.cuda.is_available()
-            else 0.0
-        )
-        vram_res_mb = (
-            torch.cuda.memory_reserved() / (1024 * 1024)
-            if torch.cuda.is_available()
-            else 0.0
-        )
+        vram_alloc_mb = torch.cuda.memory_allocated() / (1024 * 1024) if torch.cuda.is_available() else 0.0
+        vram_res_mb = torch.cuda.memory_reserved() / (1024 * 1024) if torch.cuda.is_available() else 0.0
 
         sched_stats = self.scheduler.get_stats()
 
@@ -927,11 +885,7 @@ class ProductionMultiCameraEngine:
                 drop_of = s_stat.get("dropped_overflow", 0)
                 drop_st = s_stat.get("dropped_stale", 0)
                 tot_drop = drop_of + drop_st
-                drop_pct = (
-                    (tot_drop / met["input_frames"] * 100.0)
-                    if met["input_frames"] > 0
-                    else 0.0
-                )
+                drop_pct = (tot_drop / met["input_frames"] * 100.0) if met["input_frames"] > 0 else 0.0
 
                 camera_summaries[cid] = {
                     "input_frames": met["input_frames"],

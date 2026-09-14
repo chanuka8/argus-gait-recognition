@@ -188,7 +188,11 @@ class FirebaseEmbeddingDocument:
     def from_dict(cls, data: dict[str, Any]) -> "FirebaseEmbeddingDocument":
         person_id = str(data.get("person_id") or data.get("identity_id") or "")
         modality = str(data.get("modality") or data.get("embedding_type") or "gait")
-        embedding_dim = int(data.get("embedding_dim") or data.get("embedding_dimension") or len(data.get("vector") or data.get("embedding") or []))
+        embedding_dim = int(
+            data.get("embedding_dim")
+            or data.get("embedding_dimension")
+            or len(data.get("vector") or data.get("embedding") or [])
+        )
         vector = [float(v) for v in (data.get("vector") or data.get("embedding") or [])]
         c_at = float(data.get("created_at", time.time()))
         cap_ts = float(data.get("capture_timestamp", c_at))
@@ -352,9 +356,7 @@ class FirebaseEmbeddingStore:
             )
 
     def _resolve_credential_path(self) -> Path | None:
-        raw_path = os.environ.get("FIREBASE_SERVICE_ACCOUNT_PATH") or os.environ.get(
-            "GOOGLE_APPLICATION_CREDENTIALS"
-        )
+        raw_path = os.environ.get("FIREBASE_SERVICE_ACCOUNT_PATH") or os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
         if raw_path and raw_path.strip():
             return Path(raw_path.strip())
         default_path = Path("config/firebase-service-account.json")
@@ -422,9 +424,7 @@ class FirebaseEmbeddingStore:
                         "storageBucket": "argus-17702.firebasestorage.app",
                     },
                 )
-                self._logger.info(
-                    f"[FIREBASE_LIVE] Firebase Admin SDK initialized for project '{self.project_id}'."
-                )
+                self._logger.info(f"[FIREBASE_LIVE] Firebase Admin SDK initialized for project '{self.project_id}'.")
 
             self._firestore_client = firestore.client()
             self.firestore_status = "CONNECTED"
@@ -636,20 +636,14 @@ class FirebaseEmbeddingStore:
             return False, "Stored vector contains non-finite values"
         return True, "Persistence verified"
 
-    def get_embeddings_by_person(
-        self, person_id: str, modality: str | None = None
-    ) -> list[FirebaseEmbeddingDocument]:
+    def get_embeddings_by_person(self, person_id: str, modality: str | None = None) -> list[FirebaseEmbeddingDocument]:
         if self.mode == "live":
             return self._query_live_by_person(person_id, modality)
         return self._query_offline_by_person(person_id, modality)
 
-    def _query_live_by_person(
-        self, person_id: str, modality: str | None = None
-    ) -> list[FirebaseEmbeddingDocument]:
+    def _query_live_by_person(self, person_id: str, modality: str | None = None) -> list[FirebaseEmbeddingDocument]:
         try:
-            query = self._firestore_client.collection(self.COLLECTION_NAME).where(
-                "person_id", "==", person_id
-            )
+            query = self._firestore_client.collection(self.COLLECTION_NAME).where("person_id", "==", person_id)
             if modality:
                 query = query.where("modality", "==", modality)
             results = []
@@ -660,9 +654,7 @@ class FirebaseEmbeddingStore:
             self._logger.warning(f"[FIREBASE_QUERY_FAILED] person={person_id}: {err}")
             return []
 
-    def _query_offline_by_person(
-        self, person_id: str, modality: str | None = None
-    ) -> list[FirebaseEmbeddingDocument]:
+    def _query_offline_by_person(self, person_id: str, modality: str | None = None) -> list[FirebaseEmbeddingDocument]:
         with self._lock:
             emb_ids = self._offline_data.get("persons", {}).get(person_id, [])
             results = []
@@ -724,15 +716,12 @@ class FirebaseEmbeddingStore:
         else:
             with self._lock:
                 return [
-                    FirebaseEmbeddingDocument.from_dict(d)
-                    for d in self._offline_data.get("embeddings", {}).values()
+                    FirebaseEmbeddingDocument.from_dict(d) for d in self._offline_data.get("embeddings", {}).values()
                 ]
 
     def _enqueue_retry(self, doc: FirebaseEmbeddingDocument) -> None:
         with self._lock:
-            self._retry_queue.append(
-                {"doc": doc.to_dict(), "retries": 0, "queued_at": time.time()}
-            )
+            self._retry_queue.append({"doc": doc.to_dict(), "retries": 0, "queued_at": time.time()})
 
     def process_retry_queue(self) -> list[PersistenceResult]:
         results = []
@@ -830,8 +819,7 @@ class FirebaseEmbeddingStore:
                 persons[doc.person_id]["appearance_embeddings"].append(emb_data)
 
         self._logger.info(
-            f"[FIREBASE_RECOVERY] Retrieved {len(all_docs)} embeddings for "
-            f"{len(persons)} persons from Firebase."
+            f"[FIREBASE_RECOVERY] Retrieved {len(all_docs)} embeddings for {len(persons)} persons from Firebase."
         )
         return persons
 

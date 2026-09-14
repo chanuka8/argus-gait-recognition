@@ -1,4 +1,6 @@
+import asyncio
 import logging
+import time
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -60,14 +62,20 @@ async def login(req: LoginRequest, request: Request):
       - Argon2id password verification (with fail-safe rehash-on-login for legacy credentials)
       - Never trusts client-asserted identity or roles
       - Issues an opaque, random session token bound to server-side session state
+      - Offloads CPU-intensive Argon2id hashing to worker thread to prevent event loop stalls
     """
+    t_login_start = time.perf_counter()
     try:
         operator_store = get_operator_store()
-        user_data, error_msg = operator_store.authenticate_operator(
+        t_auth_start = time.perf_counter()
+        user_data, error_msg = await asyncio.to_thread(
+            operator_store.authenticate_operator,
             username=req.username,
             password=req.password,
             role=req.role,
         )
+        t_auth_end = time.perf_counter()
+        auth_verify_ms = (t_auth_end - t_auth_start) * 1000.0
     except AuthenticationInfrastructureError as exc:
         logger.error(f"[AUTH_INFRASTRUCTURE_FAILURE] {exc}")
         raise HTTPException(
@@ -89,6 +97,7 @@ async def login(req: LoginRequest, request: Request):
     if forwarded_for:
         client_ip = forwarded_for.split(",")[0].strip()
 
+    t_sess_start = time.perf_counter()
     session_store = get_session_store()
     session = session_store.create_session(
         operator_id=user_data.get("id", user_data.get("username", req.username)),
@@ -100,8 +109,14 @@ async def login(req: LoginRequest, request: Request):
         status_val=user_data.get("status", "Active"),
         source_ip=client_ip,
     )
+    t_sess_end = time.perf_counter()
+    sess_create_ms = (t_sess_end - t_sess_start) * 1000.0
 
-    logger.info(f"[AUTH_SUCCESS] Operator '{session.username}' authenticated ({session.role}) from {client_ip}")
+    total_login_ms = (time.perf_counter() - t_login_start) * 1000.0
+    logger.info(
+        f"[AUTH_SUCCESS] Operator '{session.username}' authenticated ({session.role}) from {client_ip} "
+        f"[verify_ms={auth_verify_ms:.2f}, sess_create_ms={sess_create_ms:.2f}, total_login_ms={total_login_ms:.2f}]"
+    )
 
     return LoginResponse(
         success=True,
@@ -358,6 +373,7 @@ async def update_operator_account(
         )
 
     import time
+
     op_store = get_operator_store()
     try:
         user_data, col, doc_id = op_store.get_operator(username)

@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import MapComponent from './Map';
 import Notifications from './Notifications';
 import UserProfileModal from './UserProfileModal';
+import CaseDossierModal from './CaseDossierModal';
 import { useAuth } from '../hooks/useAuth';
 import { db } from '../firebaseConfig';
 import { collection, getDocs, onSnapshot, query } from 'firebase/firestore';
@@ -55,6 +56,7 @@ const Dashboard = () => {
     const { currentUser } = useAuth();
     const [showNotifications, setShowNotifications] = useState(false);
     const [showProfile, setShowProfile] = useState(false);
+    const [showDossierModal, setShowDossierModal] = useState(false);
     const [cases, setCases] = useState([]);
     const [detections, setDetections] = useState([]);
 
@@ -121,6 +123,7 @@ const Dashboard = () => {
         <div className="dashboard-container">
             <Notifications isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
             <UserProfileModal isOpen={showProfile} onClose={() => setShowProfile(false)} />
+            <CaseDossierModal isOpen={showDossierModal} onClose={() => setShowDossierModal(false)} />
 
             <header className="command-header">
                 <div className="header-brand-group">
@@ -158,9 +161,17 @@ const Dashboard = () => {
             <main className="command-workspace">
                 <section className="tactical-map-pane">
                     <div className="map-hud-ribbon">
-                        <div className="hud-metric-pill total">
+                        <div
+                            className="hud-metric-pill total dossier-clickable"
+                            onClick={() => setShowDossierModal(true)}
+                            role="button"
+                            tabIndex={0}
+                            title="Click to explore case folders"
+                            onKeyDown={(e) => { if (e.key === 'Enter') setShowDossierModal(true); }}
+                        >
                             <span className="hud-label">TOTAL CASES</span>
                             <span className="hud-value white"><CountUp end={totalCases} /></span>
+                            <span className="hud-action-chip">EXPLORE FOLDERS 📁</span>
                         </div>
                         <div className="hud-metric-pill missing">
                             <span className="hud-label">MISSING</span>

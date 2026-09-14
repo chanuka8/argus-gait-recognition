@@ -95,7 +95,12 @@ def get_active_files_for_folder(folder_path: Path) -> list[str]:
         items = []
         for f in folder_path.iterdir():
             if folder_name == "tools":
-                if f.is_file() and f.suffix in (".py", ".js", ".ps1", ".bat", ".sh") and not f.name.startswith("__") and f.name != "README.md":
+                if (
+                    f.is_file()
+                    and f.suffix in (".py", ".js", ".ps1", ".bat", ".sh")
+                    and not f.name.startswith("__")
+                    and f.name != "README.md"
+                ):
                     items.append(f.name)
                 elif f.is_dir() and not f.name.startswith("__") and not f.name.startswith("."):
                     items.append(f"{f.name}/")
@@ -328,29 +333,25 @@ def _get_script_category(name: str) -> str:
         "migrate_output_layout.py",
     ):
         return "Conversion"
-    if (
-        name.startswith(
-            (
-                "test_",
-                "demo_",
-                "run_",
-                "generate_",
-                "validate_",
-                "evaluate_",
-                "verify_",
-                "simulate_",
-                "audit_",
-                "benchmark",
-            )
+    if name.startswith(
+        (
+            "test_",
+            "demo_",
+            "run_",
+            "generate_",
+            "validate_",
+            "evaluate_",
+            "verify_",
+            "simulate_",
+            "audit_",
+            "benchmark",
         )
-        or name
-        in (
-            "system_check.py",
-            "detect_environment.py",
-            "verify_environment.py",
-            "doctor.py",
-            "smoke_test_deployment.py",
-        )
+    ) or name in (
+        "system_check.py",
+        "detect_environment.py",
+        "verify_environment.py",
+        "doctor.py",
+        "smoke_test_deployment.py",
     ):
         return "Validation"
     return "Development"
@@ -878,10 +879,8 @@ def check_readme_index(root_dir: Path) -> tuple[bool, list[str]]:
     return len(issues) == 0, issues
 
 
-
 def _atomic_write_file(target_path: Path, new_content: str, max_retries: int = 5) -> None:
     target_path = Path(target_path).resolve()
-
 
     newline = "\n"
     if target_path.exists():
@@ -907,7 +906,6 @@ def _atomic_write_file(target_path: Path, new_content: str, max_retries: int = 5
                 os.fsync(tmp_f.fileno())
             except OSError:
                 pass
-
 
         for attempt in range(max_retries):
             try:

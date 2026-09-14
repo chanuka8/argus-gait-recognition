@@ -1,4 +1,3 @@
-
 import json
 import sys
 import time
@@ -66,14 +65,10 @@ def run_evaluation():
     print(f"[ENV] PyTorch: {torch.__version__}")
     print(f"[ENV] CUDA available: {torch.cuda.is_available()}")
 
-
     OSNetBackbone._instance = None
 
     extractor = ReIDFeatureExtractionStep(model_path="models/weights/osnet_x0_25.pth", device=device)
     detector = PersonDetector()
-
-
-
 
     print("\n" + "=" * 80)
     print("DATASET DISCOVERY & FEATURE EXTRACTION")
@@ -89,8 +84,7 @@ def run_evaluation():
             continue
         name = sdir.name
         img_paths = sorted(
-            list(sdir.glob("*.jpg")) + list(sdir.glob("*.jpeg"))
-            + list(sdir.glob("*.png")) + list(sdir.glob("*.JPG"))
+            list(sdir.glob("*.jpg")) + list(sdir.glob("*.jpeg")) + list(sdir.glob("*.png")) + list(sdir.glob("*.JPG"))
         )
         embs = []
         crops_meta = []
@@ -106,11 +100,13 @@ def run_evaluation():
             emb = extractor.extract(crop)
             if emb is not None and emb.shape == (512,) and not np.isnan(emb).any() and not np.isinf(emb).any():
                 embs.append(emb)
-                crops_meta.append({
-                    "filename": p.name,
-                    "raw_shape": list(img.shape),
-                    "crop_shape": list(crop.shape),
-                })
+                crops_meta.append(
+                    {
+                        "filename": p.name,
+                        "raw_shape": list(img.shape),
+                        "crop_shape": list(crop.shape),
+                    }
+                )
                 valid_paths.append(p)
 
         if len(embs) >= 2:
@@ -123,9 +119,6 @@ def run_evaluation():
         name: {"total_images": len(subject_image_paths.get(name, [])), "valid_embeddings": len(embs)}
         for name, embs in subject_embeddings.items()
     }
-
-
-
 
     print("\n" + "=" * 80)
     print("SECTION 1: COMPLETE PAIR EVALUATION")
@@ -162,12 +155,10 @@ def run_evaluation():
     same_stats = percentile_stats(same_arr)
     diff_stats = percentile_stats(diff_arr)
 
-
     same_by_subject_stats = {}
     for name, scores in same_person_by_subject.items():
         if scores:
             same_by_subject_stats[name] = percentile_stats(np.array(scores))
-
 
     diff_by_pair_stats = {}
     for pair, scores in diff_person_by_pair.items():
@@ -190,9 +181,6 @@ def run_evaluation():
     print("\nDifferent-Person Statistics:")
     print(json.dumps(diff_stats, indent=2))
 
-
-
-
     print("\n" + "=" * 80)
     print("SECTION 2: COMPLETE THRESHOLD SWEEP")
     print("=" * 80)
@@ -200,7 +188,9 @@ def run_evaluation():
     thresholds = [round(0.40 + i * 0.01, 2) for i in range(51)]
     sweep_results = []
 
-    print(f"{'Thresh':>7} | {'TP':>5} | {'FP':>5} | {'TN':>5} | {'FN':>5} | {'Prec':>7} | {'Rec':>7} | {'F1':>7} | {'FPR':>7} | {'FNR':>7}")
+    print(
+        f"{'Thresh':>7} | {'TP':>5} | {'FP':>5} | {'TN':>5} | {'FN':>5} | {'Prec':>7} | {'Rec':>7} | {'F1':>7} | {'FPR':>7} | {'FNR':>7}"
+    )
     print("-" * 85)
 
     for t in thresholds:
@@ -215,16 +205,23 @@ def run_evaluation():
         fnr = round(fn / (tp + fn), 6) if (tp + fn) > 0 else 0.0
 
         row = {
-            "threshold": t, "tp": tp, "fp": fp, "tn": tn, "fn": fn,
-            "precision": prec, "recall": rec, "f1": f1, "fpr": fpr, "fnr": fnr,
+            "threshold": t,
+            "tp": tp,
+            "fp": fp,
+            "tn": tn,
+            "fn": fn,
+            "precision": prec,
+            "recall": rec,
+            "f1": f1,
+            "fpr": fpr,
+            "fnr": fnr,
         }
         sweep_results.append(row)
-        print(f"{t:>7.2f} | {tp:>5} | {fp:>5} | {tn:>5} | {fn:>5} | {prec:>7.4f} | {rec:>7.4f} | {f1:>7.4f} | {fpr:>7.4f} | {fnr:>7.4f}")
+        print(
+            f"{t:>7.2f} | {tp:>5} | {fp:>5} | {tn:>5} | {fn:>5} | {prec:>7.4f} | {rec:>7.4f} | {f1:>7.4f} | {fpr:>7.4f} | {fnr:>7.4f}"
+        )
 
     report["section_2_threshold_sweep"] = sweep_results
-
-
-
 
     print("\n" + "=" * 80)
     print("SECTION 3: OPERATING POINTS")
@@ -244,16 +241,15 @@ def run_evaluation():
             best = max(candidates, key=lambda r: r["recall"])
             operating_points[label] = best
             print(f"\n{label}:")
-            print(f"  threshold={best['threshold']}, precision={best['precision']}, recall={best['recall']}, "
-                  f"F1={best['f1']}, FPR={best['fpr']}, FNR={best['fnr']}")
+            print(
+                f"  threshold={best['threshold']}, precision={best['precision']}, recall={best['recall']}, "
+                f"F1={best['f1']}, FPR={best['fpr']}, FNR={best['fnr']}"
+            )
         else:
             operating_points[label] = "No threshold satisfies this constraint in sweep range"
             print(f"\n{label}: No threshold satisfies this constraint")
 
     report["section_3_operating_points"] = operating_points
-
-
-
 
     print("\n" + "=" * 80)
     print("SECTION 4: UNKNOWN PERSON TEST")
@@ -318,9 +314,6 @@ def run_evaluation():
     else:
         report["section_4_unknown_person"] = {"status": "Insufficient unseen-person data."}
         print("Insufficient unseen-person data.")
-
-
-
 
     print("\n" + "=" * 80)
     print("SECTION 5: LEAVE-ONE-OUT IDENTIFICATION")
@@ -403,9 +396,6 @@ def run_evaluation():
     print(f"Rank-1 Accuracy: {rank1_accuracy} ({total_correct}/{total_queries})")
     print(json.dumps(report["section_5_leave_one_out"], indent=2))
 
-
-
-
     print("\n" + "=" * 80)
     print("SECTION 6: CROSS-PERSON GALLERY TEST")
     print("=" * 80)
@@ -444,9 +434,9 @@ def run_evaluation():
     }
     for t in [0.60, 0.65, 0.70, 0.75]:
         cross_summary[f"false_identity_assignments_at_{t:.2f}"] = total_false_assignments[t]
-        cross_summary[f"false_identity_rate_at_{t:.2f}"] = round(
-            total_false_assignments[t] / total_cross_trials, 6
-        ) if total_cross_trials > 0 else 0.0
+        cross_summary[f"false_identity_rate_at_{t:.2f}"] = (
+            round(total_false_assignments[t] / total_cross_trials, 6) if total_cross_trials > 0 else 0.0
+        )
 
     cross_results_sorted = sorted(cross_results, key=lambda x: x["highest_similarity"], reverse=True)
     cross_summary["top_10_highest_cross_scores"] = cross_results_sorted[:10]
@@ -457,17 +447,11 @@ def run_evaluation():
     for cs in cross_results_sorted[:5]:
         print(f"  {cs['query_person']} -> {cs['wrong_gallery']}: {cs['highest_similarity']}")
 
-
-
-
-
-
     print("\n" + "=" * 80)
     print("SECTION 7: ROC / AUC")
     print("=" * 80)
 
     y_scores = np.concatenate([same_arr, diff_arr])
-
 
     n_pos = len(same_arr)
     n_neg = len(diff_arr)
@@ -475,14 +459,12 @@ def run_evaluation():
     ranks = np.empty_like(order, dtype=float)
     ranks[order] = np.arange(1, len(y_scores) + 1)
 
-
     _unique_scores, inverse_indices, counts = np.unique(y_scores, return_inverse=True, return_counts=True)
     tied_ranks = np.bincount(inverse_indices, weights=ranks) / counts
     ranks = tied_ranks[inverse_indices]
 
     rank_sum_pos = np.sum(ranks[:n_pos])
     auc = float((rank_sum_pos - n_pos * (n_pos + 1) / 2.0) / (n_pos * n_neg))
-
 
     all_thresholds = np.sort(np.unique(y_scores))[::-1]
     fpr_list, tpr_list = [0.0], [0.0]
@@ -512,13 +494,9 @@ def run_evaluation():
     print(f"AUC: {auc:.6f}")
     print(f"EER: {eer:.6f} at threshold {eer_threshold:.6f}")
 
-
-
-
     print("\n" + "=" * 80)
     print("SECTION 8: PRECISION-RECALL / AVERAGE PRECISION")
     print("=" * 80)
-
 
     rec_list, prec_list, f1_list, thresh_pr_list = [], [], [], []
     for t_val in all_thresholds:
@@ -536,8 +514,6 @@ def run_evaluation():
     rec_np = np.array(rec_list)
     prec_np = np.array(prec_list)
     f1_np = np.array(f1_list)
-
-
 
     sort_idx = np.argsort(rec_np)
     r_sorted = np.concatenate([[0.0], rec_np[sort_idx]])
@@ -557,9 +533,6 @@ def run_evaluation():
     }
     print(f"Average Precision: {ap:.6f}")
     print(f"Best F1: {best_f1_val:.6f} at threshold {best_f1_thresh:.6f}")
-
-
-
 
     print("\n" + "=" * 80)
     print("SECTION 9: PER-PERSON ANALYSIS")
@@ -585,7 +558,11 @@ def run_evaluation():
                 pmean = float(np.mean(pair_scores))
                 if pmax > nearest_wrong_max:
                     nearest_wrong_max = pmax
-                    nearest_wrong = {"identity": other_name, "max_similarity": round(pmax, 6), "mean_similarity": round(pmean, 6)}
+                    nearest_wrong = {
+                        "identity": other_name,
+                        "max_similarity": round(pmax, 6),
+                        "mean_similarity": round(pmean, 6),
+                    }
 
         margin = round(same_min - nearest_wrong_max, 6) if same_min is not None and nearest_wrong_max > -1 else None
 
@@ -602,9 +579,6 @@ def run_evaluation():
         print(json.dumps(per_person[name], indent=2))
 
     report["section_9_per_person"] = per_person
-
-
-
 
     print("\n" + "=" * 80)
     print("SECTION 10: VIDEO VALIDATION")
@@ -678,9 +652,6 @@ def run_evaluation():
     }
     print(json.dumps(report["section_10_video"], indent=2))
 
-
-
-
     print("\n" + "=" * 80)
     print("SECTION 11: TEMPORAL IDENTITY STABILITY")
     print("=" * 80)
@@ -718,11 +689,13 @@ def run_evaluation():
             det_key = f"det_{di}"
             if det_key not in per_frame_tracks:
                 per_frame_tracks[det_key] = []
-            per_frame_tracks[det_key].append({
-                "frame": f_idx,
-                "identity": best_label if best_score >= 0.60 else "UNKNOWN",
-                "score": round(best_score, 6),
-            })
+            per_frame_tracks[det_key].append(
+                {
+                    "frame": f_idx,
+                    "identity": best_label if best_score >= 0.60 else "UNKNOWN",
+                    "score": round(best_score, 6),
+                }
+            )
 
     cap2.release()
 
@@ -755,11 +728,10 @@ def run_evaluation():
     report["section_11_temporal_stability"] = temporal_results
     print(f"Detection streams analyzed: {len(temporal_results)}")
     for dk, tr in temporal_results.items():
-        print(f"  {dk}: {tr['total_frames']} frames, {tr['identity_switches']} switches, "
-              f"score={tr['score_mean']:.4f}+/-{tr['score_std']:.4f}")
-
-
-
+        print(
+            f"  {dk}: {tr['total_frames']} frames, {tr['identity_switches']} switches, "
+            f"score={tr['score_mean']:.4f}+/-{tr['score_std']:.4f}"
+        )
 
     print("\n" + "=" * 80)
     print("SECTION 12: 512D EMBEDDING VALIDATION")
@@ -771,23 +743,34 @@ def run_evaluation():
         for i, emb in enumerate(embs[:3]):
             norm = float(np.linalg.norm(emb))
             check = {
-                "subject": name, "index": i, "shape": list(emb.shape), "dtype": str(emb.dtype),
-                "L2_norm": round(norm, 8), "norm_approx_1": abs(norm - 1.0) < 0.001,
-                "has_NaN": bool(np.isnan(emb).any()), "has_Inf": bool(np.isinf(emb).any()),
-                "valid": emb.shape == (512,) and emb.dtype == np.float32 and abs(norm - 1.0) < 0.001
-                         and not np.isnan(emb).any() and not np.isinf(emb).any(),
+                "subject": name,
+                "index": i,
+                "shape": list(emb.shape),
+                "dtype": str(emb.dtype),
+                "L2_norm": round(norm, 8),
+                "norm_approx_1": abs(norm - 1.0) < 0.001,
+                "has_NaN": bool(np.isnan(emb).any()),
+                "has_Inf": bool(np.isinf(emb).any()),
+                "valid": emb.shape == (512,)
+                and emb.dtype == np.float32
+                and abs(norm - 1.0) < 0.001
+                and not np.isnan(emb).any()
+                and not np.isinf(emb).any(),
             }
             embedding_checks.append(check)
             sample_count += 1
 
     all_valid = all(c["valid"] for c in embedding_checks)
-    report["section_12_embedding_validation"] = {"samples_checked": sample_count, "all_valid": all_valid, "checks": embedding_checks}
+    report["section_12_embedding_validation"] = {
+        "samples_checked": sample_count,
+        "all_valid": all_valid,
+        "checks": embedding_checks,
+    }
     print(f"Checked {sample_count} embeddings: all_valid={all_valid}")
     for c in embedding_checks:
-        print(f"  {c['subject']}[{c['index']}]: shape={c['shape']}, dtype={c['dtype']}, L2={c['L2_norm']:.8f}, valid={c['valid']}")
-
-
-
+        print(
+            f"  {c['subject']}[{c['index']}]: shape={c['shape']}, dtype={c['dtype']}, L2={c['L2_norm']:.8f}, valid={c['valid']}"
+        )
 
     print("\n" + "=" * 80)
     print("SECTION 13: GAIT ISOLATION CHECK")
@@ -797,17 +780,16 @@ def run_evaluation():
     if gait_feat_file.exists():
         gait_feat = np.load(gait_feat_file)
         gait_isolation = {
-            "gait_features_shape": list(gait_feat.shape), "gait_dimension": int(gait_feat.shape[1]),
+            "gait_features_shape": list(gait_feat.shape),
+            "gait_dimension": int(gait_feat.shape[1]),
             "gait_pipeline_unmodified": bool(gait_feat.shape[1] == 256),
-            "appearance_dimension": 512, "no_concatenation": True,
+            "appearance_dimension": 512,
+            "no_concatenation": True,
         }
     else:
         gait_isolation = {"gait_gallery_found": False, "appearance_dimension": 512, "no_concatenation": True}
     report["section_13_gait_isolation"] = gait_isolation
     print(json.dumps(gait_isolation, indent=2))
-
-
-
 
     print("\n" + "=" * 80)
     print("SECTION 15: DATASET LIMITATION CHECK")
@@ -832,9 +814,6 @@ def run_evaluation():
     }
     report["section_15_dataset_limitations"] = dataset_limitations
     print(json.dumps(dataset_limitations, indent=2))
-
-
-
 
     out_dir = Path("outputs/reports")
     out_dir.mkdir(parents=True, exist_ok=True)

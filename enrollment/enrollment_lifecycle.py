@@ -106,16 +106,11 @@ class EnrollmentLifecycleManager:
         gait_embeddings: list[np.ndarray] = []
         appearance_embeddings: list[np.ndarray] = []
 
-
-
-
         try:
-
             for g_path in g_paths:
                 emb = self.gait_extractor.extract(g_path)
                 if emb is not None and len(emb) == 256 and np.isfinite(emb).all():
                     gait_embeddings.append(emb)
-
 
             for p_path in p_paths:
                 img = cv2.imread(str(p_path))
@@ -157,9 +152,6 @@ class EnrollmentLifecycleManager:
             )
             return result
 
-
-
-
         try:
             persist_res = self.db.add_embeddings(
                 person_id=person_id,
@@ -171,7 +163,6 @@ class EnrollmentLifecycleManager:
 
             if not persist_res.get("persistence_verified", False):
                 raise RuntimeError("Database reported unverified persistence state")
-
 
             fb_results = persist_res.get("firebase_results", [])
             fb_all_verified = False
@@ -202,14 +193,10 @@ class EnrollmentLifecycleManager:
             )
             return result
 
-
-
-
         if auto_delete_raw:
             deleted_files = []
             retained_files = []
             cleanup_errors = []
-
 
             for f_path in all_input_paths:
                 success, err = self.safe_delete_raw_file(f_path)
@@ -218,7 +205,6 @@ class EnrollmentLifecycleManager:
                 else:
                     retained_files.append(str(f_path))
                     cleanup_errors.append(err)
-
 
             if case_id and self.firebase_store is not None:
                 try:

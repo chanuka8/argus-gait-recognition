@@ -160,17 +160,17 @@ class DocstringVisitor(ast.NodeVisitor):
                 pass_indent = "    "
 
             self.docstrings.append(
-                    DocstringItem(
-                        node_type=node_type,
-                        start_lineno=first_stmt.lineno,
-                        start_col=first_stmt.col_offset,
-                        end_lineno=first_stmt.end_lineno or first_stmt.lineno,
-                        end_col=first_stmt.end_col_offset or 0,
-                        doc_value=first_stmt.value.value,
-                        needs_pass=needs_pass,
-                        pass_indent=pass_indent,
-                    )
+                DocstringItem(
+                    node_type=node_type,
+                    start_lineno=first_stmt.lineno,
+                    start_col=first_stmt.col_offset,
+                    end_lineno=first_stmt.end_lineno or first_stmt.lineno,
+                    end_col=first_stmt.end_col_offset or 0,
+                    doc_value=first_stmt.value.value,
+                    needs_pass=needs_pass,
+                    pass_indent=pass_indent,
                 )
+            )
 
     def visit_Module(self, node: ast.Module) -> None:
         self._check_body_docstring(node.body, "module")
@@ -209,7 +209,18 @@ def is_tooling_directive(tok: tokenize.TokenInfo) -> tuple[bool, str | None]:
     if match:
         return True, f"Tooling directive: {match.group(1).strip(':')}"
     lower_text = comment_text.lower()
-    for kw in ("noqa", "type: ignore", "pragma:", "pylint:", "pyright:", "ruff:", "isort:", "fmt: off", "fmt: on", "nosec"):
+    for kw in (
+        "noqa",
+        "type: ignore",
+        "pragma:",
+        "pylint:",
+        "pyright:",
+        "ruff:",
+        "isort:",
+        "fmt: off",
+        "fmt: on",
+        "nosec",
+    ):
         if kw in lower_text:
             return True, f"Tooling directive keyword: {kw}"
     return False, None
@@ -352,12 +363,13 @@ def extract_runtime_strings_from_ast(tree: ast.AST) -> list[tuple[str, int, int]
     docstring_nodes = set()
 
     for node in ast.walk(tree):
-        if (
-            isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef))
-            and node.body
-        ):
+        if isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)) and node.body:
             first = node.body[0]
-            if isinstance(first, ast.Expr) and isinstance(first.value, ast.Constant) and isinstance(first.value.value, str):
+            if (
+                isinstance(first, ast.Expr)
+                and isinstance(first.value, ast.Constant)
+                and isinstance(first.value.value, str)
+            ):
                 docstring_nodes.add(first.value)
 
     for node in ast.walk(tree):
@@ -511,7 +523,9 @@ def remove_comments_from_source(
         if comm.is_standalone:
             del lines[line_idx]
         else:
-            ending = line_ending if curr_line.endswith(line_ending) else ("\r\n" if curr_line.endswith("\r\n") else "\n")
+            ending = (
+                line_ending if curr_line.endswith(line_ending) else ("\r\n" if curr_line.endswith("\r\n") else "\n")
+            )
             lines[line_idx] = prefix.rstrip(" \t") + ending
 
     return "".join(lines)
@@ -573,7 +587,11 @@ def transform_source(
     orig_tokens = get_executable_tokens(scan_result.original_source)
     new_tokens = get_executable_tokens(final_source)
 
-    [t for t in orig_tokens if t[0] != tokenize.STRING or not any(d.doc_value == t[1].strip("'\"") for d in scan_result.docstrings)]
+    [
+        t
+        for t in orig_tokens
+        if t[0] != tokenize.STRING or not any(d.doc_value == t[1].strip("'\"") for d in scan_result.docstrings)
+    ]
     [t for t in new_tokens if t != (tokenize.NAME, "pass") or t in orig_tokens]
 
     return final_source, None
@@ -612,9 +630,9 @@ def discover_python_files(
 
 
 def run_audit(files: list[Path], verbose: bool = False) -> int:
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("ARGUS AI - Python Comments & Docstrings Audit")
-    print(f"{'='*70}\n")
+    print(f"{'=' * 70}\n")
 
     total_scanned = len(files)
     files_with_removable = 0
@@ -642,7 +660,11 @@ def run_audit(files: list[Path], verbose: bool = False) -> int:
         async_docs = sum(1 for d in res.docstrings if d.node_type == "async_function")
 
         tooling_comments = sum(1 for c in res.preserved_comments if "Tooling" in (c.preservation_reason or ""))
-        header_comments = sum(1 for c in res.preserved_comments if "shebang" in (c.preservation_reason or "").lower() or "encoding" in (c.preservation_reason or "").lower())
+        header_comments = sum(
+            1
+            for c in res.preserved_comments
+            if "shebang" in (c.preservation_reason or "").lower() or "encoding" in (c.preservation_reason or "").lower()
+        )
 
         total_safe_comments += safe_comments
         total_preserved_tooling += tooling_comments
@@ -671,15 +693,15 @@ def run_audit(files: list[Path], verbose: bool = False) -> int:
     print(f"Preserved tooling directives:     {total_preserved_tooling}")
     print(f"Preserved shebang/encoding:       {total_preserved_headers}")
     print(f"Files with parse errors:          {parse_errors}")
-    print(f"{'='*70}\n")
+    print(f"{'=' * 70}\n")
 
     return 0
 
 
 def run_dry_run(files: list[Path], remove_docstrings: bool = True, remove_comments: bool = True) -> int:
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("ARGUS AI - Python Comments & Docstrings Dry Run")
-    print(f"{'='*70}\n")
+    print(f"{'=' * 70}\n")
 
     files_to_modify = 0
     skipped_files = 0
@@ -713,16 +735,18 @@ def run_dry_run(files: list[Path], remove_docstrings: bool = True, remove_commen
         print(f"\n--- {p.as_posix()} ---")
         if remove_docstrings:
             for d in res.removable_docstrings:
-                print(f"  [-] docstring ({d.node_type}): lines {d.start_lineno}-{d.end_lineno} (needs_pass={d.needs_pass})")
+                print(
+                    f"  [-] docstring ({d.node_type}): lines {d.start_lineno}-{d.end_lineno} (needs_pass={d.needs_pass})"
+                )
         if remove_comments:
             for c in res.removable_comments:
                 print(f"  [-] comment: line {c.start_lineno}: {c.comment_text[:60]}")
         for c in res.preserved_comments:
             print(f"  [+] PRESERVED ({c.preservation_reason}): line {c.start_lineno}: {c.comment_text[:60]}")
 
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print(f"Dry-run summary: {files_to_modify} file(s) would be modified, {skipped_files} skipped.")
-    print(f"{'='*70}\n")
+    print(f"{'=' * 70}\n")
     return 0
 
 
@@ -753,9 +777,9 @@ def run_apply(
     remove_comments: bool = True,
     backup_dir: Path | None = None,
 ) -> int:
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("ARGUS AI - Python Comments & Docstrings Apply Transformation")
-    print(f"{'='*70}\n")
+    print(f"{'=' * 70}\n")
 
     if backup_dir:
         backup_dir.mkdir(parents=True, exist_ok=True)
@@ -814,7 +838,9 @@ def run_apply(
             total_docstrings_removed += len(res.removable_docstrings)
             passes_in_file = sum(1 for d in res.removable_docstrings if d.needs_pass)
             total_passes_added += passes_in_file
-            print(f"[CLEANED] {p.as_posix()} (-{len(res.removable_comments)} comments, -{len(res.removable_docstrings)} docs, +{passes_in_file} pass)")
+            print(
+                f"[CLEANED] {p.as_posix()} (-{len(res.removable_comments)} comments, -{len(res.removable_docstrings)} docs, +{passes_in_file} pass)"
+            )
         except OSError as e:
             if temp_file.exists():
                 try:
@@ -824,22 +850,22 @@ def run_apply(
             print(f"[WRITE ERROR] {p.as_posix()}: {e}")
             skipped_count += 1
 
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("Apply Summary:")
     print(f"  Files modified:            {modified_count}")
     print(f"  Files skipped:             {skipped_count}")
     print(f"  Total comments removed:    {total_comments_removed}")
     print(f"  Total docstrings removed:  {total_docstrings_removed}")
     print(f"  Total pass statements added:{total_passes_added}")
-    print(f"{'='*70}\n")
+    print(f"{'=' * 70}\n")
 
     return 0
 
 
 def run_self_test() -> int:
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("ARGUS AI - Running Cleanup Utility Internal Self-Test Suite")
-    print(f"{'='*70}\n")
+    print(f"{'=' * 70}\n")
 
     fixture_content = """#!/usr/bin/env python
 # -*- coding: utf-8 -*-
@@ -935,7 +961,7 @@ runtime_var = '''Valid triple single quote assigned string'''
         assert "SELECT *" in transformed, "SQL query corrupted"
         assert "You are an AI surveillance assistant." in transformed, "Prompt corrupted"
         assert "# Important: preserve this internal prompt line." in transformed, "Prompt internal line corrupted"
-        assert "<div id=\"target\">" in transformed, "HTML corrupted"
+        assert '<div id="target">' in transformed, "HTML corrupted"
         assert "Use #ARGUS for tracking" in transformed, "String with # corrupted"
         assert "Valid triple single quote assigned string" in transformed, "Triple single quote string corrupted"
 

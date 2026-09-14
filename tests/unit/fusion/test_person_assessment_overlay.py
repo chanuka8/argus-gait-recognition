@@ -62,7 +62,6 @@ class TestPersonAssessmentOverlay:
             display_state="CONFIRMED",
         )
 
-
         assert frame[200, 50, 2] == 255
         assert frame[200, 50, 1] == 0
         assert frame[200, 50, 0] == 0
@@ -88,7 +87,6 @@ class TestPersonAssessmentOverlay:
             decision="UNKNOWN",
             display_state=state,
         )
-
 
         assert frame[200, 50, 1] == 255
         assert frame[200, 50, 2] == 0
@@ -116,7 +114,6 @@ class TestPersonAssessmentOverlay:
         renderer = DetectionDisplayRenderer()
         frame = np.zeros((300, 300, 3), dtype=np.uint8)
 
-
         renderer.draw(
             frame=frame,
             box=[40, 60, 100, 200],
@@ -127,7 +124,6 @@ class TestPersonAssessmentOverlay:
             display_state="EVIDENCE_COLLECTING",
         )
         assert frame[200, 50, 1] == 255 and frame[200, 50, 2] == 0
-
 
         frame.fill(0)
         renderer.draw(
@@ -145,18 +141,19 @@ class TestPersonAssessmentOverlay:
         renderer = DetectionDisplayRenderer()
         frame = np.zeros((300, 300, 3), dtype=np.uint8)
 
-
         renderer.draw(frame=frame, box=[20, 20, 80, 140], track_id=6, display_state="UNCONFIRMED")
         assert frame[140, 30, 1] == 255 and frame[140, 30, 2] == 0
 
-
         frame.fill(0)
-        renderer.draw(frame=frame, box=[20, 20, 80, 140], track_id=6, identity="UNKNOWN", score=0.40, display_state="UNCONFIRMED")
+        renderer.draw(
+            frame=frame, box=[20, 20, 80, 140], track_id=6, identity="UNKNOWN", score=0.40, display_state="UNCONFIRMED"
+        )
         assert frame[140, 30, 1] == 255 and frame[140, 30, 2] == 0
 
-
         frame.fill(0)
-        renderer.draw(frame=frame, box=[20, 20, 80, 140], track_id=6, identity="UNKNOWN", score=0.50, display_state="UNCONFIRMED")
+        renderer.draw(
+            frame=frame, box=[20, 20, 80, 140], track_id=6, identity="UNKNOWN", score=0.50, display_state="UNCONFIRMED"
+        )
         assert frame[140, 30, 1] == 255 and frame[140, 30, 2] == 0
 
     def test_wheelchair_crutches_and_nonstandard_gait_render_green_unless_confirmed(self) -> None:
@@ -190,7 +187,6 @@ class TestPersonAssessmentOverlay:
         renderer = DetectionDisplayRenderer()
         frame = np.zeros((300, 300, 3), dtype=np.uint8)
 
-
         renderer.draw(
             frame=frame,
             box=wheelchair_bbox,
@@ -200,7 +196,6 @@ class TestPersonAssessmentOverlay:
             mobility_state="WHEELCHAIR",
         )
         assert frame[200, 110, 1] == 255 and frame[200, 110, 2] == 0
-
 
         frame.fill(0)
         ctx.status = "CONFIRMED"
@@ -251,7 +246,6 @@ class TestPersonAssessmentOverlay:
         renderer = DetectionDisplayRenderer()
         frame = np.zeros((300, 300, 3), dtype=np.uint8)
 
-
         renderer.draw(
             frame=frame,
             box=[40, 60, 100, 200],
@@ -286,7 +280,6 @@ class TestPersonAssessmentOverlay:
                 score=p["score"],
                 display_state=p["state"],
             )
-
 
         assert frame[180, 30, 2] == 255 and frame[180, 30, 1] == 0
 
@@ -384,6 +377,7 @@ class TestPersonAssessmentOverlay:
         class DummyEngine:
             def __init__(self, c: RecognitionResultCache):
                 self.cache = c
+
             def is_running(self):
                 return True
 

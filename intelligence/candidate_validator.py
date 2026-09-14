@@ -38,7 +38,6 @@ class CandidateValidator:
         rejection_reasons = []
         gates = {}
 
-
         base_far = baseline_metrics.get("far", baseline_metrics.get("out_of_fold_far", 0.0))
         cand_far = candidate_metrics.get("far", candidate_metrics.get("out_of_fold_far", 0.0))
         far_passed = cand_far <= (base_far + self.max_allowed_far_increase)
@@ -47,7 +46,6 @@ class CandidateValidator:
             rejection_reasons.append(
                 f"Security Regression: Candidate FAR ({cand_far:.2f}%) exceeds baseline FAR ({base_far:.2f}%)"
             )
-
 
         confusion_passed = True
         if confusion_pair_eval is not None:
@@ -59,7 +57,6 @@ class CandidateValidator:
                 )
         gates["confusion_pair_gate"] = confusion_passed
 
-
         base_tar = baseline_metrics.get("tar", baseline_metrics.get("out_of_fold_tar", 0.0))
         cand_tar = candidate_metrics.get("tar", candidate_metrics.get("out_of_fold_tar", 0.0))
 
@@ -70,13 +67,11 @@ class CandidateValidator:
                 f"Accuracy Regression: Candidate TAR ({cand_tar:.2f}%) degraded below baseline ({base_tar:.2f}%)"
             )
 
-
         cand_eer = candidate_metrics.get("eer", 0.0)
         stability_passed = np.isfinite(cand_tar) and np.isfinite(cand_far) and np.isfinite(cand_eer)
         gates["stability_gate"] = bool(stability_passed)
         if not stability_passed:
             rejection_reasons.append("Stability Failure: Non-finite metric values encountered in candidate evaluation")
-
 
         if model_type in ("bygait_light", "osnet_reid"):
             expected_dim = 256 if model_type == "bygait_light" else 512
@@ -88,24 +83,19 @@ class CandidateValidator:
                     f"Dimension Mismatch: {model_type} expects {expected_dim}D but candidate outputs {actual_dim}D"
                 )
 
-
         if model_type in ("bygait_light", "osnet_reid"):
             checksum = candidate_metrics.get("checksum_sha256", "")
             checksum_passed = bool(checksum) and len(checksum) == 64
             gates["artifact_checksum_gate"] = checksum_passed
             if not checksum_passed:
-
                 gates["artifact_checksum_gate"] = True
-
 
         if model_type in ("bygait_light", "osnet_reid"):
             rank1 = candidate_metrics.get("val_rank1_accuracy", candidate_metrics.get("tar", 0.0))
             benchmark_passed = rank1 > 0.0 or not baseline_metrics
             gates["benchmark_completion_gate"] = benchmark_passed
             if not benchmark_passed:
-                rejection_reasons.append(
-                    f"Benchmark Failure: NN candidate has zero Rank-1 accuracy ({rank1:.2f}%)"
-                )
+                rejection_reasons.append(f"Benchmark Failure: NN candidate has zero Rank-1 accuracy ({rank1:.2f}%)")
 
         overall_pass = all(gates.values())
 
@@ -131,4 +121,3 @@ class CandidateValidator:
             )
 
         return res
-

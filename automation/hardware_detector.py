@@ -97,7 +97,6 @@ class HardwareDetector:
             )
 
         try:
-
             cmd = [
                 smi_path,
                 "--query-gpu=name,driver_version,memory.total",
@@ -126,7 +125,6 @@ class HardwareDetector:
                 vram_mb = float(parts[2])
             except ValueError:
                 vram_mb = 0.0
-
 
             cuda_driver_ver: str | None = None
             try:

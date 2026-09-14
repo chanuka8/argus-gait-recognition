@@ -100,7 +100,6 @@ class DateAwareLearningScheduler:
         self._jobs_cache: dict[str, LearningJobRecord] | None = None
         self._last_mtime: float = 0.0
 
-
         self.recover_interrupted_jobs()
 
     def _load_jobs(self) -> dict[str, LearningJobRecord]:
@@ -148,9 +147,7 @@ class DateAwareLearningScheduler:
         jobs = self._load_jobs()
         return jobs.get(job_id)
 
-    def get_job_for_date_and_type(
-        self, training_date: str, model_type: str
-    ) -> LearningJobRecord | None:
+    def get_job_for_date_and_type(self, training_date: str, model_type: str) -> LearningJobRecord | None:
         jobs = self._load_jobs()
         for j in reversed(list(jobs.values())):
             if (
@@ -207,7 +204,6 @@ class DateAwareLearningScheduler:
         with self._lock:
             date_data: dict[str, dict[str, Any]] = {}
 
-
             eligible_obs = self.collector.get_training_eligible()
             for obs in eligible_obs:
                 d = obs.observation_date or time.strftime("%Y-%m-%d", time.gmtime(obs.created_at))
@@ -221,7 +217,6 @@ class DateAwareLearningScheduler:
                 ident = obs.verified_identity or obs.predicted_identity
                 if ident and ident != "UNKNOWN":
                     date_data[d]["identities"].add(ident)
-
 
             for person in self.db.list_all_persons():
                 if person.status != "ACTIVE":
@@ -238,7 +233,6 @@ class DateAwareLearningScheduler:
                         }
                     date_data[d]["embeddings"].append(emb)
                     date_data[d]["identities"].add(person.person_id)
-
 
             result = {}
             for d, val in sorted(date_data.items()):
@@ -271,7 +265,6 @@ class DateAwareLearningScheduler:
         with self._lock:
             jobs = self._load_jobs()
 
-
             if not force:
                 for j in jobs.values():
                     if (
@@ -290,7 +283,6 @@ class DateAwareLearningScheduler:
                             f"already exists for date '{training_date}' (status: {j.status.value})"
                         )
                         return j
-
 
             today_str = time.strftime("%Y-%m-%d", time.gmtime())
             if training_date > today_str and not force:
@@ -320,7 +312,6 @@ class DateAwareLearningScheduler:
             count = date_info["total_count"] if date_info else 0
             identities = date_info["identities"] if date_info else []
 
-
             if not force and (count < self.min_training_embeddings or len(identities) < self.min_identities):
                 skip_id = f"CL-SKIP-{training_date.replace('-', '')}-{model_type[:4]}-{uuid.uuid4().hex[:4]}"
                 skip_job = LearningJobRecord(
@@ -346,7 +337,6 @@ class DateAwareLearningScheduler:
                     f"No training triggered."
                 )
                 return skip_job
-
 
             type_tag = model_type[:4].upper()
             job_id = f"CL-{training_date.replace('-', '')}-{type_tag}-{uuid.uuid4().hex[:6]}"
@@ -384,8 +374,7 @@ class DateAwareLearningScheduler:
                 unprocessed = self.get_unprocessed_dates(model_type=mt)
                 if not unprocessed:
                     self._logger.debug(
-                        f"[DATE_SCAN] No new observation dates with eligible data found for {mt}. "
-                        f"Zero jobs scheduled."
+                        f"[DATE_SCAN] No new observation dates with eligible data found for {mt}. Zero jobs scheduled."
                     )
                     continue
 
@@ -405,4 +394,3 @@ class DateAwareLearningScheduler:
             jobs = self._load_jobs()
             jobs[job.job_id] = job
             return self._save_jobs(jobs)
-

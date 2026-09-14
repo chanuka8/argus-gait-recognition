@@ -93,7 +93,6 @@ def test_process_and_gate() -> None:
     assert enh_img is not None
     assert enh_img.shape[0] >= 200
 
-
     dark_img = np.full((256, 128, 3), 5, dtype=np.uint8)
     accepted_bad, enh_bad, assess_bad = enhancer.process_and_gate(dark_img)
     assert accepted_bad is False

@@ -27,7 +27,6 @@ class TestUnboundedPersonTracking:
     def test_unbounded_person_track_creation_and_context(self) -> None:
         mgr = ConcurrentTrackManager(max_idle_seconds=5.0)
 
-
         test_counts = [1, 10, 50, 100, 250, 500, 1000]
         for count in test_counts:
             mgr.clear_all()
@@ -58,18 +57,15 @@ class TestUnboundedPersonTracking:
         ctx1 = mgr.update_or_create_track("cam_0", 101, [10, 10, 50, 100], confidence=0.9)
         ctx2 = mgr.update_or_create_track("cam_0", 102, [60, 10, 100, 100], confidence=0.8)
 
-
         emb1 = np.random.randn(512).astype(np.float32)
         emb1 = emb1 / np.linalg.norm(emb1)
         ctx1.update_appearance(emb1, "PersonA", 0.92, frame_index=5)
         ctx1.update_fusion("PersonA", 0.92, "CONFIRMED", "CONFIRMED")
 
-
         assert ctx2.appearance_embedding is None
         assert ctx2.appearance_identity == "UNKNOWN_PERSON"
         assert ctx2.fused_identity == "UNKNOWN_PERSON"
         assert ctx2.state == TrackLifecycleState.TRACKING
-
 
         assert ctx1.appearance_identity == "PersonA"
         assert ctx1.fused_identity == "PersonA"
@@ -78,16 +74,13 @@ class TestUnboundedPersonTracking:
     def test_track_lifecycle_and_spatial_recovery(self) -> None:
         mgr = ConcurrentTrackManager(recovery_iou_threshold=0.25, recovery_time_window_seconds=2.0)
 
-
         ctx = mgr.update_or_create_track("cam_1", 201, [100, 100, 200, 300], confidence=0.95)
         ctx.update_appearance(np.ones(512, dtype=np.float32), "Alice", 0.88, frame_index=1)
         ctx.update_fusion("Alice", 0.88, "CONFIRMED", "CONFIRMED")
 
-
         missing = mgr.mark_missing_tracks("cam_1", current_active_track_ids=set())
         assert len(missing) == 1
         assert missing[0].state == TrackLifecycleState.TEMPORARILY_MISSING
-
 
         time.sleep(0.01)
         recovered = mgr.update_or_create_track("cam_1", 202, [105, 102, 202, 305], confidence=0.92)
@@ -117,7 +110,6 @@ class TestUnboundedPersonTracking:
 
         callbacks = [gei_cb, app_cb]
 
-
         total_events = 10000
         batch_size = 1000
         for b in range(0, total_events, batch_size):
@@ -126,7 +118,6 @@ class TestUnboundedPersonTracking:
                 gei_builder.add_silhouette(i, np.ones((128, 64), dtype=np.uint8) * 255)
                 appearance_extractor.extract(np.zeros((100, 50, 3), dtype=np.uint8), track_id=i)
 
-
             future_ts = time.monotonic() + 1.0
             expired = mgr.cleanup_expired_tracks(
                 max_idle_seconds=0.05,
@@ -134,7 +125,6 @@ class TestUnboundedPersonTracking:
                 timestamp=future_ts,
             )
             assert len(expired) == batch_size
-
 
         assert len(mgr.get_all_tracks()) == 0
         assert len(mgr.get_active_tracks()) == 0
@@ -148,7 +138,6 @@ class TestUnboundedPersonTracking:
         crops = [np.ones((120, 60, 3), dtype=np.uint8) * ((i % 10) * 20 + 1) for i in range(16)]
         track_ids = list(range(16))
 
-
         batch_embs = extractor.extract_batch(crops, track_ids=track_ids, frame_index=1)
         assert len(batch_embs) == 16
         for emb in batch_embs:
@@ -157,7 +146,6 @@ class TestUnboundedPersonTracking:
 
             norm = float(np.linalg.norm(emb))
             assert abs(norm - 1.0) < 1e-4
-
 
         for tid in track_ids:
             assert extractor.get_cached(tid) is not None
@@ -175,14 +163,14 @@ class TestUnboundedPersonTracking:
                 BatchCandidateItem(camera_id="cam_crowded", track_id=i, crop=crop_a, bbox=[0, 0, 10, 10], context=ctx_a)
             )
 
-
         for j in range(2):
             ctx_b = PersonTrackContext(camera_id="cam_sparse", track_id=100 + j, appearance_last_frame=0)
             crop_b = np.ones((100, 50, 3), dtype=np.uint8)
             candidates.append(
-                BatchCandidateItem(camera_id="cam_sparse", track_id=100 + j, crop=crop_b, bbox=[0, 0, 10, 10], context=ctx_b)
+                BatchCandidateItem(
+                    camera_id="cam_sparse", track_id=100 + j, crop=crop_b, bbox=[0, 0, 10, 10], context=ctx_b
+                )
             )
-
 
         scheduled_cam_b = 0
         for frame in range(1, 10):
@@ -192,28 +180,23 @@ class TestUnboundedPersonTracking:
                     scheduled_cam_b += 1
                 item.context.appearance_last_frame = frame
 
-
         assert scheduled_cam_b > 0
 
     def test_adaptive_load_degradation_tiers(self) -> None:
         policy = AdaptivePersonProcessingPolicy()
-
 
         p1 = policy.evaluate_policy(cpu_percent=30.0, ram_percent=40.0, queue_depth=0, active_tracks_count=5)
         assert p1.tier == AdaptivePersonLoadTier.FULL_QUALITY
         assert p1.reid_update_interval == 6
         assert p1.skip_confirmed_reid is False
 
-
         p2 = policy.evaluate_policy(cpu_percent=76.0, ram_percent=60.0, queue_depth=4, active_tracks_count=45)
         assert p2.tier == AdaptivePersonLoadTier.MICRO_BATCHING
         assert p2.skip_confirmed_reid is True
 
-
         p3 = policy.evaluate_policy(cpu_percent=86.0, ram_percent=70.0, queue_depth=5, active_tracks_count=80)
         assert p3.tier == AdaptivePersonLoadTier.AGGRESSIVE_FRAME_SKIPPING
         assert p3.drop_stale_frames is True
-
 
         p4 = policy.evaluate_policy(cpu_percent=92.0, ram_percent=92.0, queue_depth=16, p95_latency_ms=120.0)
         assert p4.tier == AdaptivePersonLoadTier.DEGRADED_MODE
@@ -224,15 +207,12 @@ class TestUnboundedPersonTracking:
         engine = ProductionMultiCameraEngine(appearance_extractor=extractor)
         engine.register_camera("cam_test")
 
-
         bad_ctx = engine.track_manager.update_or_create_track("cam_test", 999, [-10, -20, -5, -5])
         assert bad_ctx is not None
         assert bad_ctx.track_id == 999
 
-
         bad_emb = engine.appearance_extractor.extract(np.zeros((0, 0, 3), dtype=np.uint8), track_id=999)
         assert bad_emb is None
-
 
         good_ctx = engine.track_manager.update_or_create_track("cam_test", 1000, [10, 10, 80, 180])
         assert good_ctx.is_active() is True
@@ -263,7 +243,6 @@ class TestUnboundedPersonTracking:
     def test_dynamic_capacity_estimation_profiles(self) -> None:
         estimator = ProductionCapacityEstimator()
 
-
         cpu_res = estimator.estimate_multi_person_capacity(
             camera_count=4,
             persons_per_camera=10,
@@ -274,7 +253,6 @@ class TestUnboundedPersonTracking:
         )
         assert cpu_res["capacity_state"] == "CAPACITY_REACHED"
         assert cpu_res["recommended_policy_tier"] == "DEGRADED_MODE"
-
 
         gpu_res = estimator.estimate_multi_person_capacity(
             camera_count=16,

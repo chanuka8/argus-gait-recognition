@@ -87,7 +87,10 @@ def map_to_display_state(
 ) -> str:
     if display_state is not None:
         normalized = str(display_state).upper()
-        if (normalized in ("CONFIRMED", "MATCH", "VERIFIED_MATCH", "CONFIRMED_MATCH") or normalized.startswith("CONFIRM")) and not normalized.startswith("UN"):
+        if (
+            normalized in ("CONFIRMED", "MATCH", "VERIFIED_MATCH", "CONFIRMED_MATCH")
+            or normalized.startswith("CONFIRM")
+        ) and not normalized.startswith("UN"):
             return DISPLAY_STATE_CONFIRMED
         if "SPECIAL_ATTENTION" in normalized or normalized == "ATTENTION" or "SECURITY_ALERT" in normalized:
             return DISPLAY_STATE_SPECIAL_ATTENTION
@@ -97,10 +100,8 @@ def map_to_display_state(
             return DISPLAY_STATE_ASSESSING
         return DISPLAY_STATE_UNCONFIRMED
 
-
     if is_special_attention:
         return DISPLAY_STATE_SPECIAL_ATTENTION
-
 
     if (
         status in ("CONFIRMED", "MATCH", "VERIFIED_MATCH")
@@ -108,13 +109,11 @@ def map_to_display_state(
     ) and identity not in ("UNKNOWN", "UNKNOWN_PERSON", ""):
         return DISPLAY_STATE_CONFIRMED
 
-
     if mobility_state in ("WHEELCHAIR", "CRUTCHES_AID", "STATIONARY_SEATED", "NON_STANDARD_GAIT"):
         return DISPLAY_STATE_INAPPLICABLE
 
     if not gait_eligible and decision in ("BIOMETRIC_INAPPLICABLE", "GAIT_UNAVAILABLE", "INAPPLICABLE"):
         return DISPLAY_STATE_INAPPLICABLE
-
 
     return DISPLAY_STATE_UNCONFIRMED
 
@@ -136,7 +135,10 @@ class DetectionDisplayRenderer:
 
     def get_color_for_state(self, state: str) -> tuple[int, int, int]:
         normalized = str(state).upper()
-        if (normalized in ("CONFIRMED", "MATCH", "VERIFIED_MATCH", "CONFIRMED_MATCH") or normalized.startswith("CONFIRM")) and not normalized.startswith("UN"):
+        if (
+            normalized in ("CONFIRMED", "MATCH", "VERIFIED_MATCH", "CONFIRMED_MATCH")
+            or normalized.startswith("CONFIRM")
+        ) and not normalized.startswith("UN"):
             return self._color_confirmed
         if (
             normalized in ("SPECIAL_ATTENTION", "ATTENTION", "SECURITY_ALERT", "OPERATIONAL_ATTENTION", "FLAGGED")
@@ -174,7 +176,6 @@ class DetectionDisplayRenderer:
 
         x1, y1, x2, y2 = map(int, box[:4])
 
-
         state = map_to_display_state(
             status=decision,
             decision=decision,
@@ -187,7 +188,6 @@ class DetectionDisplayRenderer:
         )
 
         box_color = self.get_color_for_state(state)
-
 
         cv2.rectangle(frame, (x1, y1), (x2, y2), box_color, self._thickness)
 
@@ -224,19 +224,15 @@ class DetectionDisplayRenderer:
             else:
                 parts.append("DET")
 
-
         parts.append(display_state)
-
 
         if mobility_state == "WHEELCHAIR":
             parts.append("WHEELCHAIR")
         elif mobility_state == "CRUTCHES_AID":
             parts.append("CRUTCHES")
 
-
         clean_id = identity if identity and identity not in ("UNKNOWN_PERSON", "UNKNOWN") else "UNKNOWN"
         parts.append(clean_id)
-
 
         if self._show_score and score > 0.0 and clean_id != "UNKNOWN":
             parts.append(f"{score:.2f}")
@@ -266,7 +262,6 @@ class DetectionDisplayRenderer:
         overlay = frame.copy()
         cv2.rectangle(overlay, (bg_x1, bg_y1), (bg_x2, bg_y2), (20, 20, 20), -1)
         cv2.addWeighted(overlay, 0.70, frame, 0.30, 0, frame)
-
 
         text_color = color if color != (0, 0, 0) else (255, 255, 255)
         cv2.putText(

@@ -74,7 +74,6 @@ class LongitudinalAccuracyEvaluator:
         future_holdout_samples = future_holdout_samples or []
         all_eval_samples = operational_test_samples + historical_test_samples
 
-
         base_metrics = self.evaluator.evaluate_test_samples(
             test_samples=operational_test_samples,
             historical_test_samples=historical_test_samples,
@@ -93,10 +92,8 @@ class LongitudinalAccuracyEvaluator:
             model_type=model_type,
         )
 
-
         same_cam_rank1 = cand_metrics.same_camera_rank1
         cross_cam_rank1 = cand_metrics.cross_camera_rank1
-
 
         viewpoint_metrics = self._evaluate_by_condition(all_eval_samples, "viewpoint")
         clothing_metrics = self._evaluate_by_condition(all_eval_samples, "clothing")
@@ -111,7 +108,6 @@ class LongitudinalAccuracyEvaluator:
             "carrying_breakdown": carrying_metrics,
         }
 
-
         future_eval_summary = {}
         if future_holdout_samples:
             fut_base = self.evaluator.evaluate_test_samples(test_samples=future_holdout_samples)
@@ -125,7 +121,6 @@ class LongitudinalAccuracyEvaluator:
                 model_type=model_type,
             )
             future_eval_summary = fut_comp.to_dict()
-
 
         unique_identities = len({s.person_id for s in all_eval_samples})
         unique_tracks = len({s.track_id for s in all_eval_samples})
@@ -142,7 +137,6 @@ class LongitudinalAccuracyEvaluator:
             sample_count=len(all_eval_samples),
         )
 
-
         rejection_reasons = list(stat_result.rejection_reasons)
         if comparison.historical_tar_delta < -0.5:
             rejection_reasons.append(
@@ -153,7 +147,6 @@ class LongitudinalAccuracyEvaluator:
 
         passed = len(rejection_reasons) == 0 and stat_result.is_statistically_significant
         decision = "PROMOTED" if passed else "REJECTED"
-
 
         t_id = f"T{len(self.list_history())}_{int(time.time())}"
         record = LongitudinalTimepointRecord(

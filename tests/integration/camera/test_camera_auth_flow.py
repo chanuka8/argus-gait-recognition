@@ -132,7 +132,9 @@ def test_07_authenticated_camera_stream_with_bearer_header_accepted():
 
     mock_worker = MagicMock()
     mock_worker.is_running.return_value = False
-    mock_worker.get_latest_jpeg.return_value = b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00\xff\xdb\x00C\x00\xff\xd9"
+    mock_worker.get_latest_jpeg.return_value = (
+        b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00\xff\xdb\x00C\x00\xff\xd9"
+    )
 
     mock_service = MagicMock()
     mock_service.active_cameras = {"cam_test": "cam_test"}
@@ -155,7 +157,9 @@ def test_08_query_parameter_token_rejected_with_401():
 
     mock_worker = MagicMock()
     mock_worker.is_running.return_value = False
-    mock_worker.get_latest_jpeg.return_value = b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00\xff\xdb\x00C\x00\xff\xd9"
+    mock_worker.get_latest_jpeg.return_value = (
+        b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00\xff\xdb\x00C\x00\xff\xd9"
+    )
 
     mock_service = MagicMock()
     mock_service.active_cameras = {"cam_test2": "cam_test2"}

@@ -118,19 +118,16 @@ class TestCameraStateMachine:
         assert sm.get_camera("cam_unreg") is None
 
 
-
-
-
-
-
 class TestReconnectEngine:
     def test_exponential_backoff_delay(self):
-        engine = ReconnectEngine(ReconnectConfig(
-            min_retry_interval=1.0,
-            max_retry_interval=60.0,
-            backoff_multiplier=2.0,
-            jitter_range=0.0,
-        ))
+        engine = ReconnectEngine(
+            ReconnectConfig(
+                min_retry_interval=1.0,
+                max_retry_interval=60.0,
+                backoff_multiplier=2.0,
+                jitter_range=0.0,
+            )
+        )
         d0 = engine._compute_delay(0)
         d1 = engine._compute_delay(1)
         d2 = engine._compute_delay(2)
@@ -139,22 +136,26 @@ class TestReconnectEngine:
         assert d2 == pytest.approx(4.0, abs=0.01)
 
     def test_delay_clamped_at_max(self):
-        engine = ReconnectEngine(ReconnectConfig(
-            min_retry_interval=1.0,
-            max_retry_interval=10.0,
-            backoff_multiplier=2.0,
-            jitter_range=0.0,
-        ))
+        engine = ReconnectEngine(
+            ReconnectConfig(
+                min_retry_interval=1.0,
+                max_retry_interval=10.0,
+                backoff_multiplier=2.0,
+                jitter_range=0.0,
+            )
+        )
         d10 = engine._compute_delay(10)
         assert d10 == pytest.approx(10.0, abs=0.01)
 
     def test_jitter_applied(self):
-        engine = ReconnectEngine(ReconnectConfig(
-            min_retry_interval=1.0,
-            max_retry_interval=60.0,
-            backoff_multiplier=2.0,
-            jitter_range=0.5,
-        ))
+        engine = ReconnectEngine(
+            ReconnectConfig(
+                min_retry_interval=1.0,
+                max_retry_interval=60.0,
+                backoff_multiplier=2.0,
+                jitter_range=0.5,
+            )
+        )
         delays = [engine._compute_delay(3) for _ in range(20)]
 
         assert max(delays) > min(delays)
@@ -193,11 +194,6 @@ class TestReconnectEngine:
         engine.cancel_all()
 
 
-
-
-
-
-
 class TestCameraFailureIsolation:
     def test_single_failure_doesnt_affect_others(self):
         sm = CameraStateMachine()
@@ -207,10 +203,8 @@ class TestCameraFailureIsolation:
             sm.transition(cid, CameraState.CONNECTING)
             sm.transition(cid, CameraState.CONNECTED)
 
-
         sm.transition("A", CameraState.RECONNECTING, error="network_timeout")
         assert sm.get_camera("A").connection_state == CameraState.RECONNECTING
-
 
         for cid in ["B", "C", "D"]:
             assert sm.get_camera(cid).connection_state == CameraState.CONNECTED
@@ -224,18 +218,11 @@ class TestCameraFailureIsolation:
             sm.transition(cid, CameraState.CONNECTING)
             sm.transition(cid, CameraState.CONNECTED)
 
-
         for i in range(0, 8, 2):
             sm.transition(f"cam_{i}", CameraState.RECONNECTING, error="fail")
 
-
         for i in range(1, 8, 2):
             assert sm.get_camera(f"cam_{i}").connection_state == CameraState.CONNECTED
-
-
-
-
-
 
 
 class TestInferenceWorkerResilience:
@@ -274,11 +261,6 @@ class TestInferenceWorkerResilience:
         assert len(info) == 2
 
 
-
-
-
-
-
 class TestAdaptiveResourceManagement:
     def test_healthy_under_normal_load(self):
         mgr = AdaptiveResourceManager()
@@ -288,9 +270,7 @@ class TestAdaptiveResourceManagement:
         assert mgr.processing_rate_factor >= 0.9
 
     def test_saturated_under_high_load(self):
-        mgr = AdaptiveResourceManager(ResourceThresholds(
-            max_cpu_percent=85.0, max_vram_percent=90.0
-        ))
+        mgr = AdaptiveResourceManager(ResourceThresholds(max_cpu_percent=85.0, max_vram_percent=90.0))
         snap = ResourceSnapshot(cpu_percent=80.0, vram_percent=85.0)
         result = mgr.evaluate(snap)
         assert result in (ResourcePressure.ELEVATED, ResourcePressure.SATURATED)
@@ -309,7 +289,6 @@ class TestAdaptiveResourceManagement:
         mgr.evaluate(ResourceSnapshot(cpu_percent=95.0, vram_percent=95.0))
         low_factor = mgr.processing_rate_factor
 
-
         mgr.evaluate(ResourceSnapshot(cpu_percent=20.0, vram_percent=10.0))
         recovered_factor = mgr.processing_rate_factor
 
@@ -317,16 +296,13 @@ class TestAdaptiveResourceManagement:
         assert recovered_factor <= 1.0
 
 
-
-
-
-
-
 class TestFrameQualityControl:
     def test_fresh_frame_accepted(self):
         gate = FrameQualityGate(max_frame_age_ms=500.0)
         frame = QualifiedFrame(
-            camera_id="cam1", frame_id=1, frame_uuid="u1",
+            camera_id="cam1",
+            frame_id=1,
+            frame_uuid="u1",
             capture_timestamp=time.monotonic(),
             wall_timestamp="2026-01-01T00:00:00Z",
             frame=np.zeros((10, 10, 3), dtype=np.uint8),
@@ -338,7 +314,9 @@ class TestFrameQualityControl:
     def test_stale_frame_rejected(self):
         gate = FrameQualityGate(max_frame_age_ms=50.0)
         frame = QualifiedFrame(
-            camera_id="cam1", frame_id=1, frame_uuid="u1",
+            camera_id="cam1",
+            frame_id=1,
+            frame_uuid="u1",
             capture_timestamp=time.monotonic() - 0.5,
             wall_timestamp="2026-01-01T00:00:00Z",
             frame=np.zeros((10, 10, 3), dtype=np.uint8),
@@ -378,11 +356,6 @@ class TestFrameQualityControl:
         assert len(h1) > 0
 
 
-
-
-
-
-
 class TestFPSGovernor:
     def test_process_every_frame(self):
         gov = FPSGovernor(policy=FPSPolicy.PROCESS_EVERY_FRAME)
@@ -415,11 +388,6 @@ class TestFPSGovernor:
         assert gov.should_process("cam2") is True
 
         assert gov.should_process("cam1") is False
-
-
-
-
-
 
 
 class TestModelLifecycleSafety:
@@ -465,7 +433,9 @@ class TestModelLifecycleSafety:
     def test_swap_listener_notified(self):
         swapper = SafeModelSwapper()
         notifications = []
-        swapper.add_swap_listener(lambda new, old: notifications.append((new.version_id, old.version_id if old else None)))
+        swapper.add_swap_listener(
+            lambda new, old: notifications.append((new.version_id, old.version_id if old else None))
+        )
         v1 = ModelVersion("v1.0", "p", "M")
         v2 = ModelVersion("v2.0", "p", "M")
         swapper.set_active(v1)
@@ -481,11 +451,6 @@ class TestModelLifecycleSafety:
             swapper.set_active(v)
         reg = swapper.get_registry()
         assert len(reg) == 5
-
-
-
-
-
 
 
 class TestDataPoisoningProtection:
@@ -525,7 +490,6 @@ class TestDataPoisoningProtection:
             slight_noise /= np.linalg.norm(slight_noise)
             guard.validate_observation("person_B", 0.9, slight_noise, now + i * 0.1)
 
-
         outlier = -base
         ok, reason = guard.validate_observation("person_B", 0.9, outlier, now + 10.0)
         assert ok is False
@@ -549,11 +513,6 @@ class TestDataPoisoningProtection:
         stats = guard.get_stats()
         assert stats["rejected_low_confidence"] == 1
         assert stats["accepted"] >= 1
-
-
-
-
-
 
 
 class TestStructuredEventLogging:
@@ -595,11 +554,6 @@ class TestStructuredEventLogging:
         assert record["extra"]["previous_version"] == "v1.0"
 
 
-
-
-
-
-
 class TestGracefulShutdown:
     def test_shutdown_hooks_execute_in_order(self):
         mgr = GracefulShutdownManager()
@@ -635,11 +589,6 @@ class TestGracefulShutdown:
         assert mgr.is_shutting_down is False
         mgr.shutdown()
         assert mgr.is_shutting_down is True
-
-
-
-
-
 
 
 class TestCapacityEstimation:
@@ -688,11 +637,6 @@ class TestCapacityEstimation:
         est = CapacityEstimator()
         result = est.estimate(0.0, 0, 10.0, 10.0, 10.0, 0.0)
         assert result["estimated_sustainable_cameras"] == 0
-
-
-
-
-
 
 
 class TestProductionSurveillanceRuntime:
@@ -762,11 +706,6 @@ class TestProductionSurveillanceRuntime:
         assert results["stop_camera_ingestion"] == "SUCCESS"
 
 
-
-
-
-
-
 class TestFailureIsolation:
     def test_camera_a_fails_b_c_d_continue(self):
         rt = ProductionSurveillanceRuntime()
@@ -788,7 +727,6 @@ class TestFailureIsolation:
         rt.connect_camera("cam_w1")
         rt.fail_camera("cam_w1", error="crash")
 
-
         health = rt.get_system_health()
         assert health["cameras"]["total"] == 1
 
@@ -799,15 +737,9 @@ class TestFailureIsolation:
         rt.connect_camera("cam_cl")
         rt.fail_camera("cam_cl", error="disconnected")
 
-
         emb = np.random.randn(512).astype(np.float32)
         ok, _ = rt.poisoning_guard.validate_observation("test", 0.9, emb, time.monotonic())
         assert ok is True
-
-
-
-
-
 
 
 class TestCrashRecovery:
@@ -818,11 +750,9 @@ class TestCrashRecovery:
         rt.connect_camera("cam_rs")
         rt.stop_camera("cam_rs")
 
-
         cam = rt.camera_state_machine.get_camera("cam_rs")
         assert cam is not None
         assert cam.fps_target == 20
-
 
         rt.start_camera("cam_rs")
         cam = rt.camera_state_machine.get_camera("cam_rs")
@@ -860,15 +790,9 @@ class TestCrashRecovery:
         emb = np.random.randn(512).astype(np.float32)
         guard1.validate_observation("p", 0.9, emb, time.monotonic())
 
-
         guard2 = DataPoisoningGuard(min_confidence=0.5)
         ok, _ = guard2.validate_observation("p", 0.9, emb, time.monotonic())
         assert ok is True
-
-
-
-
-
 
 
 @pytest.mark.parametrize("num_cameras", [1, 2, 4, 8, 16, 32, 64])
@@ -888,22 +812,15 @@ def test_multicamera_simulation_scaling(num_cameras):
     cam_health = rt.get_camera_health()
     assert len(cam_health) == num_cameras
 
-
     for cid, info in cam_health.items():
         assert info["connection_state"] == "CONNECTED"
         assert info["health_score"] > 0.5
-
 
     for i in range(num_cameras):
         rt.stop_camera(f"sim_cam_{i:03d}")
 
     health = rt.get_system_health()
     assert health["cameras"]["connected"] == 0
-
-
-
-
-
 
 
 class TestArchitectureInvariants:
@@ -922,9 +839,12 @@ class TestArchitectureInvariants:
     def test_bounded_queues_enforced(self):
         gate = FrameQualityGate(max_frame_age_ms=100.0)
         stale = QualifiedFrame(
-            "cam1", 1, "u1",
+            "cam1",
+            1,
+            "u1",
             time.monotonic() - 1.0,
-            "", np.zeros((2, 2, 3), dtype=np.uint8),
+            "",
+            np.zeros((2, 2, 3), dtype=np.uint8),
         )
         ok, _ = gate.validate(stale)
         assert ok is False
@@ -933,7 +853,10 @@ class TestArchitectureInvariants:
         guard = DataPoisoningGuard(min_confidence=0.5)
         emb = np.random.randn(512).astype(np.float32)
         ok, _ = guard.validate_observation(
-            "person", 0.9, emb, time.monotonic(),
+            "person",
+            0.9,
+            emb,
+            time.monotonic(),
             verification_state="PREDICTED",
         )
 

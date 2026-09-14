@@ -528,7 +528,9 @@ class LiveRecognitionPipeline:
             try:
                 app_gallery = VectorStore(gallery_dir="models/appearance_gallery").load()
                 if app_gallery is not None:
-                    self.appearance_gallery_features, self.appearance_gallery_labels, self.appearance_metadata = app_gallery
+                    self.appearance_gallery_features, self.appearance_gallery_labels, self.appearance_metadata = (
+                        app_gallery
+                    )
             except (OSError, ValueError, RuntimeError, EOFError):
                 pass
 

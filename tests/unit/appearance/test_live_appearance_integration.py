@@ -27,10 +27,12 @@ def temp_gallery_dir():
 def mock_detector_and_tracker():
     detector = MagicMock()
 
-    detector.detect.return_value = np.array([
-        [10, 10, 60, 120, 0.95, 0],
-        [80, 10, 130, 120, 0.90, 0],
-    ])
+    detector.detect.return_value = np.array(
+        [
+            [10, 10, 60, 120, 0.95, 0],
+            [80, 10, 130, 120, 0.90, 0],
+        ]
+    )
 
     tracker = MagicMock()
     tracker.update.return_value = [
@@ -49,7 +51,6 @@ def test_live_person_crop_to_appearance_matching(temp_gallery_dir):
     app_store.save([v_alice.tolist()], ["Alice"], {"Alice": {"status": "ACTIVE", "enabled": True}})
     features, labels, metadata = app_store.load()
 
-
     extractor_mock = MagicMock()
     extractor_mock.extract.return_value = v_alice
 
@@ -66,13 +67,10 @@ def test_live_person_crop_to_appearance_matching(temp_gallery_dir):
         appearance_metadata=metadata,
     )
 
-
     frame = np.ones((200, 200, 3), dtype=np.uint8) * 100
-
 
     worker.detector.detect = MagicMock(return_value=np.array([[10, 10, 60, 120, 0.95, 0]]))
     worker.tracker.update = MagicMock(return_value=[{"track_id": 42, "bbox": [10, 10, 60, 120]}])
-
 
     worker._input_queue.put(frame)
 
@@ -83,7 +81,7 @@ def test_live_person_crop_to_appearance_matching(temp_gallery_dir):
     for obj in tracked:
         track_id = int(obj["track_id"])
         bbox = [int(b) for b in obj["bbox"]]
-        crop = frame_item[bbox[1]:bbox[3], bbox[0]:bbox[2]]
+        crop = frame_item[bbox[1] : bbox[3], bbox[0] : bbox[2]]
 
         app_emb = worker.appearance_extractor.extract(
             crop=crop,
@@ -131,10 +129,8 @@ def test_per_track_appearance_caching():
     extractor = AppearanceEmbeddingExtractor(update_interval=5)
     crop = np.random.randint(0, 256, (128, 64, 3), dtype=np.uint8)
 
-
     emb1 = extractor.extract(crop, track_id=10, frame_index=1, track_reliable=True)
     assert emb1 is not None
-
 
     with patch.object(extractor.backbone, "extract") as mock_backbone:
         emb2 = extractor.extract(crop, track_id=10, frame_index=2, track_reliable=True)
@@ -160,9 +156,7 @@ def test_appearance_failure_does_not_break_gait():
 
     _obj = {"track_id": 99, "bbox": [10, 10, 50, 100]}
 
-
     crop = frame[10:100, 10:50]
-
 
     app_identity = "UNKNOWN_PERSON"
     app_score = 0.0
@@ -214,7 +208,6 @@ def test_empty_appearance_gallery_operating_in_gait_only_mode():
     emb = worker.appearance_extractor.extract(crop=crop, track_id=1, frame_index=1)
     assert emb is not None
 
-
     matched_id, score = worker.appearance_matcher.match(
         query_feature=emb,
         gallery_features=worker.appearance_gallery_features,
@@ -265,7 +258,7 @@ def test_multiple_simultaneous_tracks(mock_detector_and_tracker):
     for obj in tracked:
         tid = int(obj["track_id"])
         bbox = obj["bbox"]
-        crop = frame[bbox[1]:bbox[3], bbox[0]:bbox[2]]
+        crop = frame[bbox[1] : bbox[3], bbox[0] : bbox[2]]
         emb = worker.appearance_extractor.extract(crop=crop, track_id=tid, frame_index=1)
         m_id, m_score = worker.appearance_matcher.match(
             query_feature=emb,
@@ -299,13 +292,11 @@ def test_multiple_simultaneous_tracks(mock_detector_and_tracker):
 def test_update_appearance_gallery_runtime_safe():
     worker = RecognitionWorker(camera_id="cam_update_test")
 
-
     initial_queue = worker._input_queue
     initial_stop_event = worker._stop_event
     initial_lock = worker._lock
     initial_frame_count = 123
     worker._frame_count = initial_frame_count
-
 
     new_features = np.ones((2, 512), dtype=np.float32)
     new_labels = ["Subject_X", "Subject_Y"]
@@ -314,21 +305,17 @@ def test_update_appearance_gallery_runtime_safe():
         "Subject_Y": {"status": "ACTIVE", "enabled": True},
     }
 
-
     worker.update_appearance_gallery(
         gallery_features=new_features,
         gallery_labels=new_labels,
         metadata=new_meta,
     )
 
-
     assert np.array_equal(worker.appearance_gallery_features, new_features)
     assert worker.appearance_gallery_labels == new_labels
     assert worker.appearance_metadata == new_meta
-
 
     assert worker._input_queue is initial_queue
     assert worker._stop_event is initial_stop_event
     assert worker._lock is initial_lock
     assert worker._frame_count == initial_frame_count
-

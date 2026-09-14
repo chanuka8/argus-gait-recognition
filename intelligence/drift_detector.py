@@ -55,7 +55,6 @@ class DriftDetector:
         low_conf_count = sum(1 for c in confidences if c < self.confidence_threshold)
         low_conf_ratio = float(low_conf_count / len(observations))
 
-
         gallery_data = self.gait_store.load()
         mean_sim = 0.0
 
@@ -71,7 +70,6 @@ class DriftDetector:
                         sims.append(float(np.max(dot_prods)))
                 if sims:
                     mean_sim = float(np.mean(sims))
-
 
         drift_detected = False
         severity = "NONE"

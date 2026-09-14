@@ -136,7 +136,9 @@ def run_benchmark():
             print(f"[*] Job ID: {job_id}")
             print(f"[*] Upload Completed in: {upload_latency_sec:.3f} s")
             print(f"[*] Upload Throughput: {upload_throughput_mb_s:.2f} MB/s")
-            print(f"[*] Peak Process RAM during upload: {peak_ram_mb:.2f} MB (Delta: {peak_ram_mb - ram_initial_mb:+.2f} MB)")
+            print(
+                f"[*] Peak Process RAM during upload: {peak_ram_mb:.2f} MB (Delta: {peak_ram_mb - ram_initial_mb:+.2f} MB)"
+            )
 
             print("\n" + "=" * 60)
             print("2. MONITORING ASYNC BIOMETRIC PROCESSING & COMMIT")
@@ -165,9 +167,14 @@ def run_benchmark():
                     if state_key != last_reported:
                         last_reported = state_key
                         st_val = status.value if hasattr(status, "value") else str(status)
-                        print(f"[*] Stage: {stage:<20} | Status: {st_val:<12} | Frames: {job.progress.frames_processed}/{job.progress.total_frames} | Embeddings: {job.progress.embeddings_generated} | RAM: {current_ram:.1f} MB")
+                        print(
+                            f"[*] Stage: {stage:<20} | Status: {st_val:<12} | Frames: {job.progress.frames_processed}/{job.progress.total_frames} | Embeddings: {job.progress.embeddings_generated} | RAM: {current_ram:.1f} MB"
+                        )
 
-                    if status in (ReferenceJobStatus.PROCESSING, ReferenceJobStatus.TRACKING) and t_processing_start is None:
+                    if (
+                        status in (ReferenceJobStatus.PROCESSING, ReferenceJobStatus.TRACKING)
+                        and t_processing_start is None
+                    ):
                         t_processing_start = time.perf_counter()
                         queue_latency = t_processing_start - t_queue_start
                         print(f"[*] Worker picked up job from queue: Queue Latency = {queue_latency * 1000:.2f} ms")
@@ -204,7 +211,9 @@ def run_benchmark():
             print("=" * 60)
             print(f"1. Upload Start -> Upload Complete:    {upload_latency_sec:.3f} s")
             print(f"2. Upload Throughput:                  {upload_throughput_mb_s:.2f} MB/s")
-            print(f"3. Peak RAM:                           {peak_ram_mb:.2f} MB (Delta: {peak_ram_mb - ram_initial_mb:+.2f} MB)")
+            print(
+                f"3. Peak RAM:                           {peak_ram_mb:.2f} MB (Delta: {peak_ram_mb - ram_initial_mb:+.2f} MB)"
+            )
             print(f"4. Ingestion Completion Latency:       {upload_latency_sec:.3f} s (HTTP 202 Accepted)")
             print(f"5. Queue Latency:                      {queue_latency_sec * 1000:.2f} ms")
             print(f"6. Biometric Processing Latency:       {biometric_latency_sec:.3f} s")
@@ -224,4 +233,3 @@ def run_benchmark():
 
 if __name__ == "__main__":
     run_benchmark()
-

@@ -53,11 +53,6 @@ class TestHardwareCapabilityDiscovery:
         assert "network" in d
 
 
-
-
-
-
-
 class TestSystemProfileEngine:
     def test_auto_profile_cpu_only(self):
         report = HardwareCapabilityReport(
@@ -97,11 +92,6 @@ class TestSystemProfileEngine:
         params = SystemProfileEngine.select_profile(report, SystemProfile.LOW_RESOURCE)
         assert params.profile_name == "LOW_RESOURCE"
         assert params.worker_count == 1
-
-
-
-
-
 
 
 class TestProductionCapacityEstimator:
@@ -149,11 +139,6 @@ class TestProductionCapacityEstimator:
         )
         assert res["limiting_factor"] == "vram"
         assert res["constraints_met"] is False
-
-
-
-
-
 
 
 class TestCameraAdmissionController:
@@ -250,14 +235,8 @@ class TestCameraAdmissionController:
         )
         assert res.admitted is False
 
-
         cam_a = rt.camera_state_machine.get_camera("cam_A")
         assert cam_a.connection_state == CameraState.CONNECTED
-
-
-
-
-
 
 
 class TestAdaptiveInferencePolicy:
@@ -285,11 +264,6 @@ class TestAdaptiveInferencePolicy:
         assert mode == InferenceQualityMode.AUTOMATIC_RECOVERY
 
 
-
-
-
-
-
 class TestGPUMemoryGuard:
     def test_vram_state_structure(self):
         guard = GPUMemoryGuard()
@@ -306,11 +280,6 @@ class TestGPUMemoryGuard:
         assert guard.oom_recoveries_count == 1
 
         assert isinstance(recovered, bool)
-
-
-
-
-
 
 
 class TestNetworkBandwidthEstimator:
@@ -335,11 +304,6 @@ class TestNetworkBandwidthEstimator:
         assert eval_res["is_network_capacity_sufficient"] is True
         assert eval_res["total_ingress_mbps"] == pytest.approx(24.0, abs=1.0)
         assert eval_res["headroom_pct"] > 90.0
-
-
-
-
-
 
 
 class TestModelProfileRegistry:
@@ -374,11 +338,6 @@ class TestModelProfileRegistry:
         assert reg.get_profile("CustomCNN") is not None
 
 
-
-
-
-
-
 class TestStorageSafetyAuditor:
     def test_audit_storage_healthy(self):
         auditor = StorageSafetyAuditor(storage_dir="data")
@@ -386,11 +345,6 @@ class TestStorageSafetyAuditor:
         assert res["free_space_gb"] > 0
         assert res["atomic_write_verified"] is True
         assert res["status"] in ("HEALTHY", "DEGRADED")
-
-
-
-
-
 
 
 class TestSecurityAuditor:
@@ -405,11 +359,6 @@ class TestSecurityAuditor:
         assert "PROHIBITED" in sec["face_recognition_prohibited"]
 
 
-
-
-
-
-
 class TestDeploymentReadinessManager:
     def test_get_deployment_summary(self):
         mgr = DeploymentReadinessManager()
@@ -420,11 +369,6 @@ class TestDeploymentReadinessManager:
         assert "storage_safety" in summary
         assert "security" in summary
         assert "models" in summary
-
-
-
-
-
 
 
 class TestWebcamRegressionAndProbing:
@@ -456,11 +400,6 @@ class TestWebcamRegressionAndProbing:
         assert cam.connection_state == CameraState.STOPPED
 
 
-
-
-
-
-
 @pytest.mark.parametrize("num_cameras", [1, 2, 4, 8, 16, 32, 64, 128])
 def test_simulated_stream_scaling_1_to_128(num_cameras):
     rt = ProductionSurveillanceRuntime()
@@ -474,7 +413,6 @@ def test_simulated_stream_scaling_1_to_128(num_cameras):
     health = rt.get_system_health()
     assert health["cameras"]["total"] == num_cameras
     assert health["cameras"]["connected"] == num_cameras
-
 
     for i in range(num_cameras):
         rt.stop_camera(f"scale_cam_{i:03d}")

@@ -34,7 +34,6 @@ class OnnxManager:
             info["providers"] = providers
             info["cuda_available"] = "CUDAExecutionProvider" in providers
 
-
             try:
                 import importlib.metadata
 
@@ -42,7 +41,6 @@ class OnnxManager:
                 info["is_gpu_package"] = "onnxruntime-gpu" in dist_names
             except (ImportError, KeyError, AttributeError, OSError):
                 info["is_gpu_package"] = info["cuda_available"]
-
 
             model_candidates = [
                 self.weights_dir / "silhouette_segmenter.onnx",

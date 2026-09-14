@@ -91,6 +91,7 @@ class TestMissingPersonVideoProcessor(unittest.TestCase):
         or active camera availability.
         """
         import sys
+
         # Confirm no live camera worker is initialized
         self.assertFalse(hasattr(self.processor, "camera_worker"))
         self.assertFalse(hasattr(self.processor, "recognition_worker"))

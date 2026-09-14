@@ -177,7 +177,6 @@ class EmbeddingDatabase:
         now = created_at if created_at is not None else time.time()
         obs_date = observation_date or time.strftime("%Y-%m-%d", time.gmtime(now))
 
-
         if gait_embeddings:
             for i, raw_vec in enumerate(gait_embeddings):
                 vec = np.asarray(raw_vec, dtype=np.float32).ravel()
@@ -208,7 +207,6 @@ class EmbeddingDatabase:
                 person.gait_embeddings.append(rec)
                 added_gait += 1
 
-
         if appearance_embeddings:
             for i, raw_vec in enumerate(appearance_embeddings):
                 vec = np.asarray(raw_vec, dtype=np.float32).ravel()
@@ -238,14 +236,11 @@ class EmbeddingDatabase:
                 person.appearance_embeddings.append(rec)
                 added_app += 1
 
-
         saved = self.save_person(person)
         if not saved:
             raise RuntimeError(f"Failed to write person database record for {person_id}")
 
-
         self._sync_vector_stores()
-
 
         verified, msg = self.verify_persistence(
             person_id=person_id,
@@ -255,7 +250,6 @@ class EmbeddingDatabase:
 
         if not verified:
             raise RuntimeError(f"Persistence verification failed for {person_id}: {msg}")
-
 
         firebase_results = []
         if self.firebase_store is not None:
@@ -495,7 +489,6 @@ class EmbeddingDatabase:
                 f"Appearance embedding count mismatch: expected {expected_app_count}, found {len(person.appearance_embeddings)}",
             )
 
-
         if person.gait_embeddings:
             g_data = self.gait_store.load()
             if g_data is None:
@@ -516,7 +509,6 @@ class EmbeddingDatabase:
 
     def _sync_vector_stores(self) -> None:
         all_persons = self.list_all_persons()
-
 
         gait_feats = []
         gait_lbls = []
@@ -543,7 +535,6 @@ class EmbeddingDatabase:
                 np.asarray(gait_lbls, dtype=str),
                 gait_meta,
             )
-
 
         app_feats = []
         app_lbls = []
@@ -633,10 +624,6 @@ class EmbeddingDatabase:
         if modality == "gait" and expected_dim != 256:
             return False
         return not (modality == "appearance" and expected_dim != 512)
-
-
-
-
 
     def _persist_to_firebase(
         self,

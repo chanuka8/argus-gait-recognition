@@ -19,7 +19,6 @@ def tmp_nn_env():
     cand_dir.mkdir(parents=True, exist_ok=True)
     registry_file = tmp_dir / "model_registry.json"
 
-
     init_bygait = ByGaitLight(embedding_dim=256, part_bins=4)
     active_bygait_path = tmp_dir / "active_bygait.pth"
     torch.save(init_bygait.state_dict(), str(active_bygait_path))
@@ -42,18 +41,10 @@ def test_bygait_light_fine_tuning_success(tmp_nn_env):
         batch_size=4,
     )
 
-
-    training_data = [
-        {"image": np.random.rand(64, 128).astype(np.float32), "label": "Person_A"}
-        for _ in range(4)
-    ] + [
-        {"image": np.random.rand(64, 128).astype(np.float32), "label": "Person_B"}
-        for _ in range(4)
+    training_data = [{"image": np.random.rand(64, 128).astype(np.float32), "label": "Person_A"} for _ in range(4)] + [
+        {"image": np.random.rand(64, 128).astype(np.float32), "label": "Person_B"} for _ in range(4)
     ]
-    historical_data = [
-        {"image": np.random.rand(64, 128).astype(np.float32), "label": "Person_A"}
-        for _ in range(2)
-    ]
+    historical_data = [{"image": np.random.rand(64, 128).astype(np.float32), "label": "Person_A"} for _ in range(2)]
 
     res = tuner.fine_tune_bygait_light(
         active_weights_path=tmp_nn_env["active_bygait_path"],
@@ -69,7 +60,6 @@ def test_bygait_light_fine_tuning_success(tmp_nn_env):
     assert len(res["checksum_sha256"]) == 64
     assert res["metrics"]["total_samples"] == 10
     assert res["metrics"]["num_classes"] == 2
-
 
     candidate_model = ByGaitLight(embedding_dim=256, part_bins=4)
     state = torch.load(res["artifact_path"], map_location="cpu", weights_only=True)
@@ -90,15 +80,10 @@ def test_osnet_fine_tuning_success(tmp_nn_env):
     )
 
     training_crops = [
-        {"image": (np.random.rand(256, 128, 3) * 255).astype(np.uint8), "label": "Person_X"}
-        for _ in range(4)
-    ] + [
-        {"image": (np.random.rand(256, 128, 3) * 255).astype(np.uint8), "label": "Person_Y"}
-        for _ in range(4)
-    ]
+        {"image": (np.random.rand(256, 128, 3) * 255).astype(np.uint8), "label": "Person_X"} for _ in range(4)
+    ] + [{"image": (np.random.rand(256, 128, 3) * 255).astype(np.uint8), "label": "Person_Y"} for _ in range(4)]
     historical_crops = [
-        {"image": (np.random.rand(256, 128, 3) * 255).astype(np.uint8), "label": "Person_X"}
-        for _ in range(2)
+        {"image": (np.random.rand(256, 128, 3) * 255).astype(np.uint8), "label": "Person_X"} for _ in range(2)
     ]
 
     res = tuner.fine_tune_osnet(
@@ -125,9 +110,7 @@ def test_active_model_weights_not_overwritten(tmp_nn_env):
         max_epochs=1,
     )
 
-    training_data = [
-        {"image": np.random.rand(64, 128).astype(np.float32), "label": "A"} for _ in range(4)
-    ] + [
+    training_data = [{"image": np.random.rand(64, 128).astype(np.float32), "label": "A"} for _ in range(4)] + [
         {"image": np.random.rand(64, 128).astype(np.float32), "label": "B"} for _ in range(4)
     ]
 
@@ -138,7 +121,6 @@ def test_active_model_weights_not_overwritten(tmp_nn_env):
         candidate_version="vSafeCand01",
     )
 
-
     current_bytes = active_path.read_bytes()
     current_sha = hashlib.sha256(current_bytes).hexdigest()
     assert current_sha == initial_sha
@@ -147,7 +129,6 @@ def test_active_model_weights_not_overwritten(tmp_nn_env):
 
 def test_candidate_validator_nn_gates():
     validator = CandidateValidator()
-
 
     valid_metrics = {
         "tar": 94.5,
@@ -164,7 +145,6 @@ def test_candidate_validator_nn_gates():
     )
     assert res_valid.passed is True
     assert res_valid.gate_evaluations.get("embedding_dim_gate") is True
-
 
     bad_dim_metrics = {
         "tar": 94.5,

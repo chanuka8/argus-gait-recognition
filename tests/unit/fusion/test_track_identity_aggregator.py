@@ -26,13 +26,11 @@ def test_track_identity_aggregator_confirmed_decision() -> None:
         high_risk_confusion_groups=[["Devhan", "Isuru", "person01"]],
     )
 
-
     r1 = aggregator.update(track_id=1, identity="demo_person_001", score=0.75)
     assert r1["decision"] == "UNKNOWN"
 
     r2 = aggregator.update(track_id=1, identity="demo_person_001", score=0.74)
     assert r2["decision"] == "UNKNOWN"
-
 
     r3 = aggregator.update(track_id=1, identity="demo_person_001", score=0.76)
     assert r3["decision"] == "CONFIRMED"
@@ -114,7 +112,6 @@ def test_track_identity_aggregator_track_lost_reset() -> None:
     assert summary["outcome"] == "CONFIRMED"
     assert summary["final_candidate"] == "demo_person_001"
     assert summary["total_frames"] == 4
-
 
     r_new = aggregator.update(track_id=4, identity="demo_person_001", score=0.78)
     assert r_new["window_size"] == 1

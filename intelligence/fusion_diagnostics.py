@@ -15,8 +15,8 @@ class FusionDiagnostics:
         a = np.asarray(app_scores, dtype=np.float64).ravel()
         y = np.asarray(labels, dtype=np.int32).ravel()
 
-        pos_mask = (y == 1)
-        neg_mask = (y == 0)
+        pos_mask = y == 1
+        neg_mask = y == 0
 
         return {
             "num_genuine_pairs": int(np.sum(pos_mask)),

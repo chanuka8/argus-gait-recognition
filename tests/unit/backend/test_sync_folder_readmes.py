@@ -511,7 +511,6 @@ class TestDocsCheckImmutabilityAndSafety(unittest.TestCase):
                         rel = str(p.relative_to(root_dir))
                         snapshot[rel] = hashlib.sha256(p.read_bytes()).hexdigest()
 
-
             root_readme = root_dir / "README.md"
             if root_readme.is_file():
                 snapshot["README.md"] = hashlib.sha256(root_readme.read_bytes()).hexdigest()
@@ -582,7 +581,6 @@ class TestSyncIdempotency(unittest.TestCase):
     def test_repeated_update_produces_zero_further_diff(self):
         root_dir = Path(__file__).resolve().parents[3]
 
-
         res1 = subprocess.run(
             [sys.executable, "scripts/sync_folder_readmes.py", "--update"],
             capture_output=True,
@@ -591,7 +589,6 @@ class TestSyncIdempotency(unittest.TestCase):
             check=False,
         )
         self.assertEqual(res1.returncode, 0)
-
 
         res2 = subprocess.run(
             [sys.executable, "scripts/sync_folder_readmes.py", "--update"],
@@ -602,7 +599,6 @@ class TestSyncIdempotency(unittest.TestCase):
         )
         self.assertEqual(res2.returncode, 0)
         self.assertIn("0 updated", res2.stdout)
-
 
         res3 = subprocess.run(
             [sys.executable, "scripts/sync_folder_readmes.py", "--check"],
@@ -617,5 +613,3 @@ class TestSyncIdempotency(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
-

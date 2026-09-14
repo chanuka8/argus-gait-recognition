@@ -63,7 +63,6 @@ class BackgroundLearningWorker:
         self._lock = threading.RLock()
         self._current_job: LearningJobRecord | None = None
 
-
         self.dataset_builder = dataset_builder or TrainingDatasetBuilder(
             collector=self.collector,
             db=self.db,
@@ -75,17 +74,14 @@ class BackgroundLearningWorker:
         self.audit_trail = audit_trail or ContinualLearningAuditTrail()
 
         from intelligence.longitudinal_accuracy_evaluator import LongitudinalAccuracyEvaluator
-        self.longitudinal_evaluator = longitudinal_evaluator or LongitudinalAccuracyEvaluator(
-            evaluator=self.evaluator
-        )
 
+        self.longitudinal_evaluator = longitudinal_evaluator or LongitudinalAccuracyEvaluator(evaluator=self.evaluator)
 
         self.nn_fine_tuner = NNFineTuner(
             candidate_dir=str(self.candidate_artifacts_dir),
             timeout_seconds=self.timeout_seconds,
             historical_replay_ratio=self.historical_replay_ratio,
         )
-
 
         self._on_promotion_callback = None
 
@@ -148,11 +144,8 @@ class BackgroundLearningWorker:
         )
 
         try:
-
             if job.model_type in ("bygait_light", "osnet_reid"):
                 return self._execute_nn_job(job, start_time)
-
-
 
             gait_samples, app_samples, sample_labels, confusion_pairs = self._prepare_training_data(job)
 
@@ -160,7 +153,6 @@ class BackgroundLearningWorker:
                 raise ValueError(
                     f"Insufficient prepared samples ({len(gait_samples)} samples) to train candidate model"
                 )
-
 
             candidate_version = f"v{int(time.time())}-{job.training_date.replace('-', '')}"
             job.candidate_version = candidate_version
@@ -173,7 +165,6 @@ class BackgroundLearningWorker:
                 confusion_pairs=confusion_pairs,
                 artifact_path=artifact_file,
             )
-
 
             self._logger.info(
                 f"[CANDIDATE_CREATED] Candidate version '{candidate_version}' registered in ModelRegistry."
@@ -192,7 +183,6 @@ class BackgroundLearningWorker:
                 },
             )
 
-
             job.status = LearningJobStatus.VALIDATING
             self.scheduler.update_job(job)
             self._logger.info(f"[CANDIDATE_VALIDATING] Validating candidate '{candidate_version}'...")
@@ -210,9 +200,7 @@ class BackgroundLearningWorker:
 
             job.validation_metrics = candidate_metrics
 
-
             if val_result.passed:
-
                 self.registry.record_validation_result(
                     model_version=candidate_version,
                     model_type=job.model_type,
@@ -280,7 +268,6 @@ class BackgroundLearningWorker:
         new_app: list[np.ndarray] = []
         new_labels: list[str] = []
 
-
         for obs in self.collector.get_eligible_by_date(job.training_date):
             ident = obs.verified_identity or obs.predicted_identity
             vec = np.asarray(obs.vector, dtype=np.float32)
@@ -290,7 +277,6 @@ class BackgroundLearningWorker:
             elif obs.modality == "appearance" and vec.size == 512:
                 new_app.append(vec)
 
-
         for emb in self.db.get_embeddings_by_date(job.training_date):
             vec = np.asarray(emb.vector, dtype=np.float32)
             if emb.modality == "gait" and vec.size == 256:
@@ -298,7 +284,6 @@ class BackgroundLearningWorker:
                 new_labels.append(emb.person_id)
             elif emb.modality == "appearance" and vec.size == 512:
                 new_app.append(vec)
-
 
         hist_gait: list[np.ndarray] = []
         hist_labels: list[str] = []
@@ -315,12 +300,10 @@ class BackgroundLearningWorker:
                     hist_gait.append(vec)
                     hist_labels.append(p.person_id)
 
-
         all_gait = new_gait + hist_gait
         all_labels = new_labels + hist_labels
 
         if not all_gait:
-
             np.random.seed(42)
             genuine_gait = np.random.uniform(0.70, 0.95, size=20)
             genuine_app = np.random.uniform(0.65, 0.90, size=20)
@@ -331,7 +314,6 @@ class BackgroundLearningWorker:
             a_scores = np.concatenate([genuine_app, impostor_app])
             labels = np.array([1] * 20 + [0] * 20, dtype=np.int32)
             return g_scores, a_scores, labels, {"confusion_pair_far": 0.0}
-
 
         g_scores_list = []
         a_scores_list = []
@@ -348,7 +330,6 @@ class BackgroundLearningWorker:
                 pair_labels.append(is_same)
 
         if not pair_labels or sum(pair_labels) == 0:
-
             g_scores_list.extend([0.88, 0.92, 0.85, 0.20, 0.15, 0.25])
             a_scores_list.extend([0.82, 0.90, 0.80, 0.18, 0.12, 0.22])
             pair_labels.extend([1, 1, 1, 0, 0, 0])
@@ -376,7 +357,6 @@ class BackgroundLearningWorker:
             loss_type="ranking_auc",
         )
 
-
         fused_scores = []
         for g, a in zip(gait_samples, app_samples, strict=False):
             sc = fusion.fuse(float(g), float(a))
@@ -397,7 +377,6 @@ class BackgroundLearningWorker:
         far = round(float((false_accepts / neg_count) * 100.0), 2)
         eer = round(float((far + (100.0 - tar)) / 2.0), 2)
 
-
         tar = max(tar, 75.0)
         far = min(far, 1.5)
         eer = min(eer, 15.0)
@@ -414,7 +393,6 @@ class BackgroundLearningWorker:
             "w_inter": round(fusion.w_inter, 4),
         }
 
-
         candidate_data = {
             "w_gait": fusion.w_gait,
             "w_app": fusion.w_app,
@@ -427,16 +405,11 @@ class BackgroundLearningWorker:
 
         return metrics, confusion_pairs
 
-
-
-
-
     def set_on_promotion_callback(self, callback) -> None:
         self._on_promotion_callback = callback
 
     def _execute_nn_job(self, job: LearningJobRecord, start_time: float) -> LearningJobRecord:
         try:
-
             train_samples, _val_samples, test_samples, hist_replay, hist_test, future_holdout, manifest = (
                 self.dataset_builder.build_dataset_for_date(
                     training_date=job.training_date,
@@ -445,7 +418,6 @@ class BackgroundLearningWorker:
                 )
             )
 
-
             if self.evidence_manager is not None:
                 evidence_ids = [
                     rec.evidence_id
@@ -453,7 +425,6 @@ class BackgroundLearningWorker:
                     if rec.observation_id in {s.sample_id for s in train_samples + test_samples}
                 ]
                 self.evidence_manager.lock_manifest_evidence(evidence_ids, manifest.dataset_id)
-
 
             training_data = []
             for s in train_samples:
@@ -475,12 +446,10 @@ class BackgroundLearningWorker:
                         f"{len(historical_data)} historical (minimum 4 total). Synthetic surrogates prohibited by policy."
                     )
 
-
             active_model = self.registry.get_active_model(job.model_type)
             active_weights_path = active_model.artifact_path if active_model else ""
             baseline_version = active_model.model_version if active_model else "v1.0.0"
             baseline_sha = active_model.checksum_sha256 if active_model else ""
-
 
             candidate_version = f"v{int(time.time())}-{job.model_type[:4]}-{job.training_date.replace('-', '')}"
             job.candidate_version = candidate_version
@@ -509,7 +478,6 @@ class BackgroundLearningWorker:
             candidate_sha = result.get("checksum_sha256", "")
             candidate_train_metrics = result.get("metrics", {})
 
-
             base_eval_metrics = self.evaluator.evaluate_test_samples(
                 test_samples=test_samples if test_samples else train_samples,
                 historical_test_samples=hist_test if hist_test else hist_replay,
@@ -519,7 +487,6 @@ class BackgroundLearningWorker:
                 historical_test_samples=hist_test if hist_test else hist_replay,
             )
 
-
             comparison = self.evaluator.compare_models(
                 baseline_metrics=base_eval_metrics,
                 candidate_metrics=cand_eval_metrics,
@@ -528,7 +495,6 @@ class BackgroundLearningWorker:
                 dataset_id=manifest.dataset_id,
                 model_type=job.model_type,
             )
-
 
             longitudinal_record = self.longitudinal_evaluator.evaluate_longitudinal_cycle(
                 baseline_version=baseline_version,
@@ -541,9 +507,7 @@ class BackgroundLearningWorker:
                 future_holdout_samples=future_holdout,
             )
 
-
             gate_decision = self.accuracy_gate.evaluate_promotion(comparison)
-
 
             self.audit_trail.create_and_record(
                 event_type="EVALUATION_COMPLETED",
@@ -572,7 +536,6 @@ class BackgroundLearningWorker:
                 verdict=comparison.verdict,
             )
 
-
             self.registry.register_candidate(
                 model_version=candidate_version,
                 model_type=job.model_type,
@@ -600,7 +563,6 @@ class BackgroundLearningWorker:
                     "duration": result.get("duration", 0),
                 },
             )
-
 
             validator_format_metrics = {
                 "tar": cand_eval_metrics.tar,
@@ -679,12 +641,9 @@ class BackgroundLearningWorker:
 
         return job
 
-    def _prepare_nn_training_data(
-        self, job: LearningJobRecord
-    ) -> tuple[list[dict], list[dict]]:
+    def _prepare_nn_training_data(self, job: LearningJobRecord) -> tuple[list[dict], list[dict]]:
         training_data = []
         historical_data = []
-
 
         for obs in self.collector.get_eligible_by_date(job.training_date):
             ident = obs.verified_identity or obs.predicted_identity
@@ -710,7 +669,6 @@ class BackgroundLearningWorker:
                             break
                 if img is not None:
                     training_data.append({"image": img, "label": ident})
-
 
         for p in self.db.list_all_persons():
             if p.status != "ACTIVE":

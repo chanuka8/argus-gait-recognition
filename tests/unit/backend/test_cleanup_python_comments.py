@@ -29,7 +29,7 @@ class TestCleanupPythonCommentsUnit(unittest.TestCase):
             self.assertIn("x = 1", transformed)
 
     def test_02_class_docstring_removal(self):
-        source = "class Target:\n    \"\"\"Class documentation.\"\"\"\n    val = 10\n"
+        source = 'class Target:\n    """Class documentation."""\n    val = 10\n'
         with tempfile.TemporaryDirectory() as td:
             p = Path(td) / "mod.py"
             p.write_bytes(source.encode("utf-8"))
@@ -42,7 +42,7 @@ class TestCleanupPythonCommentsUnit(unittest.TestCase):
             self.assertIn("val = 10", transformed)
 
     def test_03_function_docstring_removal(self):
-        source = "def compute():\n    \"\"\"Function docstring.\"\"\"\n    return 42\n"
+        source = 'def compute():\n    """Function docstring."""\n    return 42\n'
         with tempfile.TemporaryDirectory() as td:
             p = Path(td) / "mod.py"
             p.write_bytes(source.encode("utf-8"))
@@ -55,7 +55,7 @@ class TestCleanupPythonCommentsUnit(unittest.TestCase):
             self.assertIn("return 42", transformed)
 
     def test_04_async_function_docstring_removal(self):
-        source = "async def fetch():\n    \"\"\"Async function docstring.\"\"\"\n    return await get()\n"
+        source = 'async def fetch():\n    """Async function docstring."""\n    return await get()\n'
         with tempfile.TemporaryDirectory() as td:
             p = Path(td) / "mod.py"
             p.write_bytes(source.encode("utf-8"))
@@ -199,7 +199,7 @@ class TestCleanupPythonCommentsUnit(unittest.TestCase):
             self.assertIn("# -*- coding: utf-8 -*-", transformed)
 
     def test_15_empty_function_and_class_pass_insertion(self):
-        source = "class EmptyClass:\n    \"\"\"Doc only.\"\"\"\n\ndef empty_func():\n    \"\"\"Doc only.\"\"\"\n"
+        source = 'class EmptyClass:\n    """Doc only."""\n\ndef empty_func():\n    """Doc only."""\n'
         with tempfile.TemporaryDirectory() as td:
             p = Path(td) / "mod.py"
             p.write_bytes(source.encode("utf-8"))
@@ -238,7 +238,7 @@ class TestCleanupPythonCommentsUnit(unittest.TestCase):
             self.assertIn("\n", transformed)
 
     def test_18_idempotency(self):
-        source = "def foo():\n    \"\"\"Doc.\"\"\"\n    # comment\n    return 1\n"
+        source = 'def foo():\n    """Doc."""\n    # comment\n    return 1\n'
         with tempfile.TemporaryDirectory() as td:
             p = Path(td) / "mod.py"
             p.write_bytes(source.encode("utf-8"))
@@ -252,7 +252,7 @@ class TestCleanupPythonCommentsUnit(unittest.TestCase):
             self.assertEqual(t1, t2)
 
     def test_19_syntax_validation_after_transformation(self):
-        source = "def valid_func(a, b):\n    \"\"\"Docstring.\"\"\"\n    # comment\n    return a + b\n"
+        source = 'def valid_func(a, b):\n    """Docstring."""\n    # comment\n    return a + b\n'
         with tempfile.TemporaryDirectory() as td:
             p = Path(td) / "mod.py"
             p.write_bytes(source.encode("utf-8"))

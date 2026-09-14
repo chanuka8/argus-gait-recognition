@@ -27,7 +27,6 @@ class CameraState(enum.Enum):
     STOPPING = "STOPPING"
 
 
-
 _VALID_TRANSITIONS: dict[CameraState, set[CameraState]] = {
     CameraState.STOPPED: {CameraState.STARTING},
     CameraState.STARTING: {CameraState.CONNECTING, CameraState.STOPPING, CameraState.FAILED},
@@ -46,17 +45,14 @@ class CameraResource:
     source_type: str = "webcam"
     source_uri: str = ""
 
-
     connection_state: CameraState = CameraState.STOPPED
     desired_state: CameraState = CameraState.STOPPED
     actual_state: CameraState = CameraState.STOPPED
-
 
     fps_target: int = 15
     resolution: tuple[int, int] = (640, 480)
     codec: str = "h264"
     priority: int = 5
-
 
     last_frame_timestamp: float = 0.0
     last_success_timestamp: float = 0.0
@@ -64,10 +60,8 @@ class CameraResource:
     last_error_timestamp: float = 0.0
     created_at: float = field(default_factory=time.monotonic)
 
-
     reconnect_attempts: int = 0
     total_reconnect_count: int = 0
-
 
     queue_depth: int = 0
     frames_received: int = 0
@@ -126,9 +120,7 @@ class CameraStateMachine:
                 priority=priority,
             )
             self._cameras[camera_id] = cam
-            self._logger.info(
-                f"Camera '{camera_id}' registered (source={source_type}, state=STOPPED)"
-            )
+            self._logger.info(f"Camera '{camera_id}' registered (source={source_type}, state=STOPPED)")
             return cam
 
     def transition(self, camera_id: str, new_state: CameraState, error: str = "") -> bool:
@@ -138,9 +130,7 @@ class CameraStateMachine:
                 return False
             old_state = cam.connection_state
             if new_state not in _VALID_TRANSITIONS.get(old_state, set()):
-                self._logger.warning(
-                    f"Invalid transition for '{camera_id}': {old_state.value} → {new_state.value}"
-                )
+                self._logger.warning(f"Invalid transition for '{camera_id}': {old_state.value} → {new_state.value}")
                 return False
             cam.connection_state = new_state
             cam.actual_state = new_state
@@ -155,8 +145,7 @@ class CameraStateMachine:
                 cam.total_reconnect_count += 1
             cam.compute_health_score()
             self._logger.info(
-                f"Camera '{camera_id}': {old_state.value} → {new_state.value}"
-                + (f" (error: {error})" if error else "")
+                f"Camera '{camera_id}': {old_state.value} → {new_state.value}" + (f" (error: {error})" if error else "")
             )
             for listener in self._state_listeners:
                 try:
@@ -186,11 +175,6 @@ class CameraStateMachine:
             self._state_listeners.append(listener)
 
 
-
-
-
-
-
 @dataclass
 class ReconnectConfig:
     min_retry_interval: float = 1.0
@@ -209,9 +193,7 @@ class ReconnectEngine:
         self._logger = get_logger("reconnect_engine")
         self._stopped = threading.Event()
 
-    def schedule_reconnect(
-        self, camera_id: str, callback, *args, **kwargs
-    ) -> bool:
+    def schedule_reconnect(self, camera_id: str, callback, *args, **kwargs) -> bool:
         with self._lock:
             if self._stopped.is_set():
                 return False
@@ -219,10 +201,7 @@ class ReconnectEngine:
             self._cancel_timer_unsafe(camera_id)
 
             attempt = self._attempts.get(camera_id, 0)
-            if (
-                self.config.max_retry_attempts > 0
-                and attempt >= self.config.max_retry_attempts
-            ):
+            if self.config.max_retry_attempts > 0 and attempt >= self.config.max_retry_attempts:
                 self._logger.warning(
                     f"Camera '{camera_id}': max reconnect attempts ({self.config.max_retry_attempts}) reached"
                 )
@@ -231,10 +210,7 @@ class ReconnectEngine:
             delay = self._compute_delay(attempt)
             self._attempts[camera_id] = attempt + 1
 
-            self._logger.info(
-                f"Camera '{camera_id}': scheduling reconnect attempt {attempt + 1} "
-                f"in {delay:.1f}s"
-            )
+            self._logger.info(f"Camera '{camera_id}': scheduling reconnect attempt {attempt + 1} in {delay:.1f}s")
 
             timer = threading.Timer(delay, self._execute_reconnect, args=(camera_id, callback, args, kwargs))
             timer.daemon = True
@@ -271,9 +247,7 @@ class ReconnectEngine:
             timer.cancel()
 
     def _compute_delay(self, attempt: int) -> float:
-        base = self.config.min_retry_interval * (
-            self.config.backoff_multiplier ** attempt
-        )
+        base = self.config.min_retry_interval * (self.config.backoff_multiplier**attempt)
         clamped = min(base, self.config.max_retry_interval)
         jitter = random.uniform(
             -self.config.jitter_range * clamped,
@@ -286,11 +260,6 @@ class ReconnectEngine:
             callback(*args, **kwargs)
         except (RuntimeError, ValueError, TypeError, KeyError, OSError) as exc:
             self._logger.warning(f"Reconnect callback error for '{camera_id}': {exc}")
-
-
-
-
-
 
 
 class InferenceWorkerState(enum.Enum):
@@ -446,11 +415,6 @@ class ResilientWorkerPool:
                         self._spawn_worker(wid)
 
 
-
-
-
-
-
 class ResourcePressure(enum.Enum):
     HEALTHY = "HEALTHY"
     ELEVATED = "ELEVATED"
@@ -512,6 +476,7 @@ class AdaptiveResourceManager:
         snap = ResourceSnapshot()
         try:
             import psutil
+
             snap.cpu_percent = psutil.cpu_percent(interval=None)
             mem = psutil.virtual_memory()
             snap.ram_percent = mem.percent
@@ -521,14 +486,11 @@ class AdaptiveResourceManager:
 
         try:
             import torch
+
             if torch.cuda.is_available():
                 snap.vram_used_mb = torch.cuda.memory_allocated() / (1024 * 1024)
                 snap.vram_total_mb = torch.cuda.get_device_properties(0).total_memory / (1024 * 1024)
-                snap.vram_percent = (
-                    (snap.vram_used_mb / snap.vram_total_mb * 100.0)
-                    if snap.vram_total_mb > 0
-                    else 0.0
-                )
+                snap.vram_percent = (snap.vram_used_mb / snap.vram_total_mb * 100.0) if snap.vram_total_mb > 0 else 0.0
         except (ImportError, RuntimeError):
             pass
 
@@ -543,7 +505,6 @@ class AdaptiveResourceManager:
 
         with self._lock:
             old_pressure = self._pressure
-
 
             if (
                 snap.cpu_percent >= th.max_cpu_percent
@@ -561,16 +522,12 @@ class AdaptiveResourceManager:
             ):
                 self._pressure = ResourcePressure.SATURATED
                 target_factor = 0.50
-            elif (
-                snap.cpu_percent >= th.elevated_cpu_percent
-                or snap.vram_percent >= th.elevated_gpu_percent
-            ):
+            elif snap.cpu_percent >= th.elevated_cpu_percent or snap.vram_percent >= th.elevated_gpu_percent:
                 self._pressure = ResourcePressure.ELEVATED
                 target_factor = 0.75
             else:
                 self._pressure = ResourcePressure.HEALTHY
                 target_factor = 1.0
-
 
             if self._pressure == ResourcePressure.CRITICAL:
                 self._processing_rate_factor = target_factor
@@ -609,11 +566,6 @@ class AdaptiveResourceManager:
             ]
 
 
-
-
-
-
-
 @dataclass
 class QualifiedFrame:
     camera_id: str
@@ -640,7 +592,6 @@ class FrameQualityGate:
         self._last_timestamps: dict[str, float] = {}
         self._lock = threading.Lock()
 
-
         self.rejected_stale: int = 0
         self.rejected_duplicate: int = 0
         self.rejected_out_of_order: int = 0
@@ -650,19 +601,16 @@ class FrameQualityGate:
         now = time.monotonic()
         age_ms = (now - frame.capture_timestamp) * 1000.0
 
-
         if age_ms > self.max_frame_age_ms:
             with self._lock:
                 self.rejected_stale += 1
             return False, f"stale ({age_ms:.0f}ms > {self.max_frame_age_ms:.0f}ms)"
 
         with self._lock:
-
             last_ts = self._last_timestamps.get(frame.camera_id, 0.0)
             if frame.capture_timestamp < last_ts:
                 self.rejected_out_of_order += 1
                 return False, "out_of_order"
-
 
             if self.enable_duplicate_detection and frame.frame_hash:
                 prev_hash = self._last_hashes.get(frame.camera_id)
@@ -690,11 +638,6 @@ class FrameQualityGate:
                 "rejected_duplicate": self.rejected_duplicate,
                 "rejected_out_of_order": self.rejected_out_of_order,
             }
-
-
-
-
-
 
 
 class FPSPolicy(enum.Enum):
@@ -730,9 +673,7 @@ class FPSGovernor:
             if self.policy == FPSPolicy.TARGET_FPS:
                 target = self.target_inference_fps
             elif self.policy == FPSPolicy.ADAPTIVE_FPS:
-                base = self._current_adaptive_fps.get(
-                    camera_id, self.target_inference_fps
-                )
+                base = self._current_adaptive_fps.get(camera_id, self.target_inference_fps)
                 target = max(
                     self.adaptive_min_fps,
                     min(self.adaptive_max_fps, base * resource_factor),
@@ -755,15 +696,8 @@ class FPSGovernor:
     def get_effective_fps(self, camera_id: str) -> float:
         with self._lock:
             if self.policy == FPSPolicy.ADAPTIVE_FPS:
-                return self._current_adaptive_fps.get(
-                    camera_id, self.target_inference_fps
-                )
+                return self._current_adaptive_fps.get(camera_id, self.target_inference_fps)
             return self.target_inference_fps
-
-
-
-
-
 
 
 class ModelVersion:
@@ -838,9 +772,7 @@ class SafeModelSwapper:
             self._active_version = self._previous_version
             self._previous_version = rolled
             self._version_counter += 1
-            self._logger.info(
-                f"Model rolled back to: {self._active_version.version_id}"
-            )
+            self._logger.info(f"Model rolled back to: {self._active_version.version_id}")
             return True
 
     def get_registry(self) -> dict[str, dict]:
@@ -860,11 +792,6 @@ class SafeModelSwapper:
             self._swap_listeners.append(listener)
 
 
-
-
-
-
-
 class DataPoisoningGuard:
     def __init__(
         self,
@@ -878,7 +805,6 @@ class DataPoisoningGuard:
         self._recent_embeddings: dict[str, list[tuple[float, np.ndarray]]] = {}
         self._lock = threading.Lock()
         self._logger = get_logger("poisoning_guard")
-
 
         self.rejected_low_confidence: int = 0
         self.rejected_duplicate: int = 0
@@ -895,9 +821,7 @@ class DataPoisoningGuard:
         verification_state: str = "PREDICTED",
     ) -> tuple[bool, str]:
         if verification_state == "PREDICTED":
-
             pass
-
 
         if confidence < self.min_confidence:
             self.rejected_low_confidence += 1
@@ -906,13 +830,11 @@ class DataPoisoningGuard:
         with self._lock:
             history = self._recent_embeddings.get(identity, [])
 
-
             if history:
                 last_ts = history[-1][0]
                 if abs(timestamp - last_ts) < self.min_temporal_gap:
                     self.rejected_temporal += 1
                     return False, "temporal_too_close"
-
 
             if len(history) >= 3 and embedding is not None:
                 recent_vecs = np.array([h[1] for h in history[-5:]])
@@ -922,14 +844,12 @@ class DataPoisoningGuard:
                     self.rejected_outlier += 1
                     return False, f"outlier (dist={dist:.3f} > {self.max_embedding_distance})"
 
-
             if history and embedding is not None:
                 last_emb = history[-1][1]
                 cos_sim = float(np.dot(embedding, last_emb))
                 if cos_sim > 0.99999:
                     self.rejected_duplicate += 1
                     return False, "duplicate_embedding"
-
 
             if embedding is not None:
                 history.append((timestamp, embedding.copy()))
@@ -951,22 +871,31 @@ class DataPoisoningGuard:
         }
 
 
-
-
-
-
-
 class StructuredEventLogger:
-    EVENT_TYPES = frozenset({
-        "camera_connected", "camera_disconnected", "camera_reconnect",
-        "frame_dropped", "queue_overflow",
-        "worker_started", "worker_failed", "worker_restarted",
-        "model_loaded", "model_promoted", "model_rollback",
-        "observation_saved", "training_started", "training_completed",
-        "training_rejected", "system_degraded",
-        "shutdown_started", "shutdown_completed",
-        "resource_pressure_changed", "capacity_warning",
-    })
+    EVENT_TYPES = frozenset(
+        {
+            "camera_connected",
+            "camera_disconnected",
+            "camera_reconnect",
+            "frame_dropped",
+            "queue_overflow",
+            "worker_started",
+            "worker_failed",
+            "worker_restarted",
+            "model_loaded",
+            "model_promoted",
+            "model_rollback",
+            "observation_saved",
+            "training_started",
+            "training_completed",
+            "training_rejected",
+            "system_degraded",
+            "shutdown_started",
+            "shutdown_completed",
+            "resource_pressure_changed",
+            "capacity_warning",
+        }
+    )
 
     def __init__(self) -> None:
         self._logger = get_logger("structured_events")
@@ -1014,11 +943,6 @@ class StructuredEventLogger:
     def event_count(self) -> int:
         with self._lock:
             return self._event_count
-
-
-
-
-
 
 
 class GracefulShutdownManager:
@@ -1071,13 +995,7 @@ class GracefulShutdownManager:
             signal.signal(signal.SIGINT, _handler)
             signal.signal(signal.SIGTERM, _handler)
         except (OSError, ValueError):
-
             pass
-
-
-
-
-
 
 
 class CapacityEstimator:
@@ -1111,16 +1029,13 @@ class CapacityEstimator:
                 "constraints_met": False,
             }
 
-
         raw_estimate = measured_throughput_fps / self.target_fps
-
 
         constraints_met = True
         limiting_factor = "none"
 
         if cpu_percent >= self.max_cpu:
-
-            raw_estimate *= (self.max_cpu / max(1.0, cpu_percent))
+            raw_estimate *= self.max_cpu / max(1.0, cpu_percent)
             constraints_met = False
             limiting_factor = "cpu"
 
@@ -1136,7 +1051,7 @@ class CapacityEstimator:
             limiting_factor = "latency"
 
         if drop_rate >= self.max_drop_rate:
-            raw_estimate *= (1.0 - drop_rate)
+            raw_estimate *= 1.0 - drop_rate
             constraints_met = False
             limiting_factor = "drop_rate"
 
@@ -1157,15 +1072,9 @@ class CapacityEstimator:
         }
 
 
-
-
-
-
-
 class ProductionSurveillanceRuntime:
     def __init__(self, config: dict | None = None) -> None:
         cfg = config or {}
-
 
         self.camera_state_machine = CameraStateMachine()
         self.reconnect_engine = ReconnectEngine(
@@ -1213,7 +1122,6 @@ class ProductionSurveillanceRuntime:
 
         self._start_time = time.monotonic()
         self._logger = get_logger("production_runtime")
-
 
         self.shutdown_manager.register_hook(10, "stop_camera_ingestion", self._shutdown_cameras)
         self.shutdown_manager.register_hook(20, "stop_reconnect_engine", self.reconnect_engine.cancel_all)
@@ -1269,9 +1177,7 @@ class ProductionSurveillanceRuntime:
             return
         state = cam.connection_state
         if state in (CameraState.CONNECTING, CameraState.CONNECTED, CameraState.DEGRADED):
-            self.camera_state_machine.transition(
-                camera_id, CameraState.RECONNECTING, error=error
-            )
+            self.camera_state_machine.transition(camera_id, CameraState.RECONNECTING, error=error)
             self.event_logger.emit(
                 "camera_disconnected",
                 f"Camera '{camera_id}' disconnected: {error}",
@@ -1285,16 +1191,13 @@ class ProductionSurveillanceRuntime:
                 camera_id,
             )
         elif state == CameraState.RECONNECTING:
-
             self.reconnect_engine.schedule_reconnect(
                 camera_id,
                 self._attempt_reconnect,
                 camera_id,
             )
         elif state == CameraState.STARTING:
-            self.camera_state_machine.transition(
-                camera_id, CameraState.FAILED, error=error
-            )
+            self.camera_state_machine.transition(camera_id, CameraState.FAILED, error=error)
 
     def stop_camera(self, camera_id: str) -> bool:
         cam = self.camera_state_machine.get_camera(camera_id)
@@ -1318,18 +1221,9 @@ class ProductionSurveillanceRuntime:
         snap = self.resource_manager.take_snapshot()
         self.resource_manager.evaluate(snap)
 
-        connected = sum(
-            1 for c in cameras.values()
-            if c.connection_state == CameraState.CONNECTED
-        )
-        degraded = sum(
-            1 for c in cameras.values()
-            if c.connection_state == CameraState.DEGRADED
-        )
-        failed = sum(
-            1 for c in cameras.values()
-            if c.connection_state == CameraState.FAILED
-        )
+        connected = sum(1 for c in cameras.values() if c.connection_state == CameraState.CONNECTED)
+        degraded = sum(1 for c in cameras.values() if c.connection_state == CameraState.DEGRADED)
+        failed = sum(1 for c in cameras.values() if c.connection_state == CameraState.FAILED)
 
         return {
             "uptime_seconds": round(time.monotonic() - self._start_time, 1),
@@ -1352,9 +1246,7 @@ class ProductionSurveillanceRuntime:
             "poisoning_guard": self.poisoning_guard.get_stats(),
             "model_swapper": {
                 "active_version": (
-                    self.model_swapper.get_active().version_id
-                    if self.model_swapper.get_active()
-                    else None
+                    self.model_swapper.get_active().version_id if self.model_swapper.get_active() else None
                 ),
                 "registry_count": len(self.model_swapper.get_registry()),
             },
@@ -1382,9 +1274,7 @@ class ProductionSurveillanceRuntime:
                 "total_reconnect_count": cam.total_reconnect_count,
                 "last_error": cam.last_error,
                 "last_frame_age_seconds": (
-                    round(time.monotonic() - cam.last_frame_timestamp, 2)
-                    if cam.last_frame_timestamp > 0
-                    else None
+                    round(time.monotonic() - cam.last_frame_timestamp, 2) if cam.last_frame_timestamp > 0 else None
                 ),
             }
         return result

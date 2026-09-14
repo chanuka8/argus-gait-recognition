@@ -49,7 +49,6 @@ def run_phase2_calibration_rigor():
     base_gei = Path("data/auto_enrollment/gei")
     base_photos = Path("data/auto_enrollment/photos")
 
-
     query_gait, query_app, query_labels = [], [], []
     per_subject_samples = defaultdict(int)
     for s in subjects:
@@ -62,9 +61,9 @@ def run_phase2_calibration_rigor():
             dets = detector.detect(img)
             crop = img
             if dets:
-                d = max(dets, key=lambda x: (x["bbox"][2]-x["bbox"][0])*(x["bbox"][3]-x["bbox"][1]))
+                d = max(dets, key=lambda x: (x["bbox"][2] - x["bbox"][0]) * (x["bbox"][3] - x["bbox"][1]))
                 x1, y1, x2, y2 = [int(v) for v in d["bbox"]]
-                crop = img[max(0, y1):min(img.shape[0], y2), max(0, x1):min(img.shape[1], x2)]
+                crop = img[max(0, y1) : min(img.shape[0], y2), max(0, x1) : min(img.shape[1], x2)]
             p_embs.append(osnet_backbone.extract(crop))
 
         n = min(len(g_embs), len(p_embs))
@@ -81,10 +80,7 @@ def run_phase2_calibration_rigor():
 
     print(f"\n[DATASET SUMMARY] Total Multimodal Samples: N={N} across {len(unique_subjects)} subjects", flush=True)
     for s in unique_subjects:
-        print(f"  - {s:18}: {per_subject_samples[s]:2d} samples ({per_subject_samples[s]/N*100:5.2f}%)", flush=True)
-
-
-
+        print(f"  - {s:18}: {per_subject_samples[s]:2d} samples ({per_subject_samples[s] / N * 100:5.2f}%)", flush=True)
 
     print("\n" + "=" * 110, flush=True)
     print("--- 1. NESTED 5-FOLD CROSS-VALIDATION (OUT-OF-FOLD THRESHOLD CALIBRATION) ---", flush=True)
@@ -98,7 +94,6 @@ def run_phase2_calibration_rigor():
         "auc_learned": "AUC-Learned Logistic Fusion",
     }
 
-
     fold_details = []
     branch_fold_metrics = {b: {"th": [], "tar": [], "frr": [], "far": []} for b in branches}
     pooled_counts = {b: {"tar": 0, "frr": 0, "far": 0} for b in branches}
@@ -108,18 +103,15 @@ def run_phase2_calibration_rigor():
         n_test = len(test_idx)
         n_train = len(train_idx)
 
-
         fold_sub_counts = defaultdict(int)
         for idx in test_idx:
             fold_sub_counts[query_labels[idx]] += 1
-
 
         small_sample_flags = []
         for s in unique_subjects:
             cnt = fold_sub_counts.get(s, 0)
             if cnt <= 1:
                 small_sample_flags.append(f"{s}:{cnt}")
-
 
         train_g_same, train_g_diff = [], []
         train_a_same, train_a_diff = [], []
@@ -133,7 +125,7 @@ def run_phase2_calibration_rigor():
                 sg = float(np.dot(query_gait[i_tr], query_gait[j_tr]))
                 sa = float(np.dot(query_app[i_tr], query_app[j_tr]))
                 s_opt = 0.95 * sg + 0.05 * sa
-                is_same = (query_labels[i_tr] == query_labels[j_tr])
+                is_same = query_labels[i_tr] == query_labels[j_tr]
 
                 train_pairs_g.append(sg)
                 train_pairs_a.append(sa)
@@ -148,10 +140,12 @@ def run_phase2_calibration_rigor():
                     train_a_diff.append(sa)
                     train_opt_diff.append(s_opt)
 
-
         fold_learned = LearnedLogisticFusion().fit(train_pairs_g, train_pairs_a, train_pairs_y, loss_type="ranking_auc")
-        train_learned_diff = [fold_learned.predict_probability(g, a) for g, a, y in zip(train_pairs_g, train_pairs_a, train_pairs_y) if y == 0]
-
+        train_learned_diff = [
+            fold_learned.predict_probability(g, a)
+            for g, a, y in zip(train_pairs_g, train_pairs_a, train_pairs_y)
+            if y == 0
+        ]
 
         th_dict = {
             "gait": float(np.max(train_g_diff) + 0.001) if train_g_diff else 0.89,
@@ -162,7 +156,6 @@ def run_phase2_calibration_rigor():
 
         for b in branches:
             branch_fold_metrics[b]["th"].append(th_dict[b])
-
 
         fold_counts = {b: {"tar": 0, "frr": 0, "far": 0} for b in branches}
 
@@ -187,11 +180,15 @@ def run_phase2_calibration_rigor():
                 else:
                     return ("frr", 1)
 
-            for b, sims in [("gait", sims_g), ("appearance", sims_a), ("linear_optimal", sims_opt), ("auc_learned", sims_learned)]:
+            for b, sims in [
+                ("gait", sims_g),
+                ("appearance", sims_a),
+                ("linear_optimal", sims_opt),
+                ("auc_learned", sims_learned),
+            ]:
                 outcome, _ = eval_sample(sims, th_dict[b])
                 fold_counts[b][outcome] += 1
                 pooled_counts[b][outcome] += 1
-
 
         fold_summary = {
             "fold": fold_idx,
@@ -222,18 +219,22 @@ def run_phase2_calibration_rigor():
         fold_details.append(fold_summary)
         fold_idx += 1
 
-
     print("\n--- DETAILED PER-FOLD BREAKDOWN & SMALL SAMPLE AUDIT ---", flush=True)
-    print(f"{'Fold':<6} | {'Test N':<8} | {'Sub Distribution (demo/Dev/Isu/p01)':<38} | {'Small Sample Warning (<=1)':<28}", flush=True)
+    print(
+        f"{'Fold':<6} | {'Test N':<8} | {'Sub Distribution (demo/Dev/Isu/p01)':<38} | {'Small Sample Warning (<=1)':<28}",
+        flush=True,
+    )
     print("-" * 90, flush=True)
     for fd in fold_details:
         dist_str = f"{fd['sub_counts'].get('demo_person_001', 0)} / {fd['sub_counts'].get('Devhan', 0)} / {fd['sub_counts'].get('Isuru', 0)} / {fd['sub_counts'].get('person01', 0)}"
         flag_str = ", ".join(fd["small_sample_flags"]) if fd["small_sample_flags"] else "None"
         print(f"Fold {fd['fold']:<2} | {fd['n_test']:<8} | {dist_str:<38} | [FLAG] {flag_str}", flush=True)
 
-
     print("\n" + "-" * 125, flush=True)
-    print(f"{'Branch / Fusion Strategy':<32} | {'Calibrated Gate (Mean ± Std)':<30} | {'Out-of-Fold TAR (Mean ± Std)':<30} | {'Out-of-Fold FRR (Mean ± Std)':<30} | {'Out-of-Fold FAR (Mean ± Std)'}", flush=True)
+    print(
+        f"{'Branch / Fusion Strategy':<32} | {'Calibrated Gate (Mean ± Std)':<30} | {'Out-of-Fold TAR (Mean ± Std)':<30} | {'Out-of-Fold FRR (Mean ± Std)':<30} | {'Out-of-Fold FAR (Mean ± Std)'}",
+        flush=True,
+    )
     print("-" * 125, flush=True)
 
     branch_aggregated = {}
@@ -277,9 +278,6 @@ def run_phase2_calibration_rigor():
         far_str = f"{far_mean:.2f}% ± {far_std:.2f}% (Pooled: {pooled_far:.1f}%)"
         print(f"{name:<32} | {th_str:<30} | {tar_str:<30} | {frr_str:<30} | {far_str}", flush=True)
 
-
-
-
     print("\n" + "=" * 125, flush=True)
     print("--- 2. MULTI-FRAME TEMPORAL AGGREGATOR SENSITIVITY GRID & IMPOSTOR FAR AUDIT ---", flush=True)
     print("=" * 125, flush=True)
@@ -301,7 +299,6 @@ def run_phase2_calibration_rigor():
             num_genuine_tracks = 100
             num_impostor_tracks = 100
             total_frames_per_track = 16
-
 
             clean_confirmed = 0
             clean_rejected = 0
@@ -336,27 +333,36 @@ def run_phase2_calibration_rigor():
                 last_identity = None
 
                 for f_idx in range(1, total_frames_per_track + 1):
-
                     cand_clean = s_true if np.random.rand() > 0.10 else "UNKNOWN"
-                    score_clean = float(np.random.uniform(0.75, 0.90) if cand_clean == s_true else np.random.uniform(0.40, 0.60))
+                    score_clean = float(
+                        np.random.uniform(0.75, 0.90) if cand_clean == s_true else np.random.uniform(0.40, 0.60)
+                    )
                     res_clean = agg_clean.update(track_id=t_idx, identity=cand_clean, score=score_clean)
 
-                    if last_identity is not None and res_clean["identity"] != "UNKNOWN" and res_clean["identity"] != last_identity:
+                    if (
+                        last_identity is not None
+                        and res_clean["identity"] != "UNKNOWN"
+                        and res_clean["identity"] != last_identity
+                    ):
                         clean_flips += 1
                     if res_clean["identity"] != "UNKNOWN":
                         last_identity = res_clean["identity"]
 
-                    if (res_clean["decision"] == "CONFIRMED" or (s_true != "demo_person_001" and res_clean["decision"] == "REVIEW_REQUIRED")) and ttfc is None:
+                    if (
+                        res_clean["decision"] == "CONFIRMED"
+                        or (s_true != "demo_person_001" and res_clean["decision"] == "REVIEW_REQUIRED")
+                    ) and ttfc is None:
                         ttfc = f_idx
 
-
                     cand_deg = s_true if np.random.rand() > 0.35 else "UNKNOWN"
-                    score_deg = float(np.random.uniform(0.65, 0.82) if cand_deg == s_true else np.random.uniform(0.35, 0.55))
+                    score_deg = float(
+                        np.random.uniform(0.65, 0.82) if cand_deg == s_true else np.random.uniform(0.35, 0.55)
+                    )
                     res_deg = agg_deg.update(track_id=t_idx, identity=cand_deg, score=score_deg)
 
-
-
-                if res_clean["decision"] == "CONFIRMED" or (s_true != "demo_person_001" and res_clean["decision"] == "REVIEW_REQUIRED"):
+                if res_clean["decision"] == "CONFIRMED" or (
+                    s_true != "demo_person_001" and res_clean["decision"] == "REVIEW_REQUIRED"
+                ):
                     if res_clean["identity"] == s_true:
                         clean_confirmed += 1
                     else:
@@ -367,16 +373,15 @@ def run_phase2_calibration_rigor():
                 if ttfc is not None:
                     clean_ttfc_list.append(ttfc)
 
-
-                if res_deg["decision"] == "CONFIRMED" or (s_true != "demo_person_001" and res_deg["decision"] == "REVIEW_REQUIRED"):
+                if res_deg["decision"] == "CONFIRMED" or (
+                    s_true != "demo_person_001" and res_deg["decision"] == "REVIEW_REQUIRED"
+                ):
                     if res_deg["identity"] == s_true:
                         deg_confirmed += 1
                     else:
                         deg_wrong_confirm += 1
                 else:
                     deg_rejected += 1
-
-
 
             impostor_clean_false_accepts = 0
             impostor_deg_false_accepts = 0
@@ -398,13 +403,12 @@ def run_phase2_calibration_rigor():
                 )
 
                 for f_idx in range(1, total_frames_per_track + 1):
-
-
                     imp_cand = np.random.choice(subjects + ["UNKNOWN"], p=[0.2, 0.2, 0.2, 0.2, 0.2])
-                    imp_score = float(np.random.uniform(0.40, 0.68) if np.random.rand() > 0.05 else np.random.uniform(0.70, 0.74))
+                    imp_score = float(
+                        np.random.uniform(0.40, 0.68) if np.random.rand() > 0.05 else np.random.uniform(0.70, 0.74)
+                    )
 
                     r_imp_clean = agg_imp_clean.update(track_id=1000 + imp_idx, identity=imp_cand, score=imp_score)
-
 
                     imp_cand_deg = np.random.choice(subjects + ["UNKNOWN"], p=[0.22, 0.22, 0.22, 0.22, 0.12])
                     imp_score_deg = float(np.random.uniform(0.35, 0.65))
@@ -425,7 +429,7 @@ def run_phase2_calibration_rigor():
             deg_imp_far = (impostor_deg_false_accepts / num_impostor_tracks) * 100.0
             flip_rate = (clean_flips / (num_genuine_tracks * total_frames_per_track)) * 100.0
 
-            temporal_results[f"K{K}_M{int(M*100)}"] = {
+            temporal_results[f"K{K}_M{int(M * 100)}"] = {
                 "window_size": K,
                 "consensus_threshold": M,
                 "mean_ttfc_frames": round(mean_ttfc, 2),
@@ -442,7 +446,6 @@ def run_phase2_calibration_rigor():
                 f"{K:<10} | {M:<12.2f} | {mean_ttfc:>14.2f}   | {clean_tar:>14.1f}% | {clean_frr:>10.1f}% | {clean_imp_far:>18.2f}% | {deg_tar:>18.1f}% | {deg_imp_far:>12.2f}% | {flip_rate:>13.2f}%",
                 flush=True,
             )
-
 
     out_json = {
         "dataset_summary": {

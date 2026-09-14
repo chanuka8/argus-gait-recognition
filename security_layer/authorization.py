@@ -277,8 +277,7 @@ def require_camera_operator(
 ) -> SessionToken:
     """Ensure operator possesses camera operational permissions (admin, root_admin, or investigator)."""
     if not (
-        has_permission(session.role, Permission.CAMERA_START)
-        or has_permission(session.role, Permission.CAMERA_CONTROL)
+        has_permission(session.role, Permission.CAMERA_START) or has_permission(session.role, Permission.CAMERA_CONTROL)
     ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

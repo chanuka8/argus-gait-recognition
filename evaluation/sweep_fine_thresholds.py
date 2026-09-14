@@ -20,7 +20,11 @@ def run_fine_sweep():
 
     bygait_model = ByGaitLight(embedding_dim=256, part_bins=1)
     state = torch.load(bygait_path, map_location="cpu", weights_only=True)
-    clean = {k.replace("backbone.", ""): v for k, v in state.items() if k.replace("backbone.", "") in bygait_model.state_dict()}
+    clean = {
+        k.replace("backbone.", ""): v
+        for k, v in state.items()
+        if k.replace("backbone.", "") in bygait_model.state_dict()
+    }
     bygait_model.load_state_dict(clean, strict=False)
     bygait_model.eval()
 
@@ -42,10 +46,18 @@ def run_fine_sweep():
     for sid in eval_subjects:
         s_dir = casia_gei_dir / sid
         g_files = list(s_dir.glob(f"{sid}_nm-0[1-4]_*.png")) + list(s_dir.glob(f"{sid}_nm-0[1-4]_*.jpg"))
-        p_files = list(s_dir.glob(f"{sid}_nm-0[5-6]_*.png")) + list(s_dir.glob(f"{sid}_cl-*.png")) + list(s_dir.glob(f"{sid}_bg-*.png"))
+        p_files = (
+            list(s_dir.glob(f"{sid}_nm-0[5-6]_*.png"))
+            + list(s_dir.glob(f"{sid}_cl-*.png"))
+            + list(s_dir.glob(f"{sid}_bg-*.png"))
+        )
 
         if g_files:
-            g_imgs = [cv2.imread(str(f), cv2.IMREAD_GRAYSCALE) for f in g_files[:4] if cv2.imread(str(f), cv2.IMREAD_GRAYSCALE) is not None]
+            g_imgs = [
+                cv2.imread(str(f), cv2.IMREAD_GRAYSCALE)
+                for f in g_files[:4]
+                if cv2.imread(str(f), cv2.IMREAD_GRAYSCALE) is not None
+            ]
             if g_imgs:
                 g_avg = np.mean(g_imgs, axis=0).astype(np.uint8)
                 gallery_embs[sid] = extract_bygait_emb(g_avg)
@@ -90,27 +102,27 @@ def run_fine_sweep():
         balanced_acc = round((tar + (100.0 - far)) / 2.0, 2)
         youden_j = round(tar - far, 2)
 
-        results.append({
-            "threshold": th,
-            "tp": tp,
-            "fn": fn,
-            "fp": fp,
-            "tn": tn,
-            "precision": prec,
-            "recall": rec,
-            "f1": f1,
-            "tar": tar,
-            "far": far,
-            "frr": frr,
-            "balanced_acc": balanced_acc,
-            "youden_j": youden_j,
-        })
-
+        results.append(
+            {
+                "threshold": th,
+                "tp": tp,
+                "fn": fn,
+                "fp": fp,
+                "tn": tn,
+                "precision": prec,
+                "recall": rec,
+                "f1": f1,
+                "tar": tar,
+                "far": far,
+                "frr": frr,
+                "balanced_acc": balanced_acc,
+                "youden_j": youden_j,
+            }
+        )
 
     max_f1_pt = max(results, key=lambda x: (x["f1"], x["precision"]))
     best_bal_pt = max(results, key=lambda x: (x["balanced_acc"], x["youden_j"]))
     eer_pt = min(results, key=lambda x: abs(x["far"] - x["frr"]))
-
 
     far_10_pts = [r for r in results if r["far"] <= 10.0]
     far_10_pt = max(far_10_pts, key=lambda x: x["tar"]) if far_10_pts else None
@@ -141,6 +153,7 @@ def run_fine_sweep():
     print("FAR <= 10%:", far_10_pt)
     print("FAR <= 5%:", far_5_pt)
     print("FAR <= 1%:", far_1_pt)
+
 
 if __name__ == "__main__":
     run_fine_sweep()

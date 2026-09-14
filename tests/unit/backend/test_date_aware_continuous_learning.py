@@ -85,9 +85,6 @@ def _seed_verified_observations(
             collector.verify_observation(obs.observation_id, verified_identity=sid)
 
 
-
-
-
 def test_1_no_new_embeddings_no_training_job(isolated_env):
     env = isolated_env
     collector = OperationalEmbeddingCollector(output_dir=env["obs_dir"])
@@ -103,9 +100,6 @@ def test_1_no_new_embeddings_no_training_job(isolated_env):
     assert len(scheduler.list_jobs()) == 0
 
 
-
-
-
 def test_2_new_embeddings_date_x_creates_one_job(isolated_env):
     env = isolated_env
     collector = OperationalEmbeddingCollector(output_dir=env["obs_dir"])
@@ -117,7 +111,6 @@ def test_2_new_embeddings_date_x_creates_one_job(isolated_env):
         min_training_embeddings=4,
         min_identities=2,
     )
-
 
     _seed_verified_observations(
         collector,
@@ -133,9 +126,6 @@ def test_2_new_embeddings_date_x_creates_one_job(isolated_env):
     assert jobs[0].new_embeddings_count == 4
 
 
-
-
-
 def test_3_multiple_embeddings_same_date_still_one_job(isolated_env):
     env = isolated_env
     collector = OperationalEmbeddingCollector(output_dir=env["obs_dir"])
@@ -145,7 +135,6 @@ def test_3_multiple_embeddings_same_date_still_one_job(isolated_env):
         collector=collector,
         db=db,
     )
-
 
     _seed_verified_observations(
         collector,
@@ -158,12 +147,8 @@ def test_3_multiple_embeddings_same_date_still_one_job(isolated_env):
     assert len(jobs) == 1
     assert jobs[0].training_date == "2026-08-27"
 
-
     second_check = scheduler.check_and_schedule_new_dates()
     assert len(second_check) == 0
-
-
-
 
 
 def test_4_new_embeddings_date_y_separate_job(isolated_env):
@@ -176,11 +161,9 @@ def test_4_new_embeddings_date_y_separate_job(isolated_env):
         db=db,
     )
 
-
     _seed_verified_observations(collector, "2026-08-27", ["SubA", "SubB"], 2)
     jobs_x = scheduler.check_and_schedule_new_dates()
     assert len(jobs_x) == 1
-
 
     _seed_verified_observations(collector, "2026-08-29", ["SubC", "SubD"], 2)
     jobs_y = scheduler.check_and_schedule_new_dates()
@@ -190,9 +173,6 @@ def test_4_new_embeddings_date_y_separate_job(isolated_env):
     all_jobs = scheduler.list_jobs()
     dates = {j.training_date for j in all_jobs}
     assert dates == {"2026-08-27", "2026-08-29"}
-
-
-
 
 
 def test_5_previously_processed_date_no_duplicate(isolated_env):
@@ -210,17 +190,12 @@ def test_5_previously_processed_date_no_duplicate(isolated_env):
     job.status = LearningJobStatus.PROMOTED
     scheduler.update_job(job)
 
-
     new_jobs = scheduler.check_and_schedule_new_dates()
     assert len(new_jobs) == 0
 
 
-
-
-
 def test_6_invalid_embedding_excluded(isolated_env):
     collector = OperationalEmbeddingCollector(output_dir=isolated_env["obs_dir"])
-
 
     nan_vec = np.ones(256, dtype=np.float32)
     nan_vec[10] = np.nan
@@ -228,7 +203,6 @@ def test_6_invalid_embedding_excluded(isolated_env):
         camera_id="cam-01", track_id=1, vector=nan_vec, predicted_identity="SubA", confidence=0.9
     )
     collector.verify_observation(obs_nan.observation_id, "SubA")
-
 
     bad_dim_vec = np.ones(128, dtype=np.float32)
     obs_bad = collector.record_observation(
@@ -238,9 +212,6 @@ def test_6_invalid_embedding_excluded(isolated_env):
 
     eligible = collector.get_training_eligible()
     assert len(eligible) == 0, "Invalid embeddings must never become TRAINING_ELIGIBLE"
-
-
-
 
 
 def test_7_unverified_observation_excluded(isolated_env):
@@ -254,9 +225,6 @@ def test_7_unverified_observation_excluded(isolated_env):
     )
     assert obs.state == ObservationState.PREDICTED
     assert len(collector.get_training_eligible()) == 0
-
-
-
 
 
 def test_8_review_required_low_quality_excluded(isolated_env):
@@ -275,9 +243,6 @@ def test_8_review_required_low_quality_excluded(isolated_env):
     assert len(collector.get_training_eligible()) == 0
 
 
-
-
-
 def test_9_training_eligible_included(isolated_env):
     collector = OperationalEmbeddingCollector(output_dir=isolated_env["obs_dir"])
     obs = collector.record_observation(
@@ -291,9 +256,6 @@ def test_9_training_eligible_included(isolated_env):
     collector.verify_observation(obs.observation_id, "SubA")
     assert obs.state == ObservationState.TRAINING_ELIGIBLE
     assert len(collector.get_training_eligible()) == 1
-
-
-
 
 
 def test_10_training_failure_isolated(isolated_env):
@@ -311,7 +273,6 @@ def test_10_training_failure_isolated(isolated_env):
     _seed_verified_observations(collector, "2026-08-27", ["SubA", "SubB"], 2)
     job = scheduler.create_learning_job("2026-08-27")
 
-
     with patch.object(worker, "_train_candidate_model", side_effect=RuntimeError("GPU OOM / Training crash")):
         res = worker.execute_job_synchronous(job)
 
@@ -321,9 +282,6 @@ def test_10_training_failure_isolated(isolated_env):
     active = reg.get_active_model("dual_modal_fusion")
     assert active is not None
     assert active.model_version == "v1.0.0"
-
-
-
 
 
 def test_11_candidate_validation_failure_preserves_active(isolated_env):
@@ -343,16 +301,12 @@ def test_11_candidate_validation_failure_preserves_active(isolated_env):
     _seed_verified_observations(collector, "2026-08-27", ["SubA", "SubB"], 2)
     job = scheduler.create_learning_job("2026-08-27")
 
-
     degraded_metrics = {"tar": 50.0, "far": 8.0, "eer": 30.0}
     with patch.object(worker, "_train_candidate_model", return_value=(degraded_metrics, {"confusion_pair_far": 0.0})):
         res = worker.execute_job_synchronous(job)
 
     assert res.status == LearningJobStatus.REJECTED
     assert reg.get_active_model("dual_modal_fusion").model_version == "v1.0.0"
-
-
-
 
 
 def test_12_candidate_success_promoted(isolated_env):
@@ -380,14 +334,10 @@ def test_12_candidate_success_promoted(isolated_env):
     assert active.previous_production_version == "v1.0.0"
 
 
-
-
-
 def test_13_runtime_regression_rollback(isolated_env):
     env = isolated_env
     reg = ModelRegistry(registry_file=env["reg_file"])
     engine = ContinuousImprovementEngine(registry=reg)
-
 
     engine.process_candidate(
         candidate_version="v2.0.0",
@@ -399,16 +349,12 @@ def test_13_runtime_regression_rollback(isolated_env):
     )
     assert reg.get_active_model("dual_modal_fusion").model_version == "v2.0.0"
 
-
     rolled_back = engine.trigger_runtime_regression_rollback(
         model_type="dual_modal_fusion",
         reason="Runtime drift detected in Zone 4",
     )
     assert rolled_back.model_version == "v1.0.0"
     assert reg.get_active_model("dual_modal_fusion").model_version == "v1.0.0"
-
-
-
 
 
 def test_14_restart_during_running_job_safe_recovery(isolated_env):
@@ -422,13 +368,9 @@ def test_14_restart_during_running_job_safe_recovery(isolated_env):
     job.status = LearningJobStatus.RUNNING
     scheduler1.update_job(job)
 
-
     scheduler2 = DateAwareLearningScheduler(jobs_file=env["jobs_file"], collector=collector, db=db)
     reloaded_job = scheduler2.get_job(job.job_id)
     assert reloaded_job.status == LearningJobStatus.INTERRUPTED
-
-
-
 
 
 def test_15_concurrent_trigger_no_duplicate_jobs(isolated_env):
@@ -452,12 +394,8 @@ def test_15_concurrent_trigger_no_duplicate_jobs(isolated_env):
     for t in threads:
         t.join()
 
-
     assert len(set(results)) == 1
     assert len(scheduler.list_jobs()) == 1
-
-
-
 
 
 def test_16_model_version_incompatibility_rejected(isolated_env):
@@ -465,9 +403,6 @@ def test_16_model_version_incompatibility_rejected(isolated_env):
 
     is_compat = db.check_model_compatibility(model_version="v2.0.0", expected_dim=1024, modality="gait")
     assert is_compat is False
-
-
-
 
 
 def test_17_raw_media_deletion_safety(isolated_env):
@@ -500,9 +435,6 @@ def test_17_raw_media_deletion_safety(isolated_env):
     assert not raw_photo.exists()
 
 
-
-
-
 def test_18_camera_worker_unaffected_by_learning_failure(isolated_env):
     env = isolated_env
     reg = ModelRegistry(registry_file=env["reg_file"])
@@ -518,17 +450,12 @@ def test_18_camera_worker_unaffected_by_learning_failure(isolated_env):
     _seed_verified_observations(collector, "2026-08-27", ["SubA", "SubB"], 2)
     job = scheduler.create_learning_job("2026-08-27")
 
-
     with patch.object(worker, "_train_candidate_model", side_effect=Exception("Severe Training Crash")):
         worker.execute_job_synchronous(job)
-
 
     active = reg.get_active_model("dual_modal_fusion")
     assert active is not None
     assert active.deployment_status == ModelDeploymentStatus.ACTIVE
-
-
-
 
 
 def test_19_recognition_worker_responsive_during_learning(isolated_env):
@@ -549,7 +476,6 @@ def test_19_recognition_worker_responsive_during_learning(isolated_env):
     job = scheduler.create_learning_job("2026-08-27")
     worker.submit_job(job)
 
-
     inference_start = time.time()
     for _ in range(10):
         active = reg.get_active_model("dual_modal_fusion")
@@ -557,13 +483,9 @@ def test_19_recognition_worker_responsive_during_learning(isolated_env):
         time.sleep(0.01)
     inference_duration = time.time() - inference_start
 
-
     assert inference_duration < 1.0
 
     worker.stop(timeout=2.0)
-
-
-
 
 
 def test_20_no_new_data_day_zero_resource_consumption(isolated_env):
@@ -575,7 +497,6 @@ def test_20_no_new_data_day_zero_resource_consumption(isolated_env):
         scheduler=scheduler,
         candidate_artifacts_dir=env["cand_dir"],
     )
-
 
     with patch.object(worker, "_execute_job") as mock_exec:
         jobs = scheduler.check_and_schedule_new_dates()

@@ -208,9 +208,7 @@ def main() -> int:
                 print("[ERROR] Passwords do not match.")
                 return 1
         else:
-            logger.error(
-                "No password provided. Set ARGUS_BOOTSTRAP_ADMIN_PASSWORD environment variable."
-            )
+            logger.error("No password provided. Set ARGUS_BOOTSTRAP_ADMIN_PASSWORD environment variable.")
             return 1
 
     success = bootstrapper.bootstrap(

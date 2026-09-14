@@ -532,8 +532,15 @@ class TestJobRecoveryAndCheckpointing(unittest.TestCase):
         self.assertGreaterEqual(recovered[0].recovery_count, 1)
 
         # Step 6: Wait for processing to continue to completion
-        time.sleep(2.0)
-        final_job = new_mgr.get_job(job.job_id)
+        final_job = None
+        for _ in range(100):
+            job_state = new_mgr.get_job(job.job_id)
+            if job_state and job_state.status in (ReferenceJobStatus.COMPLETED, ReferenceJobStatus.FAILED):
+                final_job = job_state
+                break
+            time.sleep(0.1)
+
+        self.assertIsNotNone(final_job, "Recovery job did not complete within timeout")
         self.assertEqual(final_job.status, ReferenceJobStatus.COMPLETED)
         self.assertEqual(final_job.progress.stage, "COMPLETED")
         self.assertEqual(final_job.progress.percent, 100)

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """ARGUS AI - Backward-compatibility shim for doctor.py."""
+
 import sys
 from pathlib import Path
 
@@ -11,4 +12,3 @@ from deployment.doctor import main
 
 if __name__ == "__main__":
     main()
-

@@ -19,7 +19,6 @@ class AuthenticationInfrastructureError(RuntimeError):
     """Raised when authoritative authentication backend (e.g. Firebase Admin SDK) is misconfigured or unavailable."""
 
 
-
 @dataclass
 class SessionToken:
     token: str
@@ -165,8 +164,10 @@ class SessionStore:
 
     def _cleanup_expired_locked(self, now: float) -> int:
         expired = [
-            tok for tok, sess in self._sessions.items()
-            if now > sess.expires_at or (self.idle_timeout_seconds > 0 and (now - sess.last_activity) > self.idle_timeout_seconds)
+            tok
+            for tok, sess in self._sessions.items()
+            if now > sess.expires_at
+            or (self.idle_timeout_seconds > 0 and (now - sess.last_activity) > self.idle_timeout_seconds)
         ]
         for tok in expired:
             self.revoke_session(tok)
@@ -418,10 +419,12 @@ class OperatorStore:
 
                 doc_ref = client.collection(collection_name).document(doc_id)
                 # 1. Persist password_hash and migrated flag
-                doc_ref.update({
-                    "password_hash": new_hash,
-                    "password_migrated": True,
-                })
+                doc_ref.update(
+                    {
+                        "password_hash": new_hash,
+                        "password_migrated": True,
+                    }
+                )
 
                 # 2. Verify persistence via read-back
                 snap = doc_ref.get()
@@ -436,10 +439,14 @@ class OperatorStore:
                     return False
 
                 # 3. Only after verification, remove legacy plaintext field
-                doc_ref.update({
-                    "password": firestore.DELETE_FIELD,
-                })
-                logger.info(f"[MIGRATION_SUCCESS] Account {doc_id} in {collection_name} verified and migrated to Argon2id.")
+                doc_ref.update(
+                    {
+                        "password": firestore.DELETE_FIELD,
+                    }
+                )
+                logger.info(
+                    f"[MIGRATION_SUCCESS] Account {doc_id} in {collection_name} verified and migrated to Argon2id."
+                )
                 return True
             except Exception as exc:  # noqa: BLE001
                 logger.error(f"[MIGRATION_FAILED] Failed to update Firestore: {exc}. Legacy password preserved.")
@@ -454,7 +461,9 @@ class OperatorStore:
                 col_dict[doc_id].pop("password", None)
                 success = self._save_offline_store(offline_data)
                 if success:
-                    logger.info(f"[MIGRATION_SUCCESS] Offline account {doc_id} in {collection_name} migrated to Argon2id.")
+                    logger.info(
+                        f"[MIGRATION_SUCCESS] Offline account {doc_id} in {collection_name} migrated to Argon2id."
+                    )
                     return True
                 logger.error("[MIGRATION_FAILED] Failed to save offline store. Legacy password preserved.")
                 return False
@@ -540,6 +549,7 @@ def get_operator_store() -> OperatorStore:
 # ---------------------------------------------------------------------------
 # FastAPI Authentication Dependencies
 # ---------------------------------------------------------------------------
+
 
 def extract_bearer_token(request: Request) -> str | None:
     auth_header = request.headers.get("Authorization")

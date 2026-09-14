@@ -108,15 +108,11 @@ class StatisticalAccuracyValidator:
         b_arr = np.asarray(baseline_correct, dtype=bool)
         c_arr = np.asarray(candidate_correct, dtype=bool)
 
-
-
-
         b = int(np.sum(b_arr & ~c_arr))
         c = int(np.sum(~b_arr & c_arr))
 
         if b + c == 0:
             return (0.0, 1.0, False)
-
 
         chi2 = ((abs(b - c) - 1.0) ** 2) / float(b + c)
 
@@ -125,7 +121,6 @@ class StatisticalAccuracyValidator:
         try:
             p_val = float(chi2_dist.sf(chi2, df=1))
         except (ImportError, ValueError):
-
             z = np.sqrt(chi2)
             p_val = float(2.0 * (1.0 - 0.5 * (1.0 + np.math.erf(z / np.sqrt(2.0)))))
 
@@ -148,7 +143,6 @@ class StatisticalAccuracyValidator:
     ) -> StatisticalValidationResult:
         rejection_reasons = []
 
-
         if identities_count < self.policy.min_identities:
             rejection_reasons.append(
                 f"Insufficient Identities: {identities_count} < required {self.policy.min_identities}"
@@ -158,9 +152,7 @@ class StatisticalAccuracyValidator:
                 f"Insufficient Independent Tracks: {tracks_count} < required {self.policy.min_tracks}"
             )
         if sessions_count < self.policy.min_sessions:
-            rejection_reasons.append(
-                f"Insufficient Sessions: {sessions_count} < required {self.policy.min_sessions}"
-            )
+            rejection_reasons.append(f"Insufficient Sessions: {sessions_count} < required {self.policy.min_sessions}")
         if genuine_trials < self.policy.min_genuine_trials:
             rejection_reasons.append(
                 f"Insufficient Genuine Trials: {genuine_trials} < required {self.policy.min_genuine_trials}"
@@ -176,18 +168,22 @@ class StatisticalAccuracyValidator:
 
         is_sufficient_evidence = len(rejection_reasons) == 0
         evidence_class = (
-            "SUFFICIENT_REAL_WORLD_EVIDENCE"
-            if is_sufficient_evidence
-            else "INSUFFICIENT_REAL_WORLD_EVIDENCE"
+            "SUFFICIENT_REAL_WORLD_EVIDENCE" if is_sufficient_evidence else "INSUFFICIENT_REAL_WORLD_EVIDENCE"
         )
 
-
-        b_hits = sum(baseline_hits) if baseline_hits else int(baseline_metrics.get("rank1_accuracy", 0) * sample_count / 100.0)
-        c_hits = sum(candidate_hits) if candidate_hits else int(candidate_metrics.get("rank1_accuracy", 0) * sample_count / 100.0)
+        b_hits = (
+            sum(baseline_hits)
+            if baseline_hits
+            else int(baseline_metrics.get("rank1_accuracy", 0) * sample_count / 100.0)
+        )
+        c_hits = (
+            sum(candidate_hits)
+            if candidate_hits
+            else int(candidate_metrics.get("rank1_accuracy", 0) * sample_count / 100.0)
+        )
 
         b_ci = self.calculate_wilson_ci(b_hits, max(1, sample_count))
         c_ci = self.calculate_wilson_ci(c_hits, max(1, sample_count))
-
 
         p_val = 1.0
         is_stat_sig = False
@@ -203,15 +199,15 @@ class StatisticalAccuracyValidator:
         delta_tar = candidate_metrics.get("tar", 0.0) - baseline_metrics.get("tar", 0.0)
         delta_far = candidate_metrics.get("far", 0.0) - baseline_metrics.get("far", 0.0)
 
-
         is_degraded = delta_far > 0.0 or delta_rank1 < -1.0 or delta_tar < -1.0
-
 
         if is_degraded:
             verdict = "DEGRADATION"
         elif not is_sufficient_evidence:
             verdict = "ACCURACY_IMPROVEMENT_NOT_YET_PROVEN"
-        elif is_stat_sig and (delta_rank1 >= self.policy.min_improvement_delta or delta_tar >= self.policy.min_improvement_delta):
+        elif is_stat_sig and (
+            delta_rank1 >= self.policy.min_improvement_delta or delta_tar >= self.policy.min_improvement_delta
+        ):
             verdict = "ACCURACY_IMPROVEMENT_VERIFIED"
         else:
             verdict = "ACCURACY_IMPROVEMENT_NOT_YET_PROVEN"

@@ -27,6 +27,7 @@ def _get_resource_snapshot() -> dict:
     }
     try:
         import psutil
+
         metrics["cpu_percent"] = psutil.cpu_percent(interval=None)
         mem = psutil.virtual_memory()
         metrics["ram_percent"] = mem.percent
@@ -36,16 +37,13 @@ def _get_resource_snapshot() -> dict:
 
     try:
         import torch
+
         if torch.cuda.is_available():
             metrics["gpu_name"] = torch.cuda.get_device_name(0)
             metrics["vram_used_mb"] = round(torch.cuda.memory_allocated(0) / (1024 * 1024), 1)
-            metrics["vram_total_mb"] = round(
-                torch.cuda.get_device_properties(0).total_memory / (1024 * 1024), 1
-            )
+            metrics["vram_total_mb"] = round(torch.cuda.get_device_properties(0).total_memory / (1024 * 1024), 1)
             if metrics["vram_total_mb"] > 0:
-                metrics["vram_percent"] = round(
-                    metrics["vram_used_mb"] / metrics["vram_total_mb"] * 100.0, 1
-                )
+                metrics["vram_percent"] = round(metrics["vram_used_mb"] / metrics["vram_total_mb"] * 100.0, 1)
     except (ImportError, RuntimeError):
         pass
 
@@ -76,7 +74,6 @@ def health_ready():
             ready = False
             reasons.append("shutting_down")
     else:
-
         pass
 
     return {
@@ -99,14 +96,9 @@ def health_degraded():
 
         cameras = _runtime.camera_state_machine.get_all_cameras()
         from streaming.production_runtime import CameraState
-        failed_count = sum(
-            1 for c in cameras.values()
-            if c.connection_state == CameraState.FAILED
-        )
-        reconnecting_count = sum(
-            1 for c in cameras.values()
-            if c.connection_state == CameraState.RECONNECTING
-        )
+
+        failed_count = sum(1 for c in cameras.values() if c.connection_state == CameraState.FAILED)
+        reconnecting_count = sum(1 for c in cameras.values() if c.connection_state == CameraState.RECONNECTING)
         if failed_count > 0:
             degraded = True
             degradation_reasons.append(f"{failed_count}_cameras_failed")

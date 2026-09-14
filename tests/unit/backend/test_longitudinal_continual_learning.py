@@ -84,7 +84,6 @@ class TestOperationalEvidenceManager:
         assert rec.sha256_hash != ""
         assert Path(rec.file_path).exists()
 
-
         loaded = mgr.load_evidence(rec.evidence_id)
         assert loaded is not None
         assert np.array_equal(loaded, gei)
@@ -103,7 +102,6 @@ class TestOperationalEvidenceManager:
             category=EvidenceCategory.OPERATIONAL_TEST,
         )
         assert rec is not None
-
 
         with open(rec.file_path, "wb") as f:
             f.write(b"corrupted_binary_data")
@@ -127,7 +125,6 @@ class TestOperationalEvidenceManager:
 
         small_mgr.store_evidence("obs_2", "c2", 2, "P2", "gait", gei2)
 
-
         assert rec1.evidence_id in small_mgr._records
 
 
@@ -135,7 +132,6 @@ class TestTrackLevelDatasetSplitting:
     def test_track_and_session_level_isolation(self, temp_env):
         collector: OperationalEmbeddingCollector = temp_env["collector"]
         date_str = "2026-08-31"
-
 
         for p in ["P001", "P002"]:
             for track_id in [10, 20, 30]:
@@ -170,7 +166,6 @@ class TestTrackLevelDatasetSplitting:
         val_tracks = {f"{s.person_id}_{s.session_id}_{s.track_id}" for s in val}
         test_tracks = {f"{s.person_id}_{s.session_id}_{s.track_id}" for s in test}
 
-
         assert len(train_tracks.intersection(test_tracks)) == 0
         assert len(train_tracks.intersection(val_tracks)) == 0
         assert len(val_tracks.intersection(test_tracks)) == 0
@@ -193,12 +188,9 @@ class TestStatisticalAccuracyValidator:
         assert p_val < 0.01
 
     def test_minimum_evidence_policy_rejection(self):
-        val = StatisticalAccuracyValidator(
-            policy=MinimumEvidencePolicy(min_genuine_trials=8, min_impostor_trials=16)
-        )
+        val = StatisticalAccuracyValidator(policy=MinimumEvidencePolicy(min_genuine_trials=8, min_impostor_trials=16))
         base_metrics = {"rank1_accuracy": 50.0, "tar": 50.0, "far": 0.0}
         cand_metrics = {"rank1_accuracy": 60.0, "tar": 60.0, "far": 0.0}
-
 
         res = val.validate_statistical_evidence(
             baseline_metrics=base_metrics,
@@ -216,9 +208,7 @@ class TestStatisticalAccuracyValidator:
 
 class TestLongitudinalAccuracyEvaluator:
     def test_longitudinal_cycle_and_persistence(self, temp_env):
-        evaluator = LongitudinalAccuracyEvaluator(
-            history_file=str(temp_env["history_file"])
-        )
+        evaluator = LongitudinalAccuracyEvaluator(history_file=str(temp_env["history_file"]))
 
         samples = []
         for i in range(10):
@@ -250,10 +240,7 @@ class TestLongitudinalAccuracyEvaluator:
         assert rec.timepoint_id.startswith("T0")
         assert len(evaluator.list_history()) == 1
 
-
-        evaluator2 = LongitudinalAccuracyEvaluator(
-            history_file=str(temp_env["history_file"])
-        )
+        evaluator2 = LongitudinalAccuracyEvaluator(history_file=str(temp_env["history_file"]))
         history = evaluator2.list_history()
         assert len(history) == 1
         assert history[0].baseline_version == "v1.0.0"
@@ -266,7 +253,6 @@ class TestEndToEndWorkerLongitudinalAccuracy:
         db: EmbeddingDatabase = temp_env["db"]
         registry: ModelRegistry = temp_env["registry"]
         date_str = "2026-08-31"
-
 
         active_base = registry.get_active_model("bygait_light")
         if not active_base:
@@ -291,7 +277,6 @@ class TestEndToEndWorkerLongitudinalAccuracy:
                 model_type="bygait_light",
                 reason="Initial production baseline",
             )
-
 
         for p in ["Person_A", "Person_B"]:
             for tid in [101, 102, 103]:
@@ -339,7 +324,6 @@ class TestEndToEndWorkerLongitudinalAccuracy:
             LearningJobStatus.FAILED,
         )
         assert completed_job.candidate_version != ""
-
 
         history = worker.longitudinal_evaluator.list_history()
         assert len(history) >= 1

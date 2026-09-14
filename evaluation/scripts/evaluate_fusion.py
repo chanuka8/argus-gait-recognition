@@ -31,7 +31,6 @@ def evaluate_all_fusion_strategies(output_dir: str = "configs/fusion_profiles"):
     base_gei = Path("data/auto_enrollment/gei")
     base_photos = Path("data/auto_enrollment/photos")
 
-
     query_gait, query_app, query_labels = [], [], []
     for s in subjects:
         g_files = sorted((base_gei / s).glob("*.*"))
@@ -43,9 +42,9 @@ def evaluate_all_fusion_strategies(output_dir: str = "configs/fusion_profiles"):
             dets = detector.detect(img)
             crop = img
             if dets:
-                d = max(dets, key=lambda x: (x["bbox"][2]-x["bbox"][0])*(x["bbox"][3]-x["bbox"][1]))
+                d = max(dets, key=lambda x: (x["bbox"][2] - x["bbox"][0]) * (x["bbox"][3] - x["bbox"][1]))
                 x1, y1, x2, y2 = [int(v) for v in d["bbox"]]
-                crop = img[max(0, y1):min(img.shape[0], y2), max(0, x1):min(img.shape[1], x2)]
+                crop = img[max(0, y1) : min(img.shape[0], y2), max(0, x1) : min(img.shape[1], x2)]
             p_embs.append(osnet_backbone.extract(crop))
 
         n = min(len(g_embs), len(p_embs))
@@ -55,7 +54,6 @@ def evaluate_all_fusion_strategies(output_dir: str = "configs/fusion_profiles"):
             query_labels.append(s)
 
     N = len(query_labels)
-
 
     pairwise_gait = []
     pairwise_app = []
@@ -68,7 +66,6 @@ def evaluate_all_fusion_strategies(output_dir: str = "configs/fusion_profiles"):
             pairwise_gait.append(s_g)
             pairwise_app.append(s_a)
             pairwise_labels.append(1 if query_labels[i] == query_labels[j] else 0)
-
 
     sim_matrix_base = np.zeros((N, N - 1), dtype=np.float32)
     sim_matrix_opt_linear = np.zeros((N, N - 1), dtype=np.float32)
@@ -90,7 +87,6 @@ def evaluate_all_fusion_strategies(output_dir: str = "configs/fusion_profiles"):
         if i == 0:
             loo_gallery_labels = gal_lbl
 
-
         train_pairs_g, train_pairs_a, train_pairs_y = [], [], []
         for r1 in range(N):
             if r1 == i:
@@ -103,7 +99,6 @@ def evaluate_all_fusion_strategies(output_dir: str = "configs/fusion_profiles"):
                 train_pairs_g.append(s_g)
                 train_pairs_a.append(s_a)
                 train_pairs_y.append(1 if query_labels[r1] == query_labels[r2] else 0)
-
 
         gait_calib = PlattScoreCalibrator().fit(train_pairs_g, train_pairs_y)
         app_calib = PlattScoreCalibrator().fit(train_pairs_a, train_pairs_y)
@@ -122,7 +117,6 @@ def evaluate_all_fusion_strategies(output_dir: str = "configs/fusion_profiles"):
 
             sim_matrix_learned_auc[i, gal_idx] = learned_auc.predict_probability(g_sim, a_sim)
 
-
     _, r_base = compute_cmc(sim_matrix_base, query_labels, loo_gallery_labels)
     _, r_opt_linear = compute_cmc(sim_matrix_opt_linear, query_labels, loo_gallery_labels)
     _, r_calib = compute_cmc(sim_matrix_calib, query_labels, loo_gallery_labels)
@@ -133,8 +127,9 @@ def evaluate_all_fusion_strategies(output_dir: str = "configs/fusion_profiles"):
     map_calib, _minp_calib = compute_map_minp(sim_matrix_calib, query_labels, loo_gallery_labels)
     map_learned_auc, _minp_learned_auc = compute_map_minp(sim_matrix_learned_auc, query_labels, loo_gallery_labels)
 
-
-    global_learned_auc = LearnedLogisticFusion().fit(pairwise_gait, pairwise_app, pairwise_labels, loss_type="ranking_auc")
+    global_learned_auc = LearnedLogisticFusion().fit(
+        pairwise_gait, pairwise_app, pairwise_labels, loss_type="ranking_auc"
+    )
     global_calib_g = PlattScoreCalibrator().fit(pairwise_gait, pairwise_labels)
     global_calib_a = PlattScoreCalibrator().fit(pairwise_app, pairwise_labels)
 
@@ -171,21 +166,61 @@ def evaluate_all_fusion_strategies(output_dir: str = "configs/fusion_profiles"):
 
     def compute_gated_metrics(sim_matrix, same_scores, diff_scores):
         th = float(np.max(diff_scores) + 0.001)
-        correct = sum(1 for i in range(N) if sim_matrix[i, int(np.argmax(sim_matrix[i]))] >= th and loo_gallery_labels[int(np.argmax(sim_matrix[i]))] == query_labels[i])
+        correct = sum(
+            1
+            for i in range(N)
+            if sim_matrix[i, int(np.argmax(sim_matrix[i]))] >= th
+            and loo_gallery_labels[int(np.argmax(sim_matrix[i]))] == query_labels[i]
+        )
         unknown = sum(1 for i in range(N) if sim_matrix[i, int(np.argmax(sim_matrix[i]))] < th)
         return (correct / N * 100), (unknown / N * 100), th
 
     tar_base, frr_base, _th_base = compute_gated_metrics(sim_matrix_base, same_base, diff_base)
     tar_opt, frr_opt, _th_opt = compute_gated_metrics(sim_matrix_opt_linear, same_opt, diff_opt)
     tar_calib, frr_calib, _th_calib = compute_gated_metrics(sim_matrix_calib, same_calib, diff_calib)
-    tar_learned_auc, frr_learned_auc, _th_learned_auc = compute_gated_metrics(sim_matrix_learned_auc, same_learned_auc, diff_learned_auc)
+    tar_learned_auc, frr_learned_auc, _th_learned_auc = compute_gated_metrics(
+        sim_matrix_learned_auc, same_learned_auc, diff_learned_auc
+    )
 
     return {
-        "baseline": {"rank1": r_base[1], "rank5": r_base[5], "map": map_base, "auc": roc_base["auc"], "eer": roc_base["eer"], "tar": tar_base, "frr": frr_base},
-        "linear_optimal": {"rank1": r_opt_linear[1], "rank5": r_opt_linear[5], "map": map_opt_linear, "auc": roc_opt["auc"], "eer": roc_opt["eer"], "tar": tar_opt, "frr": frr_opt},
-        "calibrated": {"rank1": r_calib[1], "rank5": r_calib[5], "map": map_calib, "auc": roc_calib["auc"], "eer": roc_calib["eer"], "tar": tar_calib, "frr": frr_calib},
-        "auc_learned": {"rank1": r_learned_auc[1], "rank5": r_learned_auc[5], "map": map_learned_auc, "auc": roc_learned_auc["auc"], "eer": roc_learned_auc["eer"], "tar": tar_learned_auc, "frr": frr_learned_auc},
+        "baseline": {
+            "rank1": r_base[1],
+            "rank5": r_base[5],
+            "map": map_base,
+            "auc": roc_base["auc"],
+            "eer": roc_base["eer"],
+            "tar": tar_base,
+            "frr": frr_base,
+        },
+        "linear_optimal": {
+            "rank1": r_opt_linear[1],
+            "rank5": r_opt_linear[5],
+            "map": map_opt_linear,
+            "auc": roc_opt["auc"],
+            "eer": roc_opt["eer"],
+            "tar": tar_opt,
+            "frr": frr_opt,
+        },
+        "calibrated": {
+            "rank1": r_calib[1],
+            "rank5": r_calib[5],
+            "map": map_calib,
+            "auc": roc_calib["auc"],
+            "eer": roc_calib["eer"],
+            "tar": tar_calib,
+            "frr": frr_calib,
+        },
+        "auc_learned": {
+            "rank1": r_learned_auc[1],
+            "rank5": r_learned_auc[5],
+            "map": map_learned_auc,
+            "auc": roc_learned_auc["auc"],
+            "eer": roc_learned_auc["eer"],
+            "tar": tar_learned_auc,
+            "frr": frr_learned_auc,
+        },
     }
+
 
 if __name__ == "__main__":
     results = evaluate_all_fusion_strategies()

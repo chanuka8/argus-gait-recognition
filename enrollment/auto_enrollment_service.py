@@ -266,7 +266,6 @@ class AutoEnrollmentService:
                     geis = self._process_video(v_path, gait_target)
                     generated_gei_paths.extend(geis)
 
-
             job_result = self.lifecycle_manager.enroll_from_media(
                 person_id=person_id,
                 video_paths=video_files,

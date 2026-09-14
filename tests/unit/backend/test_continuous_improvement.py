@@ -52,9 +52,6 @@ def temp_environment():
     shutil.rmtree(temp_dir, ignore_errors=True)
 
 
-
-
-
 def test_a_successful_enrollment_and_raw_cleanup(temp_environment):
     env = temp_environment
     db = EmbeddingDatabase(
@@ -63,14 +60,12 @@ def test_a_successful_enrollment_and_raw_cleanup(temp_environment):
         appearance_gallery_dir=env["app_gal"],
     )
 
-
     person_dir = Path(env["input_dir"]) / "Subject01"
     person_dir.mkdir(parents=True, exist_ok=True)
     dummy_photo = person_dir / "photo1.jpg"
     dummy_photo.write_bytes(b"dummy_photo_data")
     dummy_gei = person_dir / "gei1.png"
     dummy_gei.write_bytes(b"dummy_gei_data")
-
 
     mock_gait_ext = MagicMock()
     mock_gait_ext.extract.return_value = np.ones((256,), dtype=np.float32)
@@ -90,13 +85,11 @@ def test_a_successful_enrollment_and_raw_cleanup(temp_environment):
         auto_delete_raw=True,
     )
 
-
     assert result.status == EnrollmentStatus.EMBEDDING_ONLY
     assert result.gait_embeddings_count == 1
     assert result.appearance_embeddings_count == 1
     assert not dummy_photo.exists(), "Raw photo must be deleted after persistence verification"
     assert not dummy_gei.exists(), "Raw GEI must be deleted after persistence verification"
-
 
     person_rec = db.get_person("Subject01")
     assert person_rec is not None
@@ -106,9 +99,6 @@ def test_a_successful_enrollment_and_raw_cleanup(temp_environment):
     g_store = VectorStore(gallery_dir=env["gait_gal"])
     _, lbls, _ = g_store.load()
     assert "Subject01" in list(lbls)
-
-
-
 
 
 def test_b_embedding_generation_failure_preserves_raw_media(temp_environment):
@@ -141,13 +131,9 @@ def test_b_embedding_generation_failure_preserves_raw_media(temp_environment):
         auto_delete_raw=True,
     )
 
-
     assert result.status == EnrollmentStatus.PROCESSING_FAILED
     assert corrupt_photo.exists(), "SAFETY INVARIANT: Raw media MUST be preserved on generation failure"
     assert str(corrupt_photo) in result.raw_files_retained
-
-
-
 
 
 def test_c_storage_failure_preserves_raw_media(temp_environment):
@@ -174,7 +160,6 @@ def test_c_storage_failure_preserves_raw_media(temp_environment):
         appearance_extractor=mock_app_ext,
     )
 
-
     with patch.object(db, "add_embeddings", side_effect=OSError("Disk write failure")):
         result = manager.enroll_from_media(
             person_id="Subject03",
@@ -182,12 +167,8 @@ def test_c_storage_failure_preserves_raw_media(temp_environment):
             auto_delete_raw=True,
         )
 
-
     assert result.status == EnrollmentStatus.PERSISTENCE_FAILED
     assert raw_photo.exists(), "SAFETY INVARIANT: Raw media MUST be preserved if persistence fails"
-
-
-
 
 
 def test_d_deletion_failure_handled_gracefully(temp_environment):
@@ -213,7 +194,6 @@ def test_d_deletion_failure_handled_gracefully(temp_environment):
         appearance_extractor=mock_app_ext,
     )
 
-
     with patch.object(
         EnrollmentLifecycleManager,
         "safe_delete_raw_file",
@@ -231,9 +211,6 @@ def test_d_deletion_failure_handled_gracefully(temp_environment):
     assert db.get_person("Subject04") is not None
 
 
-
-
-
 def test_e_duplicate_cleanup_is_idempotent(temp_environment):
     p = Path(temp_environment["input_dir"]) / "already_deleted.jpg"
     assert not p.exists()
@@ -243,14 +220,10 @@ def test_e_duplicate_cleanup_is_idempotent(temp_environment):
     assert err is None
 
 
-
-
-
 def test_f_inferior_candidate_rejected(temp_environment):
     reg = ModelRegistry(registry_file=temp_environment["reg_file"])
     validator = CandidateValidator()
     engine = ContinuousImprovementEngine(registry=reg, validator=validator)
-
 
     inferior_metrics = {
         "tar": 50.00,
@@ -273,9 +246,6 @@ def test_f_inferior_candidate_rejected(temp_environment):
 
     active = reg.get_active_model("dual_modal_fusion")
     assert active.model_version == "v1.0.0"
-
-
-
 
 
 def test_g_superior_candidate_promoted(temp_environment):
@@ -303,12 +273,8 @@ def test_g_superior_candidate_promoted(temp_environment):
     assert rec.deployment_status == ModelDeploymentStatus.ACTIVE
     assert rec.previous_production_version == "v1.0.0"
 
-
     active = reg.get_active_model("dual_modal_fusion")
     assert active.model_version == "v2.0.0-superior"
-
-
-
 
 
 def test_h_confusion_pair_regression_rejected(temp_environment):
@@ -340,14 +306,10 @@ def test_h_confusion_pair_regression_rejected(temp_environment):
     assert rec.deployment_status == ModelDeploymentStatus.REJECTED
 
 
-
-
-
 def test_i_rollback_restores_previous_active_version(temp_environment):
     reg = ModelRegistry(registry_file=temp_environment["reg_file"])
     validator = CandidateValidator()
     engine = ContinuousImprovementEngine(registry=reg, validator=validator)
-
 
     engine.process_candidate(
         candidate_version="v2.0.0",
@@ -359,21 +321,16 @@ def test_i_rollback_restores_previous_active_version(temp_environment):
     )
     assert reg.get_active_model("dual_modal_fusion").model_version == "v2.0.0"
 
-
     restored = engine.trigger_runtime_regression_rollback(
         model_type="dual_modal_fusion",
         reason="Elevated false accept rate in production CCTV zone 3",
     )
-
 
     assert restored.model_version == "v1.0.0"
     assert restored.deployment_status == ModelDeploymentStatus.ACTIVE
 
     rolled_back_v2 = reg.get_model("v2.0.0", "dual_modal_fusion")
     assert rolled_back_v2.deployment_status == ModelDeploymentStatus.ROLLED_BACK
-
-
-
 
 
 def test_j_operational_observation_lifecycle(temp_environment):
@@ -392,18 +349,13 @@ def test_j_operational_observation_lifecycle(temp_environment):
     assert obs.state == ObservationState.PREDICTED
     assert obs.verified_identity is None
 
-
     eligible_before = collector.get_training_eligible()
     assert len(eligible_before) == 0
-
 
     collector.verify_observation(obs.observation_id, verified_identity="SubjectA")
     eligible_after = collector.get_training_eligible()
     assert len(eligible_after) == 1
     assert eligible_after[0].verified_identity == "SubjectA"
-
-
-
 
 
 def test_k_drift_detector_flags_degradation(temp_environment):
@@ -413,7 +365,6 @@ def test_k_drift_detector_flags_degradation(temp_environment):
         gait_gallery_dir=temp_environment["gait_gal"],
         confidence_threshold=0.85,
     )
-
 
     for i in range(20):
         collector.record_observation(

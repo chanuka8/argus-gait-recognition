@@ -156,7 +156,9 @@ class VectorStore:
                 raise ValueError(f"Gallery labels array must be 1-dimensional (N,), got shape {labels.shape}.")
 
             if len(features) != len(labels):
-                raise ValueError(f"Mismatch between features length ({len(features)}) and labels length ({len(labels)}).")
+                raise ValueError(
+                    f"Mismatch between features length ({len(features)}) and labels length ({len(labels)})."
+                )
 
         if self.metadata_file.exists():
             with open(

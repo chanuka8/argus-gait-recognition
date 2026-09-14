@@ -81,7 +81,6 @@ class DeterministicImageEnhancer:
 
         h, w, _ = image.shape
 
-
         if h < self.min_height or w < self.min_width:
             return QualityAssessmentResult(
                 is_acceptable=False,
@@ -94,7 +93,6 @@ class DeterministicImageEnhancer:
                 recommendation="Please upload a higher-resolution full-body photo.",
             )
 
-
         lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
         l_channel = lab[:, :, 0]
         brightness = float(np.mean(l_channel))
@@ -102,7 +100,6 @@ class DeterministicImageEnhancer:
 
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         blur_score = float(cv2.Laplacian(gray, cv2.CV_64F).var())
-
 
         if brightness < self.min_brightness:
             return QualityAssessmentResult(
@@ -128,7 +125,6 @@ class DeterministicImageEnhancer:
                 recommendation="Please avoid strong direct backlighting or flash flare.",
             )
 
-
         if blur_score < self.min_blur_score:
             return QualityAssessmentResult(
                 is_acceptable=False,
@@ -140,7 +136,6 @@ class DeterministicImageEnhancer:
                 rejection_reason=f"Photo is excessively blurry (sharpness score {blur_score:.1f} < {self.min_blur_score:.1f}).",
                 recommendation="Please hold the camera steady or retake when the subject is not moving rapidly.",
             )
-
 
         res_factor = min(1.0, (h * w) / (self.target_height * self.target_width))
         blur_factor = min(1.0, blur_score / 150.0)
@@ -165,13 +160,11 @@ class DeterministicImageEnhancer:
         processed = image.copy()
         h, w = processed.shape[:2]
 
-
         if self.apply_upscale and (h < self.target_height or w < self.target_width):
             scale = max(self.target_height / max(h, 1), self.target_width / max(w, 1))
             new_w = max(1, round(w * scale))
             new_h = max(1, round(h * scale))
             processed = cv2.resize(processed, (new_w, new_h), interpolation=cv2.INTER_LANCZOS4)
-
 
         if self.apply_adaptive_clahe:
             lab = cv2.cvtColor(processed, cv2.COLOR_BGR2LAB)
@@ -182,10 +175,8 @@ class DeterministicImageEnhancer:
                 lab_enhanced = cv2.merge([l_enhanced, a_channel, b_channel])
                 processed = cv2.cvtColor(lab_enhanced, cv2.COLOR_LAB2BGR)
 
-
         if self.apply_denoise:
             processed = cv2.bilateralFilter(processed, d=5, sigmaColor=35, sigmaSpace=35)
-
 
         if self.apply_sharpen:
             gaussian = cv2.GaussianBlur(processed, (0, 0), sigmaX=1.5)

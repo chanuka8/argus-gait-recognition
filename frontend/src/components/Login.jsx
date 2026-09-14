@@ -22,6 +22,7 @@ const Login = () => {
     const [activeAdminEmails, setActiveAdminEmails] = useState([]);
 
     useEffect(() => {
+        if (step !== 'forgot-password') return;
         const fetchAdminEmails = async () => {
             try {
                 const qRoot = query(collection(db, 'admins'), where('role', '==', 'Root Admin'));
@@ -56,7 +57,7 @@ const Login = () => {
             }
         };
         fetchAdminEmails();
-    }, []);
+    }, [step]);
 
     const handleRoleSelect = (role) => {
         setSelectedRole(role);
@@ -74,6 +75,7 @@ const Login = () => {
 
     const handleLogin = async (e) => {
         e.preventDefault();
+        if (loading || isSuccess) return;
 
         try {
             setError('');
@@ -84,14 +86,12 @@ const Login = () => {
             setIsSuccess(true);
             setLoading(false);
 
-            setTimeout(() => {
-                const roleLower = (loggedUser.role || '').toLowerCase();
-                if (roleLower === 'admin' || roleLower === 'root admin') {
-                    navigate('/admin/dashboard');
-                } else {
-                    navigate('/dashboard');
-                }
-            }, 1200);
+            const roleLower = (loggedUser?.role || '').toLowerCase();
+            if (roleLower === 'admin' || roleLower === 'root admin' || roleLower === 'root_admin') {
+                navigate('/admin/dashboard');
+            } else {
+                navigate('/dashboard');
+            }
         } catch (err) {
             setError(err.message || 'Failed to log in. Please check your credentials.');
             console.error(err);

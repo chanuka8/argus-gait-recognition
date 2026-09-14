@@ -71,7 +71,6 @@ class AdaptivePersonProcessingPolicy:
         now = time.monotonic()
         prev_tier = self.current_tier
 
-
         severe_pressure = (
             cpu_percent >= self.cpu_high_watermark + 5.0
             or ram_percent >= self.ram_high_watermark + 5.0
@@ -86,9 +85,7 @@ class AdaptivePersonProcessingPolicy:
             or queue_depth >= 8
         )
         moderate_pressure = (
-            cpu_percent >= (self.cpu_recovery_watermark + 5.0)
-            or active_tracks_count >= 50
-            or queue_depth >= 4
+            cpu_percent >= (self.cpu_recovery_watermark + 5.0) or active_tracks_count >= 50 or queue_depth >= 4
         )
         healthy = (
             cpu_percent <= self.cpu_recovery_watermark
@@ -109,8 +106,11 @@ class AdaptivePersonProcessingPolicy:
                 self.current_tier = AdaptivePersonLoadTier.MICRO_BATCHING
             else:
                 self.current_tier = AdaptivePersonLoadTier.REDUCED_PROCESSING_FPS
-        elif healthy and self.current_tier != AdaptivePersonLoadTier.FULL_QUALITY and (now - self._last_state_change) >= 1.5:
-
+        elif (
+            healthy
+            and self.current_tier != AdaptivePersonLoadTier.FULL_QUALITY
+            and (now - self._last_state_change) >= 1.5
+        ):
             self.current_tier = AdaptivePersonLoadTier.AUTOMATIC_RECOVERY
             if (now - self._last_state_change) >= 3.0:
                 self.current_tier = AdaptivePersonLoadTier.FULL_QUALITY
@@ -122,7 +122,6 @@ class AdaptivePersonProcessingPolicy:
                 f"(CPU: {cpu_percent:.1f}%, RAM: {ram_percent:.1f}%, VRAM: {vram_percent:.1f}%, "
                 f"Queue: {queue_depth}, Active Tracks: {active_tracks_count})"
             )
-
 
         if self.current_tier == AdaptivePersonLoadTier.FULL_QUALITY:
             return SchedulerPolicyParameters(
@@ -191,7 +190,6 @@ class AdaptivePersonProcessingPolicy:
                 target_fps_scale=0.25,
             )
 
-
         return SchedulerPolicyParameters(
             tier=AdaptivePersonLoadTier.AUTOMATIC_RECOVERY,
             reid_update_interval=10,
@@ -220,10 +218,8 @@ class PersonTrackScheduler:
         self._lock = threading.Lock()
         self._logger = get_logger("person_scheduler")
 
-
         self._camera_credits: dict[str, float] = {}
         self._camera_quantum = 10.0
-
 
         self._total_batches_dispatched = 0
         self._total_persons_batched = 0
@@ -244,41 +240,30 @@ class PersonTrackScheduler:
             for item in candidate_items:
                 ctx = item.context
 
-
                 if policy_params.skip_confirmed_reid and ctx.state == TrackLifecycleState.IDENTIFIED:
                     self._total_skipped_confirmed += 1
                     continue
-
 
                 frames_since_update = frame_index - ctx.appearance_last_frame
                 if ctx.appearance_embedding is not None and frames_since_update < policy_params.reid_update_interval:
                     continue
 
-
-
-
-
                 unconfirmed_boost = 2.0 if ctx.fused_identity == "UNKNOWN_PERSON" else 1.0
-                priority_score = (frames_since_update * unconfirmed_boost * max(0.5, ctx.track_confidence))
-
+                priority_score = frames_since_update * unconfirmed_boost * max(0.5, ctx.track_confidence)
 
                 cam_credit = self._camera_credits.get(item.camera_id, self._camera_quantum)
                 item.priority = priority_score * (1.0 + cam_credit / 100.0)
 
                 eligible.append(item)
 
-
             eligible.sort(key=lambda x: x.priority, reverse=True)
 
-
             batch = eligible[: policy_params.max_batch_size]
-
 
             for item in batch:
                 self._camera_credits[item.camera_id] = max(
                     0.0, self._camera_credits.get(item.camera_id, self._camera_quantum) - 1.0
                 )
-
 
             for cid in list(self._camera_credits.keys()):
                 self._camera_credits[cid] = min(50.0, self._camera_credits[cid] + 0.5)
