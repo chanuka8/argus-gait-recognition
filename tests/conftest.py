@@ -52,6 +52,11 @@ def setup_test_auth_headers(request, monkeypatch):
         "test_firebase_account_connectivity.py",
         "test_investigator_camera_flow.py",
         "test_async_missing_person.py",
+        "test_security_headers.py",
+        "test_error_disclosure.py",
+        "test_audit_log_integrity.py",
+        "test_biometric_template_encryption.py",
+        "test_camera_transport_security.py",
     }
     if any(sec in fspath for sec in security_test_modules) or "tests/security" in fspath:
         return

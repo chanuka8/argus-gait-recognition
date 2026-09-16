@@ -1,7 +1,11 @@
+import logging
+
 from fastapi import APIRouter, HTTPException
 
 from api.schemas import EnrollRequest, EnrollResponse
 from enrollment.enrollment_manager import EnrollmentManager
+
+logger = logging.getLogger("ARGUS.EnrollmentAPI")
 
 router = APIRouter()
 
@@ -14,7 +18,8 @@ def enroll(request: EnrollRequest):
         return result
 
     except (ValueError, FileNotFoundError, RuntimeError, OSError) as error:
+        logger.exception("Enrollment failed")
         raise HTTPException(
             status_code=500,
-            detail=str(error),
+            detail="Enrollment failed",
         ) from error

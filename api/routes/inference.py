@@ -1,7 +1,11 @@
+import logging
+
 from fastapi import APIRouter, HTTPException
 
 from api.schemas import IdentifyRequest, IdentifyResponse
 from pipeline.inference_pipeline import InferencePipeline
+
+logger = logging.getLogger("ARGUS.InferenceAPI")
 
 router = APIRouter()
 
@@ -18,7 +22,8 @@ def identify(request: IdentifyRequest):
         }
 
     except (ValueError, FileNotFoundError, RuntimeError, OSError) as error:
+        logger.exception("Image identification failed")
         raise HTTPException(
             status_code=500,
-            detail=str(error),
+            detail="Image identification failed",
         ) from error

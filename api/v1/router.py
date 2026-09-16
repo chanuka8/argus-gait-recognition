@@ -4,6 +4,7 @@ from fastapi.responses import Response, StreamingResponse
 
 """Version 1 API routes for the ARGUS gait recognition backend."""
 
+import logging
 import tempfile
 import time
 from pathlib import Path
@@ -54,11 +55,24 @@ from security_layer.authorization import (
     normalize_role,
     verify_case_access,
     verify_job_access,
+    verify_upload_session_access,
 )
-from security_layer.credentials import CredentialManager, sanitize_rtsp_url
+from security_layer.credentials import CredentialManager
+from security_layer.error_sanitizer import sanitize_validation_error
+from security_layer.input_validation import (
+    CHUNK_STREAM_BUFFER_SIZE,
+    MAX_ANALYZE_VIDEO_SIZE,
+    MAX_REFERENCE_VIDEO_SIZE,
+    MAX_UPLOAD_CHUNK_SIZE,
+    MAX_VIDEO_DIMENSION,
+    validate_path_containment,
+    validate_person_id,
+)
 from services.gait_service import GaitService
 from services.reference_job_manager import ReferenceJobManager, ReferenceJobStatus
 from services.upload_session_manager import UploadSessionManager
+
+logger = logging.getLogger("ARGUS.API")
 
 
 def get_current_operator_session(request: Request) -> SessionToken:
@@ -281,16 +295,24 @@ async def identify_image(
         raise
 
     except ValueError as error:
+        safe_msg = sanitize_validation_error(
+            error,
+            fallback_message="Invalid image format or payload",
+            allowed_known_messages=("Invalid or corrupted image format",),
+        )
+        if safe_msg == "Invalid image format or payload":
+            logger.exception("Image processing validation error")
         raise HTTPException(
             status_code=400,
-            detail=str(error),
+            detail=safe_msg,
         ) from error
 
-    except Exception as error:
+    except Exception:
+        logger.exception("Image identification failed")
         raise HTTPException(
             status_code=500,
-            detail=f"Image identification failed: {error}",
-        ) from error
+            detail="Image identification failed",
+        )
 
     finally:
         await file.close()
@@ -312,31 +334,61 @@ async def analyze_video(
     temporary_path: str | None = None
 
     try:
-        content = await file.read()
-
-        if not content:
-            raise HTTPException(
-                status_code=400,
-                detail="Uploaded video file is empty",
-            )
-
         suffix = ".mp4"
 
         if file.filename and "." in file.filename:
             suffix = "." + file.filename.rsplit(".", maxsplit=1)[-1]
 
+        total_bytes = 0
         with tempfile.NamedTemporaryFile(
             suffix=suffix,
             delete=False,
         ) as temporary_video:
-            temporary_video.write(content)
             temporary_path = temporary_video.name
+            while True:
+                chunk = await file.read(CHUNK_STREAM_BUFFER_SIZE)
+                if not chunk:
+                    break
+                total_bytes += len(chunk)
+                if total_bytes > MAX_ANALYZE_VIDEO_SIZE:
+                    raise HTTPException(
+                        status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+                        detail=(
+                            f"Video file exceeds maximum allowed analysis size of "
+                            f"{MAX_ANALYZE_VIDEO_SIZE // (1024 * 1024)} MiB"
+                        ),
+                    )
+                temporary_video.write(chunk)
+
+        if total_bytes == 0:
+            raise HTTPException(
+                status_code=400,
+                detail="Uploaded video file is empty",
+            )
 
         service.stats["processed_videos"] += 1
 
         import cv2
 
         capture = cv2.VideoCapture(temporary_path)
+        if not capture.isOpened():
+            raise HTTPException(
+                status_code=400,
+                detail="Video decoder failed to open or parse the uploaded video file",
+            )
+
+        width = int(capture.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        if width > MAX_VIDEO_DIMENSION or height > MAX_VIDEO_DIMENSION:
+            capture.release()
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"Video resolution {width}x{height} exceeds maximum supported "
+                    f"resolution ({MAX_VIDEO_DIMENSION}x{MAX_VIDEO_DIMENSION})"
+                ),
+            )
+
         events: list[RecognitionEvent] = []
         frame_index = 0
 
@@ -398,16 +450,24 @@ async def analyze_video(
         raise
 
     except ValueError as error:
+        safe_msg = sanitize_validation_error(
+            error,
+            fallback_message="Invalid or unprocessable video payload",
+            allowed_known_messages=("Invalid or corrupted video format",),
+        )
+        if safe_msg == "Invalid or unprocessable video payload":
+            logger.exception("Video analysis validation error")
         raise HTTPException(
             status_code=400,
-            detail=str(error),
+            detail=safe_msg,
         ) from error
 
-    except Exception as error:
+    except Exception:
+        logger.exception("Video analysis failed")
         raise HTTPException(
             status_code=500,
-            detail=f"Video analysis failed: {error}",
-        ) from error
+            detail="Video analysis failed",
+        )
 
     finally:
         await file.close()
@@ -443,9 +503,14 @@ def create_credential(
         )
         return meta
     except PermissionError as err:
-        raise HTTPException(status_code=403, detail=str(err)) from err
+        logger.exception("Permission denied storing credential")
+        raise HTTPException(
+            status_code=403,
+            detail="Permission denied: unauthorized credential operation",
+        ) from err
     except Exception as err:
-        raise HTTPException(status_code=500, detail=f"Failed to store credential: {err}") from err
+        logger.exception("Failed to store credential")
+        raise HTTPException(status_code=500, detail="Failed to store credential") from err
 
 
 @v1_router.get(
@@ -501,7 +566,11 @@ def delete_credential(
             "message": f"Credential '{credential_id}' deleted successfully",
         }
     except PermissionError as err:
-        raise HTTPException(status_code=403, detail=str(err)) from err
+        logger.exception(f"Permission denied deleting credential {credential_id}")
+        raise HTTPException(
+            status_code=403,
+            detail="Permission denied: unauthorized credential operation",
+        ) from err
 
 
 @v1_router.post("/credentials/{credential_id}/share")
@@ -529,7 +598,11 @@ def share_credential(
             "message": f"Credential '{credential_id}' shared with '{body.target_user_id}'",
         }
     except PermissionError as err:
-        raise HTTPException(status_code=403, detail=str(err)) from err
+        logger.exception(f"Permission denied sharing credential {credential_id}")
+        raise HTTPException(
+            status_code=403,
+            detail="Permission denied: unauthorized credential operation",
+        ) from err
 
 
 @v1_router.post(
@@ -556,7 +629,11 @@ def set_camera_credentials(
         )
         return meta
     except PermissionError as err:
-        raise HTTPException(status_code=403, detail=str(err)) from err
+        logger.exception(f"Permission denied setting camera credential {camera_id}")
+        raise HTTPException(
+            status_code=403,
+            detail="Permission denied: unauthorized credential operation",
+        ) from err
 
 
 @v1_router.post(
@@ -594,14 +671,16 @@ def start_camera(
             credential_id=body.credential_id,
         )
     except RuntimeError as err:
+        logger.exception(f"Camera stream connection failed for camera {body.camera_id}")
         raise HTTPException(
             status_code=400,
-            detail=sanitize_rtsp_url(str(err)),
+            detail="Camera connection failed or stream unavailable",
         ) from err
     except Exception as err:
+        logger.exception(f"Camera worker startup failed for camera {body.camera_id}")
         raise HTTPException(
             status_code=500,
-            detail=f"Camera worker startup failed: {sanitize_rtsp_url(str(err))}",
+            detail="Camera worker startup failed",
         ) from err
 
 
@@ -802,13 +881,7 @@ async def enroll_subject(
     ] = False,
 ):
     session = get_current_operator_session(request)
-    normalized_person_id = person_id.strip()
-
-    if not normalized_person_id:
-        raise HTTPException(
-            status_code=400,
-            detail="person_id is required",
-        )
+    normalized_person_id = validate_person_id(person_id)
 
     if not files:
         raise HTTPException(
@@ -844,6 +917,7 @@ async def enroll_subject(
             timestamp = int(time.time())
             for idx, raw_bytes in enumerate(image_bytes_list):
                 p_path = photos_dir / f"{normalized_person_id}_{timestamp}_{idx:02d}.jpg"
+                validate_path_containment(photos_dir, p_path)
                 p_path.write_bytes(raw_bytes)
                 saved_paths.append(str(p_path))
 
@@ -898,16 +972,24 @@ async def enroll_subject(
         raise
 
     except ValueError as error:
+        safe_msg = sanitize_validation_error(
+            error,
+            fallback_message="Invalid enrollment payload",
+            allowed_known_messages=("Invalid person_id: must be alphanumeric (hyphens/underscores permitted)",),
+        )
+        if safe_msg == "Invalid enrollment payload":
+            logger.exception("Enrollment validation error")
         raise HTTPException(
             status_code=400,
-            detail=str(error),
+            detail=safe_msg,
         ) from error
 
-    except Exception as error:
+    except Exception:
+        logger.exception("Enrollment failed")
         raise HTTPException(
             status_code=500,
-            detail=f"Enrollment failed: {error}",
-        ) from error
+            detail="Enrollment failed",
+        )
 
     finally:
         for upload in files:
@@ -936,9 +1018,7 @@ async def upload_case_reference_video(
     ] = None,
 ):
     session = get_current_operator_session(request)
-    normalized_person_id = person_id.strip()
-    if not normalized_person_id:
-        raise HTTPException(status_code=400, detail="person_id is required")
+    normalized_person_id = validate_person_id(person_id)
 
     valid_extensions = {".mp4", ".avi", ".mov", ".mkv", ".webm", ".m4v"}
     suffix = ".mp4"
@@ -958,16 +1038,25 @@ async def upload_case_reference_video(
     clean_name = "".join(c for c in safe_base if c.isalnum() or c in "._-") or f"reference{suffix}"
     save_filename = f"{normalized_person_id}_{int(time.time())}_{clean_name}"
     saved_path = videos_dir / save_filename
+    validate_path_containment(videos_dir, saved_path)
 
     def _save_stream_to_file(src_file, dst_path: Path) -> int:
         written = 0
         with open(dst_path, "wb") as f_out:
             while True:
-                chunk = src_file.read(1024 * 1024)
+                chunk = src_file.read(CHUNK_STREAM_BUFFER_SIZE)
                 if not chunk:
                     break
-                f_out.write(chunk)
                 written += len(chunk)
+                if written > MAX_REFERENCE_VIDEO_SIZE:
+                    raise HTTPException(
+                        status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                        detail=(
+                            f"Reference video exceeds maximum allowed size of "
+                            f"{MAX_REFERENCE_VIDEO_SIZE // (1024 * 1024)} MiB"
+                        ),
+                    )
+                f_out.write(chunk)
         return written
 
     total_bytes = 0
@@ -984,7 +1073,8 @@ async def upload_case_reference_video(
     except Exception as exc:
         if saved_path.exists():
             saved_path.unlink(missing_ok=True)
-        raise HTTPException(status_code=500, detail=f"Failed to save video: {exc}") from exc
+        logger.exception("Failed to save reference video")
+        raise HTTPException(status_code=500, detail="Failed to save video") from exc
     finally:
         await file.close()
 
@@ -1125,19 +1215,54 @@ def init_upload_session(
     request: Request,
 ):
     session = get_current_operator_session(request)
+    validated_person_id = validate_person_id(payload.person_id)
+
+    if payload.total_size > MAX_REFERENCE_VIDEO_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+            detail=(
+                f"total_size ({payload.total_size} bytes) exceeds maximum allowed "
+                f"upload size of {MAX_REFERENCE_VIDEO_SIZE // (1024 * 1024)} MiB"
+            ),
+        )
+
+    if payload.chunk_size is not None and payload.chunk_size > MAX_UPLOAD_CHUNK_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"chunk_size ({payload.chunk_size} bytes) exceeds maximum allowed "
+                f"chunk size of {MAX_UPLOAD_CHUNK_SIZE // (1024 * 1024)} MiB"
+            ),
+        )
+
     session_mgr = UploadSessionManager.get_instance()
     try:
         record = session_mgr.create_session(
-            person_id=payload.person_id,
+            person_id=validated_person_id,
             filename=payload.filename,
             total_size=payload.total_size,
             chunk_size=payload.chunk_size,
             media_type=payload.media_type,
-            case_id=payload.case_id or payload.person_id,
+            case_id=payload.case_id or validated_person_id,
             owner=session.username,
         )
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
+        safe_msg = sanitize_validation_error(
+            e,
+            fallback_message="Invalid upload session parameters",
+            allowed_known_messages=(
+                "person_id is required",
+                "total_size must be greater than zero",
+                "person_id is not filesystem-safe",
+            ),
+            allowed_prefixes=(
+                "total_size (",
+                "chunk_size (",
+            ),
+        )
+        if safe_msg == "Invalid upload session parameters":
+            logger.exception("Upload session validation error")
+        raise HTTPException(status_code=400, detail=safe_msg) from e
 
     return {
         "upload_id": record.upload_id,
@@ -1159,10 +1284,25 @@ async def upload_session_chunk(
     file: Annotated[UploadFile, File(description="Chunk binary payload")],
     request: Request,
 ):
-    get_current_operator_session(request)
+    session = get_current_operator_session(request)
+    record = verify_upload_session_access(upload_id, session)
     session_mgr = UploadSessionManager.get_instance()
     try:
-        chunk_bytes = await file.read()
+        expected_size = record.expected_chunk_size(chunk_index)
+        if expected_size <= 0:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid chunk index {chunk_index}; session requires 0..{record.total_chunks - 1}",
+            )
+
+        # Read at most expected_size + 1 bytes to prevent unbounded memory allocation
+        chunk_bytes = await file.read(expected_size + 1)
+        if len(chunk_bytes) > expected_size or (await file.read(1)):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Chunk payload exceeds expected size ({expected_size} bytes) for chunk {chunk_index}",
+            )
+
         success, msg, data = session_mgr.write_chunk(
             upload_id=upload_id,
             chunk_index=chunk_index,
@@ -1191,11 +1331,8 @@ def get_upload_session_status(
     upload_id: str,
     request: Request,
 ):
-    get_current_operator_session(request)
-    session_mgr = UploadSessionManager.get_instance()
-    record = session_mgr.get_session(upload_id)
-    if not record:
-        raise HTTPException(status_code=404, detail=f"Upload session '{upload_id}' not found")
+    session = get_current_operator_session(request)
+    record = verify_upload_session_access(upload_id, session)
 
     return {
         "upload_id": record.upload_id,
@@ -1222,6 +1359,7 @@ def commit_upload_session(
     service: Annotated[GaitService, Depends(get_gait_service)],
 ):
     session = get_current_operator_session(request)
+    verify_upload_session_access(upload_id, session)
     session_mgr = UploadSessionManager.get_instance()
     success, msg, final_path = session_mgr.assemble_and_commit(upload_id)
     if not success or final_path is None:
@@ -1290,11 +1428,12 @@ def cancel_upload_session(
     upload_id: str,
     request: Request,
 ):
-    get_current_operator_session(request)
+    session = get_current_operator_session(request)
+    verify_upload_session_access(upload_id, session)
     session_mgr = UploadSessionManager.get_instance()
     cancelled = session_mgr.cancel_session(upload_id)
     if not cancelled:
-        raise HTTPException(status_code=404, detail=f"Upload session '{upload_id}' not found")
+        raise HTTPException(status_code=400, detail=f"Upload session '{upload_id}' cannot be cancelled")
     return {"success": True, "upload_id": upload_id, "status": "CANCELLED"}
 
 
@@ -1396,8 +1535,10 @@ def rollback_model_version(request: Request):
     response_model=list[RecognitionEvent],
 )
 def get_events(
+    request: Request,
     service: Annotated[GaitService, Depends(get_gait_service)],
 ):
+    get_current_operator_session(request)
     return list(service.events_log)
 
 
@@ -1519,17 +1660,82 @@ def sync_case_dossiers(request: Request):
     }
 
 
+async def authenticate_websocket(websocket: WebSocket) -> tuple[SessionToken | None, str | None]:
+    """Authenticate and authorize an incoming WebSocket connection before handshake completion.
+
+    Enforces:
+      - Extraction of session token from WebSocket subprotocols (e.g. ['argus-auth', '<token>'])
+        or fallback Authorization: Bearer <token> header for automated test clients.
+      - Verification against SessionStore (sliding idle timeout, absolute TTL).
+      - Rejection of suspended operator accounts.
+      - Verification of operator permissions (BIOMETRIC_VIEW or CAMERA_STREAM).
+      - Closes unauthenticated, invalid, or unauthorized connections with code 1008 (Policy Violation).
+      - Never echoes raw session token back in accepted subprotocol.
+
+    Returns:
+      (SessionToken, accepted_subprotocol) on success, or (None, None) if rejected.
+    """
+    token: str | None = None
+    accepted_subprotocol: str | None = None
+
+    # 1. Primary mechanism: WebSocket subprotocol ("argus-auth", <token>)
+    subprotocols = websocket.scope.get("subprotocols") or []
+    if not subprotocols and websocket.headers.get("sec-websocket-protocol"):
+        subprotocols = [p.strip() for p in websocket.headers.get("sec-websocket-protocol").split(",") if p.strip()]
+
+    if "argus-auth" in subprotocols:
+        for p in subprotocols:
+            if p != "argus-auth" and p:
+                token = p
+                accepted_subprotocol = "argus-auth"
+                break
+
+    # 2. Secondary fallback: Authorization header for automated test clients
+    if not token:
+        auth_header = websocket.headers.get("authorization")
+        if auth_header:
+            parts = auth_header.split()
+            if len(parts) == 2 and parts[0].lower() == "bearer":
+                token = parts[1].strip()
+
+    if not token:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Authentication required")
+        return None, None
+
+    session = get_session_store().get_session(token)
+    if not session:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Invalid or expired session token")
+        return None, None
+
+    if session.status == "Suspended":
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Account has been suspended")
+        return None, None
+
+    if not (
+        has_permission(session.role, Permission.BIOMETRIC_VIEW)
+        or has_permission(session.role, Permission.CAMERA_STREAM)
+    ):
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Insufficient permissions")
+        return None, None
+
+    return session, accepted_subprotocol
+
+
 @v1_router.websocket("/ws/recognition")
 @v1_router.websocket("/ws/events")
 async def websocket_recognition(
     websocket: WebSocket,
 ):
+    session, accepted_subprotocol = await authenticate_websocket(websocket)
+    if not session:
+        return
+
     if hasattr(websocket.app.state, "gait_service") and websocket.app.state.gait_service:
         service = websocket.app.state.gait_service
     else:
         service = GaitService()
 
-    await service.ws_manager.connect(websocket)
+    await service.ws_manager.connect(websocket, subprotocol=accepted_subprotocol)
 
     try:
         while True:

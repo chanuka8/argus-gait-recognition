@@ -53,6 +53,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from security_layer.security_headers import SecurityHeadersMiddleware
+
+app.add_middleware(SecurityHeadersMiddleware)
+
 
 from api.routes.health import health_router
 from api.v1.auth_router import auth_router
@@ -161,12 +165,26 @@ async def serve_spa_frontend(full_path: str):
     ):
         raise HTTPException(status_code=404, detail="Not Found")
 
-    static_file = FRONTEND_DIST_DIR / full_path
-    if FRONTEND_DIST_DIR.exists() and static_file.is_file():
-        return FileResponse(str(static_file))
+    if not FRONTEND_DIST_DIR.exists():
+        raise HTTPException(status_code=404, detail="Frontend build not found")
 
-    index_file = FRONTEND_DIST_DIR / "index.html"
-    if FRONTEND_DIST_DIR.exists() and index_file.is_file():
+    resolved_dist = FRONTEND_DIST_DIR.resolve()
+    clean_subpath = full_path.lstrip("/\\")
+
+    try:
+        target_file = (resolved_dist / clean_subpath).resolve()
+        is_inside = target_file.is_relative_to(resolved_dist)
+    except (ValueError, OSError):
+        raise HTTPException(status_code=404, detail="Not Found")
+
+    if not is_inside:
+        raise HTTPException(status_code=404, detail="Not Found")
+
+    if target_file.is_file():
+        return FileResponse(str(target_file))
+
+    index_file = resolved_dist / "index.html"
+    if index_file.is_file():
         return FileResponse(str(index_file))
 
     raise HTTPException(status_code=404, detail="Frontend build not found")

@@ -120,7 +120,13 @@ class AutoEnrollmentService:
             json.dump(payload, file, indent=4)
 
     def _target_folder(self, root: Path, person_id: str) -> Path:
-        folder = root / person_id
+        # Defence-in-depth: sanitize person_id and verify containment
+        safe_pid = "".join(c if c.isalnum() or c in ("-", "_", " ", ".") else "_" for c in person_id)
+        folder = root / safe_pid
+        resolved_root = root.resolve()
+        resolved_folder = folder.resolve()
+        if not resolved_folder.is_relative_to(resolved_root):
+            raise ValueError(f"person_id '{person_id}' would escape the storage directory")
         folder.mkdir(parents=True, exist_ok=True)
         return folder
 

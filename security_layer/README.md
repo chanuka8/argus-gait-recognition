@@ -14,11 +14,18 @@ The `security_layer` package implements security event classification, decision 
 <!-- BEGIN SYNC: KEY_MODULES -->
 | Module | Purpose |
 | --- | --- |
+| [audit_verifier.py](audit_verifier.py) | Module/resource file audit_verifier.py |
 | [auth.py](auth.py) | Module/resource file auth.py |
 | [authorization.py](authorization.py) | Module/resource file authorization.py |
+| [biometric_encryption.py](biometric_encryption.py) | Module/resource file biometric_encryption.py |
 | [credentials.py](credentials.py) | Encryption and credentials storage manager for RTSP stream passwords |
+| [error_sanitizer.py](error_sanitizer.py) | Module/resource file error_sanitizer.py |
+| [input_validation.py](input_validation.py) | Module/resource file input_validation.py |
+| [model_integrity.py](model_integrity.py) | Module/resource file model_integrity.py |
 | [password_hasher.py](password_hasher.py) | Module/resource file password_hasher.py |
+| [rate_limiter.py](rate_limiter.py) | Module/resource file rate_limiter.py |
 | [security_engine.py](security_engine.py) | Security rule engine classifying recognition scores into severity decision tiers |
+| [security_headers.py](security_headers.py) | Module/resource file security_headers.py |
 | [security_logger.py](security_logger.py) | Thread-safe CSV logger persisting security audit events to `outputs/logs/security/security_events.csv` |
 <!-- END SYNC: KEY_MODULES -->
 

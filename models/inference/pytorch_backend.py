@@ -31,8 +31,11 @@ class PyTorchBackend(BaseInferenceBackend):
         part_bins = 4
         filtered = {}
         if self.model_path.exists():
+            from security_layer.model_integrity import ROLE_GAIT_EMBEDDING, verify_model
+
+            verified_path = verify_model(self.model_path, expected_role=ROLE_GAIT_EMBEDDING)
             try:
-                checkpoint = torch.load(self.model_path, map_location="cpu", weights_only=True)
+                checkpoint = torch.load(verified_path, map_location="cpu", weights_only=True)
                 for key, value in checkpoint.items():
                     if key.startswith("backbone."):
                         filtered[key.replace("backbone.", "")] = value

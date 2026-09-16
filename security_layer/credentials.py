@@ -6,51 +6,128 @@ import secrets
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
-from urllib.parse import quote, unquote
+from urllib.parse import parse_qsl, quote, unquote, urlencode, urlsplit, urlunsplit
 
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 
-def sanitize_rtsp_url(url: str | None) -> str:
+class CameraTransportSecurityError(ValueError):
+    """Raised when camera stream transport does not comply with security policy."""
+
+
+SENSITIVE_QUERY_KEYS: set[str] = {
+    "password",
+    "pass",
+    "token",
+    "access_token",
+    "api_key",
+    "apikey",
+    "secret",
+    "auth",
+    "key",
+}
+
+STREAM_URL_REGEX = re.compile(r"((?:rtsp|rtsps|https?)://[^\s\"'<>,;]+)", re.IGNORECASE)
+
+
+def sanitize_stream_url(url: str | None) -> str:
+    """Sanitize credentials and sensitive query parameters from stream URLs and log strings.
+
+    Redacts:
+    - User credentials (username:password in URL authority) -> '***:***@'
+    - Sensitive query parameters (token, access_token, api_key, password, secret, etc.) -> '***'
+
+    Malformed URLs fail safely without echoing raw sensitive tokens.
+    """
     if not url or not isinstance(url, str):
         return ""
-    pattern = r"(rtsp://)([^:\s]+):(.+)@([^/\s]+(?::\d+)?(?:/[^\s]*)?)"
 
-    def _repl(m):
-        return f"{m.group(1)}***:***@{m.group(4)}"
+    def _sanitize_url_match(match: re.Match) -> str:
+        target = match.group(1)
+        try:
+            parsed = urlsplit(target)
+            scheme = parsed.scheme.lower()
+            if scheme not in ("rtsp", "rtsps", "http", "https"):
+                return target
 
-    return re.sub(pattern, _repl, url, flags=re.IGNORECASE)
+            netloc = parsed.netloc
+            if "@" in netloc:
+                _userinfo, hostport = netloc.rsplit("@", 1)
+                new_netloc = f"***:***@{hostport}"
+            else:
+                new_netloc = netloc
+
+            new_query = ""
+            if parsed.query:
+                pairs = parse_qsl(parsed.query, keep_blank_values=True)
+                sanitized_pairs = []
+                for k, v in pairs:
+                    k_lower = k.lower()
+                    if k_lower in SENSITIVE_QUERY_KEYS or any(
+                        s in k_lower for s in ("password", "secret", "token", "apikey", "api_key")
+                    ):
+                        sanitized_pairs.append((k, "***"))
+                    else:
+                        sanitized_pairs.append((k, v))
+                new_query = urlencode(sanitized_pairs, safe="*:")
+
+            return urlunsplit((parsed.scheme, new_netloc, parsed.path, new_query, parsed.fragment))
+        except Exception:  # noqa: BLE001
+            # Fallback for malformed URLs
+            safe = re.sub(r"://([^:\s@]+):([^\s@]+)@", r"://***:***@", target)
+            for k in SENSITIVE_QUERY_KEYS:
+                safe = re.sub(rf"([?&]{k}=)[^&\s]+", r"\1***", safe, flags=re.IGNORECASE)
+            return safe
+
+    return STREAM_URL_REGEX.sub(_sanitize_url_match, url)
 
 
-def extract_rtsp_credentials(url: str) -> tuple[str | None, str | None, str]:
+def sanitize_rtsp_url(url: str | None) -> str:
+    """Backward-compatible wrapper for sanitize_stream_url."""
+    return sanitize_stream_url(url)
+
+
+def extract_stream_credentials(url: str) -> tuple[str | None, str | None, str]:
+    """Extract username and password from a stream URL (rtsp://, rtsps://), returning clean URL."""
     if not url or not isinstance(url, str):
         return None, None, ""
 
-    match = re.search(r"rtsp://([^:\s]+):(.+)@([^/\s]+(?::\d+)?(?:/.*)?)$", url, flags=re.IGNORECASE)
+    match = re.search(
+        r"^(rtsp|rtsps)://([^:\s]+):(.+)@([^/\s]+(?::\d+)?(?:/.*)?)$",
+        url.strip(),
+        flags=re.IGNORECASE,
+    )
     if match:
-        user = unquote(match.group(1))
-        passwd = unquote(match.group(2))
-        host_and_path = match.group(3)
-        clean_url = f"rtsp://{host_and_path}"
+        scheme = match.group(1).lower()
+        user = unquote(match.group(2))
+        passwd = unquote(match.group(3))
+        host_and_path = match.group(4)
+        clean_url = f"{scheme}://{host_and_path}"
         return user, passwd, clean_url
 
     return None, None, url
 
 
+def extract_rtsp_credentials(url: str) -> tuple[str | None, str | None, str]:
+    """Backward-compatible wrapper for extract_stream_credentials."""
+    return extract_stream_credentials(url)
+
+
 extract_url_credentials = extract_rtsp_credentials
 
 
-def build_rtsp_url(
+def build_stream_url(
     base_url: str,
     username: str | None = None,
     password: str | None = None,
 ) -> str:
+    """Inject credentials into an RTSP or RTSPS stream URL."""
     if not base_url or not isinstance(base_url, str):
         return ""
 
-    _, _, clean_url = extract_rtsp_credentials(base_url)
+    _, _, clean_url = extract_stream_credentials(base_url)
 
     if not username and not password:
         return clean_url
@@ -58,15 +135,256 @@ def build_rtsp_url(
     user_str = quote(str(username or ""), safe="")
     pass_str = quote(str(password or ""), safe="")
 
-    if clean_url.lower().startswith("rtsp://"):
-        host_part = clean_url[7:]
+    scheme_match = re.match(r"^(rtsp|rtsps)://", clean_url, flags=re.IGNORECASE)
+    if scheme_match:
+        scheme = scheme_match.group(1).lower()
+        host_part = clean_url[len(scheme) + 3 :]
         if pass_str:
-            return f"rtsp://{user_str}:{pass_str}@{host_part}"
+            return f"{scheme}://{user_str}:{pass_str}@{host_part}"
         elif user_str:
-            return f"rtsp://{user_str}@{host_part}"
+            return f"{scheme}://{user_str}@{host_part}"
         return clean_url
 
     return clean_url
+
+
+def build_rtsp_url(
+    base_url: str,
+    username: str | None = None,
+    password: str | None = None,
+) -> str:
+    """Backward-compatible wrapper for build_stream_url."""
+    return build_stream_url(base_url, username, password)
+
+
+def is_secure_camera_transport_required(override: bool | None = None) -> bool:
+    """Check if strict camera transport security is enforced.
+
+    Controlled by env var ARGUS_REQUIRE_SECURE_CAMERA_TRANSPORT.
+    Default is False (permissive/development mode).
+    """
+    if override is not None:
+        return bool(override)
+    env_val = os.environ.get("ARGUS_REQUIRE_SECURE_CAMERA_TRANSPORT", "").strip().lower()
+    return env_val in ("true", "1", "yes")
+
+
+def validate_camera_transport(
+    source: Any,
+    config: dict[str, Any] | None = None,
+    strict_mode: bool | None = None,
+    enforce: bool = True,
+) -> dict[str, Any]:
+    """Classify and validate camera stream transport security.
+
+    Distinguishes 7 distinct transport categories:
+    1. 'local' - USB webcams, DirectShow devices, local video files.
+    2. 'protected_tunnel' - RTSP over WireGuard, IPSec, or authenticated VPN tunnel (operator-asserted).
+    3. 'rtsps_candidate' - Native RTSPS (rtsps://). Note: OpenCV FFmpeg recognizes scheme, but application
+       cannot cryptographically prove CA trust, SAN, or revocation without operator confirmation.
+    4. 'https_candidate' - HTTPS stream (https://).
+    5. 'plaintext_rtsp' - Unencrypted RTSP (rtsp://).
+    6. 'plaintext_http' - Unencrypted HTTP (http://).
+    7. 'unsupported' - Unknown or invalid stream scheme.
+
+    In strict mode (ARGUS_REQUIRE_SECURE_CAMERA_TRANSPORT=true):
+    - 'local' and 'protected_tunnel' are allowed.
+    - 'rtsps_candidate' is allowed ONLY if operator explicitly asserts verified transport
+      (e.g., config['allow_rtsps_candidate'] is True or config['transport_security'] in ('rtsps_verified', 'verified_native_tls')
+      or ARGUS_ALLOW_RTSPS_CANDIDATE=true).
+    - 'plaintext_rtsp' and 'plaintext_http' are REJECTED.
+
+    Returns dict with classification, allowed flag, reason, and transport security metadata.
+    If enforce is True and not allowed, raises CameraTransportSecurityError.
+    """
+    cfg = config or {}
+    strict = is_secure_camera_transport_required(strict_mode)
+
+    # 1. Local device check
+    if isinstance(source, int) or (isinstance(source, str) and (source.isdigit() or source.startswith("usb:"))):
+        return {
+            "allowed": True,
+            "category": "local",
+            "transport_scheme": "local",
+            "is_encrypted": True,
+            "verified_by_argus": True,
+            "reason": "Local camera hardware device",
+            "description": "Local USB or V4L2/DirectShow capture",
+        }
+
+    source_str = str(source).strip() if source is not None else ""
+
+    # Check for local video file
+    if source_str and (
+        Path(source_str).exists() or any(source_str.lower().endswith(ext) for ext in (".mp4", ".avi", ".mkv", ".mov"))
+    ):
+        return {
+            "allowed": True,
+            "category": "local",
+            "transport_scheme": "file",
+            "is_encrypted": True,
+            "verified_by_argus": True,
+            "reason": "Local media file",
+            "description": "Local video file playback",
+        }
+
+    # 2. Check for operator-asserted protected tunnel
+    transport_sec_cfg = str(cfg.get("transport_security", "")).strip().lower()
+    is_tunnel_cfg = bool(cfg.get("is_tunnel") or cfg.get("protected_tunnel"))
+    tunnel_type = cfg.get("tunnel_type") or "operator_asserted"
+
+    if is_tunnel_cfg or transport_sec_cfg in ("protected_tunnel", "vpn", "ipsec", "wireguard", "tls_proxy"):
+        return {
+            "allowed": True,
+            "category": "protected_tunnel",
+            "transport_scheme": "rtsp",
+            "is_encrypted": True,
+            "verified_by_argus": False,  # ARGUS cannot cryptographically verify external network tunnel
+            "tunnel_type": tunnel_type,
+            "reason": "Operator-asserted protected tunnel (WireGuard/IPSec/VPN)",
+            "description": "Network stream encapsulated in verified external encrypted tunnel",
+        }
+
+    # Scheme inspection
+    scheme_match = re.match(r"^([a-zA-Z][a-zA-Z0-9+-.]*)://", source_str)
+    scheme = scheme_match.group(1).lower() if scheme_match else ""
+
+    # 3. RTSPS candidate
+    if scheme == "rtsps":
+        operator_confirmed = bool(
+            cfg.get("allow_rtsps_candidate")
+            or transport_sec_cfg in ("rtsps_verified", "rtsps_confirmed", "verified_native_tls")
+            or os.environ.get("ARGUS_ALLOW_RTSPS_CANDIDATE", "").strip().lower() in ("true", "1", "yes")
+        )
+
+        if strict and not operator_confirmed:
+            reason = (
+                "RTSPS scheme recognized ('rtsps://'), but native certificate validation is not "
+                "independently proven by OpenCV runtime. Strict mode requires explicit operator "
+                "confirmation of verified transport (set transport_security='rtsps_verified' or "
+                "allow_rtsps_candidate=True)."
+            )
+            if enforce:
+                raise CameraTransportSecurityError(reason)
+            return {
+                "allowed": False,
+                "category": "rtsps_candidate",
+                "transport_scheme": "rtsps",
+                "is_encrypted": True,
+                "verified_by_argus": False,
+                "reason": reason,
+                "description": "RTSPS candidate stream requiring operator verification confirmation",
+            }
+
+        return {
+            "allowed": True,
+            "category": "rtsps_candidate",
+            "transport_scheme": "rtsps",
+            "is_encrypted": True,
+            "verified_by_argus": False,  # Explicitly NOT claimed to be verified by ARGUS runtime
+            "operator_confirmed": operator_confirmed,
+            "reason": (
+                "RTSPS transport candidate accepted (operator confirmation configured)"
+                if operator_confirmed
+                else "RTSPS transport candidate accepted (permissive mode)"
+            ),
+            "description": "Native RTSPS stream candidate",
+        }
+
+    # 4. HTTPS candidate
+    if scheme == "https":
+        operator_confirmed = bool(
+            cfg.get("allow_https_candidate")
+            or transport_sec_cfg in ("https_verified", "verified_native_tls")
+            or os.environ.get("ARGUS_ALLOW_HTTPS_CANDIDATE", "").strip().lower() in ("true", "1", "yes")
+        )
+        if strict and not operator_confirmed:
+            reason = "HTTPS stream candidate requires operator verification confirmation in strict mode."
+            if enforce:
+                raise CameraTransportSecurityError(reason)
+            return {
+                "allowed": False,
+                "category": "https_candidate",
+                "transport_scheme": "https",
+                "is_encrypted": True,
+                "verified_by_argus": False,
+                "reason": reason,
+            }
+        return {
+            "allowed": True,
+            "category": "https_candidate",
+            "transport_scheme": "https",
+            "is_encrypted": True,
+            "verified_by_argus": False,
+            "reason": "HTTPS candidate accepted",
+        }
+
+    # 5. Plaintext RTSP
+    if scheme == "rtsp":
+        if strict:
+            reason = (
+                "Plaintext RTSP transport ('rtsp://') is rejected under strict camera transport security "
+                "(ARGUS_REQUIRE_SECURE_CAMERA_TRANSPORT=true). Stream traffic and credentials are vulnerable "
+                "to network sniffing and MITM tampering. Remediate with a protected tunnel (WireGuard/IPSec) "
+                "or native verified RTSPS."
+            )
+            if enforce:
+                raise CameraTransportSecurityError(reason)
+            return {
+                "allowed": False,
+                "category": "plaintext_rtsp",
+                "transport_scheme": "rtsp",
+                "is_encrypted": False,
+                "verified_by_argus": True,
+                "reason": reason,
+                "description": "Unencrypted RTSP stream",
+            }
+
+        return {
+            "allowed": True,
+            "category": "plaintext_rtsp",
+            "transport_scheme": "rtsp",
+            "is_encrypted": False,
+            "verified_by_argus": True,
+            "reason": "Plaintext RTSP accepted in permissive mode (transport remediation pending)",
+            "description": "Unencrypted RTSP stream (vulnerable to eavesdropping)",
+        }
+
+    # 6. Plaintext HTTP
+    if scheme == "http":
+        if strict:
+            reason = "Plaintext HTTP transport ('http://') is rejected under strict transport security."
+            if enforce:
+                raise CameraTransportSecurityError(reason)
+            return {
+                "allowed": False,
+                "category": "plaintext_http",
+                "transport_scheme": "http",
+                "is_encrypted": False,
+                "verified_by_argus": True,
+                "reason": reason,
+            }
+        return {
+            "allowed": True,
+            "category": "plaintext_http",
+            "transport_scheme": "http",
+            "is_encrypted": False,
+            "verified_by_argus": True,
+            "reason": "Plaintext HTTP accepted in permissive mode",
+        }
+
+    # 7. Unsupported scheme
+    reason = f"Unsupported camera source or stream scheme: '{scheme or source_str}'"
+    if enforce:
+        raise CameraTransportSecurityError(reason)
+    return {
+        "allowed": False,
+        "category": "unsupported",
+        "transport_scheme": scheme or "unknown",
+        "is_encrypted": False,
+        "verified_by_argus": True,
+        "reason": reason,
+    }
 
 
 def derive_fernet_key(passphrase: str, salt: bytes = b"argus_rtsp_salt") -> bytes:
@@ -430,16 +748,35 @@ def resolve_camera_config(
         res["password"] = password or ""
 
         host = res.get("host")
-        port = res.get("port", 554)
+        protocol = str(res.get("protocol") or "").lower()
+        if not protocol:
+            if raw_url.lower().startswith("rtsps://"):
+                protocol = "rtsps"
+            else:
+                protocol = "rtsp"
+        scheme = "rtsps" if protocol == "rtsps" else "rtsp"
+        default_port = 322 if scheme == "rtsps" else 554
+        port = res.get("port", default_port)
         path = res.get("path", "")
 
         if host:
             if path and not path.startswith("/"):
                 path = "/" + path
-            res["url"] = build_rtsp_url(f"rtsp://{host}:{port}{path}", username, password)
+            res["url"] = build_stream_url(f"{scheme}://{host}:{port}{path}", username, password)
         elif raw_url:
-            res["url"] = build_rtsp_url(clean_url, username, password)
+            res["url"] = build_stream_url(clean_url, username, password)
     elif "url" in res:
         res["url"] = clean_url
+
+    target_url = res.get("url")
+    if target_url:
+        strict = is_secure_camera_transport_required()
+        validation = validate_camera_transport(target_url, config=res, strict_mode=strict, enforce=False)
+        res["transport_category"] = validation.get("category")
+        res["transport_scheme"] = validation.get("transport_scheme")
+        res["transport_allowed"] = validation.get("allowed")
+        res["transport_reason"] = validation.get("reason")
+        if strict and not validation.get("allowed", False):
+            raise CameraTransportSecurityError(f"Camera '{camera_id}': {validation.get('reason')}")
 
     return res

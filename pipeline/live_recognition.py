@@ -574,14 +574,18 @@ class LiveRecognitionPipeline:
         self,
         model_path: str,
     ) -> ByGaitLight:
-        if not Path(model_path).exists():
-            raise FileNotFoundError(f"Model checkpoint not found: {model_path}")
+        from security_layer.model_integrity import ROLE_GAIT_EMBEDDING, verify_model
+
+        verified_path = verify_model(model_path, expected_role=ROLE_GAIT_EMBEDDING)
+        if not Path(verified_path).exists():
+            raise FileNotFoundError(f"Model checkpoint not found: {verified_path}")
 
         model = ByGaitLight()
 
         checkpoint = torch.load(
-            model_path,
+            verified_path,
             map_location="cpu",
+            weights_only=True,
         )
 
         filtered = {}

@@ -149,12 +149,18 @@ export const gaitApi = {
     const connect = () => {
       if (isExplicitClosed) return;
 
+      const token = sessionStorage.getItem('argus_session_token');
+      if (!token) {
+        // Defer connection until operator session token is available
+        return;
+      }
+
       try {
-        socket = new WebSocket(wsUrl);
+        socket = new WebSocket(wsUrl, ['argus-auth', token]);
 
         socket.onopen = () => {
           reconnectAttempts = 0;
-          console.log('[gaitApi] WebSocket connected to ARGUS Engine:', wsUrl);
+          console.log('[gaitApi] WebSocket connected to ARGUS Engine (authenticated)');
         };
 
         socket.onmessage = (evt) => {
@@ -171,9 +177,19 @@ export const gaitApi = {
           if (onError) onError(err);
         };
 
-        socket.onclose = () => {
+        socket.onclose = (event) => {
           if (onClose) onClose();
+          // Policy Violation (1008) indicates unauthenticated, invalid, expired, or suspended session.
+          // Do not loop infinitely with the same rejected token.
+          if (event && event.code === 1008) {
+            console.warn('[gaitApi] WebSocket rejected by server (Policy Violation / Invalid session). Discontinuing reconnect.');
+            return;
+          }
+
           if (!isExplicitClosed && reconnectAttempts < maxReconnectAttempts) {
+            const currentToken = sessionStorage.getItem('argus_session_token');
+            if (!currentToken) return;
+
             reconnectAttempts++;
             const delay = Math.min(1000 * Math.pow(1.5, reconnectAttempts), 10000);
             console.warn(`[gaitApi] WS disconnected. Reconnecting in ${Math.round(delay)}ms (attempt ${reconnectAttempts})...`);

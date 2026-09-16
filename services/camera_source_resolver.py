@@ -7,10 +7,13 @@ import yaml
 
 from monitoring.logging_config import get_logger
 from security_layer.credentials import (
+    CameraTransportSecurityError,
     CredentialManager,
-    build_rtsp_url,
-    extract_rtsp_credentials,
-    sanitize_rtsp_url,
+    build_stream_url,
+    extract_stream_credentials,
+    is_secure_camera_transport_required,
+    sanitize_stream_url,
+    validate_camera_transport,
 )
 from services.camera_worker import normalize_camera_source
 
@@ -157,7 +160,13 @@ class CameraSourceResolver:
         if self.is_source_reserved(source_key):
             return False
 
-        safe_url = sanitize_rtsp_url(str(url))
+        safe_url = sanitize_stream_url(str(url))
+        if is_secure_camera_transport_required():
+            validation = validate_camera_transport(url, enforce=False)
+            if not validation.get("allowed", False):
+                self._logger.warning(f"Rejecting unverified stream probe for {safe_url}: {validation.get('reason')}")
+                return False
+
         capture = None
 
         try:
@@ -226,7 +235,7 @@ class CameraSourceResolver:
 
             else:
                 normalized_str = str(normalized).strip()
-                if normalized_str.lower().startswith("rtsp://"):
+                if normalized_str.lower().startswith("rtsp://") or normalized_str.lower().startswith("rtsps://"):
                     raw_url = normalized_str
                     source_type = "rtsp"
                 elif normalized_str.lower().startswith("http://") or normalized_str.lower().startswith("https://"):
@@ -239,7 +248,7 @@ class CameraSourceResolver:
                     else:
                         raw_url = f"rtsp://{normalized_str}:554/live"
 
-                extracted_user, extracted_pass, clean_url = extract_rtsp_credentials(raw_url)
+                extracted_user, extracted_pass, clean_url = extract_stream_credentials(raw_url)
 
                 if extracted_pass:
                     if not resolved_credential_id:
@@ -251,10 +260,10 @@ class CameraSourceResolver:
                         )
                         resolved_credential_id = meta["credential_id"]
 
-                    internal_source = build_rtsp_url(clean_url, extracted_user, extracted_pass)
+                    internal_source = build_stream_url(clean_url, extracted_user, extracted_pass)
                     safe_presentation_source = clean_url
                     source_key = f"stream:{clean_url}"
-                    label = f"{source_type.upper()} Stream {sanitize_rtsp_url(raw_url)}"
+                    label = f"{source_type.upper()} Stream {sanitize_stream_url(raw_url)}"
 
                 elif resolved_credential_id:
                     if not self._credential_manager.can_access(resolved_credential_id, user_id=user_id):
@@ -266,20 +275,20 @@ class CameraSourceResolver:
                     if not cred_data:
                         raise RuntimeError(f"Credential '{resolved_credential_id}' was not found in secure store")
 
-                    internal_source = build_rtsp_url(
+                    internal_source = build_stream_url(
                         clean_url,
                         cred_data.get("username"),
                         cred_data.get("password"),
                     )
                     safe_presentation_source = clean_url
                     source_key = f"stream:{clean_url}"
-                    label = f"{source_type.upper()} Stream {sanitize_rtsp_url(clean_url)} [credential={resolved_credential_id}]"
+                    label = f"{source_type.upper()} Stream {sanitize_stream_url(clean_url)} [credential={resolved_credential_id}]"
 
                 else:
                     internal_source = raw_url
                     safe_presentation_source = clean_url
                     source_key = f"stream:{clean_url}"
-                    label = f"{source_type.upper()} Stream {sanitize_rtsp_url(clean_url)}"
+                    label = f"{source_type.upper()} Stream {sanitize_stream_url(clean_url)}"
 
                 resolved_source_type = source_type
                 with self._lock:
@@ -288,6 +297,16 @@ class CameraSourceResolver:
                         raise RuntimeError(
                             f"Requested source {label} is already in use by active worker {existing_camera_id}"
                         )
+
+            # Validate camera transport security before registering reservation
+            strict = is_secure_camera_transport_required()
+            transport_validation = validate_camera_transport(
+                internal_source,
+                strict_mode=strict,
+                enforce=False,
+            )
+            if strict and not transport_validation.get("allowed", False):
+                raise CameraTransportSecurityError(f"Camera '{camera_id}': {transport_validation.get('reason')}")
 
             with self._lock:
                 self._reserved_sources[source_key] = camera_id
@@ -301,6 +320,9 @@ class CameraSourceResolver:
                 "source_key": source_key,
                 "credential_id": resolved_credential_id,
                 "credential_configured": bool(resolved_credential_id),
+                "transport_category": transport_validation.get("category"),
+                "transport_scheme": transport_validation.get("transport_scheme"),
+                "transport_allowed": transport_validation.get("allowed"),
             }
 
         consecutive_probe_failures = 0
@@ -352,21 +374,23 @@ class CameraSourceResolver:
 
             url = cam_cfg.get("url")
             if not url:
+                scheme = "rtsps" if str(cam_cfg.get("protocol", "")).lower() == "rtsps" else "rtsp"
+                default_port = 322 if scheme == "rtsps" else 554
                 url = (
-                    f"rtsp://"
+                    f"{scheme}://"
                     f"{cam_cfg.get('host', '127.0.0.1')}:"
-                    f"{cam_cfg.get('port', 554)}"
+                    f"{cam_cfg.get('port', default_port)}"
                     f"{cam_cfg.get('path', '/stream1')}"
                 )
 
             raw_url = str(url)
-            _clean_user, clean_pass, clean_url = extract_rtsp_credentials(raw_url)
+            _clean_user, clean_pass, clean_url = extract_stream_credentials(raw_url)
             cam_cred_id = cam_cfg.get("credential_id") or resolved_credential_id
 
             if cam_cred_id and self._credential_manager.can_access(cam_cred_id, user_id=user_id):
                 cred = self._credential_manager.get_credential(cam_cred_id, user_id=user_id)
                 if cred:
-                    internal_url = build_rtsp_url(clean_url, cred.get("username"), cred.get("password"))
+                    internal_url = build_stream_url(clean_url, cred.get("username"), cred.get("password"))
                 else:
                     internal_url = raw_url
             elif clean_pass:
@@ -374,7 +398,7 @@ class CameraSourceResolver:
             else:
                 internal_url = raw_url
 
-            safe_url = sanitize_rtsp_url(clean_url)
+            safe_url = sanitize_stream_url(clean_url)
             source_key = f"stream:{clean_url}"
 
             if self.is_source_reserved(source_key):

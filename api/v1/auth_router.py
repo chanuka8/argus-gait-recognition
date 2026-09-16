@@ -15,6 +15,7 @@ from security_layer.auth import (
 )
 from security_layer.authorization import normalize_role
 from security_layer.password_hasher import get_password_hasher
+from security_layer.rate_limiter import extract_client_ip, get_login_rate_limiter
 
 logger = logging.getLogger("ARGUS.AuthRouter")
 
@@ -59,43 +60,61 @@ async def login(req: LoginRequest, request: Request):
     """Authenticate an operator and establish a cryptographic session.
 
     Enforces:
+      - Multi-dimensional rate limiting & brute-force protection (per-account & per-IP)
+      - In-flight attempt concurrency protection
       - Argon2id password verification (with fail-safe rehash-on-login for legacy credentials)
       - Never trusts client-asserted identity or roles
       - Issues an opaque, random session token bound to server-side session state
       - Offloads CPU-intensive Argon2id hashing to worker thread to prevent event loop stalls
     """
     t_login_start = time.perf_counter()
+    client_ip = extract_client_ip(request)
+    normalized_username = req.username.strip().lower()
+
+    rate_limiter = get_login_rate_limiter()
+    allowed, retry_after, reason = rate_limiter.acquire_slot(normalized_username, client_ip)
+    if not allowed:
+        logger.warning(
+            f"[AUTH_RATE_LIMITED] Login throttled for user '{normalized_username}' from IP '{client_ip}' "
+            f"[retry_after={int(retry_after)}s, reason={reason}]"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many failed login attempts. Please try again later.",
+            headers={"Retry-After": str(int(retry_after))},
+        )
+
+    auth_success = False
     try:
-        operator_store = get_operator_store()
-        t_auth_start = time.perf_counter()
-        user_data, error_msg = await asyncio.to_thread(
-            operator_store.authenticate_operator,
-            username=req.username,
-            password=req.password,
-            role=req.role,
-        )
-        t_auth_end = time.perf_counter()
-        auth_verify_ms = (t_auth_end - t_auth_start) * 1000.0
-    except AuthenticationInfrastructureError as exc:
-        logger.error(f"[AUTH_INFRASTRUCTURE_FAILURE] {exc}")
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Authentication service temporarily unavailable. Contact system administration.",
-            headers={"Retry-After": "30"},
-        ) from exc
+        try:
+            operator_store = get_operator_store()
+            t_auth_start = time.perf_counter()
+            user_data, error_msg = await asyncio.to_thread(
+                operator_store.authenticate_operator,
+                username=req.username,
+                password=req.password,
+                role=req.role,
+            )
+            t_auth_end = time.perf_counter()
+            auth_verify_ms = (t_auth_end - t_auth_start) * 1000.0
+        except AuthenticationInfrastructureError as exc:
+            logger.error(f"[AUTH_INFRASTRUCTURE_FAILURE] {exc}")
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Authentication service temporarily unavailable. Contact system administration.",
+                headers={"Retry-After": "30"},
+            ) from exc
 
-    if error_msg or not user_data:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=error_msg or "Invalid username or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        if error_msg or not user_data:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=error_msg or "Invalid username or password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
 
-    # Resolve client IP
-    client_ip = request.client.host if request.client else "unknown"
-    forwarded_for = request.headers.get("X-Forwarded-For")
-    if forwarded_for:
-        client_ip = forwarded_for.split(",")[0].strip()
+        auth_success = True
+    finally:
+        rate_limiter.release_slot(normalized_username, client_ip, success=auth_success)
 
     t_sess_start = time.perf_counter()
     session_store = get_session_store()
@@ -218,7 +237,7 @@ async def change_password(
     session_store.revoke_all_for_operator(session.operator_id)
 
     # Establish fresh session for the caller
-    client_ip = request.client.host if request.client else "unknown"
+    client_ip = extract_client_ip(request)
     new_session = session_store.create_session(
         operator_id=session.operator_id,
         username=session.username,

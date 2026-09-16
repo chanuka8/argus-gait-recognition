@@ -58,7 +58,7 @@ class Gait3DStep:
                 return
 
             try:
-                ckpt = torch.load(w_path, map_location=self.device)
+                ckpt = torch.load(w_path, map_location=self.device, weights_only=True)
                 if isinstance(ckpt, dict):
                     if "embedding_dim" in ckpt and ckpt["embedding_dim"] != 256:
                         raise ValueError(f"Checkpoint embedding dimension mismatch: {ckpt['embedding_dim']} != 256")

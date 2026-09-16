@@ -534,5 +534,13 @@ def test_api_camera_start_error_response_redacts_credentials():
             },
         )
         data_str = resp.text
+        # Raw password must never appear in API response
         assert "LeakedPass999" not in data_str
-        assert "rtsp://***:***@" in data_str
+        # Raw username must never appear in API response
+        assert "leaked_user" not in data_str
+        # Raw credential-bearing userinfo (user:pass@) form must be absent
+        assert "leaked_user:LeakedPass999@" not in data_str
+        # Raw full credential-bearing RTSP URL must be absent
+        assert "rtsp://leaked_user:LeakedPass999@192.168.1.99:554/live" not in data_str
+        # Response should contain either sanitized URL form or SEC-09 generic error
+        assert "rtsp://***:***@" in data_str or "Camera connection failed" in data_str

@@ -17,6 +17,13 @@ from pipeline.steps.feature_extraction import FeatureExtractionStep
 from pipeline.steps.live_gei import LiveGEI
 from pipeline.steps.silhouette_step import SilhouetteStep
 from pipeline.steps.tracking import TrackingStep
+from security_layer.input_validation import (
+    MAX_CROPS_PER_TRACK,
+    MAX_REFERENCE_VIDEO_SIZE,
+    MAX_TRACKS_WITH_CROPS,
+    MAX_VIDEO_DIMENSION,
+    MAX_VIDEO_FRAMES,
+)
 from services.reference_job_manager import ReferenceJobManager, ReferenceJobStatus
 from storage.embedding_database import EmbeddingDatabase
 from storage.vector_store import VectorStore
@@ -99,6 +106,11 @@ class MissingPersonVideoProcessor:
         self.target_isolation_ratio = float(ref_cfg.get("target_isolation_ratio", 2.5))
         self.stride = max(1, int(ref_cfg.get("stride", 1)))
         self.model_version = str(ref_cfg.get("model_version", "v1.0.0"))
+        self.max_video_size = int(ref_cfg.get("max_video_size", MAX_REFERENCE_VIDEO_SIZE))
+        self.max_dimension = int(ref_cfg.get("max_dimension", MAX_VIDEO_DIMENSION))
+        self.max_frames = int(ref_cfg.get("max_frames", MAX_VIDEO_FRAMES))
+        self.max_tracks_with_crops = int(ref_cfg.get("max_tracks_with_crops", MAX_TRACKS_WITH_CROPS))
+        self.max_crops_per_track = int(ref_cfg.get("max_crops_per_track", MAX_CROPS_PER_TRACK))
 
         # Reusable pipeline components (singleton injection or lazy creation)
         self.detector = detector or PersonDetector()
@@ -138,6 +150,13 @@ class MissingPersonVideoProcessor:
         if path.is_file() and path.stat().st_size == 0:
             return False, "Uploaded video file is empty (0 bytes)", {}
 
+        if path.is_file() and path.stat().st_size > self.max_video_size:
+            return (
+                False,
+                f"Video file size ({path.stat().st_size} bytes) exceeds maximum allowed size ({self.max_video_size} bytes / {self.max_video_size // (1024 * 1024)} MiB)",
+                {"file_size": path.stat().st_size},
+            )
+
         valid_extensions = {".mp4", ".avi", ".mov", ".mkv", ".webm", ".m4v"}
         if path.suffix.lower() not in valid_extensions:
             return False, f"Unsupported video format '{path.suffix}'. Allowed: {sorted(valid_extensions)}", {}
@@ -164,6 +183,20 @@ class MissingPersonVideoProcessor:
 
         if width < 32 or height < 32:
             return False, f"Video resolution {width}x{height} is too small for person detection", meta
+
+        if width > self.max_dimension or height > self.max_dimension:
+            return (
+                False,
+                f"Video resolution {width}x{height} exceeds maximum supported resolution ({self.max_dimension}x{self.max_dimension})",
+                meta,
+            )
+
+        if total_frames > 0 and total_frames > self.max_frames:
+            return (
+                False,
+                f"Video frame count ({total_frames}) exceeds maximum allowable duration limit ({self.max_frames} frames)",
+                meta,
+            )
 
         if total_frames > 0 and total_frames < self.min_gait_frames:
             return (
@@ -496,15 +529,15 @@ class MissingPersonVideoProcessor:
 
                                 crop = frame[y1:y2, x1:x2]
 
-                                if tid not in tracks:
+                                if tid not in tracks and len(tracks) < self.max_tracks_with_crops:
                                     tracks[tid] = TrackSummary(track_id=tid)
 
                                 # Prevent duplicate frame entries when replaying overlap window
-                                if frame_idx not in tracks[tid].frame_indices:
+                                if tid in tracks and frame_idx not in tracks[tid].frame_indices:
                                     tracks[tid].frame_indices.append(frame_idx)
                                     tracks[tid].bboxes.append([x1, y1, x2, y2])
                                     tracks[tid].areas.append(area)
-                                    if len(tracks[tid].crops) < 120:
+                                    if len(tracks[tid].crops) < self.max_crops_per_track:
                                         tracks[tid].crops.append(crop.copy())
 
                         # Periodic checkpoint: every 25 frames or 1.5 seconds (whichever first)

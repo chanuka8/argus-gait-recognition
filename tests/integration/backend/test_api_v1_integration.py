@@ -109,7 +109,17 @@ class TestApiV1Integration(unittest.TestCase):
         self.assertIsInstance(response.json(), list)
 
     def test_websocket_recognition(self) -> None:
-        with self.client.websocket_connect("/api/v1/ws/recognition") as websocket:
+        from security_layer.auth import get_session_store
+
+        session = get_session_store().create_session(
+            operator_id="test_ws_operator",
+            username="test_ws_operator",
+            role="investigator",
+        )
+        with self.client.websocket_connect(
+            "/api/v1/ws/recognition",
+            subprotocols=["argus-auth", session.token],
+        ) as websocket:
             websocket.send_text("ping")
 
 

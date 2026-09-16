@@ -12,10 +12,22 @@ class DetectionStep:
         self.model_path = Path(model_path)
         self.confidence = confidence
 
-        if not self.model_path.exists():
-            self.model = YOLO("yolov8n.pt")
+        from security_layer.model_integrity import (
+            ROLE_PERSON_DETECTOR,
+            get_model_verifier,
+            verify_model,
+        )
+
+        verifier = get_model_verifier()
+        if verifier.is_strict_mode():
+            verified_path = verify_model(self.model_path, expected_role=ROLE_PERSON_DETECTOR)
+            self.model = YOLO(str(verified_path))
         else:
-            self.model = YOLO(str(self.model_path))
+            if not self.model_path.exists():
+                self.model = YOLO("yolov8n.pt")
+            else:
+                verified_path = verify_model(self.model_path, expected_role=ROLE_PERSON_DETECTOR)
+                self.model = YOLO(str(verified_path))
 
     def detect(self, frame):
         results = self.model(

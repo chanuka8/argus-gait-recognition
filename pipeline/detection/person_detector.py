@@ -36,10 +36,26 @@ class PersonDetector:
         raw_imgsz = self.config.get("img_size", 640)
         self.img_size = int(raw_imgsz) if isinstance(raw_imgsz, int) and raw_imgsz > 0 else 640
 
-        if model_path.exists():
-            self.model = YOLO(str(model_path))
+        from security_layer.model_integrity import (
+            ROLE_PERSON_DETECTOR,
+            get_model_verifier,
+            verify_model,
+        )
+
+        verifier = get_model_verifier()
+        if verifier.is_strict_mode():
+            verified_path = verify_model(model_path, expected_role=ROLE_PERSON_DETECTOR)
+            self.model = YOLO(str(verified_path))
         else:
-            self.model = YOLO("yolov8n.pt")
+            if model_path.exists():
+                verified_path = verify_model(model_path, expected_role=ROLE_PERSON_DETECTOR)
+                self.model = YOLO(str(verified_path))
+            else:
+                self.logger.warning(
+                    "[SECURITY WARNING] YOLO model file %s not found locally; using default in development mode.",
+                    model_path,
+                )
+                self.model = YOLO("yolov8n.pt")
 
         if self.runtime_device:
             try:

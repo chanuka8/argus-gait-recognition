@@ -42,6 +42,7 @@ class EmbeddingRecord:
     created_at: float = field(default_factory=time.time)
     iso_created_at: str = field(default_factory=lambda: time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
     observation_date: str = ""
+    vector_encryption: dict[str, Any] | None = None
 
     def __post_init__(self) -> None:
         if not self.observation_date:
@@ -50,19 +51,58 @@ class EmbeddingRecord:
     def to_dict(self) -> dict[str, Any]:
         d = asdict(self)
         d["observation_date"] = self.observation_date
+        if self.vector_encryption is not None:
+            # Under U3, plaintext vector list must not remain alongside ciphertext in protected records
+            d.pop("vector", None)
+        else:
+            d.pop("vector_encryption", None)
         return d
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "EmbeddingRecord":
+    def from_dict(
+        cls,
+        data: dict[str, Any],
+        encryptor: Any | None = None,
+        strict_mode: bool = False,
+    ) -> "EmbeddingRecord":
         c_at = float(data.get("created_at", time.time()))
         obs_date = str(data.get("observation_date", "")) or time.strftime("%Y-%m-%d", time.gmtime(c_at))
+        person_id = str(data["person_id"])
+        modality = str(data.get("modality", "gait"))
+        model_ver = str(data.get("model_version", "v1.0.0"))
+        vec_enc = data.get("vector_encryption")
+
+        vector: list[float] = []
+        if vec_enc is not None:
+            if encryptor is not None and getattr(encryptor, "is_configured", False):
+                vector = encryptor.decrypt_vector(
+                    payload=vec_enc,
+                    person_id=person_id,
+                    modality=modality,
+                    model_version=model_ver,
+                )
+            elif strict_mode:
+                raise RuntimeError(
+                    f"Encrypted vector found for '{person_id}', but no valid encryption key is configured in strict mode."
+                )
+        else:
+            if strict_mode:
+                raise RuntimeError(
+                    f"STRICT SECURITY VIOLATION: Plaintext biometric vector detected for person '{person_id}' in strict production mode."
+                )
+            vector = [float(v) for v in data.get("vector", [])]
+
+        emb_dim = int(
+            data.get("embedding_dim", len(vector) if vector else (vec_enc.get("dimension", 0) if vec_enc else 0))
+        )
+
         return cls(
             embedding_id=str(data["embedding_id"]),
-            person_id=str(data["person_id"]),
-            modality=str(data.get("modality", "gait")),
-            embedding_dim=int(data.get("embedding_dim", len(data.get("vector", [])))),
-            vector=[float(v) for v in data.get("vector", [])],
-            model_version=str(data.get("model_version", "v1.0.0")),
+            person_id=person_id,
+            modality=modality,
+            embedding_dim=emb_dim,
+            vector=vector,
+            model_version=model_ver,
             embedding_version=int(data.get("embedding_version", 1)),
             status=str(data.get("status", "ACTIVE")),
             quality_score=float(data.get("quality_score", 1.0)),
@@ -70,6 +110,7 @@ class EmbeddingRecord:
             created_at=c_at,
             iso_created_at=str(data.get("iso_created_at", "")),
             observation_date=obs_date,
+            vector_encryption=vec_enc,
         )
 
 
@@ -95,9 +136,20 @@ class PersonRecord:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "PersonRecord":
-        gait_list = [EmbeddingRecord.from_dict(e) for e in data.get("gait_embeddings", [])]
-        app_list = [EmbeddingRecord.from_dict(e) for e in data.get("appearance_embeddings", [])]
+    def from_dict(
+        cls,
+        data: dict[str, Any],
+        encryptor: Any | None = None,
+        strict_mode: bool = False,
+    ) -> "PersonRecord":
+        gait_list = [
+            EmbeddingRecord.from_dict(e, encryptor=encryptor, strict_mode=strict_mode)
+            for e in data.get("gait_embeddings", [])
+        ]
+        app_list = [
+            EmbeddingRecord.from_dict(e, encryptor=encryptor, strict_mode=strict_mode)
+            for e in data.get("appearance_embeddings", [])
+        ]
         return cls(
             person_id=str(data["person_id"]),
             created_at=float(data.get("created_at", time.time())),
@@ -116,14 +168,47 @@ class EmbeddingDatabase:
         gait_gallery_dir: str = "models/live_gallery",
         appearance_gallery_dir: str = "models/appearance_gallery",
         firebase_store: Any | None = None,
+        encryptor: Any | None = None,
+        strict_mode: bool | None = None,
     ) -> None:
         self.db_dir = Path(db_dir)
         self.db_dir.mkdir(parents=True, exist_ok=True)
         self.persons_dir = self.db_dir / "persons"
         self.persons_dir.mkdir(parents=True, exist_ok=True)
 
-        self.gait_store = VectorStore(gallery_dir=gait_gallery_dir)
-        self.appearance_store = VectorStore(gallery_dir=appearance_gallery_dir)
+        if strict_mode is not None:
+            self.strict_mode = strict_mode
+        else:
+            import os
+
+            self.strict_mode = os.environ.get("ARGUS_STRICT_BIOMETRIC_ENCRYPTION", "").lower() in (
+                "true",
+                "1",
+                "yes",
+            ) or os.environ.get("ARGUS_SECURITY_STRICT", "").lower() in ("true", "1", "yes")
+
+        if encryptor is not None:
+            self.encryptor = encryptor
+        else:
+            from security_layer.biometric_encryption import BiometricEncryptor, ConfigurationError
+
+            try:
+                self.encryptor = BiometricEncryptor(strict_mode=self.strict_mode)
+            except ConfigurationError:
+                if self.strict_mode:
+                    raise
+                self.encryptor = BiometricEncryptor(strict_mode=False)
+
+        self.gait_store = VectorStore(
+            gallery_dir=gait_gallery_dir,
+            encryptor=self.encryptor,
+            strict_mode=self.strict_mode,
+        )
+        self.appearance_store = VectorStore(
+            gallery_dir=appearance_gallery_dir,
+            encryptor=self.encryptor,
+            strict_mode=self.strict_mode,
+        )
         self.firebase_store = firebase_store
         self._logger = get_logger("embedding_database")
 
@@ -138,8 +223,8 @@ class EmbeddingDatabase:
         try:
             with open(p_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
-            return PersonRecord.from_dict(data)
-        except (OSError, json.JSONDecodeError, ValueError) as err:
+            return PersonRecord.from_dict(data, encryptor=self.encryptor, strict_mode=self.strict_mode)
+        except (OSError, json.JSONDecodeError, ValueError, RuntimeError) as err:
             self._logger.warning(f"Failed to read person record for {person_id}: {err}")
             return None
 
@@ -147,13 +232,46 @@ class EmbeddingDatabase:
         p_file = self._person_file(record.person_id)
         try:
             record.updated_at = time.time()
+            if self.encryptor.is_configured:
+                for emb in record.gait_embeddings:
+                    if emb.vector and emb.vector_encryption is None:
+                        emb.vector_encryption = self.encryptor.encrypt_vector(
+                            vector=emb.vector,
+                            person_id=record.person_id,
+                            modality=emb.modality,
+                            model_version=emb.model_version,
+                        )
+                for emb in record.appearance_embeddings:
+                    if emb.vector and emb.vector_encryption is None:
+                        emb.vector_encryption = self.encryptor.encrypt_vector(
+                            vector=emb.vector,
+                            person_id=record.person_id,
+                            modality=emb.modality,
+                            model_version=emb.model_version,
+                        )
+            else:
+                if self.strict_mode:
+                    raise RuntimeError(
+                        f"Cannot save unencrypted biometric vector for '{record.person_id}' in strict production mode."
+                    )
+                self._logger.warning(
+                    f"SECURITY WARNING: Saving unencrypted biometric vectors for '{record.person_id}' in development mode."
+                )
+
             data = record.to_dict()
-            tmp_file = p_file.with_suffix(".tmp")
+            tmp_file = p_file.with_suffix(f".tmp_{uuid.uuid4().hex}")
             with open(tmp_file, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2)
-            tmp_file.replace(p_file)
+                f.flush()
+                try:
+                    import os
+
+                    os.fsync(f.fileno())
+                except OSError:
+                    pass
+            os.replace(tmp_file, p_file)
             return True
-        except (OSError, ValueError) as err:
+        except (OSError, ValueError, RuntimeError) as err:
             self._logger.error(f"Failed to persist person record for {record.person_id}: {err}")
             return False
 
@@ -574,14 +692,16 @@ class EmbeddingDatabase:
             "total_persons": len(all_persons),
         }
 
-    def list_all_persons(self) -> list[PersonRecord]:
+    def list_all_persons(self, decrypt_vectors: bool = True) -> list[PersonRecord]:
         results = []
+        enc = self.encryptor if decrypt_vectors else None
+        strict = self.strict_mode and decrypt_vectors
         for p_file in sorted(self.persons_dir.glob("*.json")):
             try:
                 with open(p_file, "r", encoding="utf-8") as f:
                     data = json.load(f)
-                results.append(PersonRecord.from_dict(data))
-            except (OSError, json.JSONDecodeError, ValueError) as err:
+                results.append(PersonRecord.from_dict(data, encryptor=enc, strict_mode=strict))
+            except (OSError, json.JSONDecodeError, ValueError, RuntimeError) as err:
                 self._logger.warning(f"Error loading {p_file.name}: {err}")
         return results
 

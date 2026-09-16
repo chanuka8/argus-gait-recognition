@@ -671,19 +671,19 @@ def docs_check(args=None) -> int:
             print(f"[ERROR] Missing package README: {folder_readme}")
             missing = True
 
-    gallery_feat_path = Path("models/gallery/gallery_features.npy")
-    gallery_lbl_path = Path("models/gallery/gallery_labels.npy")
-    if gallery_feat_path.exists() and gallery_lbl_path.exists():
+    gallery_dir = Path("models/gallery")
+    if (gallery_dir / "gallery_features.enc").exists() or (gallery_dir / "gallery_features.npy").exists():
         try:
-            import numpy as np
+            from storage.vector_store import validate_gallery_files
 
-            _features = np.load(str(gallery_feat_path), allow_pickle=False)
-            labels = np.load(str(gallery_lbl_path), allow_pickle=False)
-            print(
-                f"[OK] Verified gallery metadata: {len(labels)} templates, "
-                f"{len(np.unique(labels))} distinct subjects (allow_pickle=False)"
-            )
-        except (OSError, ValueError) as e:
+            valid, err_msg, count = validate_gallery_files(gallery_dir, expected_dim=256)
+            if valid:
+                print(f"[OK] Verified gallery metadata: {count} templates (allow_pickle=False)")
+                if err_msg:
+                    print(f"[WARNING] Gallery notice: {err_msg}")
+            else:
+                print(f"[WARNING] Gallery metadata check notice: {err_msg}")
+        except Exception as e:
             print(f"[WARNING] Gallery metadata check notice: {e}")
 
     index_path = docs_dir / "README_INDEX.md"

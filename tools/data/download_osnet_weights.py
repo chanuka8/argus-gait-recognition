@@ -1,3 +1,4 @@
+import os
 import sys
 from pathlib import Path
 
@@ -52,9 +53,31 @@ def download_and_verify():
     if not dest_path.exists():
         raise RuntimeError("Failed to obtain OSNet pretrained weights checkpoint.")
 
+    import hashlib
+    hasher = hashlib.sha256()
+    with open(dest_path, "rb") as fh:
+        while chunk := fh.read(65536):
+            hasher.update(chunk)
+    computed_sha256 = hasher.hexdigest().lower()
+    print(f"[SECURITY] Downloaded model SHA-256: {computed_sha256}")
+
+    expected_sha256 = os.getenv("ARGUS_OSNET_EXPECTED_SHA256")
+    if expected_sha256:
+        expected_clean = expected_sha256.strip().lower()
+        if computed_sha256 != expected_clean:
+            dest_path.unlink(missing_ok=True)
+            raise RuntimeError(
+                f"OSNet download SHA-256 mismatch! Expected {expected_clean}, got {computed_sha256}"
+            )
+        print("[SECURITY] Expected SHA-256 verified successfully.")
+    else:
+        print(
+            "[SECURITY WARNING] No expected SHA-256 configured (ARGUS_OSNET_EXPECTED_SHA256). "
+            "Model must be signed in an authorized model manifest before production deployment."
+        )
 
     print("\n--- Verifying Checkpoint Structure ---")
-    ckpt = torch.load(dest_path, map_location="cpu")
+    ckpt = torch.load(dest_path, map_location="cpu", weights_only=True)
     if isinstance(ckpt, dict):
         if "state_dict" in ckpt:
             state_dict = ckpt["state_dict"]

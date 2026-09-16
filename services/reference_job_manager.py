@@ -568,9 +568,10 @@ class ReferenceJobManager:
             # Source media check
             v_path = Path(job.video_path or job.media_path)
             if job.media_type == "video" and (not v_path.exists() or v_path.stat().st_size == 0):
+                self.logger.error(f"[RECOVERY] Source video file not found on disk during recovery: {v_path}")
                 self.fail_job(
                     job.job_id,
-                    f"Source video file not found on disk during recovery: {v_path}",
+                    "Source video file not found on disk during recovery",
                     diagnostic_code="VIDEO_NOT_FOUND",
                 )
                 continue
@@ -612,9 +613,13 @@ class ReferenceJobManager:
                             )
                         if res.get("success"):
                             self.logger.info(f"[RECOVERY] Job completed successfully: {j.job_id}")
-                    except Exception as exc:  # noqa: BLE001
-                        self.logger.error(f"[RECOVERY] Error during resumed job execution {j.job_id}: {exc}")
-                        self.fail_job(j.job_id, f"Resumed processing failed: {exc}", diagnostic_code="RESUME_ERROR")
+                    except Exception:
+                        self.logger.exception(f"[RECOVERY] Error during resumed job execution {j.job_id}")
+                        self.fail_job(
+                            j.job_id,
+                            "Resumed processing failed due to an internal error",
+                            diagnostic_code="RESUME_ERROR",
+                        )
                     finally:
                         self.release_job_claim(j.job_id)
 

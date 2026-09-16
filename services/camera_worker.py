@@ -9,7 +9,12 @@ import cv2
 import numpy as np
 
 from monitoring.logging_config import get_logger
-from security_layer.credentials import sanitize_rtsp_url
+from security_layer.credentials import (
+    CameraTransportSecurityError,
+    is_secure_camera_transport_required,
+    sanitize_stream_url,
+    validate_camera_transport,
+)
 from utils.display_renderer import DetectionDisplayRenderer, load_display_config
 
 if TYPE_CHECKING:
@@ -62,7 +67,17 @@ class CameraWorker:
         self._logger = get_logger(f"camera.{camera_id}")
         self._renderer = DetectionDisplayRenderer(load_display_config())
 
-        raw_type = str(camera_config.get("type") or camera_config.get("source_type") or "webcam").lower()
+        self._url = camera_config.get("url", "")
+        raw_type = str(camera_config.get("type") or camera_config.get("source_type") or "").strip().lower()
+        if not raw_type and self._url:
+            url_lower = self._url.lower()
+            if url_lower.startswith(("rtsp://", "rtsps://")):
+                raw_type = "rtsp"
+            elif url_lower.startswith(("http://", "https://")):
+                raw_type = "http"
+            elif any(url_lower.endswith(ext) for ext in (".mp4", ".avi", ".mkv", ".mov")):
+                raw_type = "file"
+
         if raw_type in ("usb", "webcam", "local", "device"):
             self._source_type = "webcam"
         elif raw_type == "rtsp":
@@ -73,8 +88,6 @@ class CameraWorker:
             self._source_type = "file"
         else:
             self._source_type = "webcam"
-
-        self._url = camera_config.get("url", "")
         self._device_index = int(normalize_camera_source(camera_config.get("device_index", 0)))
         self._width = max(16, int(camera_config.get("width", 640)))
         self._height = max(16, int(camera_config.get("height", 480)))
@@ -238,8 +251,27 @@ class CameraWorker:
     def _open_capture(self) -> bool:
         try:
             source = self._resolve_source()
-            safe_source = sanitize_rtsp_url(str(source))
+            safe_source = sanitize_stream_url(str(source))
             self._logger.info(f"Opening camera source: {safe_source}")
+
+            # Transport security validation
+            strict = is_secure_camera_transport_required()
+            transport_validation = validate_camera_transport(
+                source,
+                config=self.config,
+                strict_mode=strict,
+                enforce=False,
+            )
+            with self._lock:
+                self.stats["transport_category"] = transport_validation.get("category")
+                self.stats["transport_scheme"] = transport_validation.get("transport_scheme")
+                self.stats["transport_allowed"] = transport_validation.get("allowed")
+                self.stats["is_encrypted"] = transport_validation.get("is_encrypted")
+
+            if strict and not transport_validation.get("allowed", False):
+                reason = transport_validation.get("reason", "Insecure transport rejected")
+                self._logger.error(f"Camera {self.camera_id}: Insecure transport rejected in strict mode: {reason}")
+                raise CameraTransportSecurityError(f"Camera {self.camera_id}: {reason}")
 
             if self._existing_capture is not None and getattr(self._existing_capture, "isOpened", lambda: False)():
                 self._capture = self._existing_capture
@@ -330,7 +362,7 @@ class CameraWorker:
             return True
 
         except (RuntimeError, ValueError, TypeError, cv2.error, OSError) as e:
-            self._logger.error(f"Error opening capture: {sanitize_rtsp_url(str(e))}")
+            self._logger.error(f"Error opening capture: {sanitize_stream_url(str(e))}")
             if self._capture is not None:
                 try:
                     self._capture.release()
@@ -581,7 +613,7 @@ class CameraWorker:
                         self._stop_event.wait(sleep_time)
 
             except (RuntimeError, ValueError, TypeError, cv2.error, OSError) as e:
-                self._logger.error(f"Error in capture loop: {sanitize_rtsp_url(str(e))}")
+                self._logger.error(f"Error in capture loop: {sanitize_stream_url(str(e))}")
                 self._close_capture()
                 with self._lock:
                     self._latest_jpeg = self._render_status_frame("CAPTURE ERROR")

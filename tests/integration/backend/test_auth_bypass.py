@@ -287,3 +287,96 @@ def test_failsafe_argon2_migration_on_login():
         is_valid, needs_rehash = hasher.verify(plaintext_pw, migrated_data["password_hash"])
         assert is_valid is True
         assert needs_rehash is False
+
+
+def test_events_endpoint_unauthenticated_rejected_with_401():
+    """SEC-02: Unauthenticated GET /api/v1/events must be rejected with 401."""
+    with TestClient(app) as client:
+        resp = client.get("/api/v1/events")
+        assert resp.status_code == 401
+        assert "Authentication required" in resp.json()["detail"]
+
+
+def test_events_endpoint_spoofed_x_user_id_rejected():
+    """SEC-02: Client-asserted X-User-ID without Bearer token on GET /api/v1/events is rejected."""
+    with TestClient(app) as client:
+        resp = client.get(
+            "/api/v1/events",
+            headers={"X-User-ID": "admin_root"},
+        )
+        assert resp.status_code == 401
+        assert "Authentication required" in resp.json()["detail"]
+
+
+def test_events_endpoint_invalid_token_rejected_with_401():
+    """SEC-02: Invalid bearer token on GET /api/v1/events is rejected."""
+    with TestClient(app) as client:
+        resp = client.get(
+            "/api/v1/events",
+            headers={"Authorization": "Bearer invalid_fabricated_session_token"},
+        )
+        assert resp.status_code == 401
+        assert "Invalid or expired session token" in resp.json()["detail"]
+
+
+def test_events_endpoint_suspended_operator_rejected_with_403():
+    """SEC-02: Suspended operator account attempting GET /api/v1/events is rejected with 403."""
+    session_store = get_session_store()
+    session = session_store.create_session(
+        operator_id="suspended_ev_op",
+        username="suspended_ev_op",
+        role="investigator",
+        status_val="Suspended",
+    )
+    with TestClient(app) as client:
+        resp = client.get(
+            "/api/v1/events",
+            headers={"Authorization": f"Bearer {session.token}"},
+        )
+        assert resp.status_code == 403
+        assert "suspended" in resp.json()["detail"].lower()
+
+
+def test_events_endpoint_authenticated_roles_and_structure():
+    """SEC-02: Authenticated investigator, admin, and root_admin can access events; schema is preserved."""
+    session_store = get_session_store()
+    inv_session = session_store.create_session(
+        operator_id="inv_events_01",
+        username="inv_events_01",
+        role="investigator",
+    )
+    admin_session = session_store.create_session(
+        operator_id="admin_events_01",
+        username="admin_events_01",
+        role="admin",
+    )
+    root_session = session_store.create_session(
+        operator_id="root_events_01",
+        username="root_events_01",
+        role="root_admin",
+    )
+
+    with TestClient(app) as client:
+        # Investigator access
+        resp_inv = client.get(
+            "/api/v1/events",
+            headers={"Authorization": f"Bearer {inv_session.token}"},
+        )
+        assert resp_inv.status_code == 200
+        assert isinstance(resp_inv.json(), list)
+
+        # Admin access
+        resp_admin = client.get(
+            "/api/v1/events",
+            headers={"Authorization": f"Bearer {admin_session.token}"},
+        )
+        assert resp_admin.status_code == 200
+        assert isinstance(resp_admin.json(), list)
+
+        # Root Admin access
+        resp_root = client.get(
+            "/api/v1/events",
+            headers={"Authorization": f"Bearer {root_session.token}"},
+        )
+        assert resp_root.status_code == 200
+        assert isinstance(resp_root.json(), list)

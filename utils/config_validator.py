@@ -9,7 +9,7 @@ def sanitize_rtsp_url(text: str | None) -> str:
     if not text or not isinstance(text, str):
         return ""
 
-    pattern = r"(rtsp://[^\s:@]+):([^\s@]+)@([^\s,;\)]+)"
+    pattern = r"((?:rtsp|rtsps)://[^\s:@]+):([^\s@]+)@([^\s,;\)]+)"
     return re.sub(pattern, r"\1:***@\3", text, flags=re.IGNORECASE)
 
 
@@ -99,7 +99,7 @@ class ConfigValidator:
             url = cam.get("url")
             if url:
                 sanitized = sanitize_rtsp_url(url)
-                if cam_type == "rtsp" and not url.startswith(("rtsp://", "http://", "https://")):
+                if cam_type == "rtsp" and not url.startswith(("rtsp://", "rtsps://", "http://", "https://")):
                     errors.append(f"Camera '{cam_id}' has invalid stream URL format: '{sanitized}'")
 
         return errors

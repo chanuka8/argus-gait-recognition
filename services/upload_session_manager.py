@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from monitoring.logging_config import get_logger
+from security_layer.input_validation import MAX_REFERENCE_VIDEO_SIZE, MAX_UPLOAD_CHUNK_SIZE
 
 
 @dataclass
@@ -32,6 +33,13 @@ class UploadSessionRecord:
     final_path: str | None = None
     job_id: str | None = None
     error_message: str | None = None
+
+    def expected_chunk_size(self, chunk_index: int) -> int:
+        if chunk_index < 0 or chunk_index >= self.total_chunks:
+            return 0
+        if chunk_index == self.total_chunks - 1:
+            return self.total_size - (self.chunk_size * (self.total_chunks - 1))
+        return self.chunk_size
 
     def to_dict(self) -> dict[str, Any]:
         d = asdict(self)
@@ -150,12 +158,25 @@ class UploadSessionManager:
             raise ValueError("person_id is required")
         if total_size <= 0:
             raise ValueError("total_size must be greater than zero")
+        if total_size > MAX_REFERENCE_VIDEO_SIZE:
+            raise ValueError(
+                f"total_size ({total_size} bytes) exceeds maximum allowed upload size ({MAX_REFERENCE_VIDEO_SIZE} bytes / {MAX_REFERENCE_VIDEO_SIZE // (1024 * 1024)} MiB)"
+            )
+        if chunk_size is not None and chunk_size > MAX_UPLOAD_CHUNK_SIZE:
+            raise ValueError(
+                f"chunk_size ({chunk_size} bytes) exceeds maximum allowed chunk size ({MAX_UPLOAD_CHUNK_SIZE} bytes / {MAX_UPLOAD_CHUNK_SIZE // (1024 * 1024)} MiB)"
+            )
+
+        # Defence-in-depth: sanitize person_id for filesystem safety
+        safe_person_id = "".join(c if c.isalnum() or c in ("-", "_", " ", ".") else "_" for c in normalized_person_id)
+        if not safe_person_id or all(c == "." for c in safe_person_id):
+            raise ValueError("person_id is not filesystem-safe")
 
         eff_chunk_size = chunk_size if (chunk_size and chunk_size > 0) else self.default_chunk_size
         total_chunks = max(1, math.ceil(total_size / eff_chunk_size))
         timestamp = int(time.time())
         unique_suffix = uuid.uuid4().hex[:8]
-        upload_id = f"upsess_{normalized_person_id}_{timestamp}_{unique_suffix}"
+        upload_id = f"upsess_{safe_person_id}_{timestamp}_{unique_suffix}"
 
         safe_name = "".join(c for c in Path(filename).name if c.isalnum() or c in "._-") or f"media_{timestamp}"
 
@@ -208,11 +229,7 @@ class UploadSessionManager:
             if chunk_index < 0 or chunk_index >= session.total_chunks:
                 return False, f"Invalid chunk index {chunk_index}; session requires 0..{session.total_chunks - 1}", {}
 
-            # Expected size for this chunk
-            if chunk_index == session.total_chunks - 1:
-                expected_len = session.total_size - (session.chunk_size * (session.total_chunks - 1))
-            else:
-                expected_len = session.chunk_size
+            expected_len = session.expected_chunk_size(chunk_index)
 
             actual_len = len(chunk_bytes)
             if actual_len != expected_len:
@@ -253,10 +270,11 @@ class UploadSessionManager:
                 with open(tmp_chunk, "wb") as f:
                     f.write(chunk_bytes)
                 tmp_chunk.replace(chunk_file)
-            except OSError as e:
+            except OSError:
                 if tmp_chunk.exists():
                     tmp_chunk.unlink(missing_ok=True)
-                return False, f"Failed to write chunk {chunk_index} to disk: {e}", {}
+                self.logger.exception(f"Failed to write chunk {chunk_index} to disk for session {upload_id}")
+                return False, f"Failed to write chunk {chunk_index} to disk", {}
 
             session.chunks_received.add(chunk_index)
             session.bytes_received = sum(
@@ -315,8 +333,17 @@ class UploadSessionManager:
 
             dst_dir.mkdir(parents=True, exist_ok=True)
             timestamp = int(session.created_at)
-            out_filename = f"{session.person_id}_{timestamp}_{session.filename}"
+            # Defence-in-depth: sanitize person_id for filesystem safety
+            safe_pid = "".join(c if c.isalnum() or c in ("-", "_", " ", ".") else "_" for c in session.person_id)
+            out_filename = f"{safe_pid}_{timestamp}_{session.filename}"
             final_path = dst_dir / out_filename
+
+            # Mandatory containment check: assembled file must remain inside destination
+            resolved_dst = dst_dir.resolve()
+            resolved_final = final_path.resolve()
+            if not resolved_final.is_relative_to(resolved_dst):
+                return False, "Path traversal detected in upload session", None
+
             tmp_final_path = dst_dir / f"{out_filename}.tmp"
 
             try:
@@ -339,10 +366,11 @@ class UploadSessionManager:
                     )
 
                 tmp_final_path.replace(final_path)
-            except OSError as e:
+            except OSError:
                 if tmp_final_path.exists():
                     tmp_final_path.unlink(missing_ok=True)
-                return False, f"Failed to assemble file from chunks: {e}", None
+                self.logger.exception(f"Failed to assemble file from chunks for session {upload_id}")
+                return False, "Failed to assemble file from chunks", None
 
             # Mark committed and record final destination
             session.status = "COMMITTED"

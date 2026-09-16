@@ -14,6 +14,7 @@ from fastapi import Depends, HTTPException, status
 
 from security_layer.auth import SessionToken, get_authenticated_operator, get_operator_store
 from services.reference_job_manager import ReferenceJobManager, ReferenceJobRecord
+from services.upload_session_manager import UploadSessionManager, UploadSessionRecord
 
 
 class Role(str, Enum):
@@ -221,6 +222,43 @@ def verify_job_access(
         )
 
     return job
+
+
+def verify_upload_session_access(
+    upload_id: str,
+    session: SessionToken,
+) -> UploadSessionRecord:
+    """Verify that authenticated operator is authorized to access this upload session.
+
+    Security Guarantees:
+      - Upload session must exist (404 otherwise — no existence leakage).
+      - Administrators (admin, root_admin) have oversight access to all sessions.
+      - Investigators may only access upload sessions they own.
+      - Ownership is determined server-side from the stored record, never from client input.
+    """
+    session_mgr = UploadSessionManager.get_instance()
+    record = session_mgr.get_session(upload_id)
+    if not record:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Upload session '{upload_id}' not found",
+        )
+
+    operator_role = normalize_role(session.role)
+
+    # Administrators have oversight access to all upload sessions
+    if operator_role in (Role.ROOT_ADMIN.value, Role.ADMIN.value):
+        return record
+
+    # Investigators can only access upload sessions they own
+    session_owner = getattr(record, "owner", "")
+    if session_owner and session_owner.strip().lower() != session.username.strip().lower():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Access denied: upload session '{upload_id}' is owned by another operator",
+        )
+
+    return record
 
 
 def verify_case_access(

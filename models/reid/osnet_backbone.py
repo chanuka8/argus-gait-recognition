@@ -480,18 +480,17 @@ class OSNetBackbone:
             model = _build_osnet_x0_25()
 
             if self.model_path.exists():
+                from security_layer.model_integrity import ROLE_APPEARANCE_EMBEDDING, verify_model
+
+                verified_path = verify_model(self.model_path, expected_role=ROLE_APPEARANCE_EMBEDDING)
                 try:
                     checkpoint = torch.load(
-                        self.model_path,
+                        verified_path,
                         map_location="cpu",
                         weights_only=True,
                     )
-                except (RuntimeError, ValueError, TypeError, OSError, EOFError, AttributeError):
-                    checkpoint = torch.load(
-                        self.model_path,
-                        map_location="cpu",
-                        weights_only=False,
-                    )
+                except Exception as e:
+                    raise RuntimeError(f"Failed to load OSNet checkpoint safely with weights_only=True: {e}") from e
 
                 if isinstance(checkpoint, dict):
                     if "state_dict" in checkpoint:

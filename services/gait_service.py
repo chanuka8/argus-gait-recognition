@@ -22,8 +22,8 @@ class WebSocketManager:
     def __init__(self) -> None:
         self.active_connections: list[WebSocket] = []
 
-    async def connect(self, websocket: WebSocket) -> None:
-        await websocket.accept()
+    async def connect(self, websocket: WebSocket, subprotocol: str | None = None) -> None:
+        await websocket.accept(subprotocol=subprotocol)
         self.active_connections.append(websocket)
 
     def disconnect(self, websocket: WebSocket) -> None:
