@@ -1,20 +1,51 @@
+import tempfile
 import unittest
 import unittest.mock
+from pathlib import Path
 
 import cv2
 import numpy as np
 from fastapi.testclient import TestClient
 
 from api.server import app
+from api.v1.router import get_gait_service
+from services.gait_service import GaitService
+from storage.embedding_database import EmbeddingDatabase
 
 
 class TestApiV1Integration(unittest.TestCase):
     def setUp(self) -> None:
+        self.temp_dir = tempfile.TemporaryDirectory()
+        temp_path = Path(self.temp_dir.name)
+        self.test_gallery = temp_path / "live_gallery"
+        self.test_appearance = temp_path / "appearance_gallery"
+        self.test_db = temp_path / "embedding_db"
+        self.test_gallery.mkdir(parents=True, exist_ok=True)
+        self.test_appearance.mkdir(parents=True, exist_ok=True)
+        self.test_db.mkdir(parents=True, exist_ok=True)
+
+        self.service = GaitService(
+            gallery_dir=str(self.test_gallery),
+            appearance_gallery_dir=str(self.test_appearance),
+        )
+        self.service.embedding_db = EmbeddingDatabase(
+            db_dir=str(self.test_db),
+            gait_gallery_dir=str(self.test_gallery),
+            appearance_gallery_dir=str(self.test_appearance),
+        )
+
+        app.state.gait_service = self.service
+        app.dependency_overrides[get_gait_service] = lambda: self.service
+
         self.client_cm = TestClient(app)
         self.client = self.client_cm.__enter__()
 
     def tearDown(self) -> None:
         self.client_cm.__exit__(None, None, None)
+        app.dependency_overrides.pop(get_gait_service, None)
+        app.state.gait_service = None
+        self.temp_dir.cleanup()
+
 
     def test_health_endpoint(self) -> None:
         response = self.client.get("/api/v1/health")

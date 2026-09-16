@@ -61,9 +61,38 @@ def setup_sec05_fixtures(tmp_path):
     mgr = UploadSessionManager(sessions_dir=str(tmp_path / "upload_sessions"))
     UploadSessionManager._instance = mgr
 
-    yield
+    from api.v1.router import get_gait_service
+    from services.gait_service import GaitService
+    from storage.embedding_database import EmbeddingDatabase
 
-    UploadSessionManager._instance = None
+    gallery_dir = tmp_path / "live_gallery"
+    app_gallery_dir = tmp_path / "appearance_gallery"
+    db_dir = tmp_path / "embedding_db"
+    gallery_dir.mkdir(parents=True, exist_ok=True)
+    app_gallery_dir.mkdir(parents=True, exist_ok=True)
+    db_dir.mkdir(parents=True, exist_ok=True)
+
+    service = GaitService(
+        gallery_dir=str(gallery_dir),
+        appearance_gallery_dir=str(app_gallery_dir),
+    )
+    service.embedding_db = EmbeddingDatabase(
+        db_dir=str(db_dir),
+        gait_gallery_dir=str(gallery_dir),
+        appearance_gallery_dir=str(app_gallery_dir),
+    )
+
+    orig_service = getattr(app.state, "gait_service", None)
+    app.state.gait_service = service
+    app.dependency_overrides[get_gait_service] = lambda: service
+
+    try:
+        yield
+    finally:
+        app.dependency_overrides.pop(get_gait_service, None)
+        app.state.gait_service = orig_service
+        UploadSessionManager._instance = None
+
 
 
 def create_token_for(username: str, role: str) -> str:

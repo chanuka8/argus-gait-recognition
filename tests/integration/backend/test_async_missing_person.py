@@ -13,11 +13,46 @@ from security_layer.authorization import Role
 from services.reference_job_manager import ReferenceJobStatus
 
 
+@pytest.fixture(autouse=True)
+def isolate_gait_storage(tmp_path):
+    """Isolate GaitService and EmbeddingDatabase storage to temporary paths for test isolation."""
+    from api.v1.router import get_gait_service
+    from services.gait_service import GaitService
+    from storage.embedding_database import EmbeddingDatabase
+
+    gallery_dir = tmp_path / "live_gallery"
+    app_gallery_dir = tmp_path / "appearance_gallery"
+    db_dir = tmp_path / "embedding_db"
+    gallery_dir.mkdir(parents=True, exist_ok=True)
+    app_gallery_dir.mkdir(parents=True, exist_ok=True)
+    db_dir.mkdir(parents=True, exist_ok=True)
+
+    service = GaitService(
+        gallery_dir=str(gallery_dir),
+        appearance_gallery_dir=str(app_gallery_dir),
+    )
+    service.embedding_db = EmbeddingDatabase(
+        db_dir=str(db_dir),
+        gait_gallery_dir=str(gallery_dir),
+        appearance_gallery_dir=str(app_gallery_dir),
+    )
+
+    orig_service = getattr(app.state, "gait_service", None)
+    app.state.gait_service = service
+    app.dependency_overrides[get_gait_service] = lambda: service
+    try:
+        yield service
+    finally:
+        app.dependency_overrides.pop(get_gait_service, None)
+        app.state.gait_service = orig_service
+
+
 @pytest.fixture
 def auth_headers():
     store = get_session_store()
     inv_session = store.create_session("op_inv", "inv_user", Role.INVESTIGATOR.value)
     return {"Authorization": f"Bearer {inv_session.token}"}
+
 
 
 def _create_mock_video_bytes(num_frames: int = 15, width: int = 320, height: int = 240) -> bytes:
