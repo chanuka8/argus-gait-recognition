@@ -7,12 +7,12 @@ import { getStorage } from "firebase/storage";
 
 
 const firebaseConfig = {
-    apiKey: "AIzaSyAhRtC8YU4pJ5g9KZ07cKXDqr4lLOCnNOs",
-    authDomain: "argus-17702.firebaseapp.com",
-    projectId: "argus-17702",
-    storageBucket: "argus-17702.firebasestorage.app",
-    messagingSenderId: "178416740087",
-    appId: "1:178416740087:web:bc4127e0e8e4d3de2a55f2"
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "",
+    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "argus-17702.firebaseapp.com",
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "argus-17702",
+    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "argus-17702.firebasestorage.app",
+    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "178416740087",
+    appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:178416740087:web:bc4127e0e8e4d3de2a55f2"
 };
 
 
