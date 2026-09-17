@@ -79,10 +79,9 @@ def run_deployment_smoke_test(
                 report["defects"].append(f"Synthetic inference exception: {e}")
 
         g_valid, g_err, _g_count = validate_gallery_files(gallery_dir=Path("models/gallery"), expected_dim=256)
-        report["checks"]["gallery_validation"] = (
-            "PASSED" if g_valid or "files missing" in (g_err or "").lower() else "FAILED"
-        )
-        if not g_valid and "files missing" not in (g_err or "").lower():
+        is_missing = "files missing" in (g_err or "").lower() or "file missing" in (g_err or "").lower()
+        report["checks"]["gallery_validation"] = "PASSED" if g_valid or is_missing else "FAILED"
+        if not g_valid and not is_missing:
             report["defects"].append(f"Gallery validation defect: {g_err}")
 
         build_meta = extract_build_metadata(backend=backend)

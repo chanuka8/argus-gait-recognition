@@ -181,7 +181,7 @@ def _execute_doctor_checks(json_path: str, md_path: str) -> tuple[int, dict]:
                 "details": f"Gallery features and labels ({g_count} identities) loaded safely with allow_pickle=False",
             }
         )
-    elif "files missing" in (g_err or "").lower():
+    elif "files missing" in (g_err or "").lower() or "file missing" in (g_err or "").lower():
         checks.append(
             {
                 "name": "gallery_integrity",

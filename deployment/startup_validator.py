@@ -167,7 +167,7 @@ class DeploymentStartupValidator:
                 normalized_error = (gallery_error or "").lower()
                 sanitized_error = self._sanitize_error(gallery_error or "Unknown gallery validation error")
 
-                if "files missing" in normalized_error:
+                if "files missing" in normalized_error or "file missing" in normalized_error:
                     warnings.append(f"Gallery state notice: {sanitized_error}")
                 else:
                     blocking_issues.append(f"Gallery defect: {sanitized_error}")

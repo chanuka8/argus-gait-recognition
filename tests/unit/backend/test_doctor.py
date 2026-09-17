@@ -62,3 +62,42 @@ def test_doctor_non_destructive_guarantee(tmp_path: Path):
 
     mtime_after = {f: f.stat().st_mtime for f in models_dir.rglob("*") if f.is_file()}
     assert mtime_before == mtime_after
+
+
+def test_doctor_missing_gallery_file_produces_warning(monkeypatch, tmp_path: Path):
+    monkeypatch.setattr(
+        "deployment.doctor.validate_gallery_files",
+        lambda *args, **kwargs: (False, "Gallery features file missing in models/gallery", 0),
+    )
+
+    json_path = tmp_path / "doctor_missing.json"
+    md_path = tmp_path / "doctor_missing.md"
+
+    _exit_code, report = run_doctor(json_path=str(json_path), md_path=str(md_path))
+
+    gallery_checks = [c for c in report.get("checks", []) if c.get("name") == "gallery_integrity"]
+    assert len(gallery_checks) == 1
+    assert gallery_checks[0]["status"] == "WARN"
+    assert any("Gallery state notice" in w for w in report.get("warnings", []))
+    assert not any("Gallery defect" in issue for issue in report.get("blocking_issues", []))
+
+
+def test_doctor_corrupted_gallery_produces_failure(monkeypatch, tmp_path: Path):
+    monkeypatch.setattr(
+        "deployment.doctor.validate_gallery_files",
+        lambda *args, **kwargs: (
+            False,
+            "Corrupted feature array: NaN values found in gallery_features.npy",
+            0,
+        ),
+    )
+
+    json_path = tmp_path / "doctor_corrupt.json"
+    md_path = tmp_path / "doctor_corrupt.md"
+
+    _exit_code, report = run_doctor(json_path=str(json_path), md_path=str(md_path))
+
+    gallery_checks = [c for c in report.get("checks", []) if c.get("name") == "gallery_integrity"]
+    assert len(gallery_checks) == 1
+    assert gallery_checks[0]["status"] == "FAIL"
+    assert "Gallery defect" in gallery_checks[0]["details"]

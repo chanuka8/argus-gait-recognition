@@ -96,3 +96,37 @@ def test_startup_validator_raises_on_failure_when_enabled(monkeypatch):
         validator.validate_startup(raise_on_failure=True)
 
     assert len(exc_info.value.blocking_issues) > 0
+
+
+def test_startup_validator_missing_gallery_file_produces_warning_notice(monkeypatch):
+    validator = DeploymentStartupValidator()
+    monkeypatch.setattr(
+        "deployment.startup_validator.validate_gallery_files",
+        lambda *args, **kwargs: (False, "Gallery features file missing in models/gallery", 0),
+    )
+
+    summary = validator.validate_startup(raise_on_failure=False)
+    assert summary["success"] is True
+    assert summary["status"] in (
+        DeploymentStartupValidator.STATUS_READY_WITH_WARNINGS,
+        DeploymentStartupValidator.STATUS_READY,
+    )
+    assert not any("Gallery defect" in issue for issue in summary["blocking_issues"])
+    assert any("Gallery state notice" in w for w in summary["warnings"])
+
+
+def test_startup_validator_gallery_corruption_blocks_startup(monkeypatch):
+    validator = DeploymentStartupValidator()
+    monkeypatch.setattr(
+        "deployment.startup_validator.validate_gallery_files",
+        lambda *args, **kwargs: (
+            False,
+            "Corrupted feature array: NaN detected in gallery_features.npy",
+            0,
+        ),
+    )
+
+    summary = validator.validate_startup(raise_on_failure=False)
+    assert summary["success"] is False
+    assert summary["status"] == DeploymentStartupValidator.STATUS_NOT_READY
+    assert any("Gallery defect" in issue for issue in summary["blocking_issues"])

@@ -72,3 +72,40 @@ def test_smoke_test_report_write_failure(monkeypatch, tmp_path: Path):
 
     assert code == 1
     assert any("Failed writing smoke test report" in d for d in report["defects"])
+
+
+def test_smoke_test_singular_missing_gallery_file_passes(monkeypatch, tmp_path: Path):
+    missing_response = (False, "Gallery features file missing in models/gallery", 0)
+    monkeypatch.setattr(
+        "tools.validation.deployment_smoke_test.validate_gallery_files",
+        lambda *args, **kwargs: missing_response,
+    )
+    monkeypatch.setattr(
+        "deployment.startup_validator.validate_gallery_files",
+        lambda *args, **kwargs: missing_response,
+    )
+
+    code, report = run_deployment_smoke_test(output_dir=str(tmp_path))
+
+    assert code == 0
+    assert report["status"] == "PASSED"
+    assert report["checks"]["gallery_validation"] == "PASSED"
+    assert not any("Gallery validation defect" in d or "Gallery defect" in d for d in report["defects"])
+
+
+def test_smoke_test_corrupted_gallery_records_defect(monkeypatch, tmp_path: Path):
+    monkeypatch.setattr(
+        "tools.validation.deployment_smoke_test.validate_gallery_files",
+        lambda *args, **kwargs: (
+            False,
+            "Corrupted feature array: NaN detected in gallery_features.npy",
+            0,
+        ),
+    )
+
+    code, report = run_deployment_smoke_test(output_dir=str(tmp_path))
+
+    assert code == 1
+    assert report["status"] == "FAILED"
+    assert report["checks"]["gallery_validation"] == "FAILED"
+    assert any("Gallery validation defect" in d for d in report["defects"])
