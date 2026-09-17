@@ -811,3 +811,65 @@ def test_migration_purge_safely_removes_plaintext_when_verified(tmp_path, encryp
     # Final verification of remaining encrypted container
     v_res = verify_vector_store(gal_dir, encryptor)
     assert v_res["is_valid"] is True
+
+
+# ==============================================================================
+# 52-56: BIOMETRIC KEY PARSING & VALIDATION REGRESSION TESTS
+# ==============================================================================
+
+
+def test_raw_32_byte_key_with_boundary_whitespace_bytes_accepted():
+    """Verify that 32-byte raw binary keys with boundary whitespace bytes are NOT stripped."""
+    test_keys = [
+        bytes([0x0C] + [1] * 31),  # Form feed at start (CI #148 failure case)
+        bytes([1] * 31 + [0x0C]),  # Form feed at end
+        bytes([0x20] + [2] * 31),  # Space at start
+        bytes([2] * 31 + [0x20]),  # Space at end
+        bytes([0x0A] + [3] * 30 + [0x0D]),  # \n at start, \r at end
+        bytes([0x09, 0x0B] + [4] * 28 + [0x20, 0x0C]),  # Multiple boundary whitespaces
+        bytearray([0x0C] + [5] * 31),  # bytearray with leading 0x0c
+    ]
+    for key in test_keys:
+        enc = BiometricEncryptor(key=key)
+        assert enc._key_bytes == bytes(key)
+        assert len(enc._key_bytes) == 32
+        sample = np.random.randn(2, 256).astype(np.float32)
+        labels = np.array(["subj1", "subj2"])
+        ciphertext = enc.encrypt_gallery_container(sample, labels, "test_gallery")
+        decrypted, _ = enc.decrypt_gallery_container(ciphertext, "test_gallery", labels)
+        np.testing.assert_allclose(decrypted, sample, atol=1e-6)
+
+
+def test_invalid_raw_byte_key_lengths_rejected():
+    """Verify that raw byte keys of incorrect length fail-closed with ConfigurationError."""
+    for length in [0, 16, 31, 33, 63, 65]:
+        bad_key = b"\x01" * length
+        with pytest.raises(ConfigurationError, match="must be exactly 32 bytes"):
+            BiometricEncryptor(key=bad_key)
+
+
+def test_raw_bytes_64_hex_chars_parsed_correctly():
+    """Verify that 64 ASCII hex characters passed as bytes/bytearray are parsed to 32 bytes."""
+    hex_bytes = b"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    enc = BiometricEncryptor(key=hex_bytes)
+    assert len(enc._key_bytes) == 32
+    assert enc._key_bytes == bytes.fromhex(hex_bytes.decode("ascii"))
+
+    enc_ba = BiometricEncryptor(key=bytearray(hex_bytes))
+    assert enc_ba._key_bytes == enc._key_bytes
+
+
+def test_raw_bytes_64_non_hex_rejected():
+    """Verify that 64 raw bytes that are NOT valid hex are rejected (fail-closed)."""
+    raw_64 = bytes([0xFF] * 64)
+    with pytest.raises(ConfigurationError, match="must be exactly 32 bytes"):
+        BiometricEncryptor(key=raw_64)
+
+
+def test_u2_u3_key_separation_enforced_with_raw_bytes(monkeypatch):
+    """Verify that U2 audit HMAC and U3 biometric keys cannot be identical when passed as raw bytes."""
+    shared_key = b"\x42" * 32
+    monkeypatch.setenv("ARGUS_AUDIT_HMAC_KEY", shared_key.hex())
+
+    with pytest.raises(ConfigurationError, match="Cryptographic domain separation violation"):
+        BiometricEncryptor(key=shared_key)

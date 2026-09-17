@@ -169,7 +169,7 @@ async def serve_spa_frontend(full_path: str):
         raise HTTPException(status_code=404, detail="Frontend build not found")
 
     resolved_dist = FRONTEND_DIST_DIR.resolve()
-    clean_subpath = full_path.lstrip("/\\")
+    clean_subpath = full_path.replace("\\", "/").lstrip("/")
 
     try:
         target_file = (resolved_dist / clean_subpath).resolve()

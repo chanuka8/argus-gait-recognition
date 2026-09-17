@@ -122,14 +122,14 @@ class BiometricEncryptor:
                     )
                 parsed_key = raw_b
         elif isinstance(raw_val, (bytes, bytearray)):
-            cleaned_b = bytes(raw_val).strip()
-            if len(cleaned_b) == 64:
+            raw_bytes = bytes(raw_val)
+            if len(raw_bytes) == 64:
                 try:
-                    parsed_key = bytes.fromhex(cleaned_b.decode("ascii"))
+                    parsed_key = bytes.fromhex(raw_bytes.decode("ascii"))
                 except (ValueError, UnicodeDecodeError):
-                    parsed_key = cleaned_b
+                    parsed_key = raw_bytes
             else:
-                parsed_key = cleaned_b
+                parsed_key = raw_bytes
 
             if len(parsed_key) != 32:
                 raise ConfigurationError(

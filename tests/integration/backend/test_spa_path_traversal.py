@@ -69,6 +69,26 @@ def test_deep_path_traversal_rejected_with_404(client):
         assert resp.json().get("detail") == "Not Found"
 
 
+def test_encoded_backslash_path_traversal_rejected_with_404(client):
+    """Encoded backslash traversal /..%5c..%5crequirements.txt must return 404 without falling back to index.html."""
+    for path in ["/..%5c..%5crequirements.txt", "/..%5c..%5c..%5cetc%5cpasswd", "/..%5c..%5c.env.example"]:
+        resp = client.get(path)
+        assert resp.status_code == 404
+        data = resp.json()
+        assert data.get("detail") == "Not Found"
+        assert "<!doctype html>" not in resp.text.lower()
+
+
+def test_mixed_slash_backslash_path_traversal_rejected_with_404(client):
+    """Mixed slash and backslash traversals must return 404 without falling back to index.html."""
+    for path in ["/..%2f..%5crequirements.txt", "/..%5c..%2frequirements.txt", "/nested/..%5c..%2f..%2frequirements.txt"]:
+        resp = client.get(path)
+        assert resp.status_code == 404
+        data = resp.json()
+        assert data.get("detail") == "Not Found"
+        assert "<!doctype html>" not in resp.text.lower()
+
+
 def test_reserved_prefixes_not_routed_to_spa(client):
     """API, docs, and health endpoints are not intercepted by the SPA handler."""
     resp = client.get("/api/v1/health")
