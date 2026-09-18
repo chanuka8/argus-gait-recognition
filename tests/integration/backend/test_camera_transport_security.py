@@ -29,6 +29,8 @@ from security_layer.credentials import (
     build_stream_url,
     extract_rtsp_credentials,
     extract_stream_credentials,
+    get_deployment_environment,
+    is_secure_camera_transport_required,
     resolve_camera_config,
     sanitize_rtsp_url,
     sanitize_stream_url,
@@ -70,6 +72,7 @@ def reset_transport_env(monkeypatch):
     monkeypatch.delenv("ARGUS_REQUIRE_SECURE_CAMERA_TRANSPORT", raising=False)
     monkeypatch.delenv("ARGUS_ALLOW_RTSPS_CANDIDATE", raising=False)
     monkeypatch.delenv("ARGUS_ALLOW_HTTPS_CANDIDATE", raising=False)
+    monkeypatch.setenv("ARGUS_ENVIRONMENT", "development")
 
 
 # ==============================================================================
@@ -485,3 +488,71 @@ class TestConfigResolverAndIsolationGuard:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.connect(("192.168.1.100", 554))
         assert "TEST ISOLATION VIOLATION" in str(exc_info.value)
+
+
+# ==============================================================================
+# SECTION 7: DEPLOYMENT ENVIRONMENT RESOLUTION & PRECEDENCE (U4)
+# ==============================================================================
+
+
+class TestEnvironmentResolutionAndPrecedence:
+    """Validate 4-tier canonical deployment environment resolution and strict U4 gate."""
+
+    def test_precedence_tier_1_explicit_override_wins(self, monkeypatch):
+        monkeypatch.setenv("ARGUS_ENVIRONMENT", "production")
+        assert get_deployment_environment(override="staging") == "staging"
+        assert get_deployment_environment(override="development") == "development"
+
+    def test_precedence_tier_2_argus_environment_env_var(self, monkeypatch):
+        monkeypatch.setenv("ARGUS_ENVIRONMENT", "production")
+        assert get_deployment_environment() == "production"
+
+        monkeypatch.setenv("ARGUS_ENVIRONMENT", "development")
+        assert get_deployment_environment() == "development"
+
+    def test_precedence_tier_3_production_yaml_fallback(self, monkeypatch):
+        monkeypatch.delenv("ARGUS_ENVIRONMENT", raising=False)
+        # configs/production.yaml has target_environment: "production"
+        assert get_deployment_environment() == "production"
+
+    def test_precedence_tier_4_development_default_when_no_yaml(self, monkeypatch):
+        monkeypatch.delenv("ARGUS_ENVIRONMENT", raising=False)
+        with patch("pathlib.Path.is_file", return_value=False):
+            assert get_deployment_environment() == "development"
+
+    def test_is_secure_transport_required_precedence(self, monkeypatch):
+        # 1. Explicit override takes precedence over everything
+        assert is_secure_camera_transport_required(override=True) is True
+        assert is_secure_camera_transport_required(override=False) is False
+
+        # 2. ARGUS_REQUIRE_SECURE_CAMERA_TRANSPORT=true enforces strict even in development
+        monkeypatch.setenv("ARGUS_ENVIRONMENT", "development")
+        monkeypatch.setenv("ARGUS_REQUIRE_SECURE_CAMERA_TRANSPORT", "true")
+        assert is_secure_camera_transport_required() is True
+
+        # 3. Production environment enforces strict by default
+        monkeypatch.setenv("ARGUS_ENVIRONMENT", "production")
+        monkeypatch.delenv("ARGUS_REQUIRE_SECURE_CAMERA_TRANSPORT", raising=False)
+        assert is_secure_camera_transport_required() is True
+
+        # 4. Development without explicit flag is permissive
+        monkeypatch.setenv("ARGUS_ENVIRONMENT", "development")
+        monkeypatch.delenv("ARGUS_REQUIRE_SECURE_CAMERA_TRANSPORT", raising=False)
+        assert is_secure_camera_transport_required() is False
+
+    def test_environment_resolution_is_independent_of_process_cwd(self, monkeypatch, tmp_path):
+        """Production config lookup must resolve from repository root even when CWD is outside ARGUS_AI."""
+        monkeypatch.delenv("ARGUS_ENVIRONMENT", raising=False)
+        monkeypatch.delenv("ARGUS_REQUIRE_SECURE_CAMERA_TRANSPORT", raising=False)
+
+        # Change current working directory to a temporary directory outside ARGUS_AI
+        monkeypatch.chdir(tmp_path)
+
+        # Must resolve configs/production.yaml deterministically and return 'production'
+        assert get_deployment_environment() == "production"
+        assert is_secure_camera_transport_required() is True
+
+        # Injected config_path can also be used explicitly
+        custom_yaml = tmp_path / "custom_prod.yaml"
+        custom_yaml.write_text("deployment:\n  target_environment: staging\n", encoding="utf-8")
+        assert get_deployment_environment(config_path=custom_yaml) == "staging"

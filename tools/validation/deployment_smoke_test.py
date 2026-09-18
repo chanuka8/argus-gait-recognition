@@ -38,6 +38,10 @@ def run_deployment_smoke_test(
         validator = DeploymentStartupValidator()
         s_res = validator.validate_startup(raise_on_failure=False)
         report["checks"]["startup_validator"] = "PASSED" if s_res["success"] else "FAILED"
+        cam_transport_defects = [
+            issue for issue in s_res.get("blocking_issues", []) if "camera transport" in issue.lower()
+        ]
+        report["checks"]["camera_transport_security"] = "FAILED" if cam_transport_defects else "PASSED"
         if not s_res["success"]:
             for defect in s_res["blocking_issues"]:
                 report["defects"].append(f"Startup validator issue: {defect}")

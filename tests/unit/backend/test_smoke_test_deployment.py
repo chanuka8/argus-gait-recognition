@@ -109,3 +109,16 @@ def test_smoke_test_corrupted_gallery_records_defect(monkeypatch, tmp_path: Path
     assert report["status"] == "FAILED"
     assert report["checks"]["gallery_validation"] == "FAILED"
     assert any("Gallery validation defect" in d for d in report["defects"])
+
+
+def test_smoke_test_production_plaintext_camera_fails(monkeypatch, tmp_path: Path):
+    """Smoke test fails closed in production when unencrypted RTSP cameras exist."""
+    monkeypatch.setenv("ARGUS_ENVIRONMENT", "production")
+
+    code, report = run_deployment_smoke_test(output_dir=str(tmp_path))
+
+    assert code == 1
+    assert report["status"] == "FAILED"
+    assert report["checks"]["camera_transport_security"] == "FAILED"
+    assert report["checks"]["startup_validator"] == "FAILED"
+    assert any("Insecure camera transport" in d for d in report["defects"])

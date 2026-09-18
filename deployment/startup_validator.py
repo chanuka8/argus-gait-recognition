@@ -22,7 +22,13 @@ class DeploymentStartupValidator:
     STATUS_UNABLE_TO_VERIFY = "UNABLE_TO_VERIFY"
 
     def __init__(self, configs_dir: str = "configs") -> None:
-        self.configs_dir = Path(configs_dir)
+        p = Path(configs_dir)
+        if not p.is_dir() and not p.is_absolute():
+            repo_root = Path(__file__).resolve().parent.parent
+            candidate = repo_root / configs_dir
+            if candidate.is_dir():
+                p = candidate
+        self.configs_dir = p
         self.config_validator = ConfigValidator(configs_dir=self.configs_dir)
         self._backend: Any | None = None
 
@@ -184,7 +190,11 @@ class DeploymentStartupValidator:
                 blocking_issues=blocking_issues,
             )
 
-        unable_to_verify.append("Live RTSP camera streams (network check deferred to runtime pipeline launch)")
+        self._validate_camera_transport_security(
+            blocking_issues=blocking_issues,
+            warnings=warnings,
+            unable_to_verify=unable_to_verify,
+        )
 
         if blocking_issues:
             status = self.STATUS_NOT_READY
@@ -210,6 +220,138 @@ class DeploymentStartupValidator:
             raise StartupValidationError(blocking_issues)
 
         return summary
+
+    def _validate_camera_transport_security(
+        self,
+        blocking_issues: list[str],
+        warnings: list[str],
+        unable_to_verify: list[str],
+    ) -> None:
+        """Pure STATIC camera transport validation for enabled cameras.
+
+        Invariants:
+        - Inspects enabled cameras only
+        - Makes zero network calls
+        - Makes zero cv2.VideoCapture calls
+        - Does not instantiate CredentialManager
+        - Does not read or create .credentials.key
+        - Constructs credential-free URLs from protocol/host/port/path
+        - Invokes validate_camera_transport(..., enforce=False)
+        """
+        cam_file = self.configs_dir / "cameras.yaml"
+        if not cam_file.is_file():
+            return
+
+        try:
+            import yaml
+
+            with open(cam_file, "r", encoding="utf-8") as f:
+                cam_data = yaml.safe_load(f)
+        except (OSError, ValueError, TypeError) as exc:
+            sanitized_err = self._sanitize_error(exc)
+            blocking_issues.append(f"Failed to read cameras.yaml for transport validation: {sanitized_err}")
+            return
+
+        if not isinstance(cam_data, dict):
+            return
+
+        cameras_section = cam_data.get("cameras", {})
+        if not isinstance(cameras_section, dict):
+            return
+
+        from security_layer.credentials import (
+            extract_stream_credentials,
+            is_secure_camera_transport_required,
+            validate_camera_transport,
+        )
+
+        prod_yaml = self.configs_dir / "production.yaml"
+        strict = is_secure_camera_transport_required(
+            config_path=prod_yaml if prod_yaml.is_file() else None
+        )
+        network_camera_seen = False
+
+        for cam_key, cam_cfg in cameras_section.items():
+            if not isinstance(cam_cfg, dict):
+                continue
+
+            # Inspect enabled cameras only
+            if not cam_cfg.get("enabled", True):
+                continue
+
+            cam_id = str(cam_cfg.get("id", cam_key))
+            cam_type = str(cam_cfg.get("type", "rtsp")).strip().lower()
+
+            # Construct credential-free source
+            raw_url = cam_cfg.get("url")
+            if raw_url:
+                _, _, clean_source = extract_stream_credentials(str(raw_url))
+            elif cam_type in ("rtsp", "rtsps", "http", "https") or "host" in cam_cfg:
+                protocol = str(cam_cfg.get("protocol") or cam_type or "rtsp").strip().lower()
+                host = str(cam_cfg.get("host", "")).strip()
+                port = cam_cfg.get("port")
+                path = str(cam_cfg.get("path", "")).strip()
+                if path and not path.startswith("/"):
+                    path = f"/{path}"
+                if host:
+                    clean_source = f"{protocol}://{host}:{port}{path}" if port else f"{protocol}://{host}{path}"
+                else:
+                    clean_source = ""
+            elif cam_type in ("file",) or "file_path" in cam_cfg:
+                clean_source = cam_cfg.get("file_path", "")
+            elif cam_type in ("usb", "webcam", "local") or "device_index" in cam_cfg:
+                clean_source = cam_cfg.get("device_index", 0)
+            else:
+                clean_source = cam_cfg.get("source", 0)
+
+            transport_res = validate_camera_transport(
+                clean_source,
+                config=cam_cfg,
+                strict_mode=strict,
+                enforce=False,
+            )
+
+            category = transport_res.get("category")
+            allowed = transport_res.get("allowed", False)
+            reason = transport_res.get("reason", "")
+
+            if category not in ("local",):
+                network_camera_seen = True
+
+            if strict:
+                if not allowed:
+                    blocking_issues.append(f"Insecure camera transport for '{cam_id}': {reason}")
+                else:
+                    if category == "protected_tunnel":
+                        tunnel_type = transport_res.get("tunnel_type", "tunnel")
+                        warnings.append(
+                            f"Camera '{cam_id}' transport notice: Operator-asserted protected tunnel ({tunnel_type}) accepted"
+                        )
+                    elif category == "rtsps_candidate":
+                        warnings.append(
+                            f"Camera '{cam_id}' transport notice: Operator-confirmed RTSPS stream accepted (verified_by_argus=False)"
+                        )
+            else:
+                if not allowed:
+                    blocking_issues.append(f"Camera '{cam_id}' invalid transport defect: {reason}")
+                elif category in ("plaintext_rtsp", "plaintext_http"):
+                    warnings.append(
+                        f"Camera '{cam_id}' transport notice: Unencrypted {category.replace('_', ' ').upper()} stream permitted in development mode (transport remediation pending)"
+                    )
+                elif category == "protected_tunnel":
+                    tunnel_type = transport_res.get("tunnel_type", "tunnel")
+                    warnings.append(
+                        f"Camera '{cam_id}' transport notice: Operator-asserted protected tunnel ({tunnel_type}) accepted"
+                    )
+                elif category == "rtsps_candidate":
+                    warnings.append(
+                        f"Camera '{cam_id}' transport notice: RTSPS candidate stream accepted in development mode"
+                    )
+
+        if network_camera_seen:
+            unable_to_verify.append(
+                "Live RTSP camera streams network reachability (network check deferred to runtime pipeline launch)"
+            )
 
     def get_backend(self) -> Any:
         if self._backend is None:

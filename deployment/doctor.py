@@ -284,6 +284,59 @@ def _execute_doctor_checks(json_path: str, md_path: str) -> tuple[int, dict]:
         )
         warnings.append(f"Logging initialization issue: {e}")
 
+    try:
+        from deployment.startup_validator import DeploymentStartupValidator
+
+        s_val = DeploymentStartupValidator(configs_dir=str(ROOT / "configs"))
+        cam_blocking: list[str] = []
+        cam_warnings: list[str] = []
+        cam_unable: list[str] = []
+        s_val._validate_camera_transport_security(
+            blocking_issues=cam_blocking,
+            warnings=cam_warnings,
+            unable_to_verify=cam_unable,
+        )
+
+        if cam_blocking:
+            checks.append(
+                {
+                    "name": "camera_transport_security",
+                    "category": "security",
+                    "status": "FAIL",
+                    "details": f"Insecure camera transport: {'; '.join(cam_blocking)}",
+                }
+            )
+            blocking_issues.extend(cam_blocking)
+        elif cam_warnings:
+            checks.append(
+                {
+                    "name": "camera_transport_security",
+                    "category": "security",
+                    "status": "WARN",
+                    "details": f"Camera transport notices: {'; '.join(cam_warnings)}",
+                }
+            )
+            warnings.extend(cam_warnings)
+        else:
+            checks.append(
+                {
+                    "name": "camera_transport_security",
+                    "category": "security",
+                    "status": "PASS",
+                    "details": "Camera transport security policy validated cleanly",
+                }
+            )
+    except (RuntimeError, ValueError, TypeError, OSError) as e:
+        checks.append(
+            {
+                "name": "camera_transport_security",
+                "category": "security",
+                "status": "FAIL",
+                "details": f"Failed to validate camera transport security: {e}",
+            }
+        )
+        blocking_issues.append(f"Camera transport security check failed: {e}")
+
     if blocking_issues:
         overall_status = STATUS_NOT_READY
         exit_code = 1

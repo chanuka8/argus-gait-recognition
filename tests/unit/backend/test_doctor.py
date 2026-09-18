@@ -101,3 +101,38 @@ def test_doctor_corrupted_gallery_produces_failure(monkeypatch, tmp_path: Path):
     assert len(gallery_checks) == 1
     assert gallery_checks[0]["status"] == "FAIL"
     assert "Gallery defect" in gallery_checks[0]["details"]
+
+
+def test_doctor_production_plaintext_camera_produces_failure(monkeypatch, tmp_path: Path):
+    """Doctor health check fails closed in production when unencrypted RTSP cameras exist."""
+    monkeypatch.setenv("ARGUS_ENVIRONMENT", "production")
+
+    json_path = tmp_path / "doctor_prod.json"
+    md_path = tmp_path / "doctor_prod.md"
+
+    exit_code, report = run_doctor(json_path=str(json_path), md_path=str(md_path))
+
+    assert exit_code == 1
+    assert report["overall_status"] == "NOT_READY"
+    cam_checks = [c for c in report.get("checks", []) if c.get("name") == "camera_transport_security"]
+    assert len(cam_checks) == 1
+    assert cam_checks[0]["status"] == "FAIL"
+    assert any("Insecure camera transport" in b for b in report.get("blocking_issues", []))
+
+
+def test_doctor_development_plaintext_camera_produces_warning(monkeypatch, tmp_path: Path):
+    """Doctor health check produces non-blocking warnings in development mode."""
+    monkeypatch.setenv("ARGUS_ENVIRONMENT", "development")
+    monkeypatch.delenv("ARGUS_REQUIRE_SECURE_CAMERA_TRANSPORT", raising=False)
+
+    json_path = tmp_path / "doctor_dev.json"
+    md_path = tmp_path / "doctor_dev.md"
+
+    exit_code, report = run_doctor(json_path=str(json_path), md_path=str(md_path))
+
+    assert exit_code == 0
+    assert report["overall_status"] in ("READY_FOR_CONTROLLED_GAIT_RECOGNITION_TESTING", "READY_WITH_WARNINGS")
+    cam_checks = [c for c in report.get("checks", []) if c.get("name") == "camera_transport_security"]
+    assert len(cam_checks) == 1
+    assert cam_checks[0]["status"] in ("WARN", "PASS")
+    assert not any("Insecure camera transport" in b for b in report.get("blocking_issues", []))

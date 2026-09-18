@@ -1,21 +1,29 @@
 import threading
 import time
 from queue import Empty, Full, Queue
+from typing import Any
 
 import cv2
 
-from security_layer.credentials import resolve_camera_config, sanitize_rtsp_url
+from security_layer.credentials import (
+    CameraTransportSecurityError,
+    is_secure_camera_transport_required,
+    resolve_camera_config,
+    sanitize_rtsp_url,
+    validate_camera_transport,
+)
 
 
 class CameraStream:
     def __init__(
         self,
         camera_id: str,
-        source=0,
+        source: Any = 0,
         width: int = 640,
         height: int = 480,
         target_fps: int = 5,
         queue_max_size: int = 10,
+        config: dict[str, Any] | None = None,
     ) -> None:
         self.camera_id = camera_id
         self.source = source
@@ -23,6 +31,7 @@ class CameraStream:
         self.height = height
         self.target_fps = max(1, target_fps)
         self.frame_interval = 1.0 / self.target_fps
+        self.config = config or {}
 
         self.queue: Queue = Queue(maxsize=queue_max_size)
         self.cap = None
@@ -33,6 +42,18 @@ class CameraStream:
         self.frames_dropped = 0
 
     def start(self) -> bool:
+        strict = is_secure_camera_transport_required()
+        transport_res = validate_camera_transport(
+            self.source,
+            config=self.config,
+            strict_mode=strict,
+            enforce=False,
+        )
+        if strict and not transport_res.get("allowed", False):
+            reason = transport_res.get("reason", "Insecure camera transport rejected")
+            self.error = f"Camera {self.camera_id}: {reason}"
+            raise CameraTransportSecurityError(f"Camera '{self.camera_id}': {reason}")
+
         self.cap = cv2.VideoCapture(self.source)
 
         if not self.cap.isOpened():
@@ -129,10 +150,39 @@ class MultiStreamEngine:
             camera_id = str(cam_cfg.get("id", "cam"))
             try:
                 cam_cfg = resolve_camera_config(cam_cfg)
+            except CameraTransportSecurityError:
+                raise
             except (KeyError, ValueError, TypeError):
                 pass
 
-            source = cam_cfg.get("url") or cam_cfg.get("source", 0)
+            # Determine source without unsafe fallback to 0 for network cameras
+            source = cam_cfg.get("url")
+            if source is None:
+                cam_type = str(cam_cfg.get("type", "")).strip().lower()
+                if cam_type in ("usb", "webcam", "local") or "device_index" in cam_cfg:
+                    source = cam_cfg.get("device_index", 0)
+                elif cam_type in ("file",) or "file_path" in cam_cfg:
+                    source = cam_cfg.get("file_path", "")
+                elif "source" in cam_cfg:
+                    source = cam_cfg["source"]
+                else:
+                    if cam_type in ("rtsp", "rtsps", "http", "https") or "host" in cam_cfg:
+                        raise CameraTransportSecurityError(
+                            f"Camera '{camera_id}': Network camera has no valid URL and cannot fall back to device 0"
+                        )
+                    source = 0
+
+            strict = is_secure_camera_transport_required()
+            transport_res = validate_camera_transport(
+                source,
+                config=cam_cfg,
+                strict_mode=strict,
+                enforce=False,
+            )
+            if strict and not transport_res.get("allowed", False):
+                raise CameraTransportSecurityError(
+                    f"Camera '{camera_id}': {transport_res.get('reason')}"
+                )
 
             self.streams[camera_id] = CameraStream(
                 camera_id=camera_id,
@@ -141,6 +191,7 @@ class MultiStreamEngine:
                 height=cam_cfg.get("height", 480),
                 target_fps=cam_cfg.get("target_fps", 5),
                 queue_max_size=queue_max_size,
+                config=cam_cfg,
             )
 
     def start_all(self) -> dict[str, bool]:

@@ -157,16 +157,66 @@ def build_rtsp_url(
     return build_stream_url(base_url, username, password)
 
 
-def is_secure_camera_transport_required(override: bool | None = None) -> bool:
+def get_deployment_environment(
+    override: str | None = None,
+    config_path: str | Path | None = None,
+) -> str:
+    """Resolve canonical deployment environment.
+
+    Precedence:
+    1. Explicit override
+    2. ARGUS_ENVIRONMENT env var
+    3. configs/production.yaml deployment.target_environment
+    4. 'development' default
+    """
+    if override is not None and str(override).strip():
+        return str(override).strip().lower()
+
+    env_val = os.environ.get("ARGUS_ENVIRONMENT", "").strip().lower()
+    if env_val:
+        return env_val
+
+    if config_path is not None:
+        prod_yaml_path = Path(config_path)
+    else:
+        repo_root = Path(__file__).resolve().parent.parent
+        prod_yaml_path = repo_root / "configs" / "production.yaml"
+
+    if prod_yaml_path.is_file():
+        try:
+            import yaml
+
+            with open(prod_yaml_path, "r", encoding="utf-8") as f:
+                data = yaml.safe_load(f)
+            if isinstance(data, dict):
+                target_env = data.get("deployment", {}).get("target_environment")
+                if target_env and str(target_env).strip():
+                    return str(target_env).strip().lower()
+        except (OSError, ValueError, TypeError):
+            pass
+
+    return "development"
+
+
+def is_secure_camera_transport_required(
+    override: bool | None = None,
+    config_path: str | Path | None = None,
+) -> bool:
     """Check if strict camera transport security is enforced.
 
-    Controlled by env var ARGUS_REQUIRE_SECURE_CAMERA_TRANSPORT.
-    Default is False (permissive/development mode).
+    Strict U4 is enabled when:
+    - explicit override=True
+    - ARGUS_REQUIRE_SECURE_CAMERA_TRANSPORT=true
+    - canonical deployment environment == 'production'
     """
     if override is not None:
         return bool(override)
+
     env_val = os.environ.get("ARGUS_REQUIRE_SECURE_CAMERA_TRANSPORT", "").strip().lower()
-    return env_val in ("true", "1", "yes")
+    if env_val in ("true", "1", "yes"):
+        return True
+
+    return get_deployment_environment(config_path=config_path) == "production"
 
 
 def validate_camera_transport(
