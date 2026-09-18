@@ -1,8 +1,9 @@
 import platform
 import sys
-from pathlib import Path
 
 import psutil
+
+from core.paths import get_app_root
 
 
 class SystemMonitor:
@@ -17,8 +18,9 @@ class SystemMonitor:
                 2,
             ),
             "memory_percent": psutil.virtual_memory().percent,
-            "project_root": str(Path.cwd()),
+            "project_root": str(get_app_root()),
         }
+
 
     def format_snapshot(self) -> str:
         data = self.snapshot()

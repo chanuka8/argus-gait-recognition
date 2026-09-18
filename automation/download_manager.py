@@ -4,6 +4,8 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+from core.paths import resolve_runtime_path
+
 
 class DownloadManager:
     CHUNK_SIZE = 1024 * 1024
@@ -30,13 +32,13 @@ class DownloadManager:
     def download_file(
         cls,
         url: str,
-        dest_path: Path,
+        dest_path: Path | str,
         package_name: str,
         expected_size: int | None = None,
         max_retries: int = 5,
         retry_delay_sec: float = 3.0,
     ) -> bool:
-        dest_path = Path(dest_path)
+        dest_path = resolve_runtime_path(dest_path)
         dest_path.parent.mkdir(parents=True, exist_ok=True)
         part_path = dest_path.with_suffix(dest_path.suffix + ".part")
 

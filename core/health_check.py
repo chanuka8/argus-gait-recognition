@@ -1,7 +1,7 @@
-from pathlib import Path
 from typing import ClassVar
 
 from core.exceptions import BootError
+from core.paths import resolve_app_path
 
 
 class HealthCheck:
@@ -31,7 +31,7 @@ class HealthCheck:
         missing = []
 
         for directory in self.REQUIRED_DIRECTORIES:
-            if not Path(directory).exists():
+            if not resolve_app_path(directory).exists():
                 missing.append(directory)
 
         return missing
@@ -40,10 +40,11 @@ class HealthCheck:
         missing = []
 
         for file_path in self.REQUIRED_FILES:
-            if not Path(file_path).exists():
+            if not resolve_app_path(file_path).exists():
                 missing.append(file_path)
 
         return missing
+
 
     def run(self) -> dict:
         missing_dirs = self.check_directories()

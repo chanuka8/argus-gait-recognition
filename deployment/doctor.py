@@ -4,7 +4,9 @@ import shutil
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+from core.paths import get_app_root, resolve_runtime_path
+
+ROOT = get_app_root()
 
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -223,8 +225,9 @@ def _execute_doctor_checks(json_path: str, md_path: str) -> tuple[int, dict]:
         }
     )
 
-    out_dir = ROOT / "outputs" / "reports"
+    out_dir = resolve_runtime_path("outputs/reports")
     out_dir.mkdir(parents=True, exist_ok=True)
+
     probe_file = out_dir / ".doctor_probe.tmp"
     writable = False
     try:
@@ -355,13 +358,14 @@ def _execute_doctor_checks(json_path: str, md_path: str) -> tuple[int, dict]:
         "checks": checks,
     }
 
-    j_path = ROOT / json_path
+    j_path = resolve_runtime_path(json_path)
     j_path.parent.mkdir(parents=True, exist_ok=True)
     with open(j_path, "w", encoding="utf-8") as f:
         json.dump(report_data, f, indent=4)
 
-    m_path = ROOT / md_path
+    m_path = resolve_runtime_path(md_path)
     m_path.parent.mkdir(parents=True, exist_ok=True)
+
 
     rows = []
     for c in checks:

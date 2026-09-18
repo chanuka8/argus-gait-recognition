@@ -3,6 +3,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+from core.paths import get_app_root, get_config_path, resolve_app_path, resolve_runtime_path
 from deployment.doctor import run_doctor
 from models.inference.backend import BackendValidator, get_inference_backend
 from utils.config_validator import ConfigValidator, sanitize_rtsp_url
@@ -17,8 +18,9 @@ ALLOWED_OVERALL_STATUSES = {
 
 
 class DeploymentReadinessReporter:
-    def __init__(self, root_dir: Path = Path(".")) -> None:
-        self.root_dir = root_dir
+    def __init__(self, root_dir: str | Path | None = None) -> None:
+        self.root_dir = resolve_app_path(root_dir) if root_dir is not None else get_app_root()
+
 
     def evaluate_readiness(self) -> dict:
         doc_exit_code, doc_report = run_doctor(
@@ -88,15 +90,15 @@ class DeploymentReadinessReporter:
         except (RuntimeError, ValueError, OSError, TypeError) as e:
             backend_readiness = {"status": "FAILED", "error": str(e), "metadata": {}}
 
-        model_path = Path("runs/exp_001/best_model.pth")
-        onnx_path = Path("models/engines/bygait_light.onnx")
+        model_path = resolve_app_path("runs/exp_001/best_model.pth")
+        onnx_path = resolve_app_path("models/engines/bygait_light.onnx")
         model_readiness = {
             "pytorch_checkpoint_exists": model_path.exists(),
             "onnx_file_exists": onnx_path.exists(),
             "status": "READY" if (model_path.exists() or onnx_path.exists()) else "WARN",
         }
 
-        gallery_dir = Path("models/gallery")
+        gallery_dir = resolve_app_path("models/gallery")
         feat_file = gallery_dir / "gallery_features.npy"
         lbl_file = gallery_dir / "gallery_labels.npy"
         gallery_readiness = {
@@ -105,7 +107,7 @@ class DeploymentReadinessReporter:
             "status": "READY" if (feat_file.exists() and lbl_file.exists()) else "NO_ENROLLED_IDENTITIES",
         }
 
-        cfg_validator = ConfigValidator(configs_dir="configs")
+        cfg_validator = ConfigValidator(configs_dir=get_config_path())
         cfg_results = cfg_validator.validate_all()
         cfg_errors = [sanitize_rtsp_url(e) for errs in cfg_results.values() for e in errs]
         configuration_readiness = {
@@ -115,8 +117,8 @@ class DeploymentReadinessReporter:
         }
 
         camera_config_readiness = {
-            "camera_yaml_exists": Path("configs/cameras.yaml").exists(),
-            "status": "READY" if Path("configs/cameras.yaml").exists() else "MISSING",
+            "camera_yaml_exists": resolve_app_path("configs/cameras.yaml").exists(),
+            "status": "READY" if resolve_app_path("configs/cameras.yaml").exists() else "MISSING",
         }
 
         storage_readiness = {
@@ -133,6 +135,7 @@ class DeploymentReadinessReporter:
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "overall_status": overall_status,
             "python_readiness": python_readiness,
+
             "pytorch_readiness": pytorch_readiness,
             "onnx_readiness": onnx_readiness,
             "backend_readiness": backend_readiness,
@@ -160,14 +163,14 @@ class DeploymentReadinessReporter:
     ) -> dict:
         report_data = self.evaluate_readiness()
 
-        j_file = Path(json_path)
+        j_file = resolve_runtime_path(json_path)
         j_file.parent.mkdir(parents=True, exist_ok=True)
         tmp_j_file = j_file.with_name(f"{j_file.name}.tmp")
         with open(tmp_j_file, "w", encoding="utf-8") as f:
             json.dump(report_data, f, indent=4)
         tmp_j_file.replace(j_file)
 
-        m_file = Path(md_path)
+        m_file = resolve_runtime_path(md_path)
         m_file.parent.mkdir(parents=True, exist_ok=True)
 
         md = f"""# ARGUS AI Deployment Readiness Report

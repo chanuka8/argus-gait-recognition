@@ -1,8 +1,8 @@
-from pathlib import Path
 
 import numpy as np
 import torch
 
+from core.paths import resolve_app_path
 from models.inference.backend import BaseInferenceBackend
 
 
@@ -14,7 +14,8 @@ class ONNXBackend(BaseInferenceBackend):
     ) -> None:
         super().__init__(config=config)
         self.backend_name = "onnxruntime"
-        self.onnx_path = Path(self.config.get("onnx_path", "models/engines/bygait_light.onnx"))
+        self.onnx_path = resolve_app_path(self.config.get("onnx_path", "models/engines/bygait_light.onnx"))
+
         self.session = None
         self.input_name = None
         self._fallback_backend = None

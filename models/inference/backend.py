@@ -8,6 +8,7 @@ import numpy as np
 import torch
 import yaml
 
+from core.paths import get_config_path, resolve_app_path, resolve_runtime_path
 from monitoring.logging_config import get_logger
 
 
@@ -39,8 +40,8 @@ class BackendHealth:
     error_message: str | None = None
 
 
-def load_inference_backend_config() -> dict:
-    config_path = Path("configs/inference.yaml")
+def load_inference_backend_config(config_path: str | Path | None = None) -> dict:
+    cfg_path = resolve_app_path(config_path) if config_path is not None else get_config_path("inference.yaml")
     defaults = {
         "backend": "pytorch",
         "device": "auto",
@@ -54,14 +55,15 @@ def load_inference_backend_config() -> dict:
         "max_batch_size": 1,
     }
 
-    if not config_path.exists():
+    if not cfg_path.exists():
         return defaults
 
     try:
-        with open(config_path, encoding="utf-8") as f:
+        with open(cfg_path, encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
     except (yaml.YAMLError, OSError, ValueError, KeyError):
         return defaults
+
 
     section = data.get("inference_backend", {})
     if not isinstance(section, dict):
@@ -196,7 +198,7 @@ class BackendValidator:
         try:
             import torch
 
-            model_path = Path(self.config.get("model_path") or "runs/exp_001/best_model.pth")
+            model_path = resolve_app_path(self.config.get("model_path") or "runs/exp_001/best_model.pth")
             status = BackendStatus.READY if model_path.exists() else BackendStatus.AVAILABLE
             return BackendHealth(
                 backend="pytorch",
@@ -217,7 +219,7 @@ class BackendValidator:
         try:
             import onnxruntime as ort
 
-            onnx_path = Path(self.config.get("onnx_path", "models/engines/bygait_light.onnx"))
+            onnx_path = resolve_app_path(self.config.get("onnx_path", "models/engines/bygait_light.onnx"))
             if not onnx_path.exists():
                 return BackendHealth(
                     backend="onnxruntime",
@@ -226,6 +228,7 @@ class BackendValidator:
                     execution_provider="None",
                     error_message=f"ONNX model file not found at {onnx_path}",
                 )
+
             providers = ort.get_available_providers()
             provider = "CPUExecutionProvider"
             if "CUDAExecutionProvider" in providers:
@@ -258,19 +261,21 @@ class BackendReport:
     def __init__(
         self,
         backend: BaseInferenceBackend,
-        output_path: str = "outputs/reports/backend_report.json",
+        output_path: str | Path = "outputs/reports/backend_report.json",
     ) -> None:
         self.backend = backend
-        self.output_path = Path(output_path)
+        self.output_path = resolve_runtime_path(output_path)
 
     def generate(self) -> dict:
         validator = BackendValidator(self.backend.config)
         smoke_test = validator.run_smoke_test(self.backend)
 
         if self.backend.active_backend == "onnxruntime":
-            m_path = str(self.backend.config.get("onnx_path", "models/engines/bygait_light.onnx"))
+            raw_p = str(self.backend.config.get("onnx_path", "models/engines/bygait_light.onnx"))
         else:
-            m_path = str(self.backend.config.get("model_path", "runs/exp_001/best_model.pth"))
+            raw_p = str(self.backend.config.get("model_path", "runs/exp_001/best_model.pth"))
+        m_path = str(resolve_app_path(raw_p))
+
 
         report_data = {
             "requested_backend": self.backend.requested_backend,

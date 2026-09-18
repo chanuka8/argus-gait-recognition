@@ -6,6 +6,7 @@ from typing import Any
 
 from automation.download_manager import DownloadManager
 from automation.environment_validator import ComputeBackend
+from core.paths import resolve_runtime_path
 
 
 @dataclass
@@ -24,8 +25,8 @@ class PyTorchInstallSpec:
 
 
 class PyTorchManager:
-    def __init__(self, cache_dir: str = ".venv/wheel_cache") -> None:
-        self.cache_dir = Path(cache_dir)
+    def __init__(self, cache_dir: str | Path = ".venv/wheel_cache") -> None:
+        self.cache_dir = resolve_runtime_path(cache_dir)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.python_exe = sys.executable
 

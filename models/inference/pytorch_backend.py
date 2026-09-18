@@ -1,8 +1,8 @@
-from pathlib import Path
 
 import numpy as np
 import torch
 
+from core.paths import resolve_app_path
 from models.architectures.bygait_light import ByGaitLight
 from models.inference.backend import BaseInferenceBackend
 
@@ -15,7 +15,8 @@ class PyTorchBackend(BaseInferenceBackend):
     ) -> None:
         super().__init__(config=config)
         self.backend_name = "pytorch"
-        self.model_path = Path(model_path or self.config.get("model_path") or "runs/exp_001/best_model.pth")
+        self.model_path = resolve_app_path(model_path or self.config.get("model_path") or "runs/exp_001/best_model.pth")
+
         self.device = self._resolve_device(self.device_str)
         self.execution_provider = f"PyTorch-{self.device.type.upper()}"
         self.model = self._load_model()

@@ -62,6 +62,9 @@ EXCLUDED_PATTERNS = [
 ]
 
 
+from core.paths import get_app_root, resolve_runtime_path
+
+
 @dataclass
 class RuntimeManifest:
     application_name: str = "ARGUS AI"
@@ -69,8 +72,8 @@ class RuntimeManifest:
     build_assets: list = field(default_factory=lambda: list(BUILD_TIME_ASSETS))
     excluded_patterns: list = field(default_factory=lambda: list(EXCLUDED_PATTERNS))
 
-    def validate_runtime_assets(self, repo_root: str = ".") -> dict:
-        root = Path(repo_root).resolve()
+    def validate_runtime_assets(self, repo_root: str | Path | None = None) -> dict:
+        root = get_app_root(repo_root) if repo_root is None else Path(repo_root).resolve()
         checked = []
         missing = []
 
@@ -89,8 +92,8 @@ class RuntimeManifest:
     def to_dict(self) -> dict:
         return asdict(self)
 
-    def export_json(self, output_path: str = "deployment/runtime_manifest.json") -> Path:
-        path = Path(output_path)
+    def export_json(self, output_path: str | Path = "deployment/runtime_manifest.json") -> Path:
+        path = resolve_runtime_path(output_path)
         path.parent.mkdir(parents=True, exist_ok=True)
 
         data = self.to_dict()
@@ -103,8 +106,8 @@ class RuntimeManifest:
 
         return path
 
-    def export_markdown(self, output_path: str = "deployment/runtime_manifest.md") -> Path:
-        path = Path(output_path)
+    def export_markdown(self, output_path: str | Path = "deployment/runtime_manifest.md") -> Path:
+        path = resolve_runtime_path(output_path)
         path.parent.mkdir(parents=True, exist_ok=True)
 
         content = [
@@ -149,8 +152,8 @@ def get_runtime_manifest() -> RuntimeManifest:
 
 
 def generate_runtime_manifest_artifacts(
-    json_path: str = "deployment/runtime_manifest.json",
-    md_path: str = "deployment/runtime_manifest.md",
+    json_path: str | Path = "deployment/runtime_manifest.json",
+    md_path: str | Path = "deployment/runtime_manifest.md",
 ) -> dict:
     manifest = get_runtime_manifest()
     jp = manifest.export_json(output_path=json_path)

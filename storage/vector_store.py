@@ -8,6 +8,7 @@ from pathlib import Path
 import numpy as np
 from filelock import FileLock
 
+from core.paths import resolve_app_path
 from security_layer.biometric_encryption import (
     BiometricDecryptionError,
     BiometricEncryptor,
@@ -26,11 +27,12 @@ class VectorStore:
         encryptor: BiometricEncryptor | None = None,
         strict_mode: bool | None = None,
     ) -> None:
-        self.gallery_dir = Path(gallery_dir)
+        self.gallery_dir = resolve_app_path(gallery_dir)
         self.gallery_dir.mkdir(
             parents=True,
             exist_ok=True,
         )
+
 
         self.features_file = self.gallery_dir / "gallery_features.npy"
         self.encrypted_features_file = self.gallery_dir / "gallery_features.enc"
@@ -348,7 +350,8 @@ def validate_gallery_files(
     Returns:
       (is_valid, error_or_warning_message, template_count)
     """
-    g_dir = Path(gallery_dir)
+    g_dir = resolve_app_path(gallery_dir)
+
     enc_file = g_dir / "gallery_features.enc"
     feats_file = g_dir / "gallery_features.npy"
     lbls_file = g_dir / "gallery_labels.npy"

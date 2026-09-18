@@ -25,7 +25,10 @@ from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519
 
+from core.paths import resolve_app_path
+
 logger = logging.getLogger("argus.security.model_integrity")
+
 
 # Stable model role identifiers
 ROLE_PERSON_DETECTOR = "person_detector"
@@ -228,8 +231,8 @@ class ModelVerifier:
                 )
                 self._strict_mode = False
 
-        self.default_manifest_path = Path(default_manifest_path)
-        self.default_signature_path = Path(default_signature_path)
+        self.default_manifest_path = resolve_app_path(default_manifest_path)
+        self.default_signature_path = resolve_app_path(default_signature_path)
         self._public_key = public_key
         self._warned_models: set[str] = set()
 
@@ -258,11 +261,12 @@ class ModelVerifier:
         if env_key:
             return load_public_key(env_key)
 
-        default_pub_path = Path("security_layer/keys/model_signing_pubkey.pem")
+        default_pub_path = resolve_app_path("security_layer/keys/model_signing_pubkey.pem")
         if default_pub_path.is_file():
             return load_public_key(default_pub_path.read_bytes())
 
         return None
+
 
     def verify_manifest(
         self,
@@ -328,9 +332,10 @@ class ModelVerifier:
         - Fails closed if manifest/sig/key ARE present but verification fails.
         """
         canonical_role = normalize_role(expected_role)
-        resolved_path = Path(model_path)
-        m_path = Path(manifest_path) if manifest_path else self.default_manifest_path
-        s_path = Path(signature_path) if signature_path else self.default_signature_path
+        resolved_path = resolve_app_path(model_path)
+        m_path = resolve_app_path(manifest_path) if manifest_path else self.default_manifest_path
+        s_path = resolve_app_path(signature_path) if signature_path else self.default_signature_path
+
 
         trusted_pubkey = self.resolve_public_key(public_key)
         is_strict = self.is_strict_mode()

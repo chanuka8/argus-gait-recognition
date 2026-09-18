@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Any
 
+from core.paths import get_config_path, resolve_app_path, resolve_runtime_path
 from deployment.runtime_manifest import get_runtime_manifest
 from models.inference.backend import BackendValidator, get_inference_backend
 from monitoring.logging_config import get_logger
@@ -21,16 +22,14 @@ class DeploymentStartupValidator:
     STATUS_NOT_READY = "NOT_READY"
     STATUS_UNABLE_TO_VERIFY = "UNABLE_TO_VERIFY"
 
-    def __init__(self, configs_dir: str = "configs") -> None:
-        p = Path(configs_dir)
-        if not p.is_dir() and not p.is_absolute():
-            repo_root = Path(__file__).resolve().parent.parent
-            candidate = repo_root / configs_dir
-            if candidate.is_dir():
-                p = candidate
-        self.configs_dir = p
+    def __init__(self, configs_dir: str | Path | None = None) -> None:
+        if configs_dir is None:
+            self.configs_dir = get_config_path()
+        else:
+            self.configs_dir = resolve_app_path(configs_dir)
         self.config_validator = ConfigValidator(configs_dir=self.configs_dir)
         self._backend: Any | None = None
+
 
     @staticmethod
     def _sanitize_error(error: object) -> str:
@@ -161,7 +160,7 @@ class DeploymentStartupValidator:
                 sanitized_error = self._sanitize_error(exc)
                 blocking_issues.append(f"Backend verification failed: {sanitized_error}")
 
-        gallery_dir = Path("models/gallery")
+        gallery_dir = resolve_app_path("models/gallery")
 
         try:
             gallery_valid, gallery_error, gallery_count = validate_gallery_files(
@@ -186,9 +185,10 @@ class DeploymentStartupValidator:
 
         for directory_name in ("outputs", "outputs/reports"):
             self._validate_storage_path(
-                target_dir=Path(directory_name),
+                target_dir=resolve_runtime_path(directory_name),
                 blocking_issues=blocking_issues,
             )
+
 
         self._validate_camera_transport_security(
             blocking_issues=blocking_issues,

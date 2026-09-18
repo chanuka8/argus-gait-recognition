@@ -5,18 +5,21 @@ import numpy as np
 import yaml
 
 from automation.device_manager import DeviceManager
+from core.paths import resolve_app_path
 from monitoring.logging_config import get_logger
 
 
 class PersonDetector:
-    def __init__(self, config_path: str = "configs/detection.yaml") -> None:
+    def __init__(self, config_path: str | Path = "configs/detection.yaml") -> None:
         from ultralytics import YOLO
 
         self.logger = get_logger("detection")
-        self.config = self._load_config(config_path)
+        self.config_path = resolve_app_path(config_path)
+        self.config = self._load_config(self.config_path)
         self.lock = threading.Lock()
 
-        model_path = Path(self.config.get("model_path", "models/weights/yolov8n.pt"))
+        model_path = resolve_app_path(self.config.get("model_path", "models/weights/yolov8n.pt"))
+
 
         raw_conf = self.config.get("confidence", 0.4)
         self.confidence = float(raw_conf) if isinstance(raw_conf, (int, float)) and 0.0 <= raw_conf <= 1.0 else 0.4
@@ -64,8 +67,9 @@ class PersonDetector:
                 pass
 
     @staticmethod
-    def _load_config(config_path: str) -> dict:
-        path = Path(config_path)
+    def _load_config(config_path: str | Path) -> dict:
+        path = resolve_app_path(config_path)
+
         defaults = {
             "model_path": "models/weights/yolov8n.pt",
             "confidence": 0.4,

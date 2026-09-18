@@ -1,12 +1,12 @@
 import logging
 from logging.handlers import RotatingFileHandler
-from pathlib import Path
 
 try:
     import yaml
 except ImportError:
     yaml = None
 
+from core.paths import get_config_path, resolve_runtime_path
 from security_layer.credentials import sanitize_rtsp_url
 
 
@@ -40,7 +40,7 @@ _initialized = False
 
 
 def _load_logging_config() -> dict:
-    config_path = Path("configs/system.yaml")
+    config_path = get_config_path("system.yaml")
 
     defaults = {
         "log_dir": _DEFAULT_LOG_DIR,
@@ -77,8 +77,9 @@ def init_logging() -> None:
         return
 
     config = _load_logging_config()
-    log_dir = Path(config["log_dir"])
+    log_dir = resolve_runtime_path(config["log_dir"])
     log_dir.mkdir(parents=True, exist_ok=True)
+
 
     level = getattr(logging, str(config["level"]).upper(), logging.INFO)
     formatter = logging.Formatter(config["format"])

@@ -9,6 +9,7 @@ if str(_REPO_ROOT) not in sys.path:
 
 import numpy as np
 
+from core.paths import resolve_app_path, resolve_runtime_path
 from deployment.backend_summary import BackendStartupSummary
 from deployment.build_metadata import extract_build_metadata
 from deployment.runtime_manifest import get_runtime_manifest
@@ -18,8 +19,9 @@ from storage.vector_store import validate_gallery_files
 
 
 def run_deployment_smoke_test(
-    output_dir: str = "outputs/reports",
+    output_dir: str | Path = "outputs/reports",
 ) -> tuple[int, dict]:
+
     report = {
         "status": "FAILED",
         "exit_code": 2,
@@ -82,7 +84,7 @@ def run_deployment_smoke_test(
                 report["checks"]["synthetic_inference"] = "FAILED"
                 report["defects"].append(f"Synthetic inference exception: {e}")
 
-        g_valid, g_err, _g_count = validate_gallery_files(gallery_dir=Path("models/gallery"), expected_dim=256)
+        g_valid, g_err, _g_count = validate_gallery_files(gallery_dir=resolve_app_path("models/gallery"), expected_dim=256)
         is_missing = "files missing" in (g_err or "").lower() or "file missing" in (g_err or "").lower()
         report["checks"]["gallery_validation"] = "PASSED" if g_valid or is_missing else "FAILED"
         if not g_valid and not is_missing:
@@ -113,8 +115,9 @@ def run_deployment_smoke_test(
         exit_code = 2
 
     try:
-        out_p = Path(output_dir)
+        out_p = resolve_runtime_path(output_dir)
         out_p.mkdir(parents=True, exist_ok=True)
+
 
         json_file = out_p / "deployment_smoke_test.json"
         with open(json_file, "w", encoding="utf-8") as f:

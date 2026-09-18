@@ -4,6 +4,7 @@ from typing import Any
 
 from automation.dll_manager import setup_cuda_dll_paths
 from automation.hardware_detector import HardwareDetector, NvidiaGpuInfo
+from core.paths import resolve_app_path
 
 
 @dataclass
@@ -59,8 +60,8 @@ class CudaDetectionReport:
 
 
 class CudaDetector:
-    def __init__(self, weights_dir: str = "models/weights") -> None:
-        self.weights_dir = Path(weights_dir)
+    def __init__(self, weights_dir: str | Path = "models/weights") -> None:
+        self.weights_dir = resolve_app_path(weights_dir)
         setup_cuda_dll_paths()
 
     def probe_pytorch_cuda_build(self) -> tuple[bool, str | None, str | None, bool, int, str | None]:
@@ -131,9 +132,9 @@ class CudaDetector:
             if not torch.cuda.is_available():
                 return False, "cpu", "CUDA is not available for YOLO", None
 
-            model_path = self.weights_dir / "yolov8n.pt"
+            model_path = resolve_app_path(self.weights_dir / "yolov8n.pt")
             if not model_path.exists():
-                model_path = Path("models/weights/yolov8n.pt")
+                model_path = resolve_app_path("models/weights/yolov8n.pt")
 
             model = YOLO(str(model_path) if model_path.exists() else "yolov8n.pt")
             dummy_frame = np.zeros((480, 640, 3), dtype=np.uint8)
@@ -168,9 +169,9 @@ class CudaDetector:
                 )
 
             model_candidates = [
-                self.weights_dir / "silhouette_segmenter.onnx",
-                Path("models/weights/silhouette_segmenter.onnx"),
-                Path("models/engines/silhouette_segmenter.onnx"),
+                resolve_app_path(self.weights_dir / "silhouette_segmenter.onnx"),
+                resolve_app_path("models/weights/silhouette_segmenter.onnx"),
+                resolve_app_path("models/engines/silhouette_segmenter.onnx"),
             ]
             model_path = next((p for p in model_candidates if p.exists()), None)
 

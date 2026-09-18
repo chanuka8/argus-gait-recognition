@@ -5,11 +5,12 @@ from typing import Any
 
 from automation.dll_manager import setup_cuda_dll_paths
 from automation.environment_validator import ComputeBackend
+from core.paths import resolve_app_path
 
 
 class OnnxManager:
-    def __init__(self, weights_dir: str = "models/weights") -> None:
-        self.weights_dir = Path(weights_dir)
+    def __init__(self, weights_dir: str | Path = "models/weights") -> None:
+        self.weights_dir = resolve_app_path(weights_dir)
         self.python_exe = sys.executable
         setup_cuda_dll_paths()
 
@@ -43,9 +44,9 @@ class OnnxManager:
                 info["is_gpu_package"] = info["cuda_available"]
 
             model_candidates = [
-                self.weights_dir / "silhouette_segmenter.onnx",
-                Path("models/weights/silhouette_segmenter.onnx"),
-                Path("models/engines/silhouette_segmenter.onnx"),
+                resolve_app_path(self.weights_dir / "silhouette_segmenter.onnx"),
+                resolve_app_path("models/weights/silhouette_segmenter.onnx"),
+                resolve_app_path("models/engines/silhouette_segmenter.onnx"),
             ]
             model_path = next((p for p in model_candidates if p.exists()), None)
 

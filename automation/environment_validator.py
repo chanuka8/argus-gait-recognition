@@ -5,6 +5,7 @@ from typing import Any
 
 from automation.cuda_detector import CudaDetectionReport, CudaDetector
 from automation.hardware_detector import HardwareDetector, HardwareProfile
+from core.paths import resolve_app_path
 
 
 class EnvironmentState(str, Enum):
@@ -55,9 +56,9 @@ class EnvironmentValidationReport:
 
 
 class EnvironmentValidator:
-    def __init__(self, weights_dir: str = "models/weights") -> None:
-        self.weights_dir = Path(weights_dir)
-        self.cuda_detector = CudaDetector(weights_dir=str(self.weights_dir))
+    def __init__(self, weights_dir: str | Path = "models/weights") -> None:
+        self.weights_dir = resolve_app_path(weights_dir)
+        self.cuda_detector = CudaDetector(weights_dir=self.weights_dir)
 
     @staticmethod
     def validate_cpu_pipeline() -> tuple[bool, list[str], list[str]]:
@@ -109,8 +110,8 @@ class EnvironmentValidator:
             import onnxruntime as ort
 
             model_candidates = [
-                Path("models/weights/silhouette_segmenter.onnx"),
-                Path("models/engines/silhouette_segmenter.onnx"),
+                resolve_app_path("models/weights/silhouette_segmenter.onnx"),
+                resolve_app_path("models/engines/silhouette_segmenter.onnx"),
             ]
             model_path = next((p for p in model_candidates if p.exists()), None)
             if model_path:

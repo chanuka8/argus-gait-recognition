@@ -4,6 +4,8 @@ from typing import ClassVar
 
 import yaml
 
+from core.paths import get_config_path, resolve_app_path
+
 
 def sanitize_rtsp_url(text: str | None) -> str:
     if not text or not isinstance(text, str):
@@ -25,8 +27,12 @@ class ConfigValidator:
     VALID_DEVICES: ClassVar[set[str]] = {"cpu", "cuda", "gpu", "auto"}
     VALID_PRECISIONS: ClassVar[set[str]] = {"fp32", "fp16"}
 
-    def __init__(self, configs_dir: str | Path = "configs") -> None:
-        self.configs_dir = Path(configs_dir)
+    def __init__(self, configs_dir: str | Path | None = "configs") -> None:
+        if configs_dir is None:
+            self.configs_dir = get_config_path()
+        else:
+            self.configs_dir = resolve_app_path(configs_dir)
+
 
     def load_yaml(self, file_path: str | Path) -> tuple[dict | None, str | None]:
         path = Path(file_path)

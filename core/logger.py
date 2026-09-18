@@ -1,6 +1,6 @@
 import logging
-from pathlib import Path
 
+from core.paths import resolve_runtime_path
 from security_layer.credentials import sanitize_rtsp_url
 
 
@@ -17,8 +17,9 @@ class SensitiveDataFilter(logging.Filter):
 
 
 def setup_logger(name: str = "ARGUS") -> logging.Logger:
-    log_dir = Path("outputs/logs/system")
+    log_dir = resolve_runtime_path("outputs/logs/system")
     log_dir.mkdir(parents=True, exist_ok=True)
+
 
     logger = logging.getLogger(name)
 

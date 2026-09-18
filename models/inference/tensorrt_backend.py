@@ -1,8 +1,8 @@
-from pathlib import Path
 
 import numpy as np
 import torch
 
+from core.paths import resolve_app_path
 from models.inference.backend import BaseInferenceBackend
 
 
@@ -14,7 +14,8 @@ class TensorRTBackend(BaseInferenceBackend):
     ) -> None:
         super().__init__(config=config)
         self.backend_name = "tensorrt"
-        self.engine_path = Path(self.config.get("engine_path", "models/engines/bygait_light_fp16.engine"))
+        self.engine_path = resolve_app_path(self.config.get("engine_path", "models/engines/bygait_light_fp16.engine"))
+
         self.engine = None
         self.context = None
         self._fallback_backend = None

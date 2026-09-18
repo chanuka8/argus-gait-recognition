@@ -12,6 +12,8 @@ from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
+from core.paths import resolve_app_path
+
 
 class CameraTransportSecurityError(ValueError):
     """Raised when camera stream transport does not comply with security policy."""
@@ -177,10 +179,10 @@ def get_deployment_environment(
         return env_val
 
     if config_path is not None:
-        prod_yaml_path = Path(config_path)
+        prod_yaml_path = resolve_app_path(config_path)
     else:
-        repo_root = Path(__file__).resolve().parent.parent
-        prod_yaml_path = repo_root / "configs" / "production.yaml"
+        prod_yaml_path = resolve_app_path("configs/production.yaml")
+
 
     if prod_yaml_path.is_file():
         try:
@@ -450,13 +452,14 @@ def derive_fernet_key(passphrase: str, salt: bytes = b"argus_rtsp_salt") -> byte
 class CredentialManager:
     def __init__(
         self,
-        credentials_file: str = "configs/credentials.enc",
+        credentials_file: str | Path = "configs/credentials.enc",
         key: str | None = None,
     ) -> None:
-        self.credentials_file = Path(os.environ.get("ARGUS_CREDENTIALS_FILE", credentials_file))
+        self.credentials_file = resolve_app_path(os.environ.get("ARGUS_CREDENTIALS_FILE", credentials_file))
         raw_key = key or os.environ.get("ARGUS_CREDENTIAL_ENCRYPTION_KEY") or os.environ.get("ARGUS_CREDENTIALS_KEY")
 
-        key_file = Path(".credentials.key")
+        key_file = resolve_app_path(".credentials.key")
+
         if not raw_key and key_file.exists():
             try:
                 raw_key = key_file.read_text(encoding="utf-8").strip()
