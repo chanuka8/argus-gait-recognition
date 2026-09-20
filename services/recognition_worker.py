@@ -348,10 +348,32 @@ class RecognitionWorker:
         self._stop_event.set()
         with self._lock:
             thread = self._thread
-            self._thread = None
 
         if thread is not None and thread.is_alive():
             thread.join(timeout=timeout)
+            if thread.is_alive():
+                self._logger.error(
+                    f"Recognition worker thread for camera {self.camera_id} failed to terminate within {timeout}s timeout; shutdown incomplete"
+                )
+                return False
+
+        with self._lock:
+            if self._thread is thread:
+                self._thread = None
+
+        flush_success = True
+        if self.operational_collector is not None:
+            try:
+                if hasattr(self.operational_collector, "flush"):
+                    res = self.operational_collector.flush()
+                    flush_success = res is not False
+                else:
+                    flush_success = True
+            except (OSError, RuntimeError, ValueError, TypeError) as exc:
+                self._logger.error(
+                    f"Exception while flushing operational observations during shutdown for camera {self.camera_id}: {exc}"
+                )
+                flush_success = False
 
         while not self._input_queue.empty():
             try:
@@ -360,6 +382,11 @@ class RecognitionWorker:
                 break
 
         self.cache.clear_camera(self.camera_id)
+
+        if not flush_success:
+            self._logger.error(f"Recognition worker stopped with persistence failure for camera {self.camera_id}")
+            return False
+
         self._logger.info(f"Recognition worker stopped for camera {self.camera_id}")
         return True
 

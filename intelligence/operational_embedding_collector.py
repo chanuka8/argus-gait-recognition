@@ -134,7 +134,7 @@ class OperationalEmbeddingCollector:
                 except (OSError, json.JSONDecodeError, ValueError) as err:
                     self._logger.warning(f"Failed to load recent observations: {err}")
 
-    def _flush(self) -> None:
+    def _flush(self) -> bool:
         with self._lock:
             obs_file = self.output_dir / "recent_observations.json"
             tmp = obs_file.with_suffix(".tmp")
@@ -142,8 +142,28 @@ class OperationalEmbeddingCollector:
                 with open(tmp, "w", encoding="utf-8") as f:
                     json.dump([o.to_dict() for o in self._buffer[-self.max_buffer_size :]], f, indent=2)
                 tmp.replace(obs_file)
-            except (OSError, ValueError) as err:
+                return True
+            except (OSError, ValueError, TypeError) as err:
                 self._logger.error(f"Failed to flush observations: {err}")
+                if tmp.exists():
+                    try:
+                        tmp.unlink()
+                    except OSError:
+                        pass
+                return False
+
+    def flush(self) -> bool:
+        """
+        Durably persist the entire in-memory buffer up to max_buffer_size to disk atomically.
+
+        Reuses the existing RLock and delegates internally to _flush() using atomic temp-file replace.
+        Idempotent and safe when buffer is empty or when called repeatedly.
+
+        Returns:
+            bool: True if persisted successfully, False if persistence failed.
+        """
+        with self._lock:
+            return self._flush()
 
     def record_observation(
         self,
