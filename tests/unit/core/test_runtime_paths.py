@@ -196,17 +196,86 @@ class TestExternalCwdSubsystemResolution:
 
     def test_person_detector_local_model_zero_download_on_external_cwd(self, monkeypatch, tmp_path: Path):
         """15 & 16. Local YOLO asset under app root is resolved; ZERO download/network attempts."""
-        monkeypatch.chdir(tmp_path)
+        import ultralytics
+
         from pipeline.detection.person_detector import PersonDetector
 
-        app_yolo = get_app_root() / "models/weights/yolov8n.pt"
-        assert app_yolo.is_file(), f"Local YOLO weight missing at {app_yolo}"
+        fake_app_root = tmp_path / "fake_app"
+        external_cwd = tmp_path / "external_cwd"
+        fake_app_root.mkdir()
+        external_cwd.mkdir()
+
+        # Synthetic detection config
+        configs_dir = fake_app_root / "configs"
+        configs_dir.mkdir(parents=True, exist_ok=True)
+        detection_yaml_content = (
+            "model_path: models/weights/yolov8n.pt\n"
+            "confidence: 0.4\n"
+            "iou_threshold: 0.45\n"
+            "classes:\n"
+            "  - 0\n"
+            "device: cpu\n"
+            "img_size: 640\n"
+        )
+        (configs_dir / "detection.yaml").write_text(detection_yaml_content, encoding="utf-8")
+
+        # Synthetic placeholder weight (tiny placeholder, not real model)
+        weights_dir = fake_app_root / "models" / "weights"
+        weights_dir.mkdir(parents=True, exist_ok=True)
+        placeholder_weight = weights_dir / "yolov8n.pt"
+        placeholder_weight.write_bytes(b"synthetic_placeholder_yolov8n_weight")
+
+        # Process CWD and App Root isolation
+        monkeypatch.setenv("ARGUS_APP_ROOT", str(fake_app_root))
+        monkeypatch.chdir(external_cwd)
+        assert get_app_root() == fake_app_root.resolve()
+        assert Path.cwd() == external_cwd.resolve()
+        assert get_app_root() != Path.cwd()
+
+        # Isolate model-integrity loading for synthetic weight
+        monkeypatch.setattr(
+            "security_layer.model_integrity.verify_model",
+            lambda model_path, *args, **kwargs: Path(model_path).resolve(),
+        )
+
+        # Mock YOLO model loading to verify path resolution without model parsing / network
+        captured_yolo_paths: list[str] = []
+
+        class FakeYOLO:
+            def __init__(self, model: str | Path, *args, **kwargs):
+                captured_yolo_paths.append(str(model))
+
+            def to(self, *args, **kwargs):
+                return self
+
+        monkeypatch.setattr(ultralytics, "YOLO", FakeYOLO)
+
+        mock_device_mgr = MagicMock()
+        mock_device_mgr.resolve_component_device.return_value = "cpu"
+        monkeypatch.setattr(
+            "pipeline.detection.person_detector.DeviceManager.get_instance",
+            lambda *args, **kwargs: mock_device_mgr,
+        )
 
         # Initialize PersonDetector from external CWD
         detector = PersonDetector()
         assert detector.model is not None
-        # Confirms model is loaded and zero files were created in external temp CWD
-        temp_files = list(tmp_path.iterdir())
+
+        # Assertions:
+        # 1. Exactly one model instantiation occurred
+        assert len(captured_yolo_paths) == 1
+        resolved_yolo_path = Path(captured_yolo_paths[0]).resolve()
+
+        # 2. YOLO received exactly fake_app_root/models/weights/yolov8n.pt as resolved absolute path
+        expected_model_path = placeholder_weight.resolve()
+        assert resolved_yolo_path == expected_model_path
+
+        # 3. Explicitly assert fallback download path ("yolov8n.pt") was not selected
+        assert captured_yolo_paths[0] != "yolov8n.pt"
+        assert "yolov8n.pt" not in captured_yolo_paths
+
+        # 4. Confirms zero files / artifacts created in external temp CWD
+        temp_files = list(external_cwd.iterdir())
         assert len(temp_files) == 0, f"Unexpected artifacts created in external CWD: {temp_files}"
 
     def test_model_manifest_and_sig_resolve_to_app_root(self, monkeypatch, tmp_path: Path):
