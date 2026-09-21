@@ -15,8 +15,8 @@ if str(ROOT) not in sys.path:
 
 
 def extract_all_skeletons(
-    zip_path: str = "data/casia_b_raw.zip",
-    out_root: str = "data/casia_processed/skeletons",
+    zip_path: str = "data/datasets/casia_b_raw.zip",
+    out_root: str = "data/datasets/casia_processed/skeletons",
     min_sub: int = 1,
     max_sub: int = 124,
 ):

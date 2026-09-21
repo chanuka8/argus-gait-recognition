@@ -20,7 +20,7 @@ from intelligence.validation.open_set_recognizer import OpenSetRecognizer
 class SubjectDisjointOpenSetEvaluator(SubjectDisjointEvaluator):
     def __init__(
         self,
-        gei_root: str = "data/casia_processed/gei",
+        gei_root: str = "data/datasets/casia_processed/gei",
         model_path: str = "runs/exp_001/best_model.pth",
         split_config_path: str = "configs/subject_split.json",
         threshold: float = 0.85,

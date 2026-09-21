@@ -83,7 +83,7 @@ class LearningJobRecord:
 class DateAwareLearningScheduler:
     def __init__(
         self,
-        jobs_file: str = "data/learning_jobs.json",
+        jobs_file: str = "data/runtime/learning_jobs.json",
         collector: OperationalEmbeddingCollector | None = None,
         db: EmbeddingDatabase | None = None,
         min_training_embeddings: int = 4,

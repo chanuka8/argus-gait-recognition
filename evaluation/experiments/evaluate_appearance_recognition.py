@@ -74,7 +74,7 @@ def run_evaluation():
     print("DATASET DISCOVERY & FEATURE EXTRACTION")
     print("=" * 80)
 
-    base_photos_dir = Path("data/auto_enrollment/photos")
+    base_photos_dir = Path("data/runtime/auto_enrollment/photos")
     subject_embeddings = {}
     subject_crops_info = {}
     subject_image_paths = {}
@@ -584,7 +584,7 @@ def run_evaluation():
     print("SECTION 10: VIDEO VALIDATION")
     print("=" * 80)
 
-    video_path = "data/new_input/_disabled_test_01/walk.mp4.mp4"
+    video_path = "data/runtime/new_input/_disabled_test_01/walk.mp4.mp4"
     matcher = AppearanceMatchingStep(threshold=0.60)
 
     gallery_feats_all = []

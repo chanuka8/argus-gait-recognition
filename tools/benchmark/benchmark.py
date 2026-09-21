@@ -37,7 +37,7 @@ def benchmark_gallery_load() -> dict:
 
 
 def benchmark_single_inference(
-    image_path: str = "data/casia_processed/gei/034/034_nm-01_126.png",
+    image_path: str = "data/datasets/casia_processed/gei/034/034_nm-01_126.png",
 ) -> dict:
     start_init = time.perf_counter()
 
@@ -99,7 +99,7 @@ def save_report(report: dict) -> Path:
 
 
 def benchmark_inference_average(
-    image_path: str = "data/casia_processed/gei/034/034_nm-01_126.png",
+    image_path: str = "data/datasets/casia_processed/gei/034/034_nm-01_126.png",
     num_iterations: int = 10,
 ) -> dict:
     pipeline = InferencePipeline(gallery_dir="models/gallery")

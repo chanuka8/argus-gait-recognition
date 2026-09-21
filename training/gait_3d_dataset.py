@@ -9,7 +9,7 @@ class Gait3DSkeletonDataset(Dataset):
     def __init__(
         self,
         subjects: list[str],
-        data_dir: str = "data/casia_processed/skeletons",
+        data_dir: str = "data/datasets/casia_processed/skeletons",
         sequence_length: int = 30,
         split_config_path: str = "configs/subject_split.json",
     ) -> None:

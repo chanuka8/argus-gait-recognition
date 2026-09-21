@@ -155,7 +155,7 @@ def test_reference_job_manager_lifecycle_and_metrics(temp_db_env):
     job = job_mgr.create_job(
         person_id="CASE_IMAGE_01",
         case_id="CASE_IMAGE_01",
-        media_path="data/reference_photos/photo1.jpg",
+        media_path="data/runtime/reference_photos/photo1.jpg",
         media_type="image",
         owner="investigator_01",
     )

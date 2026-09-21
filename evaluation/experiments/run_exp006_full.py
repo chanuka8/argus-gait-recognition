@@ -22,7 +22,7 @@ def main():
 
     print("Starting 3D Gait Model Training (15 Epochs, ArcFace + Triplet 0.25)...")
     trainer = Gait3DTrainer(
-        data_dir="data/casia_processed/skeletons",
+        data_dir="data/datasets/casia_processed/skeletons",
         run_dir=str(run_dir),
         epochs=15,
         batch_size=32,
@@ -39,7 +39,7 @@ def main():
     print("Starting Strict Subject-Disjoint 3D Gait Evaluation on Test Set (075-124)...")
     evaluator = Evaluator3D(
         model_path=str(run_dir / "best_model.pth"),
-        data_dir="data/casia_processed/skeletons",
+        data_dir="data/datasets/casia_processed/skeletons",
         margin_threshold=0.05,
     )
     eval_3d = evaluator.evaluate(output_dir=str(run_dir / "evaluation"))

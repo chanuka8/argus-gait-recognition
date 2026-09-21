@@ -35,7 +35,7 @@ Detection Output → `storage/evidence_manager.py` → `outputs/media/detections
 
 ## Firebase Admin SDK Setup (Optional Live Mode)
 
-When unconfigured, ARGUS runs in **offline mode** with zero inference degradation and queues transactions in `data/firebase_offline_store.json`. To connect to live Firebase services:
+When unconfigured, ARGUS runs in **offline mode** with zero inference degradation and queues transactions in `data/runtime/firebase_offline_store.json`. To connect to live Firebase services:
 
 1. **Download Service Account Key**:
    Download the Firebase Admin SDK private key JSON from the Firebase Console for project `argus-17702`.

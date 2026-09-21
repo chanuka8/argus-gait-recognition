@@ -37,7 +37,7 @@ def main():
     model = load_model()
     model.to(device)
 
-    split_manifest = load_or_create_subject_split("configs/subject_split.json", "data/casia_processed/gei")
+    split_manifest = load_or_create_subject_split("configs/subject_split.json", "data/datasets/casia_processed/gei")
     test_subs = split_manifest["test_subjects"]
 
     def extract_features(img_path):
@@ -66,7 +66,7 @@ def main():
             return "CL"
         return None
 
-    gei_root = Path("data/casia_processed/gei")
+    gei_root = Path("data/datasets/casia_processed/gei")
     sub_data = {}
     for sub in test_subs[:20]:
         sub_dir = gei_root / sub

@@ -24,14 +24,14 @@ def project_root():
 
 @pytest.fixture
 def sample_gei_path():
-    return PROJECT_ROOT / "data" / "casia_processed" / "gei" / "034" / "034_nm-01_126.png"
+    return PROJECT_ROOT / "data" / "datasets" / "casia_processed" / "gei" / "034" / "034_nm-01_126.png"
 
 
 @pytest.fixture
 def enrollment_sample_folder():
-    path = PROJECT_ROOT / "data" / "new_input" / "api_test_person"
+    path = PROJECT_ROOT / "data" / "runtime" / "new_input" / "api_test_person"
     if not path.exists():
-        disabled_path = PROJECT_ROOT / "data" / "new_input" / "_disabled_api_test_person"
+        disabled_path = PROJECT_ROOT / "data" / "runtime" / "new_input" / "_disabled_api_test_person"
         if disabled_path.exists():
             return disabled_path
     return path

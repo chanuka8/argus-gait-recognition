@@ -56,7 +56,7 @@ def calculate_metrics(pred_binary: torch.Tensor, target_binary: torch.Tensor) ->
 
 
 def train_and_export_silhouette_unet(
-    zip_path: str = "data/casia_b_raw.zip",
+    zip_path: str = "data/datasets/casia_b_raw.zip",
     epochs: int = 3,
     batch_size: int = 16,
     lr: float = 1e-3,

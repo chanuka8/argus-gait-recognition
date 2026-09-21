@@ -24,7 +24,7 @@ continuous_learning:
     # Strict event-date enforcement: Train ONLY when new unprocessed observation date exists
     train_only_when_new_date_exists: true
     # Directory / file for tracking processed dates and job state
-    jobs_file: "data/learning_jobs.json"
+    jobs_file: "data/runtime/learning_jobs.json"
     # Allow explicit operator force-retrain of a specific date
     allow_force_retrain: false
 

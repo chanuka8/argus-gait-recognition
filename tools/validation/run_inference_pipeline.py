@@ -9,7 +9,7 @@ from pipeline.inference_pipeline import (
     InferencePipeline,
 )
 
-GEI_ROOT = "data/casia_processed/gei"
+GEI_ROOT = "data/datasets/casia_processed/gei"
 
 
 def random_image():

@@ -48,7 +48,7 @@ class ConditionBalancedSampler(Sampler):
 
 
 def build_dataloaders(
-    root_dir: str = "data/casia_processed/gei",
+    root_dir: str = "data/datasets/casia_processed/gei",
     batch_size: int = 16,
     train_ratio: float = 0.8,
     max_classes: int | None = None,

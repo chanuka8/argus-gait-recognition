@@ -78,7 +78,7 @@ def run_experiment(exp: dict, epochs: int = 25, batch_size: int = 16, lr: float 
     print("=======================================================\n")
 
     trainer = Trainer(
-        data_dir="data/casia_processed/gei",
+        data_dir="data/datasets/casia_processed/gei",
         run_dir=str(run_dir),
         batch_size=batch_size,
         epochs=epochs,
@@ -99,7 +99,7 @@ def run_experiment(exp: dict, epochs: int = 25, batch_size: int = 16, lr: float 
         "--model-path",
         str(best_ckpt),
         "--gei-root",
-        "data/casia_processed/gei",
+        "data/datasets/casia_processed/gei",
         "--split-config",
         "configs/subject_split.json",
         "--output-dir",

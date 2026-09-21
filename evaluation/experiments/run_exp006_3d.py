@@ -72,9 +72,9 @@ def main():
     pose_lifter = PoseLifter3D().to(device).eval()
     gait3d_net = PoseGait3DNet(embedding_dim=256).to(device).eval()
 
-    split_manifest = load_or_create_subject_split("configs/subject_split.json", "data/casia_processed/gei")
+    split_manifest = load_or_create_subject_split("configs/subject_split.json", "data/datasets/casia_processed/gei")
     test_subs = split_manifest["test_subjects"]
-    gei_root = "data/casia_processed/gei"
+    gei_root = "data/datasets/casia_processed/gei"
 
     gallery_items, probe_items = build_gallery_and_probe_sets(subjects=test_subs, gei_root=gei_root)
     print(f"Loaded Gallery items: {len(gallery_items)} | Probe items: {len(probe_items)}")

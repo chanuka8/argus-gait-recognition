@@ -53,7 +53,7 @@ def run_runtime_validation():
     print(json.dumps(test1_info, indent=2))
 
     print("\n--- TEST 2: REAL REFERENCE PHOTO ENROLLMENT ---")
-    devhan_dir = Path("data/auto_enrollment/photos/Devhan")
+    devhan_dir = Path("data/runtime/auto_enrollment/photos/Devhan")
     devhan_photos = sorted(list(devhan_dir.glob("*.jpeg")) + list(devhan_dir.glob("*.jpg")))
 
     if not devhan_photos:
@@ -200,7 +200,7 @@ def run_runtime_validation():
     print(json.dumps(test5_info, indent=2))
 
     print("\n--- TEST 6: DIFFERENT-PERSON NEGATIVE TEST ---")
-    person01_dir = Path("data/auto_enrollment/photos/person01")
+    person01_dir = Path("data/runtime/auto_enrollment/photos/person01")
     person01_photos = sorted(list(person01_dir.glob("*.jpeg")) + list(person01_dir.glob("*.jpg")))
 
     if not person01_photos:
@@ -257,7 +257,7 @@ def run_runtime_validation():
     print(json.dumps(test7_info, indent=2))
 
     print("\n--- TEST 8 & 9: REAL VIDEO / CAMERA PIPELINE TEST ---")
-    video_path = "data/new_input/_disabled_test_01/walk.mp4.mp4"
+    video_path = "data/runtime/new_input/_disabled_test_01/walk.mp4.mp4"
     assert Path(video_path).exists(), f"Video {video_path} missing!"
 
     worker = RecognitionWorker(

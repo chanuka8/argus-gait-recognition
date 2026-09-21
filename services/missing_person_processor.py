@@ -82,7 +82,7 @@ class MissingPersonVideoProcessor:
         config_path: str = "configs/inference.yaml",
         gait_gallery_dir: str = "models/live_gallery",
         appearance_gallery_dir: str = "models/appearance_gallery",
-        db_dir: str = "data/embedding_db",
+        db_dir: str = "data/runtime/embedding_db",
         detector: PersonDetector | None = None,
         tracker: TrackingStep | None = None,
         silhouette_step: SilhouetteStep | None = None,

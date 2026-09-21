@@ -37,7 +37,7 @@ def get_gait3d_model(encoder_type: str = "tcn", embedding_dim: int = 256) -> tor
 class Gait3DTrainer:
     def __init__(
         self,
-        data_dir: str = "data/casia_processed/skeletons",
+        data_dir: str = "data/datasets/casia_processed/skeletons",
         run_dir: str = "runs/exp_007_3d",
         encoder_type: str = "tcn",
         batch_size: int = 32,
@@ -78,7 +78,7 @@ class Gait3DTrainer:
         self.logger.info(f"Loading subject split from {self.split_config_path}")
         split_manifest = load_or_create_subject_split(
             config_path=self.split_config_path,
-            data_dir="data/casia_processed/gei",
+            data_dir="data/datasets/casia_processed/gei",
         )
         train_subs = split_manifest["train_subjects"]
         val_subs = split_manifest["val_subjects"]

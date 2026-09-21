@@ -10,7 +10,7 @@ from torch.utils.data import Dataset
 class SilhouetteSegmentationDataset(Dataset):
     def __init__(
         self,
-        zip_path: str = "data/casia_b_raw.zip",
+        zip_path: str = "data/datasets/casia_b_raw.zip",
         subject_range: tuple[int, int] = (1, 62),
         img_size: tuple[int, int] = (256, 256),
         max_samples: int = 300,

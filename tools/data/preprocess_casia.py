@@ -13,13 +13,13 @@ def main() -> None:
 
     parser.add_argument(
         "--zip",
-        default="data/casia_b_raw.zip",
+        default="data/datasets/casia_b_raw.zip",
         help="Path to CASIA-B ZIP file",
     )
 
     parser.add_argument(
         "--output",
-        default="data/casia_processed/gei",
+        default="data/datasets/casia_processed/gei",
         help="Output directory for generated GEI images",
     )
 

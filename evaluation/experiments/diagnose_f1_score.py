@@ -133,7 +133,7 @@ def run_f1_diagnostic():
     print("  Current Operating Threshold: 0.50")
 
     print("\n[2] Extracting Raw Similarity Matching Scores (600 Trials)...")
-    casia_gei_dir = Path("data/casia_processed/gei")
+    casia_gei_dir = Path("data/datasets/casia_processed/gei")
     eval_subjects = ["101", "102", "103", "104", "105", "106", "107", "108", "109", "110"]
 
     bygait_model = ByGaitLight(embedding_dim=256, part_bins=1)

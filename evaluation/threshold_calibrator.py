@@ -30,7 +30,7 @@ class ThresholdCalibrator:
         criterion: str = "min_eer",
         target_far: float = 0.01,
         margin_threshold: float = 0.0,
-        gei_root: str = "data/casia_processed/gei",
+        gei_root: str = "data/datasets/casia_processed/gei",
         output_dir: str = "runs/exp_001/evaluation_subject_disjoint",
     ) -> dict:
         gallery_items, _ = build_gallery_and_probe_sets(

@@ -13,8 +13,8 @@ from preprocessing.gei_builder import GEIBuilder
 class CasiaGEIDatasetBuilder:
     def __init__(
         self,
-        zip_path: str = "data/casia_b_raw.zip",
-        output_dir: str = "data/casia_processed/gei",
+        zip_path: str = "data/datasets/casia_b_raw.zip",
+        output_dir: str = "data/datasets/casia_processed/gei",
         min_frames: int = 15,
         max_sequences: int | None = None,
     ) -> None:

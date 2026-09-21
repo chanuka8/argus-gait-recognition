@@ -114,7 +114,7 @@ def benchmark(args=None) -> int:
 
 
 def auto_enroll(args=None) -> None:
-    input_dir = getattr(args, "input", None) or "data/new_input"
+    input_dir = getattr(args, "input", None) or "data/runtime/new_input"
 
     print("\nRunning one-time auto enrollment...")
     run_command(
@@ -128,7 +128,7 @@ def auto_enroll(args=None) -> None:
 
 
 def auto_enroll_watch(args=None) -> None:
-    input_dir = getattr(args, "input", None) or "data/new_input"
+    input_dir = getattr(args, "input", None) or "data/runtime/new_input"
 
     print("\nStarting auto enrollment watcher...")
     print(f"Watching: {input_dir}")
@@ -303,7 +303,7 @@ def remove_numeric_identities(args=None) -> None:
 
 
 def live(args=None) -> None:
-    input_dir = getattr(args, "input", None) or "data/new_input"
+    input_dir = getattr(args, "input", None) or "data/runtime/new_input"
 
     print("\nStarting ARGUS live gait recognition system...")
     print("Auto enrollment watcher will run in parallel.")
@@ -778,7 +778,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     parser.add_argument(
         "--input",
-        default="data/new_input",
+        default="data/runtime/new_input",
         help="Input folder for auto enrollment",
     )
 

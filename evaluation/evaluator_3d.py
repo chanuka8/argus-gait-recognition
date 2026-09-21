@@ -20,7 +20,7 @@ class Evaluator3D:
     def __init__(
         self,
         model_path: str = "runs/exp_006_3d/best_model.pth",
-        data_dir: str = "data/casia_processed/skeletons",
+        data_dir: str = "data/datasets/casia_processed/skeletons",
         split_config_path: str = "configs/subject_split.json",
         margin_threshold: float = 0.05,
         sequence_length: int = 30,
@@ -95,7 +95,7 @@ class Evaluator3D:
         out_dir.mkdir(parents=True, exist_ok=True)
 
         lifter, gait_net = self._load_model()
-        split_manifest = load_or_create_subject_split(self.split_config_path, "data/casia_processed/gei")
+        split_manifest = load_or_create_subject_split(self.split_config_path, "data/datasets/casia_processed/gei")
         test_subs = split_manifest["test_subjects"]
 
         gallery_items, probe_items = self._build_gallery_and_probes(test_subs)

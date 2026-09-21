@@ -194,8 +194,8 @@ def main():
     fusion_engine = DualModalFusion(default_gait_weight=0.30, default_reid_weight=0.70, enabled=True)
 
     subjects = ["demo_person_001", "Devhan", "Isuru", "person01"]
-    base_gei = Path("data/auto_enrollment/gei")
-    base_photos = Path("data/auto_enrollment/photos")
+    base_gei = Path("data/runtime/auto_enrollment/gei")
+    base_photos = Path("data/runtime/auto_enrollment/photos")
 
     data = {}
     total_multimodal_pairs = 0
@@ -608,7 +608,7 @@ def main():
         split_data = json.load(f)
 
     test_subjects = split_data["test_subjects"]
-    casia_dir = Path("data/casia_processed/gei")
+    casia_dir = Path("data/datasets/casia_processed/gei")
 
     gallery_embs, gallery_ids, gallery_views = [], [], []
     probe_records = []

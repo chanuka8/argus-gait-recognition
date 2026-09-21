@@ -339,7 +339,7 @@ def main(argv: list[str] | None = None) -> int:
             ]
         )
 
-    target_db = Path(args.db_dir) if args.db_dir else (Path("data/embedding_db") if args.all_galleries else None)
+    target_db = Path(args.db_dir) if args.db_dir else (Path("data/runtime/embedding_db") if args.all_galleries else None)
 
     if not target_galleries and not target_db:
         logger.error("No targets specified. Use --gallery-dir, --db-dir, or --all-galleries.")

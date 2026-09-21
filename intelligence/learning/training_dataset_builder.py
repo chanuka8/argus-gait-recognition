@@ -93,7 +93,7 @@ class TrainingDatasetBuilder:
         collector: OperationalEmbeddingCollector | None = None,
         db: EmbeddingDatabase | None = None,
         evidence_manager: OperationalEvidenceManager | None = None,
-        manifest_dir: str = "data/dataset_manifests",
+        manifest_dir: str = "data/runtime/dataset_manifests",
         historical_replay_ratio: float = 0.50,
         test_split_ratio: float = 0.20,
         val_split_ratio: float = 0.15,

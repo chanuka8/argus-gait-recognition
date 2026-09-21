@@ -19,11 +19,11 @@ from training.gait_3d_trainer import Gait3DTrainer
 def evaluate_on_val(model_path: str, sequence_length: int = 30) -> float:
     evaluator = Evaluator3D(
         model_path=model_path,
-        data_dir="data/casia_processed/skeletons",
+        data_dir="data/datasets/casia_processed/skeletons",
         sequence_length=sequence_length,
     )
     lifter, gait_net = evaluator._load_model()
-    split_manifest = load_or_create_subject_split("configs/subject_split.json", "data/casia_processed/gei")
+    split_manifest = load_or_create_subject_split("configs/subject_split.json", "data/datasets/casia_processed/gei")
     val_subs = split_manifest["val_subjects"]
 
     gal_items, prb_items = evaluator._build_gallery_and_probes(val_subs)
@@ -90,7 +90,7 @@ def main():
         )
 
         trainer = Gait3DTrainer(
-            data_dir="data/casia_processed/skeletons",
+            data_dir="data/datasets/casia_processed/skeletons",
             run_dir=str(run_dir),
             encoder_type=cfg["encoder"],
             epochs=15,
@@ -140,7 +140,7 @@ def main():
     print("\nStarting Final TEST Evaluation of Promoted Candidate (075-124)...")
     evaluator = Evaluator3D(
         model_path=str(promoted_path),
-        data_dir="data/casia_processed/skeletons",
+        data_dir="data/datasets/casia_processed/skeletons",
         sequence_length=best_config["seq_len"],
         margin_threshold=0.05,
     )

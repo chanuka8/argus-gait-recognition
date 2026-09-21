@@ -22,9 +22,9 @@ flowchart TD
     end
 
     subgraph AsyncSync["ASYNCHRONOUS PERSISTENCE & SYNC (Non-Blocking)"]
-        Match --> LocalDB["Local EmbeddingDatabase (data/embedding_db/)"]
+        Match --> LocalDB["Local EmbeddingDatabase (data/runtime/embedding_db/)"]
         LocalDB --> RetryQ["In-Memory Retry Queue (100 max)"]
-        RetryQ --> OfflineFile["Offline Store (data/firebase_offline_store.json)"]
+        RetryQ --> OfflineFile["Offline Store (data/runtime/firebase_offline_store.json)"]
         RetryQ --> AdminSDK["Firebase Admin SDK (auth, firestore, storage)"]
         AdminSDK --> Firestore["Google Cloud Firestore (argus-17702)"]
         AdminSDK --> GCS["Firebase Storage (argus-17702.firebasestorage.app)"]
@@ -56,9 +56,9 @@ flowchart TD
 
 Firebase operations occur entirely outside the frame-processing loop:
 
-1. **Enrollment**: When an operator enrolls a subject, the embeddings are first saved to the local `VectorStore` and `data/embedding_db/persons/{id}.json`. After local persistence is verified, embeddings are dispatched asynchronously to Firebase.
+1. **Enrollment**: When an operator enrolls a subject, the embeddings are first saved to the local `VectorStore` and `data/runtime/embedding_db/persons/{id}.json`. After local persistence is verified, embeddings are dispatched asynchronously to Firebase.
 2. **Offline Queueing & Automatic Sync**:
-   - If Firebase Admin SDK is offline or returns a network timeout, the write is buffered into an in-memory queue and written to `data/firebase_offline_store.json`.
+   - If Firebase Admin SDK is offline or returns a network timeout, the write is buffered into an in-memory queue and written to `data/runtime/firebase_offline_store.json`.
    - When connectivity resumes, `FirebaseEmbeddingStore.process_retry_queue()` flushes queued documents idempotently.
 3. **Deterministic ID Idempotency**:
    - Document IDs are deterministically generated using `generate_deterministic_id(person_id, modality, capture_timestamp, track_id, camera_id)`.
@@ -116,7 +116,7 @@ ARGUS AI implements:
 
 ### 6.4 Durable Synchronization Intent (Outbox)
 
-Cloud sync intent is durably persisted to `data/model_sync_outbox.json`:
+Cloud sync intent is durably persisted to `data/runtime/model_sync_outbox.json`:
 
 - Fields: `event_id`, `model_version`, `model_type`, `desired_status`, `operation`, `registry_revision`, `created_at`, `attempt_count`, `last_attempt_at`, `next_retry_at`, `status`, `checksum_sha256`, `error_info`.
 - Survives process crashes and restarts.

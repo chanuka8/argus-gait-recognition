@@ -102,7 +102,7 @@ def run_full_forensic_audit():
     }
 
     print("\n[A] Auditing Operational Data Collection & Persistence...")
-    obs_file = Path("data/operational_observations/recent_observations.json")
+    obs_file = Path("data/runtime/operational_observations/recent_observations.json")
     obs_list = []
     if obs_file.exists():
         with open(obs_file, "r", encoding="utf-8") as f:
@@ -152,7 +152,7 @@ def run_full_forensic_audit():
         if o.get("quality_score", 1.0) < 0.70:
             outlier_count += 1
 
-    ev_dir = Path("data/operational_evidence")
+    ev_dir = Path("data/runtime/operational_evidence")
     ev_idx_file = ev_dir / "evidence_index.json"
     ev_records_count = 0
     if ev_idx_file.exists():
@@ -587,7 +587,7 @@ def run_full_forensic_audit():
     op_val_count = 0
     op_test_count = 0
 
-    casia_gei_dir = Path("data/casia_processed/gei")
+    casia_gei_dir = Path("data/datasets/casia_processed/gei")
     subjects = sorted([d.name for d in casia_gei_dir.iterdir() if d.is_dir()]) if casia_gei_dir.exists() else []
 
     print(f"  Available CASIA-B processed subjects: {len(subjects)}")
@@ -1219,7 +1219,7 @@ def run_full_forensic_audit():
     }
 
     print("\n[L] Auditing Data Leakage Across Splits & Manifests...")
-    man_dir = Path("data/dataset_manifests")
+    man_dir = Path("data/runtime/dataset_manifests")
     man_files = list(man_dir.glob("*.json")) if man_dir.exists() else []
 
     total_manifests_audited = len(man_files)

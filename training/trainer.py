@@ -87,7 +87,7 @@ class GaitClassifier(nn.Module):
 class Trainer:
     def __init__(
         self,
-        data_dir: str = "data/casia_processed/gei",
+        data_dir: str = "data/datasets/casia_processed/gei",
         run_dir: str = "runs/exp_002_hpp_arcface",
         batch_size: int = 16,
         epochs: int = 3,

@@ -42,7 +42,7 @@ class ContinualLearningEvent:
 
 
 class ContinualLearningAuditTrail:
-    def __init__(self, audit_file: str = "data/continual_learning_audit_trail.json") -> None:
+    def __init__(self, audit_file: str = "data/runtime/continual_learning_audit_trail.json") -> None:
         self.audit_file = Path(audit_file)
         self.audit_file.parent.mkdir(parents=True, exist_ok=True)
         self._lock = threading.RLock()

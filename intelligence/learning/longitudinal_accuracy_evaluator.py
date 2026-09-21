@@ -46,7 +46,7 @@ class LongitudinalTimepointRecord:
 class LongitudinalAccuracyEvaluator:
     def __init__(
         self,
-        history_file: str = "data/continual_learning_longitudinal_history.json",
+        history_file: str = "data/runtime/continual_learning_longitudinal_history.json",
         evaluator: ContinualLearningEvaluator | None = None,
         stat_validator: StatisticalAccuracyValidator | None = None,
     ) -> None:

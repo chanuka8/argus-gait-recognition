@@ -7,8 +7,8 @@ from utils.zip_streamer import ZipStreamer
 class CasiaExtractor:
     def __init__(
         self,
-        zip_path: str = "data/casia_b_raw.zip",
-        output_dir: str = "data/casia_cache",
+        zip_path: str = "data/datasets/casia_b_raw.zip",
+        output_dir: str = "data/datasets/casia_cache",
     ):
         self.logger = setup_logger("ARGUS.CASIA")
 

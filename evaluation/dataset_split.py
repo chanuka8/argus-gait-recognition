@@ -18,7 +18,7 @@ def format_subject_id(subject_num: int) -> str:
 
 
 def generate_subject_split_manifest(
-    data_dir: str = "data/casia_processed/gei",
+    data_dir: str = "data/datasets/casia_processed/gei",
     train_range: tuple[int, int] = DEFAULT_TRAIN_RANGE,
     val_range: tuple[int, int] = DEFAULT_VAL_RANGE,
     test_range: tuple[int, int] = DEFAULT_TEST_RANGE,
@@ -93,7 +93,7 @@ def validate_disjoint_splits(manifest: dict) -> None:
 
 def load_or_create_subject_split(
     config_path: str = DEFAULT_SPLIT_CONFIG_PATH,
-    data_dir: str = "data/casia_processed/gei",
+    data_dir: str = "data/datasets/casia_processed/gei",
 ) -> dict:
     path = Path(config_path)
     if path.exists():

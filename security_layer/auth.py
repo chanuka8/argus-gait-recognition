@@ -194,7 +194,7 @@ def get_session_store() -> SessionStore:
 class OperatorStore:
     """Manages operator records across Firebase Admin SDK (production) and isolated offline storage (dev/test)."""
 
-    def __init__(self, offline_store_path: str = "data/operator_store.json") -> None:
+    def __init__(self, offline_store_path: str = "data/runtime/operator_store.json") -> None:
         self.offline_store_path = Path(offline_store_path)
         self.hasher = get_password_hasher()
         self._lock = threading.RLock()

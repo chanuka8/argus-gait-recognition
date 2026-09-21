@@ -14,7 +14,7 @@ from models.architectures.bygait_light import ByGaitLight
 from storage.vector_store import VectorStore
 
 MODEL_PATH = "runs/exp_001/best_model.pth"
-GEI_ROOT = "data/casia_processed/gei"
+GEI_ROOT = "data/datasets/casia_processed/gei"
 GALLERY_DIR = "models/gallery"
 
 

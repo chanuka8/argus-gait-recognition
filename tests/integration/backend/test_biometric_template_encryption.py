@@ -59,7 +59,7 @@ def _compute_storage_fingerprint() -> dict[str, tuple[int, str]]:
         Path("models/gallery"),
         Path("models/live_gallery"),
         Path("models/appearance_gallery"),
-        Path("data/embedding_db"),
+        Path("data/runtime/embedding_db"),
     ]
     for d in prod_dirs:
         if not d.exists():
@@ -649,7 +649,7 @@ def test_real_gallery_paths_untouched():
         Path("models/gallery"),
         Path("models/live_gallery"),
         Path("models/appearance_gallery"),
-        Path("data/embedding_db"),
+        Path("data/runtime/embedding_db"),
     ]
     for p in prod_paths:
         if p.exists():

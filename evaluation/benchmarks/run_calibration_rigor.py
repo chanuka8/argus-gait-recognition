@@ -46,8 +46,8 @@ def run_phase2_calibration_rigor():
     osnet_backbone = OSNetBackbone(model_path="models/weights/osnet_x0_25.pth", device=device)
 
     subjects = ["demo_person_001", "Devhan", "Isuru", "person01"]
-    base_gei = Path("data/auto_enrollment/gei")
-    base_photos = Path("data/auto_enrollment/photos")
+    base_gei = Path("data/runtime/auto_enrollment/gei")
+    base_photos = Path("data/runtime/auto_enrollment/photos")
 
     query_gait, query_app, query_labels = [], [], []
     per_subject_samples = defaultdict(int)

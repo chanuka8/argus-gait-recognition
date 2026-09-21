@@ -28,8 +28,8 @@ def run_unified_degradation_benchmark():
     osnet_backbone = OSNetBackbone(model_path="models/weights/osnet_x0_25.pth", device=device)
 
     subjects = ["demo_person_001", "Devhan", "Isuru", "person01"]
-    base_gei = Path("data/auto_enrollment/gei")
-    base_photos = Path("data/auto_enrollment/photos")
+    base_gei = Path("data/runtime/auto_enrollment/gei")
+    base_photos = Path("data/runtime/auto_enrollment/photos")
 
     clean_gait_embs, clean_app_embs, query_labels = [], [], []
     deg_gait_embs, deg_app_embs = [], []

@@ -183,7 +183,7 @@ def test_video_upload_chunked_streaming_and_persistence(auth_headers):
         job_id = body["job_id"]
 
         # Verify the file exists on disk and is non-empty
-        videos_dir = Path("data/reference_videos")
+        videos_dir = Path("data/runtime/reference_videos")
         matching_files = list(videos_dir.glob("MP_STREAM_001_*_stream_test.mp4"))
         assert len(matching_files) >= 1
         assert matching_files[0].stat().st_size == len(video_bytes)

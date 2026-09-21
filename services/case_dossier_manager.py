@@ -1,7 +1,7 @@
 """Case Dossier Manager for ARGUS AI.
 
 Organizes missing persons and investigation cases into dedicated disk folders named:
-    data/cases/{case_id}_{person_name}/
+    data/runtime/cases/{case_id}_{person_name}/
 
 Inside each case folder:
     - case_details.json: Complete structured case dossier (ID, name, NIC, age, gender,
@@ -58,10 +58,10 @@ class CaseDossierManager:
 
     def __init__(
         self,
-        cases_dir: str | Path = "data/cases",
-        jobs_dir: str | Path = "data/reference_jobs",
-        videos_dir: str | Path = "data/reference_videos",
-        photos_dir: str | Path = "data/reference_photos",
+        cases_dir: str | Path = "data/runtime/cases",
+        jobs_dir: str | Path = "data/runtime/reference_jobs",
+        videos_dir: str | Path = "data/runtime/reference_videos",
+        photos_dir: str | Path = "data/runtime/reference_photos",
     ) -> None:
         self.cases_dir = Path(cases_dir)
         self.jobs_dir = Path(jobs_dir)
@@ -77,7 +77,7 @@ class CaseDossierManager:
         self._last_sync_time: float = 0.0
 
     @classmethod
-    def get_instance(cls, cases_dir: str | Path = "data/cases") -> CaseDossierManager:
+    def get_instance(cls, cases_dir: str | Path = "data/runtime/cases") -> CaseDossierManager:
         with cls._lock:
             if cls._instance is None:
                 cls._instance = cls(cases_dir=cases_dir)
@@ -399,7 +399,7 @@ class CaseDossierManager:
                 media_dir = folder / "media"
                 biometrics_dir = folder / "biometrics"
 
-                # Check if there is media in data/reference_videos matching case_id
+                # Check if there is media in data/runtime/reference_videos matching case_id
                 if self.videos_dir.exists():
                     for v in self.videos_dir.iterdir():
                         if v.is_file() and case_id in v.name:
@@ -410,7 +410,7 @@ class CaseDossierManager:
                                 except (OSError, shutil.Error) as e:
                                     logger.warning(f"Failed to copy video {v} to case media: {e}")
 
-                # Check if there is media in data/reference_photos matching case_id
+                # Check if there is media in data/runtime/reference_photos matching case_id
                 if self.photos_dir.exists():
                     for p in self.photos_dir.iterdir():
                         if p.is_file() and case_id in p.name:
@@ -445,7 +445,7 @@ class CaseDossierManager:
                 dossier_data = self._build_dossier_dict(folder, case_info, bio_manifest)
                 _safe_atomic_write_json(folder / "case_details.json", dossier_data)
 
-            # 5. Scan all directories in data/cases/ to include any offline/standalone cases
+            # 5. Scan all directories in data/runtime/cases/ to include any offline/standalone cases
             all_dossiers: list[dict[str, Any]] = []
             if self.cases_dir.exists():
                 for case_folder in self.cases_dir.iterdir():

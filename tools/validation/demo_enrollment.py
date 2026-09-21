@@ -9,8 +9,8 @@ from enrollment.enrollment_manager import EnrollmentManager
 
 
 def prepare_demo_person() -> Path:
-    source_dir = Path("data/casia_processed/gei/001")
-    target_dir = Path("data/new_input/demo_person_001")
+    source_dir = Path("data/datasets/casia_processed/gei/001")
+    target_dir = Path("data/runtime/new_input/demo_person_001")
 
     target_dir.mkdir(parents=True, exist_ok=True)
 

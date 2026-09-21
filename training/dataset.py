@@ -8,7 +8,7 @@ from torch.utils.data import Dataset
 class GEIDataset(Dataset):
     def __init__(
         self,
-        root_dir: str = "data/casia_processed/gei",
+        root_dir: str = "data/datasets/casia_processed/gei",
         image_size: tuple[int, int] = (64, 128),
         max_classes: int | None = None,
         max_samples: int | None = None,

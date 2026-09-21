@@ -39,7 +39,7 @@ def parse_filename_meta(image_path: Path) -> dict:
 
 def build_gallery_and_probe_sets(
     subjects: list[str],
-    gei_root: str = "data/casia_processed/gei",
+    gei_root: str = "data/datasets/casia_processed/gei",
     gallery_seqs: list[str] | None = None,
     probe_seqs_by_condition: dict[str, list[str]] | None = None,
     gallery_view_filter: str | None = None,

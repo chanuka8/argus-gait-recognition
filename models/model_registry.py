@@ -120,7 +120,7 @@ class ModelSyncEvent:
 class ModelSyncOutbox:
     """Thread-safe and crash-durable outbox for asynchronous cloud synchronization."""
 
-    def __init__(self, outbox_file: str | Path = "data/model_sync_outbox.json") -> None:
+    def __init__(self, outbox_file: str | Path = "data/runtime/model_sync_outbox.json") -> None:
         self.outbox_file = Path(outbox_file)
         self.outbox_file.parent.mkdir(parents=True, exist_ok=True)
         self._lock = threading.RLock()
@@ -214,7 +214,7 @@ class ModelRegistry:
     def __init__(
         self,
         registry_file: str = "models/model_registry.json",
-        outbox_file: str = "data/model_sync_outbox.json",
+        outbox_file: str = "data/runtime/model_sync_outbox.json",
     ) -> None:
         self.registry_file = Path(registry_file)
         self.registry_file.parent.mkdir(parents=True, exist_ok=True)

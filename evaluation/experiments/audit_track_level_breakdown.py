@@ -28,8 +28,8 @@ def audit_track_clarifications():
     osnet_backbone = OSNetBackbone(model_path="models/weights/osnet_x0_25.pth", device=device)
 
     subjects = ["demo_person_001", "Devhan", "Isuru", "person01"]
-    base_gei = Path("data/auto_enrollment/gei")
-    base_photos = Path("data/auto_enrollment/photos")
+    base_gei = Path("data/runtime/auto_enrollment/gei")
+    base_photos = Path("data/runtime/auto_enrollment/photos")
 
     print("\n--- ITEM 1: EXACT COMPOSITION BREAKDOWN (37 Production Samples) ---")
     query_gait, query_app, query_labels = [], [], []

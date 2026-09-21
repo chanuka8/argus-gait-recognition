@@ -8,7 +8,7 @@ from enrollment.enrollment_manager import EnrollmentManager
 class FolderWatcher:
     def __init__(
         self,
-        watch_dir: str = "data/new_input",
+        watch_dir: str = "data/runtime/new_input",
         poll_interval: int = 3,
         stable_wait_seconds: int = 5,
         min_images: int = 5,

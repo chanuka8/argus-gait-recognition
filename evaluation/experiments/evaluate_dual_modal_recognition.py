@@ -134,8 +134,8 @@ def run_dual_modal_evaluation():
     detector = PersonDetector()
     fusion_engine = DualModalFusion(default_gait_weight=0.70, default_reid_weight=0.30, enabled=True)
 
-    base_gei = Path("data/auto_enrollment/gei")
-    base_photos = Path("data/auto_enrollment/photos")
+    base_gei = Path("data/runtime/auto_enrollment/gei")
+    base_photos = Path("data/runtime/auto_enrollment/photos")
     subjects = ["demo_person_001", "Devhan", "Isuru", "person01"]
 
     subject_data = {}
@@ -411,7 +411,7 @@ def run_dual_modal_evaluation():
         "fused": roc_fused,
     }
 
-    video_path = "data/new_input/_disabled_test_01/walk.mp4.mp4"
+    video_path = "data/runtime/new_input/_disabled_test_01/walk.mp4.mp4"
     cap = cv2.VideoCapture(video_path)
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     max_frames = min(150, total_frames)

@@ -85,7 +85,7 @@ class UploadSessionManager:
 
     def __init__(
         self,
-        sessions_dir: str = "data/upload_sessions",
+        sessions_dir: str = "data/runtime/upload_sessions",
         default_chunk_size: int = 2 * 1024 * 1024,  # 2 MiB default
         ttl_seconds: float = 7200.0,  # 2 hours
     ) -> None:
@@ -99,7 +99,7 @@ class UploadSessionManager:
         self._load_active_sessions()
 
     @classmethod
-    def get_instance(cls, sessions_dir: str = "data/upload_sessions") -> UploadSessionManager:
+    def get_instance(cls, sessions_dir: str = "data/runtime/upload_sessions") -> UploadSessionManager:
         if cls._instance is None:
             with cls._singleton_lock:
                 if cls._instance is None:
@@ -325,9 +325,9 @@ class UploadSessionManager:
             s_dir = self._session_dir(upload_id)
             if destination_dir is None:
                 if session.media_type == "video":
-                    dst_dir = Path("data/reference_videos")
+                    dst_dir = Path("data/runtime/reference_videos")
                 else:
-                    dst_dir = Path("data/reference_photos")
+                    dst_dir = Path("data/runtime/reference_photos")
             else:
                 dst_dir = Path(destination_dir)
 

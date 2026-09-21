@@ -94,7 +94,7 @@ ARGUS AI follows a decoupled, service-oriented architecture where video ingestio
 |     LOCAL-FIRST PRIMARY STORAGE   |       |    ASYNCHRONOUS DURABLE PERSISTENCE   |
 | Hardened VectorStore (.npy)       |       |  Firebase Firestore (Admin SDK)       |
 | SQLite EmbeddingDatabase (<1.5ms) |──────►|  Canonical Schema | Lineage Auditing  |
-| data/cases/{id}_{name}/ Dossiers  |       |  Offline Fallback Queue (data/*.json) |
+| data/runtime/cases/{id}_{name}/   |       |  Offline Fallback Queue (data/*.json) |
 +───────────────────────────────────+       +───────────────────────────────────────+
 ```
 
@@ -303,7 +303,7 @@ Uploaded Media (Photo or Video)
   * `INSUFFICIENT_GAIT_SEQUENCE`: Detected person track is shorter than the required minimum gait cycle.
   * `AMBIGUOUS_MULTIPLE_PERSONS`: Multiple individuals detected without a dominant foreground subject (prominence ratio $< 2.5$).
 * **Bounded Memory Processing**: Frames are decoded and processed iteratively via generator pipelines rather than loading entire uncompressed video sequences into RAM.
-* **Durable Checkpointing & Job Recovery**: Video processing creates intermediate state checkpoints on disk (`data/reference_jobs/{job_id}_checkpoint.json`). If the host service is terminated, interrupted jobs automatically resume from the last completed processing phase.
+* **Durable Checkpointing & Job Recovery**: Video processing creates intermediate state checkpoints on disk (`data/runtime/reference_jobs/{job_id}_checkpoint.json`). If the host service is terminated, interrupted jobs automatically resume from the last completed processing phase.
 
 ---
 
@@ -321,7 +321,7 @@ Live Inference Loop (<1.5ms) ──► Local EmbeddingDatabase (SQLite)
                              ┌──────────────┴──────────────┐
                              ▼                             ▼
                     Cloud Firestore               Local Fallback Queue
-                    (Online State)          (data/firebase_offline_store.json)
+                    (Online State)          (data/runtime/firebase_offline_store.json)
 ```
 
 ### 1. Local Embedding Database & VectorStore (Primary Inference Path)
@@ -337,7 +337,7 @@ Live Inference Loop (<1.5ms) ──► Local EmbeddingDatabase (SQLite)
   * `identity_type`: `"USER_REFERENCE"` (gallery watchlist) vs `"LIVE_OPERATIONAL"` (CCTV evidence).
   * `operational_state`: `"PREDICTED"`, `"VERIFIED"`, `"TRAINING_ELIGIBLE"`, `"TRAINING_CONSUMED"`, or `"REFERENCE"`.
   * `training_eligibility`: Explicitly `"NOT_ELIGIBLE"` for reference gallery samples to prevent training set contamination.
-* **Offline Resilience**: When unconfigured or offline, synchronization events buffer into `data/firebase_offline_store.json` and drain automatically upon reconnection.
+* **Offline Resilience**: When unconfigured or offline, synchronization events buffer into `data/runtime/firebase_offline_store.json` and drain automatically upon reconnection.
 
 ---
 
@@ -397,7 +397,7 @@ The Case Dossier capability (`services/case_dossier_manager.py`) organizes inves
 ### Filesystem Layout
 
 ```
-data/cases/{case_id}_{person_name}/
+data/runtime/cases/{case_id}_{person_name}/
 ├── case_details.json         # Structured dossier metadata, GPS coordinates, file index
 ├── media/                    # Associated reference photographs and reference videos
 │   ├── reference_photo_01.jpg
@@ -567,8 +567,10 @@ ARGUS_AI/
 ├── configs/                    # YAML configurations (cameras, detection, gei, inference, system)
 │   └── secrets/                # Gitignored credentials (e.g. firebase-service-account.json)
 ├── core/                       # Core system coordinator, shared utilities, logging configuration
-├── data/                       # Local database, reference jobs, video storage, and case dossiers
-│   └── cases/                  # Structured on-disk Case Dossiers ({case_id}_{person_name}/)
+├── data/                       # Gitignored local data, split by lifecycle
+│   ├── datasets/                #   Research datasets (CASIA-B raw/cache/processed)
+│   └── runtime/                 #   Live operational state (cases, galleries DB, enrollment, jobs)
+│       └── cases/                #   Structured on-disk Case Dossiers ({case_id}_{person_name}/)
 ├── dataconnect/                # Firebase Data Connect schema
 ├── deployment/                 # Service shutdown management and environment manifests
 ├── docs/                       # Architectural documentation, reports, and README index
@@ -785,7 +787,7 @@ The following classification separates features verified in the codebase from re
 | **Path Traversal Protection (`relative_to`)** | **Implemented & Verified** | `CaseDossierManager.get_dossier_file()`, `api/v1/router.py` |
 | **Argon2id Password Hashing & RBAC** | **Implemented & Verified** | `security_layer/password_hasher.py`, `security_layer/authorization.py` |
 | **Local-First SQLite & VectorStore Storage** | **Implemented & Verified** | `storage/vector_store.py` (`allow_pickle=False`), `EmbeddingDatabase` |
-| **Asynchronous Firestore Persistence** | **Implemented & Verified** | `storage/firebase_embedding_store.py`, `data/firebase_offline_store.json` |
+| **Asynchronous Firestore Persistence** | **Implemented & Verified** | `storage/firebase_embedding_store.py`, `data/runtime/firebase_offline_store.json` |
 | **Date-Aware Continual Learning & Replay** | **Implemented & Verified** | `DateAwareLearningScheduler`, `TrainingDatasetBuilder` (50% replay) |
 | **PyTorch NN Fine-Tuning & Multi-Gate Gating** | **Implemented & Verified** | `NNFineTuner`, `CandidateValidator` (FAR/TAR/Anti-churn) |
 | **Atomic Model Registry & Rollback** | **Implemented & Verified** | `ModelRegistry` (Hot-reload, rollback $< 50\text{ms}$) |

@@ -315,7 +315,7 @@ class FirebaseEmbeddingStore:
     def __init__(
         self,
         mode: str = "auto",
-        offline_store_path: str = "data/firebase_offline_store.json",
+        offline_store_path: str = "data/runtime/firebase_offline_store.json",
         max_retry_queue_size: int = 100,
         max_retries: int = 3,
     ) -> None:

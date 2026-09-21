@@ -98,7 +98,7 @@ class OperationalObservation:
 class OperationalEmbeddingCollector:
     def __init__(
         self,
-        output_dir: str = "data/operational_observations",
+        output_dir: str = "data/runtime/operational_observations",
         max_buffer_size: int = 1000,
         dedup_window_seconds: float = 1.0,
         dedup_similarity_threshold: float = 0.98,

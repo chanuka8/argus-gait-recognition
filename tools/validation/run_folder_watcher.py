@@ -12,7 +12,7 @@ from enrollment.folder_watcher import (
 def main():
 
     watcher = FolderWatcher(
-        watch_dir="data/new_input",
+        watch_dir="data/runtime/new_input",
         poll_interval=2,
     )
 

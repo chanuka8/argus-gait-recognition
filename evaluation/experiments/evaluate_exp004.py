@@ -16,7 +16,7 @@ from evaluation.threshold_calibrator import ThresholdCalibrator
 def evaluate_checkpoint(
     model_path: str,
     output_dir: str,
-    gei_root: str = "data/casia_processed/gei",
+    gei_root: str = "data/datasets/casia_processed/gei",
     split_config: str = "configs/subject_split.json",
     margin_threshold: float = 0.05,
 ) -> dict:
@@ -141,7 +141,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model-path", required=True)
     parser.add_argument("--output-dir", required=True)
-    parser.add_argument("--gei-root", default="data/casia_processed/gei")
+    parser.add_argument("--gei-root", default="data/datasets/casia_processed/gei")
     parser.add_argument("--split-config", default="configs/subject_split.json")
     parser.add_argument(
         "--margin-threshold", type=float, default=0.08, help="Top1/Top2 margin threshold for EXP-004B open-set policy"

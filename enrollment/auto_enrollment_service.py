@@ -19,16 +19,16 @@ from storage.vector_store import VectorStore
 class AutoEnrollmentService:
     def __init__(
         self,
-        input_dir: str = "data/new_input",
-        processed_dir: str = "data/auto_enrollment/gei",
-        photo_processed_dir: str = "data/auto_enrollment/photos",
+        input_dir: str = "data/runtime/new_input",
+        processed_dir: str = "data/runtime/auto_enrollment/gei",
+        photo_processed_dir: str = "data/runtime/auto_enrollment/photos",
         marker_name: str = ".argus_enrolled.json",
         gei_frames: int = 15,
         video_stride: int = 10,
         scan_interval: int = 5,
         live_gallery_dir: str = "models/live_gallery",
         appearance_gallery_dir: str = "models/appearance_gallery",
-        db_dir: str = "data/embedding_db",
+        db_dir: str = "data/runtime/embedding_db",
         auto_delete_raw: bool = True,
     ) -> None:
         self.input_dir = Path(input_dir)

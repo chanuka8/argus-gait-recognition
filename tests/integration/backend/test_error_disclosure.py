@@ -441,7 +441,7 @@ def test_reference_video_upload_internal_exception_sanitized(client, admin_token
     """Prove that reference video upload failure does not leak internal save path."""
 
     async def mock_to_thread(*args, **kwargs):
-        raise OSError("[Errno 13] Permission denied: 'data/reference_videos/secret_internal_file.mp4'")
+        raise OSError("[Errno 13] Permission denied: 'data/runtime/reference_videos/secret_internal_file.mp4'")
 
     import asyncio
 
@@ -536,7 +536,7 @@ def test_upload_chunk_and_assembly_os_error_sanitized(client, admin_token, monke
     )
     assert resp.status_code == 400
     assert resp.json()["detail"] == "Failed to write chunk 0 to disk"
-    assert "data/upload_sessions" not in resp.text
+    assert "data/runtime/upload_sessions" not in resp.text
 
     # 2. Mock assemble_and_commit to return error simulating reassembly OSError
     monkeypatch.setattr(
@@ -551,7 +551,7 @@ def test_upload_chunk_and_assembly_os_error_sanitized(client, admin_token, monke
     )
     assert resp.status_code == 400
     assert resp.json()["detail"] == "Failed to assemble file from chunks"
-    assert "data/upload_sessions" not in resp.text
+    assert "data/runtime/upload_sessions" not in resp.text
 
 
 # ==============================================================================
@@ -607,7 +607,7 @@ def test_reference_job_status_sanitizes_resumed_error(client, admin_token):
     mgr = ReferenceJobManager.get_instance()
     job = mgr.create_job(
         person_id="job_error_test_subject",
-        video_path="data/reference_videos/dummy.mp4",
+        video_path="data/runtime/reference_videos/dummy.mp4",
         case_id="case_job_error",
         owner="sec09_admin",
     )

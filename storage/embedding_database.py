@@ -164,7 +164,7 @@ class PersonRecord:
 class EmbeddingDatabase:
     def __init__(
         self,
-        db_dir: str = "data/embedding_db",
+        db_dir: str = "data/runtime/embedding_db",
         gait_gallery_dir: str = "models/live_gallery",
         appearance_gallery_dir: str = "models/appearance_gallery",
         firebase_store: Any | None = None,

@@ -48,7 +48,7 @@ def validate_password_complexity(password: str) -> tuple[bool, str]:
 
 
 class AdminBootstrapper:
-    def __init__(self, offline_store_path: str = "data/operator_store.json") -> None:
+    def __init__(self, offline_store_path: str = "data/runtime/operator_store.json") -> None:
         self.offline_store_path = Path(offline_store_path)
         self.hasher = get_password_hasher()
         self._firestore_client = None
@@ -185,7 +185,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--store-path",
-        default="data/operator_store.json",
+        default="data/runtime/operator_store.json",
         help="Path to offline operator store JSON file",
     )
 

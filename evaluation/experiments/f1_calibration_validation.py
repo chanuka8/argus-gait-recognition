@@ -15,7 +15,7 @@ import torch
 from models.architectures.bygait_light import ByGaitLight
 
 BYGAIT_CHECKPOINT = "runs/exp_001/best_model.pth"
-CASIA_GEI_DIR = Path("data/casia_processed/gei")
+CASIA_GEI_DIR = Path("data/datasets/casia_processed/gei")
 
 
 CALIBRATION_SUBJECTS = [f"{i:03d}" for i in range(101, 111)]

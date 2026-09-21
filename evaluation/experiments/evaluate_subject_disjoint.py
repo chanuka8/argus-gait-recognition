@@ -19,7 +19,7 @@ from evaluation.threshold_calibrator import ThresholdCalibrator
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run Full ARGUS Subject-Disjoint Baseline Evaluation Pipeline")
     parser.add_argument("--model-path", type=str, default="runs/exp_001/best_model.pth")
-    parser.add_argument("--gei-root", type=str, default="data/casia_processed/gei")
+    parser.add_argument("--gei-root", type=str, default="data/datasets/casia_processed/gei")
     parser.add_argument("--split-config", type=str, default="configs/subject_split.json")
     parser.add_argument("--output-dir", type=str, default="runs/exp_001/evaluation_subject_disjoint")
     parser.add_argument(

@@ -51,7 +51,7 @@ def run_decision_ablations_on_exp003e():
     print("  RUNNING OPEN-SET DECISION ABLATIONS (EXP-004A..E)")
     print("=======================================================\n")
 
-    split_manifest = load_or_create_subject_split("configs/subject_split.json", "data/casia_processed/gei")
+    split_manifest = load_or_create_subject_split("configs/subject_split.json", "data/datasets/casia_processed/gei")
     val_subs = split_manifest["val_subjects"]
     test_subs = split_manifest["test_subjects"]
 
@@ -59,8 +59,8 @@ def run_decision_ablations_on_exp003e():
     model = load_model(ckpt_path, part_bins=4)
 
     val_known = val_subs[: len(val_subs) // 2]
-    val_gal_items, _ = build_gallery_and_probe_sets(val_known, "data/casia_processed/gei")
-    _, val_prb_items = build_gallery_and_probe_sets(val_subs, "data/casia_processed/gei")
+    val_gal_items, _ = build_gallery_and_probe_sets(val_known, "data/datasets/casia_processed/gei")
+    _, val_prb_items = build_gallery_and_probe_sets(val_subs, "data/datasets/casia_processed/gei")
 
     val_gal_feats = np.asarray([image_to_embedding(model, i["path"]) for i in val_gal_items], dtype=np.float32)
     val_gal_labels = np.asarray([i["subject_id"] for i in val_gal_items])
@@ -96,8 +96,8 @@ def run_decision_ablations_on_exp003e():
         best_val_f1 = max(best_val_f1, f1)
 
     test_known = test_subs[:25]
-    test_gal_items, _ = build_gallery_and_probe_sets(test_known, "data/casia_processed/gei")
-    _, test_prb_items = build_gallery_and_probe_sets(test_subs, "data/casia_processed/gei")
+    test_gal_items, _ = build_gallery_and_probe_sets(test_known, "data/datasets/casia_processed/gei")
+    _, test_prb_items = build_gallery_and_probe_sets(test_subs, "data/datasets/casia_processed/gei")
 
     test_gal_feats = np.asarray([image_to_embedding(model, i["path"]) for i in test_gal_items], dtype=np.float32)
     test_gal_labels = np.asarray([i["subject_id"] for i in test_gal_items])
@@ -303,7 +303,7 @@ def run_retrain_ablation(exp_id: str, exp_name: str, condition_balanced: bool, c
     run_dir = f"runs/{exp_id.lower().replace('-', '_')}"
 
     trainer = Trainer(
-        data_dir="data/casia_processed/gei",
+        data_dir="data/datasets/casia_processed/gei",
         run_dir=run_dir,
         batch_size=16,
         epochs=15,
@@ -331,7 +331,7 @@ def run_retrain_ablation(exp_id: str, exp_name: str, condition_balanced: bool, c
         "--model-path",
         ckpt_path,
         "--gei-root",
-        "data/casia_processed/gei",
+        "data/datasets/casia_processed/gei",
         "--split-config",
         "configs/subject_split.json",
         "--output-dir",

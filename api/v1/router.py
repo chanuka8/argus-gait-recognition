@@ -911,7 +911,7 @@ async def enroll_subject(
             )
 
         if async_mode:
-            photos_dir = Path("data/reference_photos")
+            photos_dir = Path("data/runtime/reference_photos")
             photos_dir.mkdir(parents=True, exist_ok=True)
             saved_paths: list[str] = []
             timestamp = int(time.time())
@@ -1031,7 +1031,7 @@ async def upload_case_reference_video(
             detail=f"Unsupported video format '{suffix}'. Allowed: {sorted(valid_extensions)}",
         )
 
-    videos_dir = Path("data/reference_videos")
+    videos_dir = Path("data/runtime/reference_videos")
     videos_dir.mkdir(parents=True, exist_ok=True)
 
     safe_base = Path(file.filename or f"reference{suffix}").name
@@ -1547,7 +1547,7 @@ def get_events(
 
 @v1_router.get("/cases/dossiers")
 def list_case_dossiers(request: Request):
-    """List all case dossiers stored in data/cases/ with full metadata."""
+    """List all case dossiers stored in data/runtime/cases/ with full metadata."""
     get_current_operator_session(request)
     from services.case_dossier_manager import CaseDossierManager
 

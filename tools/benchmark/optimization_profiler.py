@@ -131,7 +131,7 @@ def run_step_5g():
     print(f"[ENV] Device: {device}")
 
     print("\n--- PRE-STEP: DATA HYGIENE CHECK ---")
-    person_test_dir = Path("data/new_input/person_test")
+    person_test_dir = Path("data/runtime/new_input/person_test")
     is_person_test_present = person_test_dir.exists()
     person_test_count = len(list(person_test_dir.glob("*.*"))) if is_person_test_present else 0
     print(f"[DATA HYGIENE] 'person_test' directory found: {is_person_test_present} ({person_test_count} images)")
@@ -151,8 +151,8 @@ def run_step_5g():
     reid_extractor = ReIDFeatureExtractionStep(model_path="models/weights/osnet_x0_25.pth", device=device)
     detector = PersonDetector()
 
-    base_gei = Path("data/auto_enrollment/gei")
-    base_photos = Path("data/auto_enrollment/photos")
+    base_gei = Path("data/runtime/auto_enrollment/gei")
+    base_photos = Path("data/runtime/auto_enrollment/photos")
     subjects = ["demo_person_001", "Devhan", "Isuru", "person01"]
 
     subject_data = {}

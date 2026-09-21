@@ -17,13 +17,13 @@ def main() -> None:
 
     parser.add_argument(
         "--input",
-        default="data/new_input",
+        default="data/runtime/new_input",
         help="Folder containing person folders for auto enrollment",
     )
 
     parser.add_argument(
         "--processed",
-        default="data/auto_enrollment/gei",
+        default="data/runtime/auto_enrollment/gei",
         help="Folder used to store generated enrollment GEI images",
     )
 

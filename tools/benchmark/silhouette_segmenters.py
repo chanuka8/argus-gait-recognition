@@ -18,7 +18,7 @@ from training.silhouette_dataset import SilhouetteSegmentationDataset
 
 
 def benchmark_silhouette_segmenters(
-    zip_path: str = "data/casia_b_raw.zip",
+    zip_path: str = "data/datasets/casia_b_raw.zip",
     num_samples: int = 100,
 ) -> dict:
     if not Path(zip_path).exists():

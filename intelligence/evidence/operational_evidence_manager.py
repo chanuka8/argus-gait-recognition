@@ -75,7 +75,7 @@ class OperationalEvidenceRecord:
 class OperationalEvidenceManager:
     def __init__(
         self,
-        storage_dir: str = "data/operational_evidence",
+        storage_dir: str = "data/runtime/operational_evidence",
         max_storage_bytes: int = 500 * 1024 * 1024,
         retention_days: float = 30.0,
     ) -> None:

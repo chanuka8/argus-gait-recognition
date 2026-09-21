@@ -42,7 +42,7 @@ def image_to_embedding(model: ByGaitLight, img_path: str) -> np.ndarray:
 
 
 def main():
-    split_manifest = load_or_create_subject_split("configs/subject_split.json", "data/casia_processed/gei")
+    split_manifest = load_or_create_subject_split("configs/subject_split.json", "data/datasets/casia_processed/gei")
     val_subs = split_manifest["val_subjects"]
     test_subs = split_manifest["test_subjects"]
 
@@ -52,14 +52,14 @@ def main():
     print("--- Extracting Validation Set Features (063-074) ---")
     val_known = val_subs[: len(val_subs) // 2]
 
-    _val_gal_items, _ = build_gallery_and_probe_sets(val_known, "data/casia_processed/gei")
-    _, _ = build_gallery_and_probe_sets(val_subs, "data/casia_processed/gei")
+    _val_gal_items, _ = build_gallery_and_probe_sets(val_known, "data/datasets/casia_processed/gei")
+    _, _ = build_gallery_and_probe_sets(val_subs, "data/datasets/casia_processed/gei")
 
     print("--- Extracting Test Set Features (075-124) ---")
     test_known = test_subs[:25]
 
-    test_gal_items, _ = build_gallery_and_probe_sets(test_known, "data/casia_processed/gei")
-    _, test_prb_items = build_gallery_and_probe_sets(test_subs, "data/casia_processed/gei")
+    test_gal_items, _ = build_gallery_and_probe_sets(test_known, "data/datasets/casia_processed/gei")
+    _, test_prb_items = build_gallery_and_probe_sets(test_subs, "data/datasets/casia_processed/gei")
 
     test_gal_feats = np.asarray([image_to_embedding(model, i["path"]) for i in test_gal_items], dtype=np.float32)
     test_gal_labels = np.asarray([i["subject_id"] for i in test_gal_items])

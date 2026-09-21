@@ -216,7 +216,7 @@ class ReferenceJobManager:
 
     def __init__(
         self,
-        jobs_dir: str = "data/reference_jobs",
+        jobs_dir: str = "data/runtime/reference_jobs",
         max_workers: int = 2,
     ) -> None:
         self.logger = get_logger("reference_job_manager")
@@ -238,7 +238,7 @@ class ReferenceJobManager:
         return self._shutdown_event.is_set()
 
     @classmethod
-    def get_instance(cls, jobs_dir: str = "data/reference_jobs") -> "ReferenceJobManager":
+    def get_instance(cls, jobs_dir: str = "data/runtime/reference_jobs") -> "ReferenceJobManager":
         if cls._instance is None or getattr(cls._instance._executor, "_shutdown", False):
             with cls._singleton_lock:
                 if cls._instance is None or getattr(cls._instance._executor, "_shutdown", False):
