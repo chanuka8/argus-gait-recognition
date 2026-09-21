@@ -48,7 +48,7 @@ GEI Training Dataset → `training/dataset.py` & `training/dataloader.py` → `m
 ## Tests
 
 - [tests/unit/test_output_layout.py](../tests/unit/test_output_layout.py)
-- [scripts/evaluate_model.py](../scripts/evaluate_model.py)
+- [evaluation/evaluate_model.py](../evaluation/evaluate_model.py)
 
 ## Related Documentation
 

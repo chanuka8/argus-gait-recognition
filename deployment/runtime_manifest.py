@@ -8,9 +8,9 @@ BUILD_TIME_ASSETS = [
     "evaluation",
     "automation",
     "dataconnect",
-    "scripts/export_bygait_onnx.py",
-    "scripts/benchmark_inference_backends.py",
-    "scripts/sync_folder_readmes.py",
+    "tools/maintenance/export_bygait_onnx.py",
+    "tools/benchmark/inference_backends.py",
+    "tools/maintenance/sync_folder_readmes.py",
     "requirements.txt",
     "ruff.toml",
     "pytest.ini",
@@ -43,7 +43,7 @@ RUNTIME_ONLY_ASSETS = [
     "configs/system.yaml",
     "configs/inference.yaml",
     "configs/cameras.yaml",
-    "scripts/doctor.py",
+    "tools/validation/doctor.py",
 ]
 
 EXCLUDED_PATTERNS = [

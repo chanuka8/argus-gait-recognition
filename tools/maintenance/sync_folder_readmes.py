@@ -19,7 +19,6 @@ TARGET_FOLDERS = [
     "monitoring",
     "pipeline",
     "preprocessing",
-    "scripts",
     "security_layer",
     "services",
     "storage",
@@ -40,26 +39,7 @@ REQUIRED_SECTIONS = [
     "Related Documentation",
 ]
 
-REQUIRED_SECTIONS_BY_FOLDER = {
-    "scripts": [
-        "Folder Purpose",
-        "Script Inventory",
-        "Script Metadata",
-        "CLI Reference",
-        "Common Commands",
-        "Command Index",
-        "Script Dependency Graph",
-        "Script Execution Order",
-        "Generated Outputs",
-        "Safety Classification",
-        "Script Execution Flow",
-        "Dependencies",
-        "Cross References",
-        "Safety Notes",
-        "Command Examples",
-        "Automatic Maintenance",
-    ],
-}
+REQUIRED_SECTIONS_BY_FOLDER: dict[str, list[str]] = {}
 
 
 def get_active_files_for_folder(folder_path: Path) -> list[str]:
@@ -67,15 +47,6 @@ def get_active_files_for_folder(folder_path: Path) -> list[str]:
 
     if folder_name == "configs":
         files = [f.name for f in folder_path.iterdir() if f.is_file() and f.suffix in (".yaml", ".yml", ".json")]
-    elif folder_name == "scripts":
-        files = [
-            f.name
-            for f in folder_path.iterdir()
-            if f.is_file()
-            and f.suffix in (".py", ".ps1", ".bat", ".sh")
-            and not f.name.startswith("__")
-            and f.name != "README.md"
-        ]
     elif folder_name == "models":
         items = ["architectures/bygait_light.py"]
         for sub in [
@@ -185,14 +156,15 @@ def extract_script_description(path: Path) -> str:
 
 def get_script_primary_usage(path: Path) -> str:
     name = path.name
+    prefix = path.parent.name
     if path.suffix == ".ps1":
-        return f"powershell -ExecutionPolicy Bypass -File scripts/{name}"
+        return f"powershell -ExecutionPolicy Bypass -File {prefix}/{name}"
     elif path.suffix in (".bat", ".sh"):
-        return f"scripts/{name}"
+        return f"{prefix}/{name}"
     elif name.startswith("test_"):
-        return f"pytest scripts/{name}"
+        return f"pytest {prefix}/{name}"
     else:
-        return f"python scripts/{name}"
+        return f"python {prefix}/{name}"
 
 
 def _ast_node_to_value(node: ast.AST):
@@ -421,7 +393,7 @@ def _is_used_by_ci(name: str, root_dir: Path) -> bool:
 
 
 def _is_used_by_hook(name: str, root_dir: Path) -> bool:
-    hook_installer = root_dir / "scripts" / "install_git_hooks.py"
+    hook_installer = root_dir / "tools" / "maintenance" / "install_git_hooks.py"
     if not hook_installer.exists():
         return False
     try:
@@ -622,7 +594,7 @@ def _generate_cli_reference(folder_path: Path) -> str:
         block.append("```bash")
         block.append(usage)
 
-        example_parts = [f"python scripts/{name}"]
+        example_parts = [f"python {folder_path.name}/{name}"]
         for arg in args[:2]:
             if arg["flags"] and arg["flags"][0].startswith("--"):
                 flag = arg["flags"][0]
@@ -772,8 +744,6 @@ def _generate_cross_references(root_dir: Path) -> str:
                 links.append(f"- [CI: {wf_path.name}](../.github/workflows/{wf_path.name})")
 
     for folder in TARGET_FOLDERS:
-        if folder == "scripts":
-            continue
         readme = root_dir / folder / "README.md"
         if readme.exists():
             try:

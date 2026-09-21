@@ -227,8 +227,8 @@ class OperatorStore:
                     )
                     if raw_path and raw_path.strip():
                         cred_path = Path(raw_path.strip())
-                    elif Path("config/firebase-service-account.json").exists():
-                        cred_path = Path("config/firebase-service-account.json")
+                    elif Path("configs/secrets/firebase-service-account.json").exists():
+                        cred_path = Path("configs/secrets/firebase-service-account.json")
                     else:
                         cred_path = None
 

@@ -69,7 +69,7 @@ Dataset GEIs / Models → `evaluation/evaluator.py` → `evaluation/metrics.py` 
 ## Tests
 
 - [tests/test_leakage_prevention.py](../tests/test_leakage_prevention.py)
-- [scripts/evaluate_model.py](../scripts/evaluate_model.py)
+- [evaluate_model.py](evaluate_model.py)
 
 ## Related Documentation
 

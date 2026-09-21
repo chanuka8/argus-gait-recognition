@@ -29,11 +29,10 @@ venv.bak/
 *service-account*.json
 *firebase*.json
 *credentials*.json
-config/firebase-service-account.json
-config/*service-account*.json
 firebase-service-account.json
 *.service-account.json
 configs/*credential*.json
+configs/secrets/
 secrets/
 data/*.zip
 data/**/*.zip

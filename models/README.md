@@ -42,7 +42,7 @@ Input GEI Tensor (1×1×128×64) → `models/architectures/bygait_light.py` (`By
 ## Tests
 
 - [tests/integration/test_dual_modal_pipeline.py](../tests/integration/test_dual_modal_pipeline.py)
-- [scripts/evaluate_model.py](../scripts/evaluate_model.py)
+- [evaluation/evaluate_model.py](../evaluation/evaluate_model.py)
 
 ## Related Documentation
 

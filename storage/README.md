@@ -42,12 +42,12 @@ When unconfigured, ARGUS runs in **offline mode** with zero inference degradatio
 2. **Place Key File**:
    Save the credential file as:
    ```text
-   E:\ARGUS_AI\config\firebase-service-account.json
+   E:\ARGUS_AI\configs\secrets\firebase-service-account.json
    ```
    *(This path is strictly ignored by Git and must never be committed).*
 3. **Configure Environment Variable**:
    ```powershell
-   $env:FIREBASE_SERVICE_ACCOUNT_PATH="E:\ARGUS_AI\config\firebase-service-account.json"
+   $env:FIREBASE_SERVICE_ACCOUNT_PATH="E:\ARGUS_AI\configs\secrets\firebase-service-account.json"
    ```
    *(Or set `GOOGLE_APPLICATION_CREDENTIALS`)*
 4. **Verify File Existence**:

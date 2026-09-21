@@ -71,7 +71,7 @@ Firebase operations occur entirely outside the frame-processing loop:
 | Failure Scenario | Local Pipeline Impact | Firebase Impact | Recovery Mechanism |
 | :--- | :--- | :--- | :--- |
 | **No Internet Connection** | None. Local inference continues at full FPS. | Enters `offline` mode. Writes queued locally. | Automatic retry upon connection restoration. |
-| **Missing Service Account** | None. | Safe fallback to offline mode. | Credentials placed in `config/firebase-service-account.json`. |
+| **Missing Service Account** | None. | Safe fallback to offline mode. | Credentials placed in `configs/secrets/firebase-service-account.json`. |
 | **Firestore Network Timeout** | None. Inference loop never waits for HTTP calls. | Request marked for retry. | Backoff retry queue processed on background worker. |
 | **Local Disk Crash** | Local cache lost. | Full cloud copy preserved. | `FirebaseEmbeddingStore.rebuild_local_from_firebase()` restores entire gallery. |
 
@@ -164,11 +164,11 @@ To execute physical hardware probe on deployment surveillance stations:
 
 ```bash
 # 1. Probe local webcam (index 0) and any secondary USB webcam
-.\.venv\Scripts\python.exe scripts/validate_camera_hardware.py --webcam-index 0 --usb-index 1
+.\.venv\Scripts\python.exe tools/validation/camera_hardware.py --webcam-index 0 --usb-index 1
 
 # 2. Probe live RTSP surveillance feed
-.\.venv\Scripts\python.exe scripts/validate_camera_hardware.py --rtsp-url rtsp://user:pass@camera_ip:554/live
+.\.venv\Scripts\python.exe tools/validation/camera_hardware.py --rtsp-url rtsp://user:pass@camera_ip:554/live
 
 # 3. Verify End-to-End Camera -> ByGaitLight Pipeline
-.\.venv\Scripts\python.exe scripts/verify_camera_to_gait_pipeline.py
+.\.venv\Scripts\python.exe tools/validation/camera_gait_pipeline.py
 ```

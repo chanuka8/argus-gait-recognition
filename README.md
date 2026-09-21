@@ -658,7 +658,7 @@ python -m pip install --upgrade pip setuptools wheel
 pip install -r requirements.txt
 
 # Run automated hardware discovery and environment bootstrap
-powershell -ExecutionPolicy Bypass -File ".\scripts\bootstrap_env.ps1"
+powershell -ExecutionPolicy Bypass -File ".\tools\bootstrap_env.ps1"
 ```
 
 ### 3. Install Frontend Dependencies
@@ -673,10 +673,10 @@ cd ..
 
 Firebase persistence is **optional**. When unconfigured, ARGUS runs in hermetic offline mode without errors. To enable cloud synchronization:
 1. Place your Firebase Admin SDK service account key JSON at:
-   `config/firebase-service-account.json`
+   `configs/secrets/firebase-service-account.json`
 2. Set the environment variable in PowerShell:
    ```powershell
-   $env:FIREBASE_SERVICE_ACCOUNT_PATH="E:\ARGUS_AI\config\firebase-service-account.json"
+   $env:FIREBASE_SERVICE_ACCOUNT_PATH="E:\ARGUS_AI\configs\secrets\firebase-service-account.json"
    ```
 
 ---
@@ -685,7 +685,7 @@ Firebase persistence is **optional**. When unconfigured, ARGUS runs in hermetic 
 
 ### Option 1: Unified Development Server (Backend + Frontend)
 
-ARGUS AI includes a unified Node.js dev orchestrator (`scripts/dev.js`) that starts the FastAPI server, awaits readiness, and starts the React Vite development server:
+ARGUS AI includes a unified Node.js dev orchestrator (`tools/dev.js`) that starts the FastAPI server, awaits readiness, and starts the React Vite development server:
 
 ```powershell
 npm run dev

@@ -359,7 +359,7 @@ class FirebaseEmbeddingStore:
         raw_path = os.environ.get("FIREBASE_SERVICE_ACCOUNT_PATH") or os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
         if raw_path and raw_path.strip():
             return Path(raw_path.strip())
-        default_path = Path("config/firebase-service-account.json")
+        default_path = Path("configs/secrets/firebase-service-account.json")
         if default_path.exists() and default_path.is_file():
             return default_path
         return None

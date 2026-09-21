@@ -33,11 +33,7 @@ else
 fi
 
 # Execute sync script
-if [ -f "./tools/maintenance/sync_folder_readmes.py" ]; then
-    $PYTHON_CMD tools/maintenance/sync_folder_readmes.py
-else
-    $PYTHON_CMD scripts/sync_folder_readmes.py
-fi
+$PYTHON_CMD tools/maintenance/sync_folder_readmes.py
 SYNC_EXIT=$?
 
 if [ $SYNC_EXIT -ne 0 ]; then

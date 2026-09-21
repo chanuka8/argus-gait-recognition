@@ -996,12 +996,12 @@ def main() -> int:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python scripts/cleanup_python_comments.py --audit
-  python scripts/cleanup_python_comments.py --dry-run
-  python scripts/cleanup_python_comments.py --check
-  python scripts/cleanup_python_comments.py --apply
-  python scripts/cleanup_python_comments.py --path api/server.py --dry-run
-  python scripts/cleanup_python_comments.py --self-test
+  python tools/maintenance/cleanup_python_comments.py --audit
+  python tools/maintenance/cleanup_python_comments.py --dry-run
+  python tools/maintenance/cleanup_python_comments.py --check
+  python tools/maintenance/cleanup_python_comments.py --apply
+  python tools/maintenance/cleanup_python_comments.py --path api/server.py --dry-run
+  python tools/maintenance/cleanup_python_comments.py --self-test
         """,
     )
 

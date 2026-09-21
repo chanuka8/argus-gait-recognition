@@ -14,7 +14,7 @@
         "-ExecutionPolicy",
         "Bypass",
         "-File",
-        "${workspaceFolder}\\scripts\\activate_venv.ps1"
+        "${workspaceFolder}\\tools\\activate_venv.ps1"
       ],
       "icon": "terminal-powershell"
     },
@@ -28,7 +28,7 @@
         "-ExecutionPolicy",
         "Bypass",
         "-File",
-        "${workspaceFolder}\\scripts\\activate_venv.ps1"
+        "${workspaceFolder}\\tools\\activate_venv.ps1"
       ],
       "icon": "terminal-powershell"
     }

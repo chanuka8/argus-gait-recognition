@@ -20,7 +20,7 @@
     Optional path or command to the base Python executable (defaults to auto-detection: py -3.11, python3.11, python).
 
 .EXAMPLE
-    powershell -ExecutionPolicy Bypass -File scripts/manage_venv.ps1 -Action Recreate -InstallRequirements
+    powershell -ExecutionPolicy Bypass -File tools/manage_venv.ps1 -Action Recreate -InstallRequirements
 #>
 
 [CmdletBinding()]
@@ -314,6 +314,6 @@ switch ($Action) {
         }
 
         Write-ArgusLog "Virtual environment is ready at: $DotVenvDir" 'Green'
-        Write-ArgusLog "Activate in PowerShell with: powershell -ExecutionPolicy Bypass -File scripts/activate_venv.ps1" 'Cyan'
+        Write-ArgusLog "Activate in PowerShell with: powershell -ExecutionPolicy Bypass -File tools/activate_venv.ps1" 'Cyan'
     }
 }

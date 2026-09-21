@@ -14,7 +14,7 @@
     Installs additional dependencies from requirements.txt following bootstrap.
 
 .EXAMPLE
-    powershell -ExecutionPolicy Bypass -File scripts/bootstrap_env.ps1
+    powershell -ExecutionPolicy Bypass -File tools/bootstrap_env.ps1
 #>
 
 [CmdletBinding()]

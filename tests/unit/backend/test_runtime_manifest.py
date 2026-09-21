@@ -9,7 +9,7 @@ def test_runtime_manifest_lists_required_and_excludes_dev_assets():
     assert "main.py" in manifest.runtime_assets
     assert any(a.startswith("core/") for a in manifest.runtime_assets)
     assert any(a.startswith("configs/") for a in manifest.runtime_assets)
-    assert "scripts/doctor.py" in manifest.runtime_assets
+    assert "tools/validation/doctor.py" in manifest.runtime_assets
 
     assert "tests" in manifest.build_assets
     assert "pytest.ini" in manifest.build_assets

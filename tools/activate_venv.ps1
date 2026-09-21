@@ -6,7 +6,7 @@
     Activates the project venv when a terminal is opened inside
     the ARGUS AI repository. Designed to be launched via:
 
-        powershell -NoExit -ExecutionPolicy Bypass -File scripts/activate_venv.ps1
+        powershell -NoExit -ExecutionPolicy Bypass -File tools/activate_venv.ps1
 
     Safety guarantees:
       - Skips activation when the correct venv is already active.
@@ -40,7 +40,7 @@ $PythonExe = Join-Path $VenvDir 'Scripts\python.exe'
 
 if (-not (Test-Path -LiteralPath $VenvDir -PathType Container)) {
     Write-Warning "[ARGUS] Virtual environment not found: $VenvDir"
-    Write-Warning "[ARGUS] Create it with: powershell -File scripts/manage_venv.ps1 -Action Recreate"
+    Write-Warning "[ARGUS] Create it with: powershell -File tools/manage_venv.ps1 -Action Recreate"
     return
 }
 

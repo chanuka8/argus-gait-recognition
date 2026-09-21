@@ -105,7 +105,7 @@ Run PowerShell as **Administrator**:
 Run non-destructive automated deployment smoke testing before service start:
 
 ```bash
-python scripts/smoke_test_deployment.py
+python tools/validation/deployment_smoke_test.py
 ```
 
 ---
