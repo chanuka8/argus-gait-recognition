@@ -10,8 +10,8 @@ import cv2
 import numpy as np
 import torch
 
-from intelligence.dual_modal_fusion import DualModalFusion
-from intelligence.track_identity_aggregator import TrackIdentityAggregator
+from intelligence.fusion.dual_modal_fusion import DualModalFusion
+from intelligence.tracking.track_identity_aggregator import TrackIdentityAggregator
 from models.reid.osnet_backbone import OSNetBackbone
 from pipeline.detection.person_detector import PersonDetector
 from pipeline.steps.feature_extraction import FeatureExtractionStep

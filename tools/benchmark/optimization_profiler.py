@@ -10,8 +10,8 @@ import cv2
 import numpy as np
 import torch
 
-from intelligence.fusion_weights import DynamicFusionWeights
-from intelligence.quality_assessment import QualityAssessment
+from intelligence.fusion.fusion_weights import DynamicFusionWeights
+from intelligence.validation.quality_assessment import QualityAssessment
 from models.reid.osnet_backbone import OSNetBackbone
 from pipeline.detection.person_detector import PersonDetector
 from pipeline.steps.feature_extraction import FeatureExtractionStep

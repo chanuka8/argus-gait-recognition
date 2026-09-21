@@ -13,7 +13,7 @@ from enrollment.enrollment_lifecycle import (
     EnrollmentLifecycleManager,
     EnrollmentStatus,
 )
-from intelligence.nn_fine_tuner import NNFineTuner
+from intelligence.learning.nn_fine_tuner import NNFineTuner
 from models.model_registry import ModelRegistry
 from storage.embedding_database import EmbeddingDatabase
 from storage.firebase_embedding_store import (

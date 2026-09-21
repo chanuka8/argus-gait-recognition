@@ -6,27 +6,27 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from intelligence.accuracy_validation_gate import AccuracyValidationGate
-from intelligence.background_learning_worker import BackgroundLearningWorker
-from intelligence.continual_learning_audit_trail import (
+from intelligence.evidence.operational_embedding_collector import (
+    OperationalEmbeddingCollector,
+)
+from intelligence.learning.background_learning_worker import BackgroundLearningWorker
+from intelligence.learning.continual_learning_audit_trail import (
     ContinualLearningAuditTrail,
 )
-from intelligence.continual_learning_evaluator import (
+from intelligence.learning.continual_learning_evaluator import (
     ContinualLearningEvaluator,
     EvaluationMetrics,
     ModelComparisonResult,
 )
-from intelligence.date_aware_learning_scheduler import (
+from intelligence.learning.date_aware_learning_scheduler import (
     DateAwareLearningScheduler,
     LearningJobStatus,
 )
-from intelligence.operational_embedding_collector import (
-    OperationalEmbeddingCollector,
-)
-from intelligence.training_dataset_builder import (
+from intelligence.learning.training_dataset_builder import (
     DatasetSampleRecord,
     TrainingDatasetBuilder,
 )
+from intelligence.validation.accuracy_validation_gate import AccuracyValidationGate
 from models.model_registry import ModelDeploymentStatus, ModelRegistry
 from storage.embedding_database import EmbeddingDatabase
 

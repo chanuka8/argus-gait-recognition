@@ -8,14 +8,14 @@ from unittest.mock import MagicMock
 import numpy as np
 import pytest
 
-from intelligence.candidate_validator import CandidateValidator
-from intelligence.date_aware_learning_scheduler import (
-    DateAwareLearningScheduler,
-    LearningJobStatus,
-)
-from intelligence.operational_embedding_collector import (
+from intelligence.decision.candidate_validator import CandidateValidator
+from intelligence.evidence.operational_embedding_collector import (
     ObservationState,
     OperationalEmbeddingCollector,
+)
+from intelligence.learning.date_aware_learning_scheduler import (
+    DateAwareLearningScheduler,
+    LearningJobStatus,
 )
 from models.model_registry import ModelDeploymentStatus, ModelRegistry
 from services.recognition_worker import RecognitionResultCache, RecognitionWorker

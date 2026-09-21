@@ -12,16 +12,16 @@ from enrollment.enrollment_lifecycle import (
     EnrollmentLifecycleManager,
     EnrollmentStatus,
 )
-from intelligence.background_learning_worker import BackgroundLearningWorker
-from intelligence.candidate_validator import CandidateValidator
 from intelligence.continuous_improvement_engine import ContinuousImprovementEngine
-from intelligence.date_aware_learning_scheduler import (
-    DateAwareLearningScheduler,
-    LearningJobStatus,
-)
-from intelligence.operational_embedding_collector import (
+from intelligence.decision.candidate_validator import CandidateValidator
+from intelligence.evidence.operational_embedding_collector import (
     ObservationState,
     OperationalEmbeddingCollector,
+)
+from intelligence.learning.background_learning_worker import BackgroundLearningWorker
+from intelligence.learning.date_aware_learning_scheduler import (
+    DateAwareLearningScheduler,
+    LearningJobStatus,
 )
 from models.model_registry import ModelDeploymentStatus, ModelRegistry
 from storage.embedding_database import EmbeddingDatabase

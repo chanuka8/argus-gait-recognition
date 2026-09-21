@@ -2,7 +2,7 @@ import time
 
 import numpy as np
 
-from intelligence.crowd_intelligence_system import CrowdIntelligenceSystem
+from intelligence.crowd.crowd_intelligence_system import CrowdIntelligenceSystem
 
 
 def run_performance_benchmark(num_frames: int = 200, num_tracks_per_frame: int = 30) -> dict:

@@ -12,10 +12,10 @@ import numpy as np
 from enrollment.enrollment_lifecycle import (
     EnrollmentLifecycleManager,
 )
-from intelligence.candidate_validator import CandidateValidator
 from intelligence.continuous_improvement_engine import ContinuousImprovementEngine
-from intelligence.drift_detector import DriftDetector
-from intelligence.operational_embedding_collector import OperationalEmbeddingCollector
+from intelligence.decision.candidate_validator import CandidateValidator
+from intelligence.evidence.operational_embedding_collector import OperationalEmbeddingCollector
+from intelligence.learning.drift_detector import DriftDetector
 from models.model_registry import ModelRegistry
 from storage.embedding_database import EmbeddingDatabase
 

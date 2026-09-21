@@ -9,7 +9,7 @@ from typing import Any
 
 import numpy as np
 
-from intelligence.crowd_occlusion_analyzer import compute_iou
+from intelligence.crowd.crowd_occlusion_analyzer import compute_iou
 from monitoring.logging_config import get_logger
 
 

@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from intelligence.explainable_recognition_report import (
+from intelligence.evidence.explainable_recognition_report import (
     ExplainableRecognitionReporter,
     RecognitionEvidence,
 )

@@ -5,10 +5,10 @@ import unittest
 
 import numpy as np
 
-from intelligence.cross_camera_tracker import CrossCameraTracker
-from intelligence.identity_persistence import IdentityPersistence
-from intelligence.missing_person_workflow import MissingPersonWorkflow
-from intelligence.reid_cache import ReIDCache
+from intelligence.evidence.missing_person_workflow import MissingPersonWorkflow
+from intelligence.tracking.cross_camera_tracker import CrossCameraTracker
+from intelligence.tracking.identity_persistence import IdentityPersistence
+from intelligence.validation.reid_cache import ReIDCache
 from storage.evidence_manager import EvidenceManager
 
 

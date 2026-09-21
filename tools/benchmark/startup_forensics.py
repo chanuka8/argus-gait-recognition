@@ -64,7 +64,7 @@ def run_stage_profiling() -> dict:
     )
     _, timings["import_open_set_recognizer"] = time_block(
         "14. import OpenSetRecognizer",
-        lambda: __import__("intelligence.open_set_recognizer"),
+        lambda: __import__("intelligence.validation.open_set_recognizer"),
     )
     _, timings["import_vector_store"] = time_block(
         "15. import VectorStore",
@@ -111,7 +111,7 @@ def run_stage_profiling() -> dict:
         lambda: PersonDetector(),
     )
 
-    from intelligence.open_set_recognizer import OpenSetRecognizer
+    from intelligence.validation.open_set_recognizer import OpenSetRecognizer
 
     _, timings["init_open_set_recognizer"] = time_block(
         "23. Model Load: OpenSetRecognizer",

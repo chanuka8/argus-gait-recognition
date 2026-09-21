@@ -4,8 +4,8 @@ from unittest.mock import MagicMock, patch
 
 import numpy as np
 
-from intelligence.camera_transition_model import CameraTransitionModel
-from intelligence.cross_camera_tracker import CrossCameraTracker
+from intelligence.learning.camera_transition_model import CameraTransitionModel
+from intelligence.tracking.cross_camera_tracker import CrossCameraTracker
 
 
 class MockClock:

@@ -7,8 +7,8 @@ import numpy as np
 import pytest
 import torch
 
-from intelligence.candidate_validator import CandidateValidator
-from intelligence.nn_fine_tuner import NNFineTuner
+from intelligence.decision.candidate_validator import CandidateValidator
+from intelligence.learning.nn_fine_tuner import NNFineTuner
 from models.architectures.bygait_light import ByGaitLight
 
 

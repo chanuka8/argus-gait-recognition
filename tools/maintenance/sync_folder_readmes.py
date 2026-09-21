@@ -82,7 +82,7 @@ def get_active_files_for_folder(folder_path: Path) -> list[str]:
                     for sub in f.iterdir():
                         if sub.is_file() and sub.suffix == ".py" and not sub.name.startswith("__"):
                             items.append(f"routes/{sub.name}")
-                elif folder_name in ("pipeline", "tests"):
+                elif folder_name in ("pipeline", "tests", "intelligence"):
                     items.append(f"{f.name}/")
 
         files = items

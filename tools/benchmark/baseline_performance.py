@@ -358,7 +358,7 @@ def run_benchmark(
     # 20. Fusion Latency
     # -------------------------------------------------------------
     print("[20/30] Measuring Fusion Latency...")
-    from intelligence.dual_modal_fusion import DualModalFusion
+    from intelligence.fusion.dual_modal_fusion import DualModalFusion
 
     fusion = DualModalFusion(enabled=True)
     # Warm up

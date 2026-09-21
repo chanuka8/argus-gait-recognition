@@ -1,7 +1,7 @@
 import unittest
 
 from core.threshold_manager import RecognitionThresholds, ThresholdManager
-from intelligence.open_set_recognizer import OpenSetRecognizer, OpenSetState
+from intelligence.validation.open_set_recognizer import OpenSetRecognizer, OpenSetState
 
 
 class TestThresholdManager(unittest.TestCase):

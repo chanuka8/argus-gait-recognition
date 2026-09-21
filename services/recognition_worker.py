@@ -9,7 +9,7 @@ from typing import Any
 import cv2
 import numpy as np
 
-from intelligence.open_set_recognizer import OpenSetRecognizer
+from intelligence.validation.open_set_recognizer import OpenSetRecognizer
 from monitoring.logging_config import get_logger
 from pipeline.detection.detection_validator import DetectionValidator
 from pipeline.detection.person_detector import PersonDetector
@@ -217,7 +217,7 @@ class RecognitionWorker:
         self.fusion_engine = fusion_engine
         if self.fusion_engine is None:
             try:
-                from intelligence.dual_modal_fusion import DualModalFusion
+                from intelligence.fusion.dual_modal_fusion import DualModalFusion
 
                 fusion_cfg = self.config.get("dual_modal_fusion", self.config.get("fusion", {}))
                 self.fusion_engine = DualModalFusion.from_config(fusion_cfg)
@@ -228,7 +228,7 @@ class RecognitionWorker:
         self.track_aggregator = track_aggregator
         if self.track_aggregator is None:
             try:
-                from intelligence.track_identity_aggregator import TrackIdentityAggregator
+                from intelligence.tracking.track_identity_aggregator import TrackIdentityAggregator
 
                 temp_cfg = self.config.get("temporal_aggregation", self.config.get("temporal_verification", {}))
                 if temp_cfg.get("enabled", True):
@@ -240,7 +240,7 @@ class RecognitionWorker:
         self.operational_collector = operational_collector
         if self.operational_collector is None:
             try:
-                from intelligence.operational_embedding_collector import OperationalEmbeddingCollector
+                from intelligence.evidence.operational_embedding_collector import OperationalEmbeddingCollector
 
                 self.operational_collector = OperationalEmbeddingCollector()
             except (ImportError, RuntimeError, ValueError, TypeError, OSError) as exc:

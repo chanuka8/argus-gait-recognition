@@ -11,15 +11,15 @@ if str(ROOT_DIR) not in sys.path:
 import numpy as np
 import psutil
 
-from intelligence.background_learning_worker import BackgroundLearningWorker
-from intelligence.candidate_validator import CandidateValidator
 from intelligence.continuous_improvement_engine import ContinuousImprovementEngine
-from intelligence.date_aware_learning_scheduler import (
+from intelligence.decision.candidate_validator import CandidateValidator
+from intelligence.evidence.operational_embedding_collector import (
+    OperationalEmbeddingCollector,
+)
+from intelligence.learning.background_learning_worker import BackgroundLearningWorker
+from intelligence.learning.date_aware_learning_scheduler import (
     DateAwareLearningScheduler,
     LearningJobStatus,
-)
-from intelligence.operational_embedding_collector import (
-    OperationalEmbeddingCollector,
 )
 from models.model_registry import ModelRegistry
 from storage.embedding_database import EmbeddingDatabase

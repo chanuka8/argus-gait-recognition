@@ -4,11 +4,11 @@ from unittest.mock import MagicMock, patch
 
 import numpy as np
 
-from intelligence.dual_modal_fusion import DualModalFusion
-from intelligence.operational_embedding_collector import (
+from intelligence.evidence.operational_embedding_collector import (
     OperationalEmbeddingCollector,
 )
-from intelligence.track_identity_aggregator import TrackIdentityAggregator
+from intelligence.fusion.dual_modal_fusion import DualModalFusion
+from intelligence.tracking.track_identity_aggregator import TrackIdentityAggregator
 from services.camera_manager import CameraManager
 from services.camera_worker import CameraWorker
 from streaming.deployment_readiness import (

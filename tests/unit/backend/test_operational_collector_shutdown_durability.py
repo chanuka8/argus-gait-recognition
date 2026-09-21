@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
-from intelligence.operational_embedding_collector import (
+from intelligence.evidence.operational_embedding_collector import (
     OperationalEmbeddingCollector,
 )
 from services.recognition_worker import RecognitionResultCache, RecognitionWorker

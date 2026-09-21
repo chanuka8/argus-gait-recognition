@@ -7,7 +7,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
-from intelligence.operational_embedding_collector import (
+from intelligence.evidence.operational_embedding_collector import (
     OperationalEmbeddingCollector,
 )
 from monitoring.logging_config import get_logger

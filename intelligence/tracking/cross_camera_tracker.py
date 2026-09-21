@@ -4,7 +4,7 @@ from collections.abc import Callable
 from threading import Lock
 from typing import Any
 
-from intelligence.camera_transition_model import CameraTransitionModel
+from intelligence.learning.camera_transition_model import CameraTransitionModel
 from monitoring.logging_config import get_logger
 
 

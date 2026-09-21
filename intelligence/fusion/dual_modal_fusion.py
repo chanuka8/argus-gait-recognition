@@ -2,9 +2,9 @@ from typing import Any
 
 import numpy as np
 
-from intelligence.fusion_weights import DynamicFusionWeights
-from intelligence.quality_assessment import QualityAssessment
-from intelligence.score_normalizer import ScoreNormalizer
+from intelligence.fusion.fusion_weights import DynamicFusionWeights
+from intelligence.fusion.score_normalizer import ScoreNormalizer
+from intelligence.validation.quality_assessment import QualityAssessment
 
 
 class DualModalFusion:

@@ -9,17 +9,17 @@ from enrollment.enrollment_lifecycle import (
     EnrollmentLifecycleManager,
     EnrollmentStatus,
 )
-from intelligence.background_learning_worker import BackgroundLearningWorker
-from intelligence.candidate_validator import CandidateValidator
-from intelligence.date_aware_learning_scheduler import (
+from intelligence.decision.candidate_validator import CandidateValidator
+from intelligence.evidence.operational_embedding_collector import (
+    OperationalEmbeddingCollector,
+)
+from intelligence.learning.background_learning_worker import BackgroundLearningWorker
+from intelligence.learning.date_aware_learning_scheduler import (
     DateAwareLearningScheduler,
     LearningJobRecord,
     LearningJobStatus,
 )
-from intelligence.nn_fine_tuner import NNFineTuner
-from intelligence.operational_embedding_collector import (
-    OperationalEmbeddingCollector,
-)
+from intelligence.learning.nn_fine_tuner import NNFineTuner
 from models.model_registry import ModelRegistry
 from storage.embedding_database import EmbeddingDatabase
 from storage.firebase_embedding_store import (
@@ -769,7 +769,7 @@ def test_v_schema_validation_boundaries(tmp_env):
 
 
 def test_w_missing_person_reference_flow_not_training_eligible(tmp_env):
-    from intelligence.missing_person_workflow import MissingPersonWorkflow
+    from intelligence.evidence.missing_person_workflow import MissingPersonWorkflow
     from storage.embedding_database import EmbeddingDatabase
     from storage.firebase_embedding_store import FirebaseEmbeddingStore
 
@@ -820,7 +820,7 @@ def test_w_missing_person_reference_flow_not_training_eligible(tmp_env):
 
 
 def test_x_state_machine_transitions_and_consumption(tmp_env):
-    from intelligence.operational_embedding_collector import ObservationState, OperationalEmbeddingCollector
+    from intelligence.evidence.operational_embedding_collector import ObservationState, OperationalEmbeddingCollector
 
     collector = OperationalEmbeddingCollector(output_dir=tmp_env["obs_dir"])
     vec = list(np.random.randn(256).astype(float))

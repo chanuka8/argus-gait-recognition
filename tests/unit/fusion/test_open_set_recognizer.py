@@ -1,4 +1,4 @@
-from intelligence.open_set_recognizer import OpenSetDecisionResult, OpenSetRecognizer, OpenSetState
+from intelligence.validation.open_set_recognizer import OpenSetDecisionResult, OpenSetRecognizer, OpenSetState
 
 
 def test_open_set_recognizer_known():

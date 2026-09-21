@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from intelligence.missing_person_workflow import MissingPersonWorkflow, WatchlistEntry, WatchlistManager
+from intelligence.evidence.missing_person_workflow import MissingPersonWorkflow, WatchlistEntry, WatchlistManager
 
 
 class TestWatchlistEntry(unittest.TestCase):

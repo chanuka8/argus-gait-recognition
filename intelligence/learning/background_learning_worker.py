@@ -7,19 +7,19 @@ from typing import Any
 
 import numpy as np
 
-from intelligence.accuracy_validation_gate import AccuracyValidationGate
-from intelligence.candidate_validator import CandidateValidator, ValidationGateResult
-from intelligence.continual_learning_audit_trail import ContinualLearningAuditTrail
-from intelligence.continual_learning_evaluator import ContinualLearningEvaluator
-from intelligence.date_aware_learning_scheduler import (
+from intelligence.decision.candidate_validator import CandidateValidator, ValidationGateResult
+from intelligence.evidence.operational_embedding_collector import OperationalEmbeddingCollector
+from intelligence.fusion.learned_fusion import LearnedLogisticFusion
+from intelligence.learning.continual_learning_audit_trail import ContinualLearningAuditTrail
+from intelligence.learning.continual_learning_evaluator import ContinualLearningEvaluator
+from intelligence.learning.date_aware_learning_scheduler import (
     DateAwareLearningScheduler,
     LearningJobRecord,
     LearningJobStatus,
 )
-from intelligence.learned_fusion import LearnedLogisticFusion
-from intelligence.nn_fine_tuner import NNFineTuner
-from intelligence.operational_embedding_collector import OperationalEmbeddingCollector
-from intelligence.training_dataset_builder import TrainingDatasetBuilder
+from intelligence.learning.nn_fine_tuner import NNFineTuner
+from intelligence.learning.training_dataset_builder import TrainingDatasetBuilder
+from intelligence.validation.accuracy_validation_gate import AccuracyValidationGate
 from models.model_registry import ModelRegistry
 from monitoring.logging_config import get_logger
 from storage.embedding_database import EmbeddingDatabase
@@ -73,7 +73,7 @@ class BackgroundLearningWorker:
         self.accuracy_gate = accuracy_gate or AccuracyValidationGate()
         self.audit_trail = audit_trail or ContinualLearningAuditTrail()
 
-        from intelligence.longitudinal_accuracy_evaluator import LongitudinalAccuracyEvaluator
+        from intelligence.learning.longitudinal_accuracy_evaluator import LongitudinalAccuracyEvaluator
 
         self.longitudinal_evaluator = longitudinal_evaluator or LongitudinalAccuracyEvaluator(evaluator=self.evaluator)
 

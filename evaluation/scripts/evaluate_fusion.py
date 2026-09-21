@@ -14,8 +14,8 @@ from evaluation.benchmarks.execute_phase_b_master import (
     compute_map_minp,
     compute_roc_eer_tar_at_far,
 )
-from intelligence.learned_fusion import LearnedLogisticFusion
-from intelligence.score_calibrator import PlattScoreCalibrator
+from intelligence.fusion.learned_fusion import LearnedLogisticFusion
+from intelligence.fusion.score_calibrator import PlattScoreCalibrator
 from models.reid.osnet_backbone import OSNetBackbone
 from pipeline.detection.person_detector import PersonDetector
 from pipeline.steps.feature_extraction import FeatureExtractionStep

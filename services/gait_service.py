@@ -174,7 +174,7 @@ class GaitService:
     @property
     def open_set_recognizer(self):
         if self._open_set_recognizer is None:
-            from intelligence.open_set_recognizer import OpenSetRecognizer
+            from intelligence.validation.open_set_recognizer import OpenSetRecognizer
 
             recognizer = OpenSetRecognizer()
             with self._lock:

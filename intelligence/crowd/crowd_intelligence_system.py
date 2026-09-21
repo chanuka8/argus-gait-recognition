@@ -5,10 +5,10 @@ from typing import Any
 
 import yaml
 
-from intelligence.camera_topology_learner import CameraTopologyLearner
-from intelligence.crowd_occlusion_analyzer import CrowdOcclusionAnalyzer, FrameCrowdAnalysis
-from intelligence.multi_camera_evidence_fusion import MultiCameraEvidenceFusion
-from intelligence.recognition_deferral_engine import RecognitionDeferralEngine
+from intelligence.crowd.crowd_occlusion_analyzer import CrowdOcclusionAnalyzer, FrameCrowdAnalysis
+from intelligence.decision.recognition_deferral_engine import RecognitionDeferralEngine
+from intelligence.evidence.multi_camera_evidence_fusion import MultiCameraEvidenceFusion
+from intelligence.learning.camera_topology_learner import CameraTopologyLearner
 from monitoring.logging_config import get_logger
 
 

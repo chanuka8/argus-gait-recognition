@@ -14,7 +14,7 @@ import psutil
 import torch
 
 from intelligence.appearance_embedding import AppearanceEmbeddingExtractor
-from intelligence.concurrent_track_manager import ConcurrentTrackManager
+from intelligence.tracking.concurrent_track_manager import ConcurrentTrackManager
 from pipeline.detection.detection_validator import DetectionValidator
 from pipeline.detection.person_detector import PersonDetector
 from pipeline.gei.stream_gei_builder import StreamGEIBuilder

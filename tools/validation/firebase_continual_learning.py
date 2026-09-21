@@ -16,19 +16,19 @@ import numpy as np
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
 
-from intelligence.background_learning_worker import BackgroundLearningWorker
-from intelligence.candidate_validator import CandidateValidator
-from intelligence.continual_learning_audit_trail import ContinualLearningAuditTrail
-from intelligence.date_aware_learning_scheduler import (
-    DateAwareLearningScheduler,
-    LearningJobStatus,
-)
-from intelligence.missing_person_workflow import MissingPersonWorkflow
-from intelligence.nn_fine_tuner import NNFineTuner
-from intelligence.operational_embedding_collector import (
+from intelligence.decision.candidate_validator import CandidateValidator
+from intelligence.evidence.missing_person_workflow import MissingPersonWorkflow
+from intelligence.evidence.operational_embedding_collector import (
     ObservationState,
     OperationalEmbeddingCollector,
 )
+from intelligence.learning.background_learning_worker import BackgroundLearningWorker
+from intelligence.learning.continual_learning_audit_trail import ContinualLearningAuditTrail
+from intelligence.learning.date_aware_learning_scheduler import (
+    DateAwareLearningScheduler,
+    LearningJobStatus,
+)
+from intelligence.learning.nn_fine_tuner import NNFineTuner
 from models.model_registry import ModelDeploymentStatus, ModelRegistry
 from storage.embedding_database import EmbeddingDatabase
 from storage.firebase_embedding_store import (

@@ -2,7 +2,7 @@ from typing import Any
 
 import numpy as np
 
-from intelligence.score_calibrator import PlattScoreCalibrator
+from intelligence.fusion.score_calibrator import PlattScoreCalibrator
 
 
 class LearnedLogisticFusion:

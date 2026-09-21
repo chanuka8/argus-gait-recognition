@@ -1,4 +1,4 @@
-from intelligence.track_recovery_manager import TrackRecoveryManager
+from intelligence.tracking.track_recovery_manager import TrackRecoveryManager
 
 
 def test_lost_track_registration_and_recovery():

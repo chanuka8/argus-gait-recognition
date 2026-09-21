@@ -7,28 +7,28 @@ import numpy as np
 import pytest
 import torch
 
-from intelligence.background_learning_worker import BackgroundLearningWorker
-from intelligence.date_aware_learning_scheduler import (
-    DateAwareLearningScheduler,
-    LearningJobStatus,
-)
-from intelligence.longitudinal_accuracy_evaluator import (
-    LongitudinalAccuracyEvaluator,
-)
-from intelligence.operational_embedding_collector import (
+from intelligence.evidence.operational_embedding_collector import (
     OperationalEmbeddingCollector,
 )
-from intelligence.operational_evidence_manager import (
+from intelligence.evidence.operational_evidence_manager import (
     EvidenceCategory,
     OperationalEvidenceManager,
 )
-from intelligence.statistical_accuracy_validator import (
-    MinimumEvidencePolicy,
-    StatisticalAccuracyValidator,
+from intelligence.learning.background_learning_worker import BackgroundLearningWorker
+from intelligence.learning.date_aware_learning_scheduler import (
+    DateAwareLearningScheduler,
+    LearningJobStatus,
 )
-from intelligence.training_dataset_builder import (
+from intelligence.learning.longitudinal_accuracy_evaluator import (
+    LongitudinalAccuracyEvaluator,
+)
+from intelligence.learning.training_dataset_builder import (
     DatasetSampleRecord,
     TrainingDatasetBuilder,
+)
+from intelligence.validation.statistical_accuracy_validator import (
+    MinimumEvidencePolicy,
+    StatisticalAccuracyValidator,
 )
 from models.architectures.bygait_light import ByGaitLight
 from models.model_registry import ModelRegistry

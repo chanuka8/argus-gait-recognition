@@ -1,4 +1,4 @@
-from intelligence.track_identity_aggregator import TrackIdentityAggregator
+from intelligence.tracking.track_identity_aggregator import TrackIdentityAggregator
 
 
 def test_track_identity_aggregator_init() -> None:

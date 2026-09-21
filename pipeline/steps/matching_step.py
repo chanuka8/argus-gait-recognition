@@ -238,7 +238,7 @@ class MatchingStep:
             k=5,
         )
         if open_set_recognizer is None:
-            from intelligence.open_set_recognizer import OpenSetRecognizer
+            from intelligence.validation.open_set_recognizer import OpenSetRecognizer
 
             open_set_recognizer = OpenSetRecognizer(known_threshold=self.threshold)
 

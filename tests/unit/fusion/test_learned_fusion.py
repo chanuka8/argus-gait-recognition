@@ -1,7 +1,7 @@
 import numpy as np
 
-from intelligence.learned_fusion import LearnedLogisticFusion
-from intelligence.score_calibrator import PlattScoreCalibrator
+from intelligence.fusion.learned_fusion import LearnedLogisticFusion
+from intelligence.fusion.score_calibrator import PlattScoreCalibrator
 
 
 def test_platt_calibrator_fitting() -> None:

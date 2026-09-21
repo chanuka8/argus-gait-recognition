@@ -2,7 +2,7 @@ import time
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
-from intelligence.continual_learning_evaluator import ModelComparisonResult
+from intelligence.learning.continual_learning_evaluator import ModelComparisonResult
 from monitoring.logging_config import get_logger
 
 

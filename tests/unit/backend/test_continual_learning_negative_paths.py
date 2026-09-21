@@ -5,14 +5,14 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from intelligence.operational_embedding_collector import (
+from intelligence.evidence.operational_embedding_collector import (
     ObservationState,
     OperationalEmbeddingCollector,
 )
-from intelligence.operational_evidence_manager import (
+from intelligence.evidence.operational_evidence_manager import (
     OperationalEvidenceManager,
 )
-from intelligence.training_dataset_builder import TrainingDatasetBuilder
+from intelligence.learning.training_dataset_builder import TrainingDatasetBuilder
 from storage.embedding_database import EmbeddingDatabase
 
 

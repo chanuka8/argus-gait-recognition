@@ -5,8 +5,8 @@ import numpy as np
 import torch
 import yaml
 
-from intelligence.open_set_recognizer import OpenSetRecognizer
-from intelligence.track_reliability_scorer import TrackReliabilityScorer
+from intelligence.tracking.track_reliability_scorer import TrackReliabilityScorer
+from intelligence.validation.open_set_recognizer import OpenSetRecognizer
 from models.architectures.bygait_light import ByGaitLight
 from pipeline.steps.centroid_matching_step import CentroidMatchingStep
 from pipeline.steps.live_gei import LiveGEI
@@ -386,8 +386,8 @@ class LiveRecognitionPipeline:
         self.box_stabilizer = BoxStabilizer(self.box_stability_config)
 
         self.crowd_robustness_config = _load_crowd_robustness_config()
-        from intelligence.crowd_robustness_manager import CrowdRobustnessManager
-        from intelligence.track_recovery_manager import TrackRecoveryManager
+        from intelligence.crowd.crowd_robustness_manager import CrowdRobustnessManager
+        from intelligence.tracking.track_recovery_manager import TrackRecoveryManager
 
         self.crowd_robustness_manager = CrowdRobustnessManager(self.crowd_robustness_config)
         self.track_recovery_manager = TrackRecoveryManager(max_lost_seconds=3.0)
@@ -397,8 +397,8 @@ class LiveRecognitionPipeline:
             config=load_reporting_config(),
             source_mode="live",
         )
-        from intelligence.event_timeline_reconstructor import EventTimelineReconstructor
-        from intelligence.explainable_recognition_report import ExplainableRecognitionReporter
+        from intelligence.evidence.event_timeline_reconstructor import EventTimelineReconstructor
+        from intelligence.evidence.explainable_recognition_report import ExplainableRecognitionReporter
 
         self.explainable_reporter = ExplainableRecognitionReporter()
         self.timeline_reconstructor = EventTimelineReconstructor()
@@ -406,7 +406,7 @@ class LiveRecognitionPipeline:
         self.camera_location = "Unknown Location"
 
         self.watchlist_config = _load_watchlist_config()
-        from intelligence.missing_person_workflow import MissingPersonWorkflow
+        from intelligence.evidence.missing_person_workflow import MissingPersonWorkflow
 
         self.watchlist_manager = MissingPersonWorkflow(
             alert_threshold=self.watchlist_config.get("alert_threshold", alert_threshold),
@@ -535,7 +535,7 @@ class LiveRecognitionPipeline:
                 pass
 
         if self.fusion_config["enabled"]:
-            from intelligence.dual_modal_fusion import DualModalFusion
+            from intelligence.fusion.dual_modal_fusion import DualModalFusion
 
             self.fusion_engine = DualModalFusion(
                 default_gait_weight=self.fusion_config.get("gait_weight", 0.70),
@@ -996,7 +996,7 @@ class LiveRecognitionPipeline:
         self.last_results[track_id] = result
 
         if getattr(self, "explainable_reporter", None) is not None and self.explainable_reporter.enabled:
-            from intelligence.explainable_recognition_report import RecognitionEvidence
+            from intelligence.evidence.explainable_recognition_report import RecognitionEvidence
 
             ev_obj = RecognitionEvidence(
                 camera_id=self.camera_id,

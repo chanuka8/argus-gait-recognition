@@ -5,14 +5,14 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
-from intelligence.continual_learning_evaluator import (
+from intelligence.learning.continual_learning_evaluator import (
     ContinualLearningEvaluator,
 )
-from intelligence.statistical_accuracy_validator import (
+from intelligence.learning.training_dataset_builder import DatasetSampleRecord
+from intelligence.validation.statistical_accuracy_validator import (
     StatisticalAccuracyValidator,
     StatisticalValidationResult,
 )
-from intelligence.training_dataset_builder import DatasetSampleRecord
 from monitoring.logging_config import get_logger
 
 

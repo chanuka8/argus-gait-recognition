@@ -13,7 +13,7 @@ import numpy as np
 import torch
 from torch import nn
 
-from intelligence.nn_fine_tuner import NNFineTuner
+from intelligence.learning.nn_fine_tuner import NNFineTuner
 from models.architectures.bygait_light import ByGaitLight
 from models.reid.osnet_backbone import _build_osnet_x0_25
 

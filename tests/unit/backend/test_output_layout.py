@@ -3,9 +3,9 @@ import unittest
 from pathlib import Path
 
 from evaluation.visualizer import EvaluationVisualizer
-from intelligence.camera_topology_learner import CameraTopologyLearner
-from intelligence.crowd_intelligence_system import CrowdIntelligenceSystem
-from intelligence.missing_person_workflow import MissingPersonWorkflow
+from intelligence.crowd.crowd_intelligence_system import CrowdIntelligenceSystem
+from intelligence.evidence.missing_person_workflow import MissingPersonWorkflow
+from intelligence.learning.camera_topology_learner import CameraTopologyLearner
 from monitoring.camera_monitor import CameraMonitor
 from monitoring.logging_config import _DEFAULT_LOG_DIR, get_logger, init_logging
 from security_layer.security_logger import SecurityLogger

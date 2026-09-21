@@ -19,24 +19,24 @@ sys.stdout.reconfigure(line_buffering=True)
 import numpy as np
 import torch
 
-from intelligence.accuracy_validation_gate import AccuracyValidationGate
-from intelligence.continual_learning_evaluator import (
+from intelligence.evidence.operational_embedding_collector import (
+    ObservationState,
+    OperationalEmbeddingCollector,
+)
+from intelligence.evidence.operational_evidence_manager import (
+    OperationalEvidenceManager,
+)
+from intelligence.learning.continual_learning_evaluator import (
     ContinualLearningEvaluator,
     EvaluationMetrics,
     ModelComparisonResult,
 )
-from intelligence.nn_fine_tuner import NNFineTuner
-from intelligence.operational_embedding_collector import (
-    ObservationState,
-    OperationalEmbeddingCollector,
-)
-from intelligence.operational_evidence_manager import (
-    OperationalEvidenceManager,
-)
-from intelligence.training_dataset_builder import (
+from intelligence.learning.nn_fine_tuner import NNFineTuner
+from intelligence.learning.training_dataset_builder import (
     DatasetSampleRecord,
     TrainingDatasetBuilder,
 )
+from intelligence.validation.accuracy_validation_gate import AccuracyValidationGate
 from models.architectures.bygait_light import ByGaitLight
 from models.model_registry import ModelRegistry
 from models.reid.osnet_backbone import _build_osnet_x0_25

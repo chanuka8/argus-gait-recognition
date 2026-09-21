@@ -1,6 +1,6 @@
 import pytest
 
-from intelligence.crowd_density_estimator import (
+from intelligence.crowd.crowd_density_estimator import (
     CrowdDensityEstimator,
     CrowdDensityLevel,
     CrowdDensityResult,

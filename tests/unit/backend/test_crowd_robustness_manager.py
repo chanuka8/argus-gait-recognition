@@ -1,5 +1,5 @@
-from intelligence.crowd_density_estimator import CrowdDensityLevel
-from intelligence.crowd_robustness_manager import CrowdRobustnessManager
+from intelligence.crowd.crowd_density_estimator import CrowdDensityLevel
+from intelligence.crowd.crowd_robustness_manager import CrowdRobustnessManager
 
 
 def test_disabled_by_default():

@@ -4,7 +4,7 @@ from typing import Any
 
 import numpy as np
 
-from intelligence.training_dataset_builder import DatasetSampleRecord
+from intelligence.learning.training_dataset_builder import DatasetSampleRecord
 from monitoring.logging_config import get_logger
 
 

@@ -5,7 +5,7 @@ import time
 import numpy as np
 
 from intelligence.appearance_embedding import AppearanceEmbeddingExtractor
-from intelligence.concurrent_track_manager import (
+from intelligence.tracking.concurrent_track_manager import (
     ConcurrentTrackManager,
     MobilityState,
     PersonAssessmentState,

@@ -12,7 +12,7 @@ import numpy as np
 import torch
 
 from intelligence.appearance_embedding import AppearanceEmbeddingExtractor
-from intelligence.dual_modal_fusion import DualModalFusion
+from intelligence.fusion.dual_modal_fusion import DualModalFusion
 from models.reid.osnet_backbone import OSNetBackbone
 from pipeline.detection.person_detector import PersonDetector
 from pipeline.steps.appearance_matching_step import AppearanceMatchingStep

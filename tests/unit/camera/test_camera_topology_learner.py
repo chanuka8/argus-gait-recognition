@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from intelligence.camera_topology_learner import CameraTopologyLearner
-from intelligence.camera_transition_model import CameraTransitionModel
+from intelligence.learning.camera_topology_learner import CameraTopologyLearner
+from intelligence.learning.camera_transition_model import CameraTransitionModel
 
 
 def test_valid_observation_accepted_and_bounds():

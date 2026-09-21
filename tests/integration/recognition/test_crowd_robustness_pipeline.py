@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock, patch
 
-from intelligence.crowd_density_estimator import CrowdDensityLevel
-from intelligence.crowd_robustness_manager import CrowdRobustnessManager
+from intelligence.crowd.crowd_density_estimator import CrowdDensityLevel
+from intelligence.crowd.crowd_robustness_manager import CrowdRobustnessManager
 from pipeline.live_recognition import LiveRecognitionPipeline
 from pipeline.video_recognition import VideoRecognitionPipeline, _load_crowd_robustness_config
 
@@ -63,7 +63,7 @@ def test_crowd_robustness_end_to_end_simulation():
 
 
 def test_inference_skipping_when_evidence_insufficient():
-    from intelligence.crowd_intelligence_system import CrowdIntelligenceSystem
+    from intelligence.crowd.crowd_intelligence_system import CrowdIntelligenceSystem
 
     system = CrowdIntelligenceSystem(
         {"enabled": True, "recognition_deferral": {"enabled": True, "minimum_confirmations": 3}}

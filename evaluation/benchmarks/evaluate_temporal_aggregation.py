@@ -2,7 +2,7 @@ from typing import Any
 
 import numpy as np
 
-from intelligence.track_identity_aggregator import TrackIdentityAggregator
+from intelligence.tracking.track_identity_aggregator import TrackIdentityAggregator
 
 
 class TemporalTrackEvaluator:

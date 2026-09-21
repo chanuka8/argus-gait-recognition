@@ -8,7 +8,7 @@ from typing import Any
 
 import numpy as np
 
-from intelligence.concurrent_track_manager import (
+from intelligence.tracking.concurrent_track_manager import (
     PersonTrackContext,
     TrackLifecycleState,
 )

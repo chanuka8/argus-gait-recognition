@@ -10,13 +10,13 @@ from enrollment.enrollment_lifecycle import (
     EnrollmentLifecycleManager,
     EnrollmentStatus,
 )
-from intelligence.candidate_validator import CandidateValidator
 from intelligence.continuous_improvement_engine import ContinuousImprovementEngine
-from intelligence.drift_detector import DriftDetector
-from intelligence.operational_embedding_collector import (
+from intelligence.decision.candidate_validator import CandidateValidator
+from intelligence.evidence.operational_embedding_collector import (
     ObservationState,
     OperationalEmbeddingCollector,
 )
+from intelligence.learning.drift_detector import DriftDetector
 from models.model_registry import ModelDeploymentStatus, ModelRegistry
 from storage.embedding_database import EmbeddingDatabase
 from storage.vector_store import VectorStore

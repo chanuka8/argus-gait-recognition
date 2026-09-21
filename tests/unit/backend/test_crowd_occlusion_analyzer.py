@@ -1,4 +1,4 @@
-from intelligence.crowd_occlusion_analyzer import (
+from intelligence.crowd.crowd_occlusion_analyzer import (
     CrowdDensityLevel,
     CrowdOcclusionAnalyzer,
 )

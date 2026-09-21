@@ -111,7 +111,7 @@ class OperationalEmbeddingCollector:
         self.dedup_similarity_threshold = float(dedup_similarity_threshold)
         if evidence_manager is None:
             try:
-                from intelligence.operational_evidence_manager import OperationalEvidenceManager
+                from intelligence.evidence.operational_evidence_manager import OperationalEvidenceManager
 
                 self.evidence_manager = OperationalEvidenceManager()
             except (ImportError, RuntimeError, OSError):

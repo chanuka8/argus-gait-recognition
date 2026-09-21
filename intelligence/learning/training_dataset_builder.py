@@ -8,11 +8,11 @@ from typing import Any
 
 import numpy as np
 
-from intelligence.operational_embedding_collector import (
+from intelligence.evidence.operational_embedding_collector import (
     ObservationState,
     OperationalEmbeddingCollector,
 )
-from intelligence.operational_evidence_manager import (
+from intelligence.evidence.operational_evidence_manager import (
     OperationalEvidenceManager,
 )
 from monitoring.logging_config import get_logger

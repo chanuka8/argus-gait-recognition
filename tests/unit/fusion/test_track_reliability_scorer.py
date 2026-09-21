@@ -1,4 +1,4 @@
-from intelligence.track_reliability_scorer import TrackReliabilityScorer
+from intelligence.tracking.track_reliability_scorer import TrackReliabilityScorer
 
 
 def test_disabled_by_default_behavior():

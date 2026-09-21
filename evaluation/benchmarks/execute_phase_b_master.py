@@ -16,7 +16,7 @@ import torch
 
 matplotlib.use("Agg")
 
-from intelligence.dual_modal_fusion import DualModalFusion
+from intelligence.fusion.dual_modal_fusion import DualModalFusion
 from models.architectures.bygait_light import ByGaitLight
 from models.reid.osnet_backbone import OSNetBackbone
 from pipeline.detection.person_detector import PersonDetector

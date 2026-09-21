@@ -14,7 +14,7 @@ from evaluation.evaluator import SubjectDisjointEvaluator
 from evaluation.gallery_probe_builder import build_gallery_and_probe_sets
 from evaluation.leakage_validator import assert_gallery_probe_disjointness
 from evaluation.metrics import compute_biometric_rates, compute_roc_auc_eer
-from intelligence.open_set_recognizer import OpenSetRecognizer
+from intelligence.validation.open_set_recognizer import OpenSetRecognizer
 
 
 class SubjectDisjointOpenSetEvaluator(SubjectDisjointEvaluator):

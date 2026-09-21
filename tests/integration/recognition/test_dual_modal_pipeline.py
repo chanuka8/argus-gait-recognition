@@ -1,6 +1,6 @@
 import pytest
 
-from intelligence.dual_modal_fusion import DualModalFusion
+from intelligence.fusion.dual_modal_fusion import DualModalFusion
 from utils.detection_reporter import DetectionReporter
 
 
