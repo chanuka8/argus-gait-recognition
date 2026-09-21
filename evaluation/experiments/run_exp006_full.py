@@ -7,8 +7,8 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from evaluation.evaluate_exp004 import evaluate_checkpoint
 from evaluation.evaluator_3d import Evaluator3D
+from evaluation.experiments.evaluate_exp004 import evaluate_checkpoint
 from training.gait_3d_trainer import Gait3DTrainer
 
 

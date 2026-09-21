@@ -14,7 +14,7 @@ if str(ROOT) not in sys.path:
 from ultralytics import YOLO
 
 from evaluation.dataset_split import load_or_create_subject_split
-from evaluation.evaluate_exp004 import evaluate_checkpoint
+from evaluation.experiments.evaluate_exp004 import evaluate_checkpoint
 from evaluation.gallery_probe_builder import build_gallery_and_probe_sets
 from evaluation.metrics import compute_biometric_rates, compute_roc_auc_eer
 from models.architectures.pose_gait_3d import PoseGait3DNet, PoseLifter3D

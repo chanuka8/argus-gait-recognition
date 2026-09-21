@@ -7,7 +7,7 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from evaluation.evaluate_subject_disjoint import main as run_evaluation
+from evaluation.experiments.evaluate_subject_disjoint import main as run_evaluation
 from training.trainer import Trainer
 
 EXPERIMENTS = [

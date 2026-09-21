@@ -13,7 +13,7 @@ if str(ROOT) not in sys.path:
 import cv2
 
 from evaluation.dataset_split import load_or_create_subject_split
-from evaluation.evaluate_subject_disjoint import main as run_evaluation
+from evaluation.experiments.evaluate_subject_disjoint import main as run_evaluation
 from evaluation.gallery_probe_builder import build_gallery_and_probe_sets
 from evaluation.metrics import compute_biometric_rates, compute_roc_auc_eer
 from models.architectures.bygait_light import ByGaitLight
