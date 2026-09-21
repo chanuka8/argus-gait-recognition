@@ -558,13 +558,18 @@ Scientific evaluation of the ByGaitLight architecture on the **CASIA-B** gait da
 
 ```
 ARGUS_AI/
+├── .agents/                    # AGENTS.md instructions for AI coding assistants
+├── .github/workflows/          # CI: test suite, lint, README-sync verification
+├── .qodo/                      # Qodo AI agent/workflow configuration
 ├── api/                        # FastAPI REST routers, Pydantic schemas, server lifespan
 ├── assets/                     # Graphical assets and repository banner
 ├── automation/                 # Hardware detection, arbitration (DeviceManager), 12-stage bootstrap
 ├── configs/                    # YAML configurations (cameras, detection, gei, inference, system)
+│   └── secrets/                # Gitignored credentials (e.g. firebase-service-account.json)
 ├── core/                       # Core system coordinator, shared utilities, logging configuration
 ├── data/                       # Local database, reference jobs, video storage, and case dossiers
 │   └── cases/                  # Structured on-disk Case Dossiers ({case_id}_{person_name}/)
+├── dataconnect/                # Firebase Data Connect schema
 ├── deployment/                 # Service shutdown management and environment manifests
 ├── docs/                       # Architectural documentation, reports, and README index
 ├── enrollment/                 # Target identity enrollment managers and lifecycle hooks
@@ -591,21 +596,24 @@ ARGUS_AI/
 │   ├── model_registry.py       # Atomic model version management and instant rollback
 │   └── weights/                # Base weights (silhouette_segmenter.onnx, yolov8n.pt)
 ├── monitoring/                 # Structured logging, metrics collectors, telemetry
+├── outputs/                    # Gitignored run artifacts: logs, benchmarks, reports, media
 ├── pipeline/                   # Modular gait recognition steps (Detection, Tracking, GEI, Matching)
 ├── preprocessing/              # Video frame extractors, silhouette binarization
+├── runs/                       # Gitignored training run outputs and checkpoints
 ├── security_layer/             # Argon2id password hashing, SessionStore, RBAC, Fernet encryption
 ├── services/                   # Background services, CameraWorker, MissingPersonProcessor, CaseDossier
 ├── storage/                    # Local VectorStore (.npy), SQLite EmbeddingDatabase, Firebase store
 ├── streaming/                  # Multi-camera DRR scheduling, frame ring-buffers, admission control
-├── tests/                      # Automated test suite (1,030 passed, 0 failed, 1 skipped)
+├── tests/                      # Automated test suite (1,460 passed, 0 failed, 1 skipped)
 │   ├── integration/            # Multi-component & isolation tests (12 camera/ref scenarios)
 │   └── unit/                   # Unit test suite
-├── tools/                      # Maintenance utilities, gallery builders, data preprocessors
+├── tools/                      # Operational CLI tools, benchmarks, maintenance scripts, migrations
 ├── training/                   # Model training routines, loss functions, CASIA-B loaders
 ├── utils/                      # File I/O, image processing, geometry math utilities
 ├── cli.py                      # Unified CLI management entry point
 ├── main.py                     # Command-line system runner
 ├── Makefile                    # Make command targets
+├── package.json                # Root dev-orchestration scripts (npm run dev/build/lint)
 ├── requirements.txt            # Python backend dependencies
 └── VERSION                     # Project version file (0.1.0)
 ```
