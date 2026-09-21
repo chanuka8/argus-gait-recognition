@@ -13,7 +13,7 @@ class ONNXBackend(BaseInferenceBackend):
     ) -> None:
         super().__init__(config=config)
         self.backend_name = "onnxruntime"
-        self.onnx_path = resolve_app_path(self.config.get("onnx_path", "models/engines/bygait_light.onnx"))
+        self.onnx_path = resolve_app_path(self.config.get("onnx_path", "models/model_store/engines/bygait_light.onnx"))
 
         self.session = None
         self.input_name = None

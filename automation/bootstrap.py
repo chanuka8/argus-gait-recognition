@@ -152,8 +152,8 @@ class EnvironmentBootstrap:
             import onnxruntime as ort
 
             model_candidates = [
-                ROOT / "models/weights/silhouette_segmenter.onnx",
-                ROOT / "models/engines/silhouette_segmenter.onnx",
+                ROOT / "models/model_store/weights/silhouette_segmenter.onnx",
+                ROOT / "models/model_store/engines/silhouette_segmenter.onnx",
             ]
             model_path = next((p for p in model_candidates if p.exists()), None)
             providers = ort.get_available_providers()

@@ -25,7 +25,7 @@ def run_unified_degradation_benchmark():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     detector = PersonDetector()
     gait_extractor = FeatureExtractionStep(model_path="runs/exp_001/best_model.pth")
-    osnet_backbone = OSNetBackbone(model_path="models/weights/osnet_x0_25.pth", device=device)
+    osnet_backbone = OSNetBackbone(model_path="models/model_store/weights/osnet_x0_25.pth", device=device)
 
     subjects = ["demo_person_001", "Devhan", "Isuru", "person01"]
     base_gei = Path("data/runtime/auto_enrollment/gei")

@@ -9,7 +9,7 @@ from core.paths import resolve_app_path
 
 
 class OnnxManager:
-    def __init__(self, weights_dir: str | Path = "models/weights") -> None:
+    def __init__(self, weights_dir: str | Path = "models/model_store/weights") -> None:
         self.weights_dir = resolve_app_path(weights_dir)
         self.python_exe = sys.executable
         setup_cuda_dll_paths()
@@ -45,8 +45,8 @@ class OnnxManager:
 
             model_candidates = [
                 resolve_app_path(self.weights_dir / "silhouette_segmenter.onnx"),
-                resolve_app_path("models/weights/silhouette_segmenter.onnx"),
-                resolve_app_path("models/engines/silhouette_segmenter.onnx"),
+                resolve_app_path("models/model_store/weights/silhouette_segmenter.onnx"),
+                resolve_app_path("models/model_store/engines/silhouette_segmenter.onnx"),
             ]
             model_path = next((p for p in model_candidates if p.exists()), None)
 

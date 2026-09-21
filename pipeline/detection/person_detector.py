@@ -18,7 +18,7 @@ class PersonDetector:
         self.config = self._load_config(self.config_path)
         self.lock = threading.Lock()
 
-        model_path = resolve_app_path(self.config.get("model_path", "models/weights/yolov8n.pt"))
+        model_path = resolve_app_path(self.config.get("model_path", "models/model_store/weights/yolov8n.pt"))
 
 
         raw_conf = self.config.get("confidence", 0.4)
@@ -71,7 +71,7 @@ class PersonDetector:
         path = resolve_app_path(config_path)
 
         defaults = {
-            "model_path": "models/weights/yolov8n.pt",
+            "model_path": "models/model_store/weights/yolov8n.pt",
             "confidence": 0.4,
             "iou_threshold": 0.45,
             "classes": [0],

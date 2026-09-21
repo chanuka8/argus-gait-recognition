@@ -33,7 +33,7 @@ class BackgroundLearningWorker:
         validator: CandidateValidator | None = None,
         collector: OperationalEmbeddingCollector | None = None,
         db: EmbeddingDatabase | None = None,
-        candidate_artifacts_dir: str = "models/candidates",
+        candidate_artifacts_dir: str = "models/model_store/candidates",
         timeout_seconds: float = 300.0,
         historical_replay_ratio: float = 0.50,
         dataset_builder: TrainingDatasetBuilder | None = None,

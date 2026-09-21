@@ -809,9 +809,9 @@ def test_35_real_model_files_remain_unchanged():
     """Test 35: Assert real repository model files have not been overwritten or corrupted."""
     real_paths = [
         Path("runs/exp_001/best_model.pth"),
-        Path("models/weights/osnet_x0_25.pth"),
-        Path("models/weights/yolov8n.pt"),
-        Path("models/weights/silhouette_segmenter.onnx"),
+        Path("models/model_store/weights/osnet_x0_25.pth"),
+        Path("models/model_store/weights/yolov8n.pt"),
+        Path("models/model_store/weights/silhouette_segmenter.onnx"),
     ]
     for p in real_paths:
         if p.exists():

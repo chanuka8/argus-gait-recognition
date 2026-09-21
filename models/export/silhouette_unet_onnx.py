@@ -18,9 +18,9 @@ from models.architectures.silhouette_unet import SilhouetteUNet
 
 
 def export_and_validate_onnx(
-    pth_path: str = "models/weights/silhouette_segmenter.pth",
-    output_onnx_path: str = "models/weights/silhouette_segmenter.onnx",
-    engine_onnx_path: str = "models/engines/silhouette_segmenter.onnx",
+    pth_path: str = "models/model_store/weights/silhouette_segmenter.pth",
+    output_onnx_path: str = "models/model_store/weights/silhouette_segmenter.onnx",
+    engine_onnx_path: str = "models/model_store/engines/silhouette_segmenter.onnx",
 ) -> tuple[bool, str]:
     pth_file = Path(pth_path)
     onnx_file = Path(output_onnx_path)

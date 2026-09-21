@@ -172,7 +172,7 @@ EMA Bounding-Box Stabilisation (α = 0.35)
 | **GEI Builder** | `LiveGEIStep` (`pipeline/steps/live_gei.py`) | Rolling Gait Energy Image window $= 15$ frames, minimum $= 10$ frames, resolution: **64 width $\times$ 128 height** | `configs/gei.yaml` |
 | **Backbone** | `ByGaitLight` (`models/architectures/`) | Lightweight 3-block CNN with Horizontal Part Pooling (HPP, `part_bins=4`), input $1 \times 128 \times 64$ | `models/architectures/bygait_light.py` |
 | **Embedding** | `ByGaitLight.forward()` | **256-dimensional float32 vector**, strictly L2-normalised ($\|e\|_2 = 1.0000 \pm 10^{-5}$) | `models/architectures/bygait_light.py` |
-| **Similarity** | `VectorStore` / `MatchingStep` | Dot product / Cosine similarity against enrolled gallery templates in `models/live_gallery/` | `storage/vector_store.py` |
+| **Similarity** | `VectorStore` / `MatchingStep` | Dot product / Cosine similarity against enrolled gallery templates in `models/galleries/live_gallery/` | `storage/vector_store.py` |
 | **Decision** | `OpenSetRecognizer` (`intelligence/`) | **Four-Tier Policy**: `KNOWN` ($\ge 0.92$), `UNCERTAIN` ($0.85 - 0.92$), `REVIEW_REQUIRED` ($0.70 - 0.85$), `UNKNOWN` ($< 0.70$) | `configs/inference.yaml` |
 | **Temporal Consensus**| `MatchingPolicy` (`configs/inference.yaml`) | Rolling voting history $= 10$ frames, minimum stable votes required $= 3$ | `configs/inference.yaml` |
 
@@ -186,9 +186,9 @@ EMA Bounding-Box Stabilisation (α = 0.35)
 
 In addition to kinematic gait representation, ARGUS AI integrates an appearance re-identification (ReID) feature stream for short-term identity association:
 
-* **Appearance Backbone**: `OSNet-x0.25` (`models/reid/osnet_backbone.py`, weights: `models/weights/osnet_x0_25.pth`) lightweight omni-scale network.
+* **Appearance Backbone**: `OSNet-x0.25` (`models/reid/osnet_backbone.py`, weights: `models/model_store/weights/osnet_x0_25.pth`) lightweight omni-scale network.
 * **Feature Representation**: 512-dimensional L2-normalized feature vector extracted from RGB person crops.
-* **Appearance Gallery**: Separate appearance vector store (`models/appearance_gallery/`) managed via `VectorStore`.
+* **Appearance Gallery**: Separate appearance vector store (`models/galleries/appearance_gallery/`) managed via `VectorStore`.
 * **Dual-Modal Score Fusion**:
   $$S_{\text{fused}} = w_{\text{gait}} \cdot S_{\text{gait}} + w_{\text{app}} \cdot S_{\text{app}}$$
   with dynamic weight attenuation based on silhouette quality, bounding-box aspect ratio, and track length.
@@ -326,7 +326,7 @@ Live Inference Loop (<1.5ms) ──► Local EmbeddingDatabase (SQLite)
 
 ### 1. Local Embedding Database & VectorStore (Primary Inference Path)
 
-* **Hardened VectorStore** (`storage/vector_store.py`): Memory-mapped `.npy` array storage for active biometric templates (`models/live_gallery/` and `models/appearance_gallery/`). Enforces `allow_pickle=False` and rejects object-type NumPy arrays. Match evaluation latency is **$< 1.5\text{ms}$** per candidate.
+* **Hardened VectorStore** (`storage/vector_store.py`): Memory-mapped `.npy` array storage for active biometric templates (`models/galleries/live_gallery/` and `models/galleries/appearance_gallery/`). Enforces `allow_pickle=False` and rejects object-type NumPy arrays. Match evaluation latency is **$< 1.5\text{ms}$** per candidate.
 * **SQLite Embedding Database** (`storage/embedding_database.py`): Local relational metadata database storing identity records, template associations, operational status (`ACTIVE`, `DISABLED`, `ARCHIVED`), and extraction provenance.
 
 ### 2. Firebase Firestore (Asynchronous Durable Persistence)
@@ -361,7 +361,7 @@ Continual learning in ARGUS AI is **date-aware and eligibility-driven**. The sys
  Assemble Training Dataset (50% New Date Evidence + 50% Historical Replay Baseline)
               │
               ▼ (PyTorch Gradient Descent via NNFineTuner)
- Candidate Model Checkpoint (models/candidates/*.pth)
+ Candidate Model Checkpoint (models/model_store/candidates/*.pth)
               │
               ▼ (CandidateValidator: 5 Safety Gates)
    Validation Gate Evaluation
@@ -774,7 +774,7 @@ The following classification separates features verified in the codebase from re
 | :--- | :---: | :--- |
 | **YOLOv8n Person Detection & EMA Smoothing** | **Implemented & Verified** | `pipeline/detection/person_detector.py`, `TrackingStep` ($\alpha=0.35$) |
 | **ByteTrack Multi-Object Tracking** | **Implemented & Verified** | `pipeline/steps/tracking.py` |
-| **Silhouette Extraction (UNet + Otsu Fallback)**| **Implemented & Verified** | `pipeline/silhouette/extractor.py`, `models/weights/silhouette_segmenter.onnx` |
+| **Silhouette Extraction (UNet + Otsu Fallback)**| **Implemented & Verified** | `pipeline/silhouette/extractor.py`, `models/model_store/weights/silhouette_segmenter.onnx` |
 | **Rolling GEI Generation (64 × 128, window=15)** | **Implemented & Verified** | `pipeline/steps/live_gei.py`, `configs/gei.yaml` |
 | **ByGaitLight 256-D L2-Normalized Embedding** | **Implemented & Verified** | `models/architectures/bygait_light.py` (HPP `part_bins=4`) |
 | **Appearance ReID (OSNet-x0.25 512-D)** | **Implemented & Verified** | `models/reid/osnet_backbone.py` |

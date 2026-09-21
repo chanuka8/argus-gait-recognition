@@ -13,7 +13,7 @@ from models.reid.osnet_backbone import _build_osnet_x0_25
 
 
 def download_and_verify():
-    dest_path = Path("models/weights/osnet_x0_25.pth")
+    dest_path = Path("models/model_store/weights/osnet_x0_25.pth")
     dest_path.parent.mkdir(parents=True, exist_ok=True)
 
     urls = [

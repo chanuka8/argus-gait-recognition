@@ -116,7 +116,7 @@ def extract_build_metadata(
             be_cfg = getattr(backend, "config", {})
             if isinstance(be_cfg, dict):
                 if act_be == "onnxruntime":
-                    m_ref = str(be_cfg.get("onnx_path", "models/engines/bygait_light.onnx"))
+                    m_ref = str(be_cfg.get("onnx_path", "models/model_store/engines/bygait_light.onnx"))
                 else:
                     m_ref = str(be_cfg.get("model_path", "runs/exp_001/best_model.pth"))
             else:

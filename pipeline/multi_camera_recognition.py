@@ -133,7 +133,7 @@ def _load_reid_config() -> dict:
 
     defaults = {
         "enabled": False,
-        "model_path": "models/weights/osnet_x0_25.pth",
+        "model_path": "models/model_store/weights/osnet_x0_25.pth",
         "device": "auto",
         "batch_size": 8,
         "similarity_threshold": 0.6,
@@ -455,7 +455,7 @@ class MultiCameraRecognitionPipeline:
         security_threshold: float = 0.90,
         gei_frames: int = 15,
         recognition_interval: int = 10,
-        gallery_dir: str = "models/live_gallery",
+        gallery_dir: str = "models/galleries/live_gallery",
     ) -> None:
         self.cameras_config = self._load_cameras_config(
             cameras_config_path,

@@ -11,7 +11,7 @@ from monitoring.logging_config import get_logger
 class NNFineTuner:
     def __init__(
         self,
-        candidate_dir: str = "models/candidates",
+        candidate_dir: str = "models/model_store/candidates",
         device: str | None = None,
         max_epochs: int = 3,
         learning_rate: float = 1e-5,

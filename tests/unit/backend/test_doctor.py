@@ -67,7 +67,7 @@ def test_doctor_non_destructive_guarantee(tmp_path: Path):
 def test_doctor_missing_gallery_file_produces_warning(monkeypatch, tmp_path: Path):
     monkeypatch.setattr(
         "deployment.doctor.validate_gallery_files",
-        lambda *args, **kwargs: (False, "Gallery features file missing in models/gallery", 0),
+        lambda *args, **kwargs: (False, "Gallery features file missing in models/galleries/gallery", 0),
     )
 
     json_path = tmp_path / "doctor_missing.json"

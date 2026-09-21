@@ -159,7 +159,7 @@ class DeploymentStartupValidator:
                 sanitized_error = self._sanitize_error(exc)
                 blocking_issues.append(f"Backend verification failed: {sanitized_error}")
 
-        gallery_dir = resolve_app_path("models/gallery")
+        gallery_dir = resolve_app_path("models/galleries/gallery")
 
         try:
             gallery_valid, gallery_error, gallery_count = validate_gallery_files(

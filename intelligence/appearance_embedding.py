@@ -8,7 +8,7 @@ from monitoring.logging_config import get_logger
 class AppearanceEmbeddingExtractor:
     def __init__(
         self,
-        model_path: str = "models/weights/osnet_x0_25.pth",
+        model_path: str = "models/model_store/weights/osnet_x0_25.pth",
         device: str = "auto",
         update_interval: int = 8,
     ) -> None:

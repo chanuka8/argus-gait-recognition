@@ -130,7 +130,7 @@ def run_dual_modal_evaluation():
 
     gait_extractor = FeatureExtractionStep()
     OSNetBackbone._instance = None
-    reid_extractor = ReIDFeatureExtractionStep(model_path="models/weights/osnet_x0_25.pth", device=device)
+    reid_extractor = ReIDFeatureExtractionStep(model_path="models/model_store/weights/osnet_x0_25.pth", device=device)
     detector = PersonDetector()
     fusion_engine = DualModalFusion(default_gait_weight=0.70, default_reid_weight=0.30, enabled=True)
 

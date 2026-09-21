@@ -190,7 +190,7 @@ def main():
 
     detector = PersonDetector()
     gait_extractor = FeatureExtractionStep(model_path="runs/exp_001/best_model.pth")
-    osnet_backbone = OSNetBackbone(model_path="models/weights/osnet_x0_25.pth", device=device)
+    osnet_backbone = OSNetBackbone(model_path="models/model_store/weights/osnet_x0_25.pth", device=device)
     fusion_engine = DualModalFusion(default_gait_weight=0.30, default_reid_weight=0.70, enabled=True)
 
     subjects = ["demo_person_001", "Devhan", "Isuru", "person01"]
@@ -781,7 +781,7 @@ def main():
     params_app = sum(p.numel() for p in osnet_model.parameters())
 
     size_gait_mb = Path("runs/exp_001/best_model.pth").stat().st_size / (1024 * 1024)
-    size_app_mb = Path("models/weights/osnet_x0_25.pth").stat().st_size / (1024 * 1024)
+    size_app_mb = Path("models/model_store/weights/osnet_x0_25.pth").stat().st_size / (1024 * 1024)
 
     print(
         f"\n{'Subsystem / Branch':<25} | {'Params (M)':<12} | {'Disk Size':<12} | {'GPU Latency':<14} | {'CPU Latency':<14}"

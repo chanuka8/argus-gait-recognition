@@ -8,7 +8,7 @@ from models.reid.osnet_backbone import OSNetBackbone
 class ReIDFeatureExtractionStep:
     def __init__(
         self,
-        model_path: str = "models/weights/osnet_x0_25.pth",
+        model_path: str = "models/model_store/weights/osnet_x0_25.pth",
         device: str = "auto",
     ) -> None:
         self.backbone = OSNetBackbone(

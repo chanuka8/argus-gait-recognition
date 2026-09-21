@@ -75,7 +75,7 @@ def test_smoke_test_report_write_failure(monkeypatch, tmp_path: Path):
 
 
 def test_smoke_test_singular_missing_gallery_file_passes(monkeypatch, tmp_path: Path):
-    missing_response = (False, "Gallery features file missing in models/gallery", 0)
+    missing_response = (False, "Gallery features file missing in models/galleries/gallery", 0)
     monkeypatch.setattr(
         "tools.validation.deployment_smoke_test.validate_gallery_files",
         lambda *args, **kwargs: missing_response,

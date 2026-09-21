@@ -13,7 +13,7 @@ class InferencePipeline:
     def __init__(
         self,
         threshold: float = 0.85,
-        gallery_dir: str = "models/live_gallery",
+        gallery_dir: str = "models/galleries/live_gallery",
     ):
 
         self.extractor = FeatureExtractionStep()

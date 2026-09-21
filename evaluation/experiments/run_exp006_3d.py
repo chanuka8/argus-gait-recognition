@@ -68,7 +68,7 @@ def main():
         print(f"GPU: {torch.cuda.get_device_name(0)}")
 
     print("Loading YOLOv8n-pose and 3D Gait models...")
-    yolo_pose = YOLO("models/weights/yolov8n-pose.pt")
+    yolo_pose = YOLO("models/model_store/weights/yolov8n-pose.pt")
     pose_lifter = PoseLifter3D().to(device).eval()
     gait3d_net = PoseGait3DNet(embedding_dim=256).to(device).eval()
 

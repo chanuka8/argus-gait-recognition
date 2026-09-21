@@ -92,7 +92,7 @@ def _execute_doctor_checks(json_path: str, md_path: str) -> tuple[int, dict]:
                 warnings.append(f"Optional package '{pkg}' missing")
 
     ckpt_path = ROOT / "runs" / "exp_001" / "best_model.pth"
-    onnx_path = ROOT / "models" / "engines" / "bygait_light.onnx"
+    onnx_path = ROOT / "models" / "model_store" / "engines" / "bygait_light.onnx"
 
     ckpt_exists = ckpt_path.exists()
     onnx_exists = onnx_path.exists()
@@ -228,7 +228,7 @@ def _execute_doctor_checks(json_path: str, md_path: str) -> tuple[int, dict]:
         )
         blocking_issues.append(f"Inference backend failed to initialize: {e}")
 
-    gallery_dir = ROOT / "models" / "gallery"
+    gallery_dir = ROOT / "models" / "galleries" / "gallery"
     g_valid, g_err, g_count = validate_gallery_files(gallery_dir=gallery_dir, expected_dim=256)
     if g_valid:
         checks.append(

@@ -6,7 +6,7 @@ from storage.vector_store import VectorStore
 class GalleryUpdater:
     def __init__(
         self,
-        gallery_dir: str = "models/live_gallery",
+        gallery_dir: str = "models/galleries/live_gallery",
     ):
         self.store = VectorStore(
             gallery_dir=gallery_dir,

@@ -13,7 +13,7 @@ class TensorRTBackend(BaseInferenceBackend):
     ) -> None:
         super().__init__(config=config)
         self.backend_name = "tensorrt"
-        self.engine_path = resolve_app_path(self.config.get("engine_path", "models/engines/bygait_light_fp16.engine"))
+        self.engine_path = resolve_app_path(self.config.get("engine_path", "models/model_store/engines/bygait_light_fp16.engine"))
 
         self.engine = None
         self.context = None

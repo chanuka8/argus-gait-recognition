@@ -91,14 +91,14 @@ class DeploymentReadinessReporter:
             backend_readiness = {"status": "FAILED", "error": str(e), "metadata": {}}
 
         model_path = resolve_app_path("runs/exp_001/best_model.pth")
-        onnx_path = resolve_app_path("models/engines/bygait_light.onnx")
+        onnx_path = resolve_app_path("models/model_store/engines/bygait_light.onnx")
         model_readiness = {
             "pytorch_checkpoint_exists": model_path.exists(),
             "onnx_file_exists": onnx_path.exists(),
             "status": "READY" if (model_path.exists() or onnx_path.exists()) else "WARN",
         }
 
-        gallery_dir = resolve_app_path("models/gallery")
+        gallery_dir = resolve_app_path("models/galleries/gallery")
         feat_file = gallery_dir / "gallery_features.npy"
         lbl_file = gallery_dir / "gallery_labels.npy"
         gallery_readiness = {

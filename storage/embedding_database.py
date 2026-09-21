@@ -165,8 +165,8 @@ class EmbeddingDatabase:
     def __init__(
         self,
         db_dir: str = "data/runtime/embedding_db",
-        gait_gallery_dir: str = "models/live_gallery",
-        appearance_gallery_dir: str = "models/appearance_gallery",
+        gait_gallery_dir: str = "models/galleries/live_gallery",
+        appearance_gallery_dir: str = "models/galleries/appearance_gallery",
         firebase_store: Any | None = None,
         encryptor: Any | None = None,
         strict_mode: bool | None = None,

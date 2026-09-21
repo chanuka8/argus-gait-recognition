@@ -28,7 +28,7 @@ def benchmark_silhouette_segmenters(
     print(f"[*] Benchmarking Silhouette Segmenters on {num_samples} CASIA-B validation samples...")
     val_ds = SilhouetteSegmentationDataset(zip_path=zip_path, subject_range=(63, 74), max_samples=num_samples, seed=101)
 
-    learned = LearnedSilhouetteSegmenter(model_path="models/weights/silhouette_segmenter.onnx")
+    learned = LearnedSilhouetteSegmenter(model_path="models/model_store/weights/silhouette_segmenter.onnx")
     otsu = OtsuSilhouetteExtractor()
 
     if not learned.is_available():

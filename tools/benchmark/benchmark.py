@@ -41,7 +41,7 @@ def benchmark_single_inference(
 ) -> dict:
     start_init = time.perf_counter()
 
-    pipeline = InferencePipeline(gallery_dir="models/gallery")
+    pipeline = InferencePipeline(gallery_dir="models/galleries/gallery")
 
     init_time = time.perf_counter() - start_init
 
@@ -102,7 +102,7 @@ def benchmark_inference_average(
     image_path: str = "data/datasets/casia_processed/gei/034/034_nm-01_126.png",
     num_iterations: int = 10,
 ) -> dict:
-    pipeline = InferencePipeline(gallery_dir="models/gallery")
+    pipeline = InferencePipeline(gallery_dir="models/galleries/gallery")
 
     inference_times = []
 

@@ -148,7 +148,7 @@ def run_step_5g():
 
     gait_extractor = FeatureExtractionStep()
     OSNetBackbone._instance = None
-    reid_extractor = ReIDFeatureExtractionStep(model_path="models/weights/osnet_x0_25.pth", device=device)
+    reid_extractor = ReIDFeatureExtractionStep(model_path="models/model_store/weights/osnet_x0_25.pth", device=device)
     detector = PersonDetector()
 
     base_gei = Path("data/runtime/auto_enrollment/gei")

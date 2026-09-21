@@ -56,9 +56,9 @@ def _compute_storage_fingerprint() -> dict[str, tuple[int, str]]:
     """Compute exact fingerprint (size, sha256) of all files in real biometric directories."""
     fingerprint = {}
     prod_dirs = [
-        Path("models/gallery"),
-        Path("models/live_gallery"),
-        Path("models/appearance_gallery"),
+        Path("models/galleries/gallery"),
+        Path("models/galleries/live_gallery"),
+        Path("models/galleries/appearance_gallery"),
         Path("data/runtime/embedding_db"),
     ]
     for d in prod_dirs:
@@ -646,9 +646,9 @@ def test_migration_dry_run_preserves_originals(tmp_path, encryptor, synthetic_ga
 def test_real_gallery_paths_untouched():
     """Verify that implementation tasks did NOT mutate production galleries or databases."""
     prod_paths = [
-        Path("models/gallery"),
-        Path("models/live_gallery"),
-        Path("models/appearance_gallery"),
+        Path("models/galleries/gallery"),
+        Path("models/galleries/live_gallery"),
+        Path("models/galleries/appearance_gallery"),
         Path("data/runtime/embedding_db"),
     ]
     for p in prod_paths:

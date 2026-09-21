@@ -67,7 +67,7 @@ def run_evaluation():
 
     OSNetBackbone._instance = None
 
-    extractor = ReIDFeatureExtractionStep(model_path="models/weights/osnet_x0_25.pth", device=device)
+    extractor = ReIDFeatureExtractionStep(model_path="models/model_store/weights/osnet_x0_25.pth", device=device)
     detector = PersonDetector()
 
     print("\n" + "=" * 80)
@@ -660,7 +660,7 @@ def run_evaluation():
     per_frame_tracks = {}
 
     OSNetBackbone._instance = None
-    extractor2 = ReIDFeatureExtractionStep(model_path="models/weights/osnet_x0_25.pth", device=device)
+    extractor2 = ReIDFeatureExtractionStep(model_path="models/model_store/weights/osnet_x0_25.pth", device=device)
     detector2 = PersonDetector()
 
     for f_idx in range(min(100, total_frames)):
@@ -776,7 +776,7 @@ def run_evaluation():
     print("SECTION 13: GAIT ISOLATION CHECK")
     print("=" * 80)
 
-    gait_feat_file = Path("models/gallery/gallery_features.npy")
+    gait_feat_file = Path("models/galleries/gallery/gallery_features.npy")
     if gait_feat_file.exists():
         gait_feat = np.load(gait_feat_file)
         gait_isolation = {

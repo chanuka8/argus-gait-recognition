@@ -20,9 +20,9 @@ class BackendStartupSummary:
         elif getattr(backend, "active_backend", None) == "onnxruntime":
             cfg = getattr(backend, "config", {})
             m_path = (
-                str(cfg.get("onnx_path", "models/engines/bygait_light.onnx"))
+                str(cfg.get("onnx_path", "models/model_store/engines/bygait_light.onnx"))
                 if isinstance(cfg, dict)
-                else "models/engines/bygait_light.onnx"
+                else "models/model_store/engines/bygait_light.onnx"
             )
         else:
             cfg = getattr(backend, "config", {})

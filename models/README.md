@@ -5,8 +5,8 @@ The `models` package defines PyTorch neural network architectures, pre-trained w
 ## Responsibilities
 
 - Defining deep learning architecture models for GEI gait feature extraction (`ByGaitLight`).
-- Managing active model checkpoints (`models/active/`) and rollback backups (`models/rollback/`).
-- Storing enrolled gait identity templates (`models/gallery/`) and live enrolled templates (`models/live_gallery/`).
+- Managing active model checkpoints (`models/model_store/active/`) and rollback backups (`models/model_store/rollback/`).
+- Storing enrolled gait identity templates (`models/galleries/gallery/`) and live enrolled templates (`models/galleries/live_gallery/`).
 - Boundaries: Does not train models directly (training code lives in `training/`).
 
 ## Key Modules
@@ -14,15 +14,8 @@ The `models` package defines PyTorch neural network architectures, pre-trained w
 <!-- BEGIN SYNC: KEY_MODULES -->
 | Module | Purpose |
 | --- | --- |
-| `active/` | Module/resource file active/ |
-| `appearance_gallery/` | Module/resource file appearance_gallery/ |
 | [architectures/bygait_light.py](architectures/bygait_light.py) | ByGaitLight 3-block lightweight CNN architecture mapping GEIs to 256-dim embeddings |
-| `candidates/` | Module/resource file candidates/ |
-| `gallery/` | Module/resource file gallery/ |
-| `live_gallery/` | Module/resource file live_gallery/ |
 | `reid/` | Module/resource file reid/ |
-| `rollback/` | Module/resource file rollback/ |
-| `weights/` | Module/resource file weights/ |
 <!-- END SYNC: KEY_MODULES -->
 
 ## Data Flow

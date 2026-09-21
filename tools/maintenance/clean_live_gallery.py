@@ -74,7 +74,7 @@ def main() -> None:
 
     parser.add_argument(
         "--gallery-dir",
-        default="models/live_gallery",
+        default="models/galleries/live_gallery",
     )
 
     parser.add_argument(

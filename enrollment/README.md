@@ -21,12 +21,12 @@ The `enrollment` package handles target identity registration, gallery database 
 | [enrollment_queue.py](enrollment_queue.py) | Thread-safe asynchronous queue for batch enrollment tasks |
 | [enrollment_validator.py](enrollment_validator.py) | Quality inspector verifying resolution, silhouette suitability, and GEI validity |
 | [folder_watcher.py](folder_watcher.py) | Filesystem observer monitoring designated directories for new enrollment files |
-| [gallery_updater.py](gallery_updater.py) | Computes and persists gait GEI feature embeddings into `models/gallery/` |
+| [gallery_updater.py](gallery_updater.py) | Computes and persists gait GEI feature embeddings into `models/galleries/gallery/` |
 <!-- END SYNC: KEY_MODULES -->
 
 ## Data Flow
 
-Enrollment Files → `enrollment/folder_watcher.py` → `enrollment/enrollment_validator.py` → `enrollment/gallery_updater.py` → `models/gallery/` (`.npy` & `.json`).
+Enrollment Files → `enrollment/folder_watcher.py` → `enrollment/enrollment_validator.py` → `enrollment/gallery_updater.py` → `models/galleries/gallery/` (`.npy` & `.json`).
 
 ## Configuration
 

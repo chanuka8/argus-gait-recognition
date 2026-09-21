@@ -123,8 +123,8 @@ def run_stage_profiling() -> dict:
     _, timings["init_vector_stores"] = time_block(
         "24. Storage: VectorStore (gait + appearance)",
         lambda: (
-            VectorStore(gallery_dir="models/live_gallery"),
-            VectorStore(gallery_dir="models/appearance_gallery"),
+            VectorStore(gallery_dir="models/galleries/live_gallery"),
+            VectorStore(gallery_dir="models/galleries/appearance_gallery"),
         ),
     )
 
@@ -135,8 +135,8 @@ def run_stage_profiling() -> dict:
         "25. Storage: EmbeddingDatabase & ModelRegistry",
         lambda: (
             EmbeddingDatabase(
-                gait_gallery_dir="models/live_gallery",
-                appearance_gallery_dir="models/appearance_gallery",
+                gait_gallery_dir="models/galleries/live_gallery",
+                appearance_gallery_dir="models/galleries/appearance_gallery",
             ),
             ModelRegistry(),
         ),

@@ -23,7 +23,7 @@ def _to_rel_path(path: str | Path) -> str:
 
 def export_onnx(
     model_path: str = "runs/exp_001/best_model.pth",
-    output_onnx_path: str = "models/engines/bygait_light.onnx",
+    output_onnx_path: str = "models/model_store/engines/bygait_light.onnx",
     precision: str = "fp32",
     rtol: float = 1e-3,
     atol: float = 1e-4,
@@ -251,7 +251,7 @@ def main() -> None:
         "--model-path", type=str, default="runs/exp_001/best_model.pth", help="Path to PyTorch checkpoint"
     )
     parser.add_argument(
-        "--output-path", type=str, default="models/engines/bygait_light.onnx", help="Output ONNX file path"
+        "--output-path", type=str, default="models/model_store/engines/bygait_light.onnx", help="Output ONNX file path"
     )
     parser.add_argument("--precision", type=str, default="fp32", choices=["fp32", "fp16"], help="Model precision")
 

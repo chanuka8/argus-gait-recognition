@@ -15,7 +15,7 @@ from storage.vector_store import VectorStore
 
 MODEL_PATH = "runs/exp_001/best_model.pth"
 GEI_ROOT = "data/datasets/casia_processed/gei"
-GALLERY_DIR = "models/gallery"
+GALLERY_DIR = "models/galleries/gallery"
 
 
 def load_backbone() -> ByGaitLight:

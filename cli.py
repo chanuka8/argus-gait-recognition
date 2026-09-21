@@ -596,12 +596,12 @@ def production_test(args=None) -> int:
     else:
         print("[OK] Verified: configs/cameras.yaml exists.")
 
-    live_gallery_dir = Path("models/live_gallery")
+    live_gallery_dir = Path("models/galleries/live_gallery")
     if not (live_gallery_dir.exists() and live_gallery_dir.is_dir()):
         print(f"[ERROR] Required live gallery folder is missing: {live_gallery_dir}")
         return 1
     else:
-        print("[OK] Verified: models/live_gallery exists.")
+        print("[OK] Verified: models/galleries/live_gallery exists.")
 
     inference_cfg = Path("configs/inference.yaml")
     if not inference_cfg.exists():
@@ -671,7 +671,7 @@ def docs_check(args=None) -> int:
             print(f"[ERROR] Missing package README: {folder_readme}")
             missing = True
 
-    gallery_dir = Path("models/gallery")
+    gallery_dir = Path("models/galleries/gallery")
     if (gallery_dir / "gallery_features.enc").exists() or (gallery_dir / "gallery_features.npy").exists():
         try:
             from storage.vector_store import validate_gallery_files

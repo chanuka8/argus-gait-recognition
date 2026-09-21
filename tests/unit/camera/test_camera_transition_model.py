@@ -251,7 +251,7 @@ class TestMultiCameraPipelineTransitionIntegration(unittest.TestCase):
 
         pipeline = MultiCameraRecognitionPipeline(
             cameras_config_path="configs/cameras.yaml",
-            gallery_dir="models/live_gallery",
+            gallery_dir="models/galleries/live_gallery",
         )
 
         self.assertIsNotNone(pipeline.transition_model)

@@ -26,8 +26,8 @@ class AutoEnrollmentService:
         gei_frames: int = 15,
         video_stride: int = 10,
         scan_interval: int = 5,
-        live_gallery_dir: str = "models/live_gallery",
-        appearance_gallery_dir: str = "models/appearance_gallery",
+        live_gallery_dir: str = "models/galleries/live_gallery",
+        appearance_gallery_dir: str = "models/galleries/appearance_gallery",
         db_dir: str = "data/runtime/embedding_db",
         auto_delete_raw: bool = True,
     ) -> None:

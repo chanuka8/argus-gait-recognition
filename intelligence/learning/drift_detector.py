@@ -30,7 +30,7 @@ class DriftDetector:
     def __init__(
         self,
         collector: OperationalEmbeddingCollector | None = None,
-        gait_gallery_dir: str = "models/live_gallery",
+        gait_gallery_dir: str = "models/galleries/live_gallery",
         confidence_threshold: float = 0.85,
         drift_cosine_drop_threshold: float = 0.15,
     ) -> None:

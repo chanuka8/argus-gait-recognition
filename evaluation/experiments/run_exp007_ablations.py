@@ -129,7 +129,7 @@ def main():
     print(f"  VAL Rank-1 Accuracy: {best_val_score * 100:.2f}%")
     print("=======================================================\n")
 
-    cand_dir = Path("models/candidates")
+    cand_dir = Path("models/model_store/candidates")
     cand_dir.mkdir(parents=True, exist_ok=True)
     promoted_path = cand_dir / "gait_3d_exp007_best.pth"
 

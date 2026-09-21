@@ -79,9 +79,9 @@ def build_engine_trtexec(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Build TensorRT engine from ONNX model.")
-    parser.add_argument("--onnx-path", type=str, default="models/engines/bygait_light.onnx", help="Path to ONNX file")
+    parser.add_argument("--onnx-path", type=str, default="models/model_store/engines/bygait_light.onnx", help="Path to ONNX file")
     parser.add_argument(
-        "--engine-path", type=str, default="models/engines/bygait_light_fp16.engine", help="Output engine path"
+        "--engine-path", type=str, default="models/model_store/engines/bygait_light_fp16.engine", help="Output engine path"
     )
     parser.add_argument("--precision", type=str, default="fp16", choices=["fp32", "fp16"], help="Precision mode")
 

@@ -128,7 +128,7 @@ def _load_reid_config() -> dict:
 
     defaults = {
         "enabled": False,
-        "model_path": "models/weights/osnet_x0_25.pth",
+        "model_path": "models/model_store/weights/osnet_x0_25.pth",
         "device": "auto",
         "batch_size": 8,
         "similarity_threshold": 0.6,
@@ -374,7 +374,7 @@ class LiveRecognitionPipeline:
         gei_frames: int = 15,
         recognition_interval: int = 10,
         history_size: int = 10,
-        gallery_dir: str = "models/live_gallery",
+        gallery_dir: str = "models/galleries/live_gallery",
     ) -> None:
         self.stream = StreamEngine()
         self.tracker = TrackingStep()
@@ -526,7 +526,7 @@ class LiveRecognitionPipeline:
                 threshold=float(self.reid_config.get("similarity_threshold", 0.60)),
             )
             try:
-                app_gallery = VectorStore(gallery_dir="models/appearance_gallery").load()
+                app_gallery = VectorStore(gallery_dir="models/galleries/appearance_gallery").load()
                 if app_gallery is not None:
                     self.appearance_gallery_features, self.appearance_gallery_labels, self.appearance_metadata = (
                         app_gallery

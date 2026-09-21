@@ -209,7 +209,7 @@ def main():
     out_dir.mkdir(parents=True, exist_ok=True)
 
     detector = PersonDetector()
-    osnet_backbone = OSNetBackbone(model_path="models/weights/osnet_x0_25.pth", device=device)
+    osnet_backbone = OSNetBackbone(model_path="models/model_store/weights/osnet_x0_25.pth", device=device)
     enhancer = DeterministicImageEnhancer()
 
     gait_extractor = FeatureExtractionStep(model_path="runs/exp_001/best_model.pth")
@@ -674,7 +674,7 @@ def main():
     params_app = sum(p.numel() for p in osnet_model.parameters())
 
     size_gait_mb = Path("runs/exp_001/best_model.pth").stat().st_size / (1024 * 1024)
-    size_app_mb = Path("models/weights/osnet_x0_25.pth").stat().st_size / (1024 * 1024)
+    size_app_mb = Path("models/model_store/weights/osnet_x0_25.pth").stat().st_size / (1024 * 1024)
 
     print(
         f"\n{'Subsystem / Branch':<25} | {'Params (M)':<12} | {'Disk Size':<12} | {'GPU Latency':<14} | {'CPU Latency':<14}"

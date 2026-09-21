@@ -15,7 +15,7 @@ flowchart TD
         CNN --> Emb["256D Gait Embedding"]
         Track -.-> OSNet["OSNet-x0.25 (PyTorch)"]
         OSNet -.-> AppEmb["512D Appearance Embedding"]
-        Emb --> VecStore["Local VectorStore (models/live_gallery/)"]
+        Emb --> VecStore["Local VectorStore (models/galleries/live_gallery/)"]
         AppEmb --> VecStore
         VecStore --> Match["Cosine Similarity & Dual-Modal Fusion"]
         Match --> RealtimeAlert["Real-time UI Recognition (< 10ms)"]

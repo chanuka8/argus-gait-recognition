@@ -78,20 +78,20 @@ def main() -> None:
 
     parser.add_argument(
         "--gallery-dir",
-        default="models/live_gallery",
+        default="models/galleries/live_gallery",
     )
 
     args = parser.parse_args()
 
-    if args.gallery_dir == "models/live_gallery":
+    if args.gallery_dir == "models/galleries/live_gallery":
         removed_live = remove_identity(
             person_id=args.person_id,
-            gallery_dir="models/live_gallery",
+            gallery_dir="models/galleries/live_gallery",
             verbose=False,
         )
         removed_app = remove_identity(
             person_id=args.person_id,
-            gallery_dir="models/appearance_gallery",
+            gallery_dir="models/galleries/appearance_gallery",
             verbose=False,
         )
         if not removed_live and not removed_app:

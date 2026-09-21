@@ -7,7 +7,7 @@ The `training` package handles deep neural network model training, loss function
 - Training PyTorch CNN gait feature extraction models (`ByGaitLight`).
 - Computing Triplet Loss, Cross-Entropy Loss, and Center Loss over batch embeddings.
 - Executing early stopping, learning rate decay, and logging callbacks during training.
-- Saving trained model weights into candidate checkpoints (`models/candidates/` / `runs/`).
+- Saving trained model weights into candidate checkpoints (`models/model_store/candidates/` / `runs/`).
 - Boundaries: Does not run real-time RTSP video decoding or camera management services.
 
 ## Key Modules
@@ -31,7 +31,7 @@ The `training` package handles deep neural network model training, loss function
 
 ## Data Flow
 
-GEI Training Dataset → `training/dataset.py` & `training/dataloader.py` → `models/architectures/bygait_light.py` → `training/loss_functions.py` → `training/trainer.py` → `models/candidates/best_model.pth`.
+GEI Training Dataset → `training/dataset.py` & `training/dataloader.py` → `models/architectures/bygait_light.py` → `training/loss_functions.py` → `training/trainer.py` → `models/model_store/candidates/best_model.pth`.
 
 ## Configuration
 

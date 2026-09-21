@@ -15,7 +15,7 @@ class Gait3DStep:
     def __init__(
         self,
         enabled: bool = False,
-        pose_model_path: str = "models/weights/yolov8n-pose.pt",
+        pose_model_path: str = "models/model_store/weights/yolov8n-pose.pt",
         weights_path: str | None = "runs/exp_006_3d/best_model.pth",
         sequence_length: int = 30,
         conf_threshold: float = 0.30,

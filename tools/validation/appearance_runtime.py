@@ -28,7 +28,7 @@ def run_runtime_validation():
     print("=" * 80)
 
     print("\n--- TEST 1: REAL OSNET MODEL LOAD ---")
-    ckpt_path = "models/weights/osnet_x0_25.pth"
+    ckpt_path = "models/model_store/weights/osnet_x0_25.pth"
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     ckpt_exists = Path(ckpt_path).exists()
@@ -340,7 +340,7 @@ def run_runtime_validation():
     print(json.dumps(test10_info, indent=2))
 
     print("\n--- TEST 11: GAIT REGRESSION ---")
-    gait_updater = GalleryUpdater(gallery_dir="models/gallery")
+    gait_updater = GalleryUpdater(gallery_dir="models/galleries/gallery")
     gait_res = gait_updater.store.load()
     gait_feat = gait_res[0] if gait_res is not None else None
 

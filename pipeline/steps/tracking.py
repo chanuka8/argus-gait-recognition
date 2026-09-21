@@ -19,7 +19,7 @@ class TrackingStep:
         self.config = self._load_config(self.config_path)
 
         resolved_model_path = (
-            model_path if model_path is not None else self.config.get("model_path", "models/weights/yolov8n.pt")
+            model_path if model_path is not None else self.config.get("model_path", "models/model_store/weights/yolov8n.pt")
         )
         self.model_path = Path(resolved_model_path)
 

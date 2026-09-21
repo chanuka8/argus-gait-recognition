@@ -8,7 +8,7 @@ from storage.vector_store import VectorStore
 class AppearanceGalleryUpdater:
     def __init__(
         self,
-        gallery_dir: str = "models/appearance_gallery",
+        gallery_dir: str = "models/galleries/appearance_gallery",
     ) -> None:
         self.gallery_dir = gallery_dir
         self.store = VectorStore(

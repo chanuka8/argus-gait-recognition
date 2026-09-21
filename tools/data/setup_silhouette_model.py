@@ -9,7 +9,7 @@ from pipeline.steps.silhouette_step import LearnedSilhouetteSegmenter
 
 
 def setup_or_verify_silhouette_model(
-    model_path: str = "models/weights/silhouette_segmenter.onnx",
+    model_path: str = "models/model_store/weights/silhouette_segmenter.onnx",
 ) -> bool:
     target_path = Path(model_path)
     print(f"[*] Checking silhouette segmentation model asset at: {target_path}")
@@ -25,7 +25,7 @@ def setup_or_verify_silhouette_model(
     print("[INFO] EXTERNAL MODEL ASSET REQUIRED:")
     print(
         "       Please place a trained ONNX human segmentation model (UNet/SegFormer "
-        "256x256 RGB input) at 'models/engines/silhouette_segmenter.onnx'."
+        "256x256 RGB input) at 'models/model_store/engines/silhouette_segmenter.onnx'."
     )
     print("       The ARGUS AI runtime will continue using Otsu thresholding fallback until this asset is supplied.")
     return False

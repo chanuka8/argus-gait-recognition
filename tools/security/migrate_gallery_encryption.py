@@ -333,9 +333,9 @@ def main(argv: list[str] | None = None) -> int:
     elif args.all_galleries:
         target_galleries.extend(
             [
-                Path("models/gallery"),
-                Path("models/live_gallery"),
-                Path("models/appearance_gallery"),
+                Path("models/galleries/gallery"),
+                Path("models/galleries/live_gallery"),
+                Path("models/galleries/appearance_gallery"),
             ]
         )
 

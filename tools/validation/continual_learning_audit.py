@@ -518,7 +518,7 @@ def run_full_forensic_audit():
 
         print("  Testing OSNet-x0.25 weight optimization...")
         osnet_baseline = _build_osnet_x0_25()
-        active_osnet_path = "models/weights/osnet_x0_25.pth"
+        active_osnet_path = "models/model_store/weights/osnet_x0_25.pth"
         if Path(active_osnet_path).exists():
             osnet_state = torch.load(active_osnet_path, map_location="cpu", weights_only=True)
             osnet_baseline.load_state_dict(osnet_state, strict=False)

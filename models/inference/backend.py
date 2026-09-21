@@ -47,8 +47,8 @@ def load_inference_backend_config(config_path: str | Path | None = None) -> dict
         "device": "auto",
         "precision": "fp32",
         "model_path": "runs/exp_001/best_model.pth",
-        "engine_path": "models/engines/bygait_light_fp16.engine",
-        "onnx_path": "models/engines/bygait_light.onnx",
+        "engine_path": "models/model_store/engines/bygait_light_fp16.engine",
+        "onnx_path": "models/model_store/engines/bygait_light.onnx",
         "allow_fallback": True,
         "warmup_iterations": 3,
         "dynamic_batch": False,
@@ -219,7 +219,7 @@ class BackendValidator:
         try:
             import onnxruntime as ort
 
-            onnx_path = resolve_app_path(self.config.get("onnx_path", "models/engines/bygait_light.onnx"))
+            onnx_path = resolve_app_path(self.config.get("onnx_path", "models/model_store/engines/bygait_light.onnx"))
             if not onnx_path.exists():
                 return BackendHealth(
                     backend="onnxruntime",
@@ -271,7 +271,7 @@ class BackendReport:
         smoke_test = validator.run_smoke_test(self.backend)
 
         if self.backend.active_backend == "onnxruntime":
-            raw_p = str(self.backend.config.get("onnx_path", "models/engines/bygait_light.onnx"))
+            raw_p = str(self.backend.config.get("onnx_path", "models/model_store/engines/bygait_light.onnx"))
         else:
             raw_p = str(self.backend.config.get("model_path", "runs/exp_001/best_model.pth"))
         m_path = str(resolve_app_path(raw_p))

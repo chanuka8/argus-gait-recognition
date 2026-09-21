@@ -99,7 +99,7 @@ def run_f1_diagnostic():
 
     print("\n[1] Freezing Current Evaluation State & Hashes...")
     bygait_path = "runs/exp_001/best_model.pth"
-    osnet_path = "models/weights/osnet_x0_25.pth"
+    osnet_path = "models/model_store/weights/osnet_x0_25.pth"
     fusion_profile_path = "configs/fusion_profiles/fusion_identification_profile.json"
     registry_path = "models/model_registry.json"
 

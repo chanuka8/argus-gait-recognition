@@ -60,10 +60,10 @@ def train_and_export_silhouette_unet(
     epochs: int = 3,
     batch_size: int = 16,
     lr: float = 1e-3,
-    output_dir: str = "models/weights",
+    output_dir: str = "models/model_store/weights",
 ) -> dict:
     os.makedirs(output_dir, exist_ok=True)
-    os.makedirs("models/engines", exist_ok=True)
+    os.makedirs("models/model_store/engines", exist_ok=True)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"[*] Training UNet Silhouette Segmenter on device: {device}")
@@ -145,7 +145,7 @@ def train_and_export_silhouette_unet(
     onnx_valid, onnx_msg = export_and_validate_onnx(
         pth_path=str(best_pth_path),
         output_onnx_path=str(Path(output_dir) / "silhouette_segmenter.onnx"),
-        engine_onnx_path="models/engines/silhouette_segmenter.onnx",
+        engine_onnx_path="models/model_store/engines/silhouette_segmenter.onnx",
     )
 
     if not onnx_valid:
@@ -155,7 +155,7 @@ def train_and_export_silhouette_unet(
         "epochs": epochs,
         "best_checkpoint": str(best_pth_path),
         "onnx_weights_path": str(Path(output_dir) / "silhouette_segmenter.onnx"),
-        "onnx_engines_path": "models/engines/silhouette_segmenter.onnx",
+        "onnx_engines_path": "models/model_store/engines/silhouette_segmenter.onnx",
         "dice": float(avg_dice),
         "iou": float(avg_iou),
         "precision": float(avg_prec),

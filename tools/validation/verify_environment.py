@@ -218,7 +218,7 @@ def run_verification() -> bool:
         print(f"  [ARGUS ONNX CUDA] CUDA Provider              : {'AVAILABLE' if cuda_avail else 'UNAVAILABLE'}")
         print("  [ARGUS ONNX CUDA] CPU Provider               : AVAILABLE")
 
-        model_path = ROOT / "models/weights/silhouette_segmenter.onnx"
+        model_path = ROOT / "models/model_store/weights/silhouette_segmenter.onnx"
         if model_path.exists():
             req_providers = (
                 ["CUDAExecutionProvider", "CPUExecutionProvider"] if cuda_avail else ["CPUExecutionProvider"]

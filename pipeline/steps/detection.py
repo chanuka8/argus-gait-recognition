@@ -8,7 +8,7 @@ from core.paths import resolve_app_path
 class DetectionStep:
     def __init__(
         self,
-        model_path: str | Path = "models/weights/yolov8n.pt",
+        model_path: str | Path = "models/model_store/weights/yolov8n.pt",
         confidence: float = 0.4,
     ) -> None:
         self.model_path = resolve_app_path(model_path)

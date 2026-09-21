@@ -97,7 +97,7 @@ def test_embedding_database_dimension_and_nan_safeguards(tmp_path):
 def test_osnet_backbone_no_future_warnings():
     from models.reid.osnet_backbone import OSNetBackbone
 
-    backbone = OSNetBackbone(model_path="models/weights/osnet_x0_25.pth")
+    backbone = OSNetBackbone(model_path="models/model_store/weights/osnet_x0_25.pth")
 
     with warnings.catch_warnings(record=True) as recorded_warnings:
         warnings.simplefilter("always")

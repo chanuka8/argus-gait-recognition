@@ -94,22 +94,22 @@ def main() -> None:
 
     parser.add_argument(
         "--gallery-dir",
-        default="models/live_gallery",
+        default="models/galleries/live_gallery",
     )
 
     args = parser.parse_args()
 
-    if args.gallery_dir == "models/live_gallery":
+    if args.gallery_dir == "models/galleries/live_gallery":
         updated_live = set_status(
             person_id=args.person_id,
             status=args.status,
-            gallery_dir="models/live_gallery",
+            gallery_dir="models/galleries/live_gallery",
             verbose=False,
         )
         updated_app = set_status(
             person_id=args.person_id,
             status=args.status,
-            gallery_dir="models/appearance_gallery",
+            gallery_dir="models/galleries/appearance_gallery",
             verbose=False,
         )
         if not updated_live and not updated_app:

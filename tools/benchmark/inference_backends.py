@@ -88,8 +88,8 @@ def benchmark_backend(
         "precision": precision,
         "allow_fallback": True,
         "warmup_iterations": 3,
-        "engine_path": "models/engines/bygait_light_fp16.engine",
-        "onnx_path": "models/engines/bygait_light.onnx",
+        "engine_path": "models/model_store/engines/bygait_light_fp16.engine",
+        "onnx_path": "models/model_store/engines/bygait_light.onnx",
     }
 
     print(f"\n[BENCHMARK] Testing Backend: '{backend_name}' (device={device}, precision={precision})...")

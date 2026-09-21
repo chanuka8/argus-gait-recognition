@@ -102,7 +102,7 @@ def test_startup_validator_missing_gallery_file_produces_warning_notice(monkeypa
     validator = DeploymentStartupValidator()
     monkeypatch.setattr(
         "deployment.startup_validator.validate_gallery_files",
-        lambda *args, **kwargs: (False, "Gallery features file missing in models/gallery", 0),
+        lambda *args, **kwargs: (False, "Gallery features file missing in models/galleries/gallery", 0),
     )
 
     summary = validator.validate_startup(raise_on_failure=False)

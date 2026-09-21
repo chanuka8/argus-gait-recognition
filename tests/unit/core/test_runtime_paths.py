@@ -102,7 +102,7 @@ class TestCorePathsResolver:
         _ = resolve_app_path("configs/inference.yaml")
         _ = resolve_runtime_path("outputs/reports")
         _ = get_config_path("system.yaml")
-        _ = get_model_path("models/weights/yolov8n.pt")
+        _ = get_model_path("models/model_store/weights/yolov8n.pt")
 
         assert Path.cwd() == initial_cwd
 
@@ -161,7 +161,7 @@ class TestExternalCwdSubsystemResolution:
         cfg = PersonDetector._load_config("configs/detection.yaml")
         assert isinstance(cfg, dict)
         assert "model_path" in cfg
-        assert cfg.get("model_path") == "models/weights/yolov8n.pt"
+        assert cfg.get("model_path") == "models/model_store/weights/yolov8n.pt"
 
     def test_pytorch_relative_model_resolves_to_app_root(self, monkeypatch, tmp_path: Path):
         """12. PyTorchBackend resolves model path against app root."""
@@ -179,20 +179,20 @@ class TestExternalCwdSubsystemResolution:
 
         backend = ONNXBackend(
             config={
-                "onnx_path": "models/engines/bygait_light.onnx",
+                "onnx_path": "models/model_store/engines/bygait_light.onnx",
                 "allow_fallback": True,
                 "warmup_iterations": 0,
             }
         )
-        assert backend.onnx_path == (get_app_root() / "models/engines/bygait_light.onnx").resolve()
+        assert backend.onnx_path == (get_app_root() / "models/model_store/engines/bygait_light.onnx").resolve()
 
     def test_tensorrt_relative_engine_resolves_to_app_root(self, monkeypatch, tmp_path: Path):
         """14. TensorRTBackend resolves engine_path against app root."""
         monkeypatch.chdir(tmp_path)
         from models.inference.tensorrt_backend import TensorRTBackend
 
-        backend = TensorRTBackend(config={"engine_path": "models/engines/bygait_light_fp16.engine", "allow_fallback": True})
-        assert backend.engine_path == (get_app_root() / "models/engines/bygait_light_fp16.engine").resolve()
+        backend = TensorRTBackend(config={"engine_path": "models/model_store/engines/bygait_light_fp16.engine", "allow_fallback": True})
+        assert backend.engine_path == (get_app_root() / "models/model_store/engines/bygait_light_fp16.engine").resolve()
 
     def test_person_detector_local_model_zero_download_on_external_cwd(self, monkeypatch, tmp_path: Path):
         """15 & 16. Local YOLO asset under app root is resolved; ZERO download/network attempts."""
@@ -209,7 +209,7 @@ class TestExternalCwdSubsystemResolution:
         configs_dir = fake_app_root / "configs"
         configs_dir.mkdir(parents=True, exist_ok=True)
         detection_yaml_content = (
-            "model_path: models/weights/yolov8n.pt\n"
+            "model_path: models/model_store/weights/yolov8n.pt\n"
             "confidence: 0.4\n"
             "iou_threshold: 0.45\n"
             "classes:\n"
@@ -220,7 +220,7 @@ class TestExternalCwdSubsystemResolution:
         (configs_dir / "detection.yaml").write_text(detection_yaml_content, encoding="utf-8")
 
         # Synthetic placeholder weight (tiny placeholder, not real model)
-        weights_dir = fake_app_root / "models" / "weights"
+        weights_dir = fake_app_root / "models" / "model_store" / "weights"
         weights_dir.mkdir(parents=True, exist_ok=True)
         placeholder_weight = weights_dir / "yolov8n.pt"
         placeholder_weight.write_bytes(b"synthetic_placeholder_yolov8n_weight")
@@ -266,7 +266,7 @@ class TestExternalCwdSubsystemResolution:
         assert len(captured_yolo_paths) == 1
         resolved_yolo_path = Path(captured_yolo_paths[0]).resolve()
 
-        # 2. YOLO received exactly fake_app_root/models/weights/yolov8n.pt as resolved absolute path
+        # 2. YOLO received exactly fake_app_root/models/model_store/weights/yolov8n.pt as resolved absolute path
         expected_model_path = placeholder_weight.resolve()
         assert resolved_yolo_path == expected_model_path
 
@@ -293,7 +293,7 @@ class TestExternalCwdSubsystemResolution:
         from storage.vector_store import VectorStore, validate_gallery_files
 
         store = VectorStore()
-        assert store.gallery_dir == (get_app_root() / "models/gallery").resolve()
+        assert store.gallery_dir == (get_app_root() / "models/galleries/gallery").resolve()
         assert not (tmp_path / "models").exists()
 
         _is_valid, _err, _count = validate_gallery_files()

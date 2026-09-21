@@ -61,7 +61,7 @@ class ArgusService:
             security_threshold=float(rec_cfg.get("security_threshold", 0.90)),
             gei_frames=int(rec_cfg.get("gei_frames", 15)),
             recognition_interval=int(rec_cfg.get("recognition_interval", 10)),
-            gallery_dir=rec_cfg.get("gallery_dir", "models/live_gallery"),
+            gallery_dir=rec_cfg.get("gallery_dir", "models/galleries/live_gallery"),
         )
 
         return pipeline

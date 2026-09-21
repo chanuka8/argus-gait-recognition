@@ -19,10 +19,10 @@ from storage.vector_store import VectorStore
 
 class SweepEvaluator(SplitEvaluator):
     def _build_split_data(self):
-        store = VectorStore(gallery_dir="models/gallery")
+        store = VectorStore(gallery_dir="models/galleries/gallery")
         gallery = store.load()
         if gallery is None:
-            raise RuntimeError("Gallery models/gallery not found. Please build it first.")
+            raise RuntimeError("Gallery models/galleries/gallery not found. Please build it first.")
         features, labels, _metadata = gallery
 
         person_to_indices = defaultdict(list)

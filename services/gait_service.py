@@ -40,7 +40,7 @@ class WebSocketManager:
 
 class GaitService:
     def __init__(
-        self, gallery_dir: str = "models/live_gallery", appearance_gallery_dir: str = "models/appearance_gallery"
+        self, gallery_dir: str = "models/galleries/live_gallery", appearance_gallery_dir: str = "models/galleries/appearance_gallery"
     ) -> None:
         self.logger = setup_logger("ARGUS.GaitService")
         self.gallery_dir = gallery_dir

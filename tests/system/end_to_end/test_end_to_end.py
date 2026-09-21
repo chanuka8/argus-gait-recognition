@@ -23,9 +23,9 @@ def test_inference_pipeline(sample_gei_path):
     if not model_path.exists():
         pytest.skip(f"Required model checkpoint not found: {model_path}")
 
-    gallery = VectorStore(gallery_dir="models/live_gallery").load()
+    gallery = VectorStore(gallery_dir="models/galleries/live_gallery").load()
     if gallery is None:
-        pytest.skip("Required gallery vector store files not found in models/live_gallery")
+        pytest.skip("Required gallery vector store files not found in models/galleries/live_gallery")
 
     pipeline = InferencePipeline()
 

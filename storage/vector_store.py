@@ -22,7 +22,7 @@ logger = logging.getLogger("ARGUS.VectorStore")
 class VectorStore:
     def __init__(
         self,
-        gallery_dir: str | Path = "models/gallery",
+        gallery_dir: str | Path = "models/galleries/gallery",
         gallery_type: str | None = None,
         encryptor: BiometricEncryptor | None = None,
         strict_mode: bool | None = None,
@@ -340,7 +340,7 @@ class VectorStore:
 
 
 def validate_gallery_files(
-    gallery_dir: str | Path = "models/gallery",
+    gallery_dir: str | Path = "models/galleries/gallery",
     expected_dim: int = 256,
     strict_mode: bool | None = None,
     encryptor: BiometricEncryptor | None = None,

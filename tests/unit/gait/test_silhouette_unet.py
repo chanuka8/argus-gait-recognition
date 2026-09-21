@@ -163,11 +163,11 @@ class TestSilhouetteUNetPipeline(unittest.TestCase):
         self.assertEqual(gei.dtype, np.uint8)
 
     @unittest.skipUnless(
-        Path("models/weights/silhouette_segmenter.onnx").exists(),
+        Path("models/model_store/weights/silhouette_segmenter.onnx").exists(),
         "Real ONNX model asset not present in local environment",
     )
     def test_real_onnx_asset_integration(self) -> None:
-        segmenter = LearnedSilhouetteSegmenter(model_path="models/weights/silhouette_segmenter.onnx")
+        segmenter = LearnedSilhouetteSegmenter(model_path="models/model_store/weights/silhouette_segmenter.onnx")
         self.assertTrue(segmenter.is_available())
 
         valid, msg = segmenter.validate_model()
