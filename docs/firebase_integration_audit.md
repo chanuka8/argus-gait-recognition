@@ -2,12 +2,13 @@
 
 ## 1. Executive Overview
 
-This audit establishes the explicit boundary between the **ARGUS Local Real-Time Inference Pipeline** and the **Firebase Asynchronous Persistence & Synchronization Layer**. 
+This audit establishes the explicit boundary between the **ARGUS Local Real-Time Inference Pipeline** and the **Firebase Asynchronous Persistence & Synchronization Layer**.
 
 ### Core Architectural Principle
-* **Real-Time Inference Source of Truth**: Local VectorStore, in-memory galleries, local file persistence, and local PyTorch/TensorFlow execution.
-* **Asynchronous Persistence & Audit Layer**: Firebase Firestore (biometric embeddings, operator accounts, identity lineage, model registry, audit logs) and Firebase Storage (model artifacts, controlled case evidence).
-* **Strict Non-Blocking Invariant**: Firebase is **never** on the synchronous per-frame critical path. If Firebase is offline, degraded, or experiencing network latency, camera streaming, inference, person detection, silhouette extraction, GEI computation, and local vector matching continue with 0ms added latency.
+
+- **Real-Time Inference Source of Truth**: Local VectorStore, in-memory galleries, local file persistence, and local PyTorch/TensorFlow execution.
+- **Asynchronous Persistence & Audit Layer**: Firebase Firestore (biometric embeddings, operator accounts, identity lineage, model registry, audit logs) and Firebase Storage (model artifacts, controlled case evidence).
+- **Strict Non-Blocking Invariant**: Firebase is **never** on the synchronous per-frame critical path. If Firebase is offline, degraded, or experiencing network latency, camera streaming, inference, person detection, silhouette extraction, GEI computation, and local vector matching continue with 0ms added latency.
 
 ---
 
@@ -35,12 +36,14 @@ This audit establishes the explicit boundary between the **ARGUS Local Real-Time
 ## 3. Technical Justifications
 
 ### 3.1 Why Modules are NOT REQUIRED to Use Firebase
+
 1. **Real-Time Gait Recognition Pipeline (Detection -> Tracking -> Silhouette -> GEI -> ByGaitLight -> VectorStore)**:
    Surveillance frames arrive at 15 to 30 FPS per camera. Querying a remote cloud database over WAN/HTTP introduces 50ms to 2000ms latency and creates an external failure dependency. ARGUS executes all feature extraction and gallery matching entirely in local GPU/CPU memory.
 2. **Local Frame Streaming (MJPEG & Snapshots)**:
    Video feeds are generated directly by camera workers (`streaming/camera_worker.py`) using OpenCV and in-memory frame buffers. Video streams are delivered directly to the browser via authenticated HTTP streams (`multipart/x-mixed-replace`) and authenticated snapshot polling, completely bypassing external cloud services.
 
 ### 3.2 Why Modules are REQUIRED to Use Firebase
+
 1. **Operator Authentication (`security_layer/auth.py`)**:
    Enforces single source of truth for operator access, role-based privileges (`Root Admin`, `admin`, `investigator`), and password hash verification. Ensures multi-node deployments share consistent access control.
 2. **Biometric Embedding Store (`storage/firebase_embedding_store.py`)**:

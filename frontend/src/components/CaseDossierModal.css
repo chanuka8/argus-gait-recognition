@@ -9,8 +9,8 @@
     inset: 0;
     z-index: 9999;
     background: rgba(0, 0, 0, 0.75);
-    backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -210,8 +210,6 @@
     flex: 1;
     overflow-y: auto;
     padding: 1.2rem 1.6rem;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(92, 225, 230, 0.2) transparent;
 }
 
 .dossier-body::-webkit-scrollbar {
@@ -820,7 +818,6 @@
 
     .dossier-tabs {
         overflow-x: auto;
-        scrollbar-width: none;
     }
 
     .dossier-tabs::-webkit-scrollbar {

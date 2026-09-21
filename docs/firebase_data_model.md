@@ -4,7 +4,7 @@
 
 The production Firestore database for project `argus-17702` consists of the following primary collections:
 
-```
+```text
 argus-17702 (Firestore Root)
 ├── admins/                      # Administrator operator accounts
 ├── investigators/               # Investigator operator accounts
@@ -22,7 +22,8 @@ argus-17702 (Firestore Root)
 ## 2. Collection Schemas
 
 ### 2.1 `biometric_embeddings` Collection
-* **Document ID**: Deterministic format `emb_{modality[:4]}_{person_id}_{timestamp}_{sha256_slice}`.
+
+- **Document ID**: Deterministic format `emb_{modality[:4]}_{person_id}_{timestamp}_{sha256_slice}`.
 
 | Field Name | Type | Required | Description |
 | :--- | :--- | :--- | :--- |
@@ -32,16 +33,16 @@ argus-17702 (Firestore Root)
 | `embedding_dim` | `number` | Yes | Explicit dimensionality (256 or 512) |
 | `vector` | `list[float]` | Yes | L2-normalized feature vector |
 | `model_version` | `string` | Yes | Model checkpoint version (e.g. `"v1.0.0"`) |
-| `model_architecture`| `string` | Yes | Architecture (e.g. `"ByGaitLight-CNN-256D"`) |
+| `model_architecture` | `string` | Yes | Architecture (e.g. `"ByGaitLight-CNN-256D"`) |
 | `observation_date` | `string` | Yes | ISO date string (`"YYYY-MM-DD"`) for date-aware learning |
 | `capture_timestamp` | `number` | Yes | Unix epoch timestamp of capture |
 | `camera_id` | `string` | Yes | Node identifier where capture occurred |
 | `track_id` | `number` | Yes | ByteTrack tracklet ID |
 | `quality_score` | `number` | Yes | Silhouette/track quality assessment (0.0 - 1.0) |
 | `confidence` | `number` | Yes | Recognition confidence |
-| `operational_state`| `string` | Yes | State machine (`PREDICTED`, `VERIFIED`, `TRAINING_ELIGIBLE`, `TRAINING_CONSUMED`) |
-| `training_consumed`| `boolean`| Yes | Replay protection flag (prevents re-training) |
-| `consumed_by_model`| `string` | No | Version of model that consumed this sample |
+| `operational_state` | `string` | Yes | State machine (`PREDICTED`, `VERIFIED`, `TRAINING_ELIGIBLE`, `TRAINING_CONSUMED`) |
+| `training_consumed` | `boolean` | Yes | Replay protection flag (prevents re-training) |
+| `consumed_by_model` | `string` | No | Version of model that consumed this sample |
 | `provenance` | `map` | Yes | Camera, track, and detector lineage metadata |
 | `created_at` | `number` | Yes | Creation timestamp |
 | `updated_at` | `number` | Yes | Last modification timestamp |
@@ -49,7 +50,8 @@ argus-17702 (Firestore Root)
 ---
 
 ### 2.2 `model_registry` Collection
-* **Document ID**: `{model_type}_{model_version}` (e.g. `bygait_light_v1.0.0`, `dual_modal_fusion_v1.0.0`).
+
+- **Document ID**: `{model_type}_{model_version}` (e.g. `bygait_light_v1.0.0`, `dual_modal_fusion_v1.0.0`).
 
 | Field Name | Type | Required | Description |
 | :--- | :--- | :--- | :--- |
@@ -59,16 +61,17 @@ argus-17702 (Firestore Root)
 | `embedding_dim` | `number` | Yes | 256 for gait, 512 for appearance |
 | `artifact_path` | `string` | Yes | Local weight path or Firebase Storage URI |
 | `checksum_sha256` | `string` | Yes | Checksum of weight binary for integrity |
-| `deployment_status`| `string`| Yes | `CANDIDATE`, `VALIDATING`, `VALIDATED`, `PROMOTED`, `ACTIVE`, `ARCHIVED`, `ROLLED_BACK`, `REJECTED` |
+| `deployment_status` | `string` | Yes | `CANDIDATE`, `VALIDATING`, `VALIDATED`, `PROMOTED`, `ACTIVE`, `ARCHIVED`, `ROLLED_BACK`, `REJECTED` |
 | `previous_production_version` | `string` | No | Model version to revert to on rollback |
-| `validation_metrics`| `map` | Yes | Validation metrics (`rank1`, `mAP`, `tar`, `far`, `frr`) |
-| `promotion_timestamp`| `number`| No | Unix epoch of promotion to `ACTIVE` |
+| `validation_metrics` | `map` | Yes | Validation metrics (`rank1`, `mAP`, `tar`, `far`, `frr`) |
+| `promotion_timestamp` | `number` | No | Unix epoch of promotion to `ACTIVE` |
 | `created_at` | `number` | Yes | Creation epoch timestamp |
 
 ---
 
 ### 2.3 `audit_logs` Collection
-* **Document ID**: `CLE-{timestamp}-{hex}`.
+
+- **Document ID**: `CLE-{timestamp}-{hex}`.
 
 | Field Name | Type | Required | Description |
 | :--- | :--- | :--- | :--- |
@@ -78,11 +81,11 @@ argus-17702 (Firestore Root)
 | `trigger_date` | `string` | Yes | Date batch evaluated |
 | `model_type` | `string` | Yes | Target model category |
 | `baseline_version` | `string` | Yes | Current active model version |
-| `candidate_version`| `string` | Yes | Candidate model under evaluation |
+| `candidate_version` | `string` | Yes | Candidate model under evaluation |
 | `metric_deltas` | `map` | Yes | Performance differences between candidate and baseline |
-| `validation_passed`| `boolean`| Yes | Whether candidate met all statistical safety gates |
+| `validation_passed` | `boolean` | Yes | Whether candidate met all statistical safety gates |
 | `promotion_status` | `string` | Yes | `PROMOTED`, `REJECTED`, `ROLLED_BACK` |
-| `rejection_reasons`| `list[string]`| No | Detailed reason if candidate was rejected |
+| `rejection_reasons` | `list[string]` | No | Detailed reason if candidate was rejected |
 
 ---
 
@@ -99,6 +102,7 @@ stateDiagram-v2
 ```
 
 ### Transition Conditions
+
 1. **PREDICTED**: Initial capture by operational camera worker during live inference.
 2. **VERIFIED**: Identity confirmed either by authoritative enrollment or operator review.
 3. **TRAINING_ELIGIBLE**: Sample passes quality assessment (`quality_score >= 0.85`), silhouette completeness, and is within approved date ranges.

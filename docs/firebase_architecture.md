@@ -55,6 +55,7 @@ flowchart TD
 ## 3. Asynchronous Persistence Boundary
 
 Firebase operations occur entirely outside the frame-processing loop:
+
 1. **Enrollment**: When an operator enrolls a subject, the embeddings are first saved to the local `VectorStore` and `data/embedding_db/persons/{id}.json`. After local persistence is verified, embeddings are dispatched asynchronously to Firebase.
 2. **Offline Queueing & Automatic Sync**:
    - If Firebase Admin SDK is offline or returns a network timeout, the write is buffered into an in-memory queue and written to `data/firebase_offline_store.json`.
@@ -79,6 +80,7 @@ Firebase operations occur entirely outside the frame-processing loop:
 ## 5. Dual-Modal Vector Separation
 
 To prevent dimensionality corruption:
+
 - **Gait Modality**: strictly 256D normalized vector (`embedding_dim=256`, `modality="gait"`).
 - **Appearance Modality**: strictly 512D normalized vector (`embedding_dim=512`, `modality="appearance"`).
 - **Schema Validation**: `FirebaseEmbeddingDocument.validate_schema()` rejects any document where `len(vector) != embedding_dim` or where vectors contain NaN/Inf or zero-norm.
@@ -91,18 +93,21 @@ ARGUS AI implements:
 > **"Thread-safe atomic local model promotion with durable asynchronous Firebase synchronization and reconciliation."**
 
 ### 6.1 Authoritative Local State vs Cloud Mirror
-* **Local Model Registry (`models/model_registry.json`)**: Authoritative for runtime inference. `LOCAL ACTIVE MODEL = runtime authority`.
-* **Firestore Model Registry Mirror (`model_registry` collection)**: Asynchronous cloud mirror and governance state. Cloud outages never stop edge model inference.
+
+- **Local Model Registry (`models/model_registry.json`)**: Authoritative for runtime inference. `LOCAL ACTIVE MODEL = runtime authority`.
+- **Firestore Model Registry Mirror (`model_registry` collection)**: Asynchronous cloud mirror and governance state. Cloud outages never stop edge model inference.
 
 ### 6.2 Transactional Promotion State Machine
-* **Lifecycle**:
+
+- **Lifecycle**:
   `CANDIDATE -> VALIDATED -> PROMOTION_PENDING -> LOCAL_COMMITTED -> CLOUD_SYNC_PENDING -> SYNCHRONIZED`
-* **Cloud Failure Path**:
+- **Cloud Failure Path**:
   `LOCAL_COMMITTED -> CLOUD_SYNC_FAILED -> RECONCILIATION_PENDING -> SYNCHRONIZED`
-* **Rollback Lifecycle**:
+- **Rollback Lifecycle**:
   `ACTIVE -> ROLLBACK_PENDING -> LOCAL_ROLLBACK_COMMITTED -> CLOUD_SYNC_PENDING -> SYNCHRONIZED`
 
 ### 6.3 Local Atomic Commit
+
 1. Acquires internal `threading.RLock()`.
 2. Validates candidate status (`VALIDATED`), file existence, and architecture compatibility.
 3. Increments `registry_revision`.
@@ -110,16 +115,20 @@ ARGUS AI implements:
 5. Atomically replaces destination using `tmp.replace(self.registry_file)`.
 
 ### 6.4 Durable Synchronization Intent (Outbox)
+
 Cloud sync intent is durably persisted to `data/model_sync_outbox.json`:
-* Fields: `event_id`, `model_version`, `model_type`, `desired_status`, `operation`, `registry_revision`, `created_at`, `attempt_count`, `last_attempt_at`, `next_retry_at`, `status`, `checksum_sha256`, `error_info`.
-* Survives process crashes and restarts.
+
+- Fields: `event_id`, `model_version`, `model_type`, `desired_status`, `operation`, `registry_revision`, `created_at`, `attempt_count`, `last_attempt_at`, `next_retry_at`, `status`, `checksum_sha256`, `error_info`.
+- Survives process crashes and restarts.
 
 ### 6.5 Idempotent Cloud Sync & Optimistic Concurrency
-* Synchronization uses deterministic document IDs: `{model_type}_{model_version}`.
-* Active pointer `{model_type}_active_pointer` performs optimistic concurrency checking against `registry_revision` to prevent stale writers from overwriting newer cloud state.
-* Exponential backoff retry for failed cloud writes; marks `RECONCILIATION_REQUIRED` upon retry exhaustion.
+
+- Synchronization uses deterministic document IDs: `{model_type}_{model_version}`.
+- Active pointer `{model_type}_active_pointer` performs optimistic concurrency checking against `registry_revision` to prevent stale writers from overwriting newer cloud state.
+- Exponential backoff retry for failed cloud writes; marks `RECONCILIATION_REQUIRED` upon retry exhaustion.
 
 ### 6.6 Reconciliation (`reconcile_with_firebase()`)
+
 1. Reads local authoritative model state.
 2. Reads pending outbox events.
 3. Local runtime state always wins (`LOCAL > CLOUD`).
@@ -127,13 +136,14 @@ Cloud sync intent is durably persisted to `data/model_sync_outbox.json`:
 5. Marks outbox events `SYNCHRONIZED`.
 
 ### 6.7 Failure Scenarios Matrix
-* **Scenario A (Local Write Succeeds, Cloud Fails)**: Local remains new production model; outbox marks event pending/retrying; inference continues uninterrupted.
-* **Scenario B (Local Write Fails)**: Local active model remains previous version; operation raises safely; zero Firebase active state created.
-* **Scenario C (Crash Recovery)**: Process crash after local commit reloads outbox from disk on restart; reconciliation resumes automatically.
-* **Scenario D (Idempotent Retry)**: Duplicate retries update existing records without creating duplicates or corrupting active state.
-* **Scenario E (Concurrent Promotion)**: Thread lock serializes promotions; registry file remains valid JSON.
-* **Scenario F (Successive Promotions)**: Promotion v2 followed by v3 converges to v3 locally and in cloud.
-* **Scenario G (Rollback During Pending Sync)**: Rollback atomically committed locally; cloud mirror converges to restored version.
+
+- **Scenario A (Local Write Succeeds, Cloud Fails)**: Local remains new production model; outbox marks event pending/retrying; inference continues uninterrupted.
+- **Scenario B (Local Write Fails)**: Local active model remains previous version; operation raises safely; zero Firebase active state created.
+- **Scenario C (Crash Recovery)**: Process crash after local commit reloads outbox from disk on restart; reconciliation resumes automatically.
+- **Scenario D (Idempotent Retry)**: Duplicate retries update existing records without creating duplicates or corrupting active state.
+- **Scenario E (Concurrent Promotion)**: Thread lock serializes promotions; registry file remains valid JSON.
+- **Scenario F (Successive Promotions)**: Promotion v2 followed by v3 converges to v3 locally and in cloud.
+- **Scenario G (Rollback During Pending Sync)**: Rollback atomically committed locally; cloud mirror converges to restored version.
 
 ---
 
@@ -149,7 +159,9 @@ ARGUS AI strictly separates **Automated Security Tests** from **Physical Hardwar
 | **End-to-End Camera -> Gait** | Pipeline Stage Execution | **PASS** | Transport: `PASS`, Decoding: `PASS`, ByGaitLight (256D): `PASS`, OSNet ReID (512D): `PASS`, VectorStore: `PASS` |
 
 ### Deployment Workstation Hardware Validation Procedure
+
 To execute physical hardware probe on deployment surveillance stations:
+
 ```bash
 # 1. Probe local webcam (index 0) and any secondary USB webcam
 .\.venv\Scripts\python.exe scripts/validate_camera_hardware.py --webcam-index 0 --usb-index 1

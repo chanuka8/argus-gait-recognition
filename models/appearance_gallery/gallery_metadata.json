@@ -11,6 +11,12 @@
         "enabled": true,
         "updated_at": 1788477279.3518505
     },
+    "Legit_Person_123": {
+        "embeddings": 27,
+        "status": "ACTIVE",
+        "enabled": true,
+        "updated_at": 1789580151.2700858
+    },
     "MP_OFF_PHOTO_01": {
         "embeddings": 1,
         "status": "ACTIVE",
@@ -24,21 +30,27 @@
         "updated_at": 1788486547.892624
     },
     "MP_PHOTO_001": {
-        "embeddings": 21,
+        "embeddings": 45,
         "status": "ACTIVE",
         "enabled": true,
-        "updated_at": 1788487425.1204123
+        "updated_at": 1789593124.189337
     },
     "subject999": {
-        "embeddings": 89,
+        "embeddings": 121,
         "status": "ACTIVE",
         "enabled": true,
-        "updated_at": 1788487373.4414396
+        "updated_at": 1789594592.2935467
+    },
+    "subject_101": {
+        "embeddings": 1,
+        "status": "ACTIVE",
+        "enabled": true,
+        "updated_at": 1789452955.278357
     },
     "Subject_42": {
-        "embeddings": 34,
+        "embeddings": 72,
         "status": "ACTIVE",
         "enabled": true,
-        "updated_at": 1788487503.8675606
+        "updated_at": 1789971046.4734738
     }
 }

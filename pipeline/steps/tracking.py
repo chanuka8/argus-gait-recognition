@@ -48,10 +48,22 @@ class TrackingStep:
             self.detector = getattr(detector, "model", detector)
         else:
             self.detector_wrapper = None
-            if self.model_path.exists():
-                self.detector = YOLO(str(self.model_path))
+            from security_layer.model_integrity import (
+                ROLE_PERSON_DETECTOR,
+                get_model_verifier,
+                verify_model,
+            )
+
+            verifier = get_model_verifier()
+            if verifier.is_strict_mode():
+                verified_path = verify_model(self.model_path, expected_role=ROLE_PERSON_DETECTOR)
+                self.detector = YOLO(str(verified_path))
             else:
-                self.detector = YOLO("yolov8n.pt")
+                if self.model_path.exists():
+                    verified_path = verify_model(self.model_path, expected_role=ROLE_PERSON_DETECTOR)
+                    self.detector = YOLO(str(verified_path))
+                else:
+                    self.detector = YOLO("yolov8n.pt")
 
             if self.runtime_device:
                 try:
