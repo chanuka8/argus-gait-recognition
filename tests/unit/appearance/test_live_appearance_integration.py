@@ -6,14 +6,14 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
-from intelligence.appearance_embedding import AppearanceEmbeddingExtractor
-from pipeline.steps.appearance_matching_step import AppearanceMatchingStep
-from services.recognition_worker import (
+from app.intelligence.appearance_embedding import AppearanceEmbeddingExtractor
+from app.pipeline.steps.appearance_matching_step import AppearanceMatchingStep
+from app.services.recognition_worker import (
     RecognitionResult,
     RecognitionResultCache,
     RecognitionWorker,
 )
-from storage.vector_store import VectorStore
+from app.storage.vector_store import VectorStore
 
 
 @pytest.fixture

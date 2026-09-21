@@ -31,10 +31,7 @@ import torch
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519
 
-from deployment.doctor import run_doctor
-from deployment.startup_validator import DeploymentStartupValidator
-from models.architectures.bygait_light import ByGaitLight
-from security_layer.model_confidentiality import (
+from app.security_layer.model_confidentiality import (
     MAGIC_HEADER,
     ArtifactConfidentiality,
     EnvModelKeyProvider,
@@ -51,7 +48,7 @@ from security_layer.model_confidentiality import (
     load_verified_model_bytes,
     resolve_artifact_confidentiality,
 )
-from security_layer.model_integrity import (
+from app.security_layer.model_integrity import (
     ROLE_APPEARANCE_EMBEDDING,
     ROLE_GAIT_EMBEDDING,
     ROLE_PERSON_DETECTOR,
@@ -61,8 +58,11 @@ from security_layer.model_integrity import (
     ModelTrustConfigurationError,
     canonical_manifest_bytes,
 )
-from tools.security.encrypt_model_artifact import provision_encrypted_artifact
-from tools.security.sign_model_manifest import sign_manifest
+from ml_platform.models.architectures.bygait_light import ByGaitLight
+from ops.deployment.doctor import run_doctor
+from ops.deployment.startup_validator import DeploymentStartupValidator
+from ops.tools.security.encrypt_model_artifact import provision_encrypted_artifact
+from ops.tools.security.sign_model_manifest import sign_manifest
 
 
 @pytest.fixture
@@ -619,7 +619,7 @@ def test_13_provisioning_complete_write_guarantee(tmp_path, signed_model_fixture
             return PartialWriter(fh)
         return fh
 
-    with patch("tools.security.encrypt_model_artifact.os.fdopen", side_effect=fake_fdopen):
+    with patch("ops.tools.security.encrypt_model_artifact.os.fdopen", side_effect=fake_fdopen):
         with pytest.raises(ModelProvisioningError) as exc_info:
             provision_encrypted_artifact(
                 source_path=src,

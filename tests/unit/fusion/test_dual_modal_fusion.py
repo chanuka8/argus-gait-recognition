@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from intelligence.fusion.dual_modal_fusion import DualModalFusion
+from app.intelligence.fusion.dual_modal_fusion import DualModalFusion
 
 
 def test_dual_modal_fusion_defaults_and_config():

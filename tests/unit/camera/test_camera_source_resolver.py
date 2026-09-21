@@ -4,10 +4,10 @@ import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 
-from api.server import app
-from services.camera_source_resolver import CameraSourceResolver
-from services.camera_worker import normalize_camera_source
-from services.gait_service import GaitService
+from app.api.server import app
+from app.services.camera_source_resolver import CameraSourceResolver
+from app.services.camera_worker import normalize_camera_source
+from app.services.gait_service import GaitService
 
 
 def _dummy_frame():
@@ -75,7 +75,7 @@ def test_gait_service_auto_source_lifecycle():
     mock_cap.read.return_value = (True, _dummy_frame())
 
     with (
-        patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
+        patch("app.services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
         patch.object(service.source_resolver, "probe_usb_webcam", return_value=True),
     ):
         info = service.start_camera(camera_id="CCTV-AUTO-1", source="auto", location="Sector A", zone_id="Z01")
@@ -98,8 +98,8 @@ def test_api_cameras_start_auto_contract():
 
     with (
         TestClient(app) as client,
-        patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
-        patch("services.camera_source_resolver.CameraSourceResolver.probe_usb_webcam", return_value=True),
+        patch("app.services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
+        patch("app.services.camera_source_resolver.CameraSourceResolver.probe_usb_webcam", return_value=True),
     ):
         resp = client.post(
             "/api/v1/cameras/start",

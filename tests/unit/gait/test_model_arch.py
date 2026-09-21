@@ -8,8 +8,8 @@ sys.path.insert(0, str(ROOT))
 import torch
 import torch.nn.functional as F
 
-from models.architectures.bygait_light import ByGaitLight
-from models.architectures.losses import ArcMarginProduct
+from ml_platform.models.architectures.bygait_light import ByGaitLight
+from ml_platform.models.architectures.losses import ArcMarginProduct
 
 
 class TestModelArchitecture(unittest.TestCase):

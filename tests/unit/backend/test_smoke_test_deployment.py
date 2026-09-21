@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 
 import numpy as np
 
-from tools.validation.deployment_smoke_test import run_deployment_smoke_test
+from ops.tools.validation.deployment_smoke_test import run_deployment_smoke_test
 
 
 def test_smoke_test_complete_success(tmp_path: Path):
@@ -26,7 +26,7 @@ def test_smoke_test_backend_initialization_failure(monkeypatch, tmp_path: Path):
         }
 
     monkeypatch.setattr(
-        "tools.validation.deployment_smoke_test.DeploymentStartupValidator.validate_startup",
+        "ops.tools.validation.deployment_smoke_test.DeploymentStartupValidator.validate_startup",
         mock_validate_startup,
     )
 
@@ -51,7 +51,7 @@ def test_smoke_test_invalid_embedding_output(monkeypatch, tmp_path: Path):
         }
 
     monkeypatch.setattr(
-        "tools.validation.deployment_smoke_test.DeploymentStartupValidator.validate_startup",
+        "ops.tools.validation.deployment_smoke_test.DeploymentStartupValidator.validate_startup",
         mock_validate_startup,
     )
 
@@ -77,11 +77,11 @@ def test_smoke_test_report_write_failure(monkeypatch, tmp_path: Path):
 def test_smoke_test_singular_missing_gallery_file_passes(monkeypatch, tmp_path: Path):
     missing_response = (False, "Gallery features file missing in models/galleries/gallery", 0)
     monkeypatch.setattr(
-        "tools.validation.deployment_smoke_test.validate_gallery_files",
+        "ops.tools.validation.deployment_smoke_test.validate_gallery_files",
         lambda *args, **kwargs: missing_response,
     )
     monkeypatch.setattr(
-        "deployment.startup_validator.validate_gallery_files",
+        "ops.deployment.startup_validator.validate_gallery_files",
         lambda *args, **kwargs: missing_response,
     )
 
@@ -95,7 +95,7 @@ def test_smoke_test_singular_missing_gallery_file_passes(monkeypatch, tmp_path: 
 
 def test_smoke_test_corrupted_gallery_records_defect(monkeypatch, tmp_path: Path):
     monkeypatch.setattr(
-        "tools.validation.deployment_smoke_test.validate_gallery_files",
+        "ops.tools.validation.deployment_smoke_test.validate_gallery_files",
         lambda *args, **kwargs: (
             False,
             "Corrupted feature array: NaN detected in gallery_features.npy",

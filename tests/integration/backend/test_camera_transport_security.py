@@ -23,7 +23,7 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
-from security_layer.credentials import (
+from app.security_layer.credentials import (
     CameraTransportSecurityError,
     build_rtsp_url,
     build_stream_url,
@@ -36,8 +36,8 @@ from security_layer.credentials import (
     sanitize_stream_url,
     validate_camera_transport,
 )
-from services.camera_source_resolver import CameraSourceResolver
-from services.camera_worker import CameraWorker
+from app.services.camera_source_resolver import CameraSourceResolver
+from app.services.camera_worker import CameraWorker
 
 # RFC 5737 TEST-NET reserved synthetic documentation addresses (guaranteed non-routable)
 SYNTHETIC_RTSP_PLAINTEXT = "rtsp://192.0.2.10:554/live/ch0"

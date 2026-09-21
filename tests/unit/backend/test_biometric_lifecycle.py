@@ -10,8 +10,8 @@ from unittest.mock import MagicMock
 import numpy as np
 import pytest
 
-from services.reference_job_manager import ReferenceJobManager, ReferenceJobStatus
-from storage.embedding_database import EmbeddingDatabase
+from app.services.reference_job_manager import ReferenceJobManager, ReferenceJobStatus
+from app.storage.embedding_database import EmbeddingDatabase
 
 
 @pytest.fixture
@@ -194,7 +194,7 @@ def test_process_reference_photos_async_flow(temp_db_env):
     """Test decoupled async photo processing via MissingPersonVideoProcessor."""
     import cv2
 
-    from services.missing_person_processor import MissingPersonVideoProcessor
+    from app.services.missing_person_processor import MissingPersonVideoProcessor
 
     db: EmbeddingDatabase = temp_db_env["db"]
     job_mgr: ReferenceJobManager = temp_db_env["job_mgr"]

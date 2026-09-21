@@ -9,14 +9,14 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from evaluation.evaluator_3d import Evaluator3D
-from models.architectures.pose_gait_3d import (
+from app.pipeline.steps.gait_3d_step import Gait3DStep
+from ml_platform.evaluation.evaluator_3d import Evaluator3D
+from ml_platform.models.architectures.pose_gait_3d import (
     PoseGait3DNet,
     PoseLifter3D,
     SkeletonNormalizer3D,
     TemporalPoseBuffer,
 )
-from pipeline.steps.gait_3d_step import Gait3DStep
 
 
 class TestPoseGait3D(unittest.TestCase):

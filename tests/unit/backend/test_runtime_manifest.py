@@ -1,15 +1,15 @@
 from pathlib import Path
 
-from deployment.runtime_manifest import RuntimeManifest, generate_runtime_manifest_artifacts, get_runtime_manifest
+from ops.deployment.runtime_manifest import RuntimeManifest, generate_runtime_manifest_artifacts, get_runtime_manifest
 
 
 def test_runtime_manifest_lists_required_and_excludes_dev_assets():
     manifest = get_runtime_manifest()
 
     assert "main.py" in manifest.runtime_assets
-    assert any(a.startswith("core/") for a in manifest.runtime_assets)
+    assert any(a.startswith("app/core/") for a in manifest.runtime_assets)
     assert any(a.startswith("configs/") for a in manifest.runtime_assets)
-    assert "tools/validation/doctor.py" in manifest.runtime_assets
+    assert "ops/tools/validation/doctor.py" in manifest.runtime_assets
 
     assert "tests" in manifest.build_assets
     assert "pytest.ini" in manifest.build_assets

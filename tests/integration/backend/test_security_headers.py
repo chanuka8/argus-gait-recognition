@@ -31,9 +31,9 @@ from fastapi.responses import Response
 from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
-from api.server import app
-from security_layer.auth import get_session_store
-from security_layer.security_headers import SecurityHeadersMiddleware
+from app.api.server import app
+from app.security_layer.auth import get_session_store
+from app.security_layer.security_headers import SecurityHeadersMiddleware
 
 
 @pytest.fixture

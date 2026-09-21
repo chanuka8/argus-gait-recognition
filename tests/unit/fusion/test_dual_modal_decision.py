@@ -1,7 +1,7 @@
 import pytest
 
-from intelligence.fusion.dual_modal_fusion import DualModalFusion
-from services.recognition_worker import (
+from app.intelligence.fusion.dual_modal_fusion import DualModalFusion
+from app.services.recognition_worker import (
     RecognitionWorker,
 )
 

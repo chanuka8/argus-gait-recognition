@@ -73,15 +73,15 @@ reporting:
 
 reid:
   enabled: true
-  model_path: "models/model_store/weights/osnet_x0_25.pth"
+  model_path: "ml_platform/models/model_store/weights/osnet_x0_25.pth"
   device: "auto"
   batch_size: 8
   similarity_threshold: 0.72
 
 gait_3d:
   enabled: false
-  pose_model_path: "models/model_store/weights/yolov8n-pose.pt"
-  model_path: "models/model_store/weights/gait3d_pose_lifter.pth"
+  pose_model_path: "ml_platform/models/model_store/weights/yolov8n-pose.pt"
+  model_path: "ml_platform/models/model_store/weights/gait3d_pose_lifter.pth"
   sequence_length: 30
   confidence_threshold: 0.30
   device: "auto"
@@ -123,7 +123,7 @@ open_set:
 
 silhouette:
   method: "learned"
-  model_path: "models/model_store/weights/silhouette_segmenter.onnx"
+  model_path: "ml_platform/models/model_store/weights/silhouette_segmenter.onnx"
   threshold: 0.5
   target_size: [64, 128]
 
@@ -229,9 +229,9 @@ inference_backend:
   backend: pytorch
   device: auto
   precision: fp32
-  model_path: "models/model_store/candidates/exp_003e_hpp_arcface_triplet025_best.pth"
-  engine_path: models/model_store/engines/bygait_light_fp16.engine
-  onnx_path: models/model_store/engines/bygait_light.onnx
+  model_path: "ml_platform/models/model_store/candidates/exp_003e_hpp_arcface_triplet025_best.pth"
+  engine_path: ml_platform/models/model_store/engines/bygait_light_fp16.engine
+  onnx_path: ml_platform/models/model_store/engines/bygait_light.onnx
   allow_fallback: true
   warmup_iterations: 3
   dynamic_batch: false

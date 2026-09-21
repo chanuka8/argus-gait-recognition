@@ -31,9 +31,9 @@ from unittest.mock import MagicMock
 import pytest
 from fastapi.testclient import TestClient
 
-from api.server import app
-from security_layer.auth import get_session_store
-from services.upload_session_manager import UploadSessionManager
+from app.api.server import app
+from app.security_layer.auth import get_session_store
+from app.services.upload_session_manager import UploadSessionManager
 
 
 @pytest.fixture
@@ -95,7 +95,7 @@ def test_normal_successful_api_behavior_unchanged(client, admin_token):
 
 def test_image_analysis_internal_filesystem_exception_sanitized(client, admin_token, sample_image_bytes, caplog):
     """Prove that internal FileNotFoundError with filesystem path is sanitized and logged internally."""
-    from api.v1.router import get_gait_service
+    from app.api.v1.router import get_gait_service
 
     fake_service = MagicMock()
     fake_service.process_image_bytes.side_effect = FileNotFoundError(
@@ -126,7 +126,7 @@ def test_image_analysis_internal_filesystem_exception_sanitized(client, admin_to
 
 def test_image_analysis_database_and_token_exception_sanitized(client, admin_token, sample_image_bytes):
     """Prove that internal database connection string containing secret credentials is sanitized."""
-    from api.v1.router import get_gait_service
+    from app.api.v1.router import get_gait_service
 
     fake_service = MagicMock()
     fake_service.process_image_bytes.side_effect = RuntimeError(
@@ -166,7 +166,7 @@ def test_image_analysis_corrupted_format_validation_preserved(client, admin_toke
 
 def test_image_analysis_unexpected_value_error_sanitized(client, admin_token, sample_image_bytes):
     """Prove that unexpected ValueError with internal details (e.g. array broadcast dimensions) is sanitized."""
-    from api.v1.router import get_gait_service
+    from app.api.v1.router import get_gait_service
 
     fake_service = MagicMock()
     fake_service.process_image_bytes.side_effect = ValueError(
@@ -254,7 +254,7 @@ def test_video_analysis_empty_file_validation_preserved(client, admin_token):
 
 def test_credential_store_permission_error_sanitized(client, admin_token, monkeypatch):
     """Prove that PermissionError leaking existing owner username is sanitized."""
-    from security_layer.credentials import CredentialManager
+    from app.security_layer.credentials import CredentialManager
 
     def mock_store(*args, **kwargs):
         raise PermissionError("User 'sec09_admin' cannot overwrite credential 'cred_cctv' owned by 'root_system_admin'")
@@ -279,7 +279,7 @@ def test_credential_store_permission_error_sanitized(client, admin_token, monkey
 
 def test_credential_store_runtime_exception_sanitized(client, admin_token, monkeypatch, caplog):
     """Prove that internal encryption key exception leaking file paths is sanitized."""
-    from security_layer.credentials import CredentialManager
+    from app.security_layer.credentials import CredentialManager
 
     def mock_store(*args, **kwargs):
         raise RuntimeError("Fernet encryption key file missing at E:\\ARGUS_AI\\.credentials.key")
@@ -307,7 +307,7 @@ def test_credential_store_runtime_exception_sanitized(client, admin_token, monke
 
 def test_credential_delete_and_share_permission_error_sanitized(client, admin_token, monkeypatch):
     """Prove that credential delete and share permission errors do not disclose usernames or paths."""
-    from security_layer.credentials import CredentialManager
+    from app.security_layer.credentials import CredentialManager
 
     def mock_delete(*args, **kwargs):
         raise PermissionError(
@@ -346,7 +346,7 @@ def test_credential_delete_and_share_permission_error_sanitized(client, admin_to
 
 def test_camera_startup_runtime_and_generic_exception_sanitized(client, admin_token):
     """Prove that camera RTSP stream failure leaking credentials or C++ traces is sanitized."""
-    from api.v1.router import get_gait_service
+    from app.api.v1.router import get_gait_service
 
     fake_service = MagicMock()
     # 1. Test RuntimeError (HTTP 400)
@@ -389,7 +389,7 @@ def test_camera_startup_runtime_and_generic_exception_sanitized(client, admin_to
 
 def test_enrollment_internal_exception_sanitized(client, admin_token, sample_image_bytes):
     """Prove that enrollment exceptions leaking disk paths are sanitized."""
-    from api.v1.router import get_gait_service
+    from app.api.v1.router import get_gait_service
 
     fake_service = MagicMock()
     fake_service.enroll_images.side_effect = OSError("Disk write failed: '/var/gallery/database/embeddings.npy'")
@@ -563,8 +563,8 @@ def test_legacy_routes_exception_sanitized(monkeypatch):
     """Prove that legacy /identify and /enroll routes sanitize internal exceptions."""
     from fastapi import FastAPI
 
-    from api.legacy import enrollment as legacy_enroll
-    from api.legacy import inference as legacy_infer
+    from app.api.legacy import enrollment as legacy_enroll
+    from app.api.legacy import inference as legacy_infer
 
     test_app = FastAPI()
     test_app.include_router(legacy_infer.router)
@@ -572,7 +572,7 @@ def test_legacy_routes_exception_sanitized(monkeypatch):
 
     with TestClient(test_app, raise_server_exceptions=False) as legacy_client:
         # Mock InferencePipeline to raise internal exception with path
-        from pipeline import inference_pipeline
+        from app.pipeline import inference_pipeline
 
         monkeypatch.setattr(
             inference_pipeline.InferencePipeline,
@@ -586,7 +586,7 @@ def test_legacy_routes_exception_sanitized(monkeypatch):
         assert "/opt/models" not in resp.text
 
         # Mock EnrollmentManager to raise internal exception with path
-        from enrollment import enrollment_manager
+        from app.enrollment import enrollment_manager
 
         monkeypatch.setattr(
             enrollment_manager.EnrollmentManager,
@@ -602,7 +602,7 @@ def test_legacy_routes_exception_sanitized(monkeypatch):
 
 def test_reference_job_status_sanitizes_resumed_error(client, admin_token):
     """Prove that ReferenceJobManager fail_job records a safe message on resumed error."""
-    from services.reference_job_manager import ReferenceJobManager
+    from app.services.reference_job_manager import ReferenceJobManager
 
     mgr = ReferenceJobManager.get_instance()
     job = mgr.create_job(
@@ -625,7 +625,7 @@ def test_reference_job_status_sanitizes_resumed_error(client, admin_token):
 
 def test_reference_job_recovery_sanitizes_missing_video_path(tmp_path):
     """Prove that ReferenceJobManager recovery does not leak absolute server path when media is missing."""
-    from services.reference_job_manager import ReferenceJobManager, ReferenceJobStatus
+    from app.services.reference_job_manager import ReferenceJobManager, ReferenceJobStatus
 
     mgr = ReferenceJobManager(jobs_dir=str(tmp_path / "jobs"))
     try:

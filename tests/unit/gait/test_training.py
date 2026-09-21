@@ -10,8 +10,8 @@ import torch
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
-from training.dataloader import build_dataloaders
-from training.trainer import GaitClassifier, Trainer
+from ml_platform.training.dataloader import build_dataloaders
+from ml_platform.training.trainer import GaitClassifier, Trainer
 
 
 def test_gei_dataloader() -> None:

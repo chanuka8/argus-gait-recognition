@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "argus-ai"
+version = "0.1.0"
+description = "ARGUS AI - Gait Recognition and Intelligent CCTV Surveillance ML System"
+requires-python = ">=3.11"
+
+[tool.setuptools.packages.find]
+include = ["app*", "ml_platform*", "ops*"]
+
+[tool.setuptools]
+py-modules = ["cli", "main"]

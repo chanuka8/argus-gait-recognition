@@ -71,7 +71,7 @@ def setup_test_auth_headers(request, monkeypatch):
 
     from fastapi.testclient import TestClient
 
-    from security_layer.auth import get_session_store
+    from app.security_layer.auth import get_session_store
 
     session = get_session_store().create_session(
         operator_id="test_admin_auto",
@@ -97,7 +97,7 @@ def setup_test_auth_headers(request, monkeypatch):
 def isolate_operator_storage(tmp_path, monkeypatch):
     """Hermetically isolate operator store in all tests to prevent mutating production/offline disk files."""
     monkeypatch.setenv("ARGUS_OPERATOR_STORE_MODE", "offline")
-    from security_layer.auth import get_operator_store
+    from app.security_layer.auth import get_operator_store
 
     op_store = get_operator_store()
     orig_path = op_store.offline_store_path

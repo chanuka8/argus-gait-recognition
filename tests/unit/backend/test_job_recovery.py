@@ -15,20 +15,20 @@ import cv2
 import numpy as np
 from fastapi.testclient import TestClient
 
-from api.server import app
-from security_layer.auth import get_session_store
-from security_layer.authorization import Role
-from services.missing_person_processor import (
+from app.api.server import app
+from app.security_layer.auth import get_session_store
+from app.security_layer.authorization import Role
+from app.services.missing_person_processor import (
     MissingPersonVideoProcessor,
     TrackSummary,
     ValidatedEmbedding,
 )
-from services.reference_job_manager import (
+from app.services.reference_job_manager import (
     ReferenceJobManager,
     ReferenceJobStatus,
 )
-from storage.embedding_database import EmbeddingDatabase
-from storage.vector_store import VectorStore
+from app.storage.embedding_database import EmbeddingDatabase
+from app.storage.vector_store import VectorStore
 
 
 def _create_synthetic_video_frames(

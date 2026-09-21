@@ -94,7 +94,7 @@ ARGUS AI implements:
 
 ### 6.1 Authoritative Local State vs Cloud Mirror
 
-- **Local Model Registry (`models/model_registry.json`)**: Authoritative for runtime inference. `LOCAL ACTIVE MODEL = runtime authority`.
+- **Local Model Registry (`ml_platform/models/model_registry.json`)**: Authoritative for runtime inference. `LOCAL ACTIVE MODEL = runtime authority`.
 - **Firestore Model Registry Mirror (`model_registry` collection)**: Asynchronous cloud mirror and governance state. Cloud outages never stop edge model inference.
 
 ### 6.2 Transactional Promotion State Machine

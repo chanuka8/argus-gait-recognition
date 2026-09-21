@@ -3,8 +3,8 @@ from unittest.mock import MagicMock
 
 import numpy as np
 
-from pipeline.detection.person_detector import PersonDetector
-from pipeline.steps.tracking import TrackingStep
+from app.pipeline.detection.person_detector import PersonDetector
+from app.pipeline.steps.tracking import TrackingStep
 
 
 class TestPersonDetector(unittest.TestCase):

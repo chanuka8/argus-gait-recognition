@@ -7,7 +7,7 @@ The `configs` package contains declarative YAML and JSON configuration manifests
 - Storing declarative parameters for inference, training, system logging, and multi-camera setup.
 - Providing environment profile presets for GPU execution and subject-disjoint evaluation protocols.
 - Decoupling algorithmic hyper-parameters from Python codebase implementation.
-- Boundaries: Does not parse or mutate files at runtime; modules in `core/config.py` read these manifests.
+- Boundaries: Does not parse or mutate files at runtime; modules in `app/core/config.py` read these manifests.
 
 ## Key Modules
 
@@ -33,7 +33,7 @@ The `configs` package contains declarative YAML and JSON configuration manifests
 
 ## Data Flow
 
-YAML/JSON Manifests → `core/config.py` / `utils/detection_reporter.py` → In-memory Config Dictionaries → Pipeline Engine.
+YAML/JSON Manifests → `app/core/config.py` / `app/utils/detection_reporter.py` → In-memory Config Dictionaries → Pipeline Engine.
 
 ## Configuration
 

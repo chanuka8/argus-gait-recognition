@@ -4,7 +4,7 @@ import unittest
 import cv2
 import numpy as np
 
-from pipeline.steps.live_gei import LiveGEI
+from app.pipeline.steps.live_gei import LiveGEI
 
 
 class TestLiveGEICycle(unittest.TestCase):

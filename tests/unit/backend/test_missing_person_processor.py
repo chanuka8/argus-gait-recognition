@@ -7,10 +7,10 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from services.missing_person_processor import MissingPersonVideoProcessor, TrackSummary, ValidatedEmbedding
-from services.reference_job_manager import ReferenceJobManager, ReferenceJobStatus
-from storage.embedding_database import EmbeddingDatabase
-from storage.vector_store import VectorStore
+from app.services.missing_person_processor import MissingPersonVideoProcessor, TrackSummary, ValidatedEmbedding
+from app.services.reference_job_manager import ReferenceJobManager, ReferenceJobStatus
+from app.storage.embedding_database import EmbeddingDatabase
+from app.storage.vector_store import VectorStore
 
 
 def _create_synthetic_video(
@@ -98,7 +98,7 @@ class TestMissingPersonVideoProcessor(unittest.TestCase):
         self.assertFalse(hasattr(self.processor, "camera_id"))
 
         # Confirm module does not import camera workers
-        processor_mod = sys.modules["services.missing_person_processor"]
+        processor_mod = sys.modules["app.services.missing_person_processor"]
         self.assertNotIn("CameraWorker", processor_mod.__dict__)
         self.assertNotIn("RecognitionWorker", processor_mod.__dict__)
 
@@ -353,7 +353,7 @@ class TestMissingPersonVideoProcessor(unittest.TestCase):
 
     def test_live_cctv_lifecycle_unaffected(self) -> None:
         """Requirement 6 & 12: Offline reference processing does not mutate or affect live CCTV streams."""
-        from services.gait_service import GaitService
+        from app.services.gait_service import GaitService
 
         # Instantiate GaitService with isolated test directories
         gait_svc = GaitService(

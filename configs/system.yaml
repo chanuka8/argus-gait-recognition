@@ -57,7 +57,7 @@ recognition:
   # Path to trained model checkpoint
   model_path: "runs/exp_001/best_model.pth"
   # Gallery directory for enrolled identities
-  gallery_dir: "models/galleries/live_gallery"
+  gallery_dir: "ml_platform/models/galleries/live_gallery"
   # Recognition confidence threshold
   threshold: 0.85
   # Alert trigger threshold

@@ -4,7 +4,7 @@ import time
 import numpy as np
 import pytest
 
-from streaming.production_runtime import (
+from app.streaming.production_runtime import (
     AdaptiveResourceManager,
     CameraResource,
     CameraState,

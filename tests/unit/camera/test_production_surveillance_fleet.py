@@ -4,19 +4,19 @@ from unittest.mock import MagicMock, patch
 
 import numpy as np
 
-from intelligence.evidence.operational_embedding_collector import (
+from app.intelligence.evidence.operational_embedding_collector import (
     OperationalEmbeddingCollector,
 )
-from intelligence.fusion.dual_modal_fusion import DualModalFusion
-from intelligence.tracking.track_identity_aggregator import TrackIdentityAggregator
-from services.camera_manager import CameraManager
-from services.camera_worker import CameraWorker
-from streaming.deployment_readiness import (
+from app.intelligence.fusion.dual_modal_fusion import DualModalFusion
+from app.intelligence.tracking.track_identity_aggregator import TrackIdentityAggregator
+from app.services.camera_manager import CameraManager
+from app.services.camera_worker import CameraWorker
+from app.streaming.deployment_readiness import (
     AdmissionDecision,
     CameraAdmissionController,
     DeploymentReadinessManager,
 )
-from streaming.production_multicamera_engine import (
+from app.streaming.production_multicamera_engine import (
     HardwareProfile,
     ProductionMultiCameraEngine,
 )

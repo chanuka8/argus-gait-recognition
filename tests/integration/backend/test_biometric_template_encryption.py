@@ -30,18 +30,18 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from security_layer.biometric_encryption import (
+from app.security_layer.biometric_encryption import (
     BiometricDecryptionError,
     BiometricEncryptor,
     ConfigurationError,
     ContainerFormatError,
 )
-from storage.embedding_database import EmbeddingDatabase, PersonRecord
-from storage.vector_store import VectorStore, validate_gallery_files
-from tools.security.migrate_gallery_encryption import (
+from app.storage.embedding_database import EmbeddingDatabase, PersonRecord
+from app.storage.vector_store import VectorStore, validate_gallery_files
+from ops.tools.security.migrate_gallery_encryption import (
     main as migration_cli_main,
 )
-from tools.security.migrate_gallery_encryption import (
+from ops.tools.security.migrate_gallery_encryption import (
     migrate_embedding_db,
     migrate_vector_store,
     verify_vector_store,
@@ -56,9 +56,9 @@ def _compute_storage_fingerprint() -> dict[str, tuple[int, str]]:
     """Compute exact fingerprint (size, sha256) of all files in real biometric directories."""
     fingerprint = {}
     prod_dirs = [
-        Path("models/galleries/gallery"),
-        Path("models/galleries/live_gallery"),
-        Path("models/galleries/appearance_gallery"),
+        Path("ml_platform/models/galleries/gallery"),
+        Path("ml_platform/models/galleries/live_gallery"),
+        Path("ml_platform/models/galleries/appearance_gallery"),
         Path("data/runtime/embedding_db"),
     ]
     for d in prod_dirs:
@@ -646,9 +646,9 @@ def test_migration_dry_run_preserves_originals(tmp_path, encryptor, synthetic_ga
 def test_real_gallery_paths_untouched():
     """Verify that implementation tasks did NOT mutate production galleries or databases."""
     prod_paths = [
-        Path("models/galleries/gallery"),
-        Path("models/galleries/live_gallery"),
-        Path("models/galleries/appearance_gallery"),
+        Path("ml_platform/models/galleries/gallery"),
+        Path("ml_platform/models/galleries/live_gallery"),
+        Path("ml_platform/models/galleries/appearance_gallery"),
         Path("data/runtime/embedding_db"),
     ]
     for p in prod_paths:
@@ -782,7 +782,7 @@ def test_migration_purge_safeguard_refuses_without_valid_enc(tmp_path, encryptor
     np.save(lbl_file, labels)
 
     with patch(
-        "tools.security.migrate_gallery_encryption.verify_vector_store",
+        "ops.tools.security.migrate_gallery_encryption.verify_vector_store",
         return_value={"is_valid": False, "error": "Simulated corruption"},
     ):
         res = migrate_vector_store(gal_dir, encryptor, dry_run=False, purge_plaintext=True)

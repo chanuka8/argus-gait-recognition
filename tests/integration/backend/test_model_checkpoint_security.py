@@ -27,8 +27,7 @@ import torch
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519
 
-from models.architectures.bygait_light import ByGaitLight
-from security_layer.model_integrity import (
+from app.security_layer.model_integrity import (
     ROLE_APPEARANCE_EMBEDDING,
     ROLE_GAIT_EMBEDDING,
     ROLE_PERSON_DETECTOR,
@@ -44,6 +43,7 @@ from security_layer.model_integrity import (
     compute_file_sha256,
     load_public_key,
 )
+from ml_platform.models.architectures.bygait_light import ByGaitLight
 
 
 @pytest.fixture
@@ -634,7 +634,7 @@ def test_26_malicious_pickle_rejected_by_weights_only(tmp_path: Path):
 
 def test_27_osnet_does_not_fallback_to_unsafe_pickle(tmp_path: Path, monkeypatch):
     """Test 27: OSNetBackbone raises an error rather than falling back to weights_only=False."""
-    from models.reid.osnet_backbone import OSNetBackbone
+    from ml_platform.models.reid.osnet_backbone import OSNetBackbone
 
     bad_model = tmp_path / "osnet_bad.pth"
     bad_model.write_bytes(b"CORRUPTED_NON_TENSOR_FILE")
@@ -647,7 +647,7 @@ def test_27_osnet_does_not_fallback_to_unsafe_pickle(tmp_path: Path, monkeypatch
 
 def test_28_yolo_path_verification_occurs_before_constructor(monkeypatch, synthetic_model_env):
     """Test 28: YOLO verification gate intercepts before YOLO constructor runs."""
-    from pipeline.steps.detection import DetectionStep
+    from app.pipeline.steps.detection import DetectionStep
 
     env = synthetic_model_env
     # Corrupt detector file
@@ -660,7 +660,7 @@ def test_28_yolo_path_verification_occurs_before_constructor(monkeypatch, synthe
         default_signature_path=env["sig_file"],
         public_key=env["pub_key"],
     )
-    monkeypatch.setattr("security_layer.model_integrity.get_model_verifier", lambda: verifier)
+    monkeypatch.setattr("app.security_layer.model_integrity.get_model_verifier", lambda: verifier)
 
     with pytest.raises(ModelDigestMismatchError):
         DetectionStep(model_path=str(env["detector_file"]))
@@ -668,7 +668,7 @@ def test_28_yolo_path_verification_occurs_before_constructor(monkeypatch, synthe
 
 def test_29_onnx_path_verification_occurs_before_inference_session(monkeypatch, synthetic_model_env):
     """Test 29: Silhouette step verifies model before creating InferenceSession."""
-    from pipeline.steps.silhouette_step import LearnedSilhouetteSegmenter
+    from app.pipeline.steps.silhouette_step import LearnedSilhouetteSegmenter
 
     env = synthetic_model_env
     env["onnx_file"].write_bytes(b"CORRUPTED_ONNX")
@@ -679,7 +679,7 @@ def test_29_onnx_path_verification_occurs_before_inference_session(monkeypatch, 
         default_signature_path=env["sig_file"],
         public_key=env["pub_key"],
     )
-    monkeypatch.setattr("security_layer.model_integrity.get_model_verifier", lambda: verifier)
+    monkeypatch.setattr("app.security_layer.model_integrity.get_model_verifier", lambda: verifier)
 
     with pytest.raises(ModelDigestMismatchError):
         LearnedSilhouetteSegmenter(model_path=str(env["onnx_file"]))
@@ -687,11 +687,11 @@ def test_29_onnx_path_verification_occurs_before_inference_session(monkeypatch, 
 
 def test_30_no_automatic_download_in_strict_mode(monkeypatch, tmp_path: Path):
     """Test 30: Missing model in strict mode fails closed without triggering YOLO download."""
-    from pipeline.steps.detection import DetectionStep
+    from app.pipeline.steps.detection import DetectionStep
 
     missing_path = tmp_path / "nonexistent_yolo.pt"
     verifier = ModelVerifier(strict_mode=True, public_key=b"1" * 32)
-    monkeypatch.setattr("security_layer.model_integrity.get_model_verifier", lambda: verifier)
+    monkeypatch.setattr("app.security_layer.model_integrity.get_model_verifier", lambda: verifier)
 
     with pytest.raises(ModelIntegrityError):
         DetectionStep(model_path=str(missing_path))
@@ -809,9 +809,9 @@ def test_35_real_model_files_remain_unchanged():
     """Test 35: Assert real repository model files have not been overwritten or corrupted."""
     real_paths = [
         Path("runs/exp_001/best_model.pth"),
-        Path("models/model_store/weights/osnet_x0_25.pth"),
-        Path("models/model_store/weights/yolov8n.pt"),
-        Path("models/model_store/weights/silhouette_segmenter.onnx"),
+        Path("ml_platform/models/model_store/weights/osnet_x0_25.pth"),
+        Path("ml_platform/models/model_store/weights/yolov8n.pt"),
+        Path("ml_platform/models/model_store/weights/silhouette_segmenter.onnx"),
     ]
     for p in real_paths:
         if p.exists():
@@ -820,7 +820,7 @@ def test_35_real_model_files_remain_unchanged():
 
 def test_36_u2_audit_log_regression_unaffected(tmp_path: Path):
     """Test 36: U2 audit log integrity HMAC-SHA256 logging remains intact."""
-    from security_layer.security_logger import SecurityLogger
+    from app.security_layer.security_logger import SecurityLogger
 
     logger_inst = SecurityLogger(
         log_file=str(tmp_path / "test_u5_audit.csv"),
@@ -840,7 +840,7 @@ def test_36_u2_audit_log_regression_unaffected(tmp_path: Path):
 
 def test_37_u3_biometric_encryption_regression_unaffected(tmp_path: Path):
     """Test 37: U3 biometric template encryption at rest remains functional."""
-    from security_layer.biometric_encryption import BiometricEncryptor
+    from app.security_layer.biometric_encryption import BiometricEncryptor
 
     key = os.urandom(32)
     encryptor = BiometricEncryptor(key=key)
@@ -866,7 +866,7 @@ def test_37_u3_biometric_encryption_regression_unaffected(tmp_path: Path):
 
 def test_38_u4_camera_transport_security_unaffected():
     """Test 38: U4 camera transport credentials sanitization remains intact."""
-    from security_layer.credentials import sanitize_rtsp_url
+    from app.security_layer.credentials import sanitize_rtsp_url
 
     raw = "rtsp://operator:SecretPass999@10.0.0.1:554/live"
     sanitized = sanitize_rtsp_url(raw)

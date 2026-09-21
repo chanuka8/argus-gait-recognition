@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from services.camera_service import CameraService
+from app.services.camera_service import CameraService
 
 
 class TestCameraService(unittest.TestCase):

@@ -7,18 +7,18 @@ import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 
-from api.server import app
-from security_layer.auth import get_session_store
-from security_layer.authorization import Role
-from services.reference_job_manager import ReferenceJobStatus
+from app.api.server import app
+from app.security_layer.auth import get_session_store
+from app.security_layer.authorization import Role
+from app.services.reference_job_manager import ReferenceJobStatus
 
 
 @pytest.fixture(autouse=True)
 def isolate_gait_storage(tmp_path):
     """Isolate GaitService and EmbeddingDatabase storage to temporary paths for test isolation."""
-    from api.v1.router import get_gait_service
-    from services.gait_service import GaitService
-    from storage.embedding_database import EmbeddingDatabase
+    from app.api.v1.router import get_gait_service
+    from app.services.gait_service import GaitService
+    from app.storage.embedding_database import EmbeddingDatabase
 
     gallery_dir = tmp_path / "live_gallery"
     app_gallery_dir = tmp_path / "appearance_gallery"

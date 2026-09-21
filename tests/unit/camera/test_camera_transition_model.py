@@ -4,8 +4,8 @@ from unittest.mock import MagicMock, patch
 
 import numpy as np
 
-from intelligence.learning.camera_transition_model import CameraTransitionModel
-from intelligence.tracking.cross_camera_tracker import CrossCameraTracker
+from app.intelligence.learning.camera_transition_model import CameraTransitionModel
+from app.intelligence.tracking.cross_camera_tracker import CrossCameraTracker
 
 
 class MockClock:
@@ -240,18 +240,18 @@ class TestCameraTransitionModel(unittest.TestCase):
 
 
 class TestMultiCameraPipelineTransitionIntegration(unittest.TestCase):
-    @patch("pipeline.multi_camera_recognition.MultiCameraRecognitionPipeline._load_model")
-    @patch("pipeline.multi_camera_recognition.VectorStore")
-    @patch("pipeline.multi_camera_recognition.MultiStreamEngine")
+    @patch("app.pipeline.multi_camera_recognition.MultiCameraRecognitionPipeline._load_model")
+    @patch("app.pipeline.multi_camera_recognition.VectorStore")
+    @patch("app.pipeline.multi_camera_recognition.MultiStreamEngine")
     def test_pipeline_integration_wiring(self, mock_stream_engine, mock_vector_store, mock_load_model) -> None:
         mock_load_model.return_value = MagicMock()
         mock_vector_store.return_value.load.return_value = None
 
-        from pipeline.multi_camera_recognition import MultiCameraRecognitionPipeline
+        from app.pipeline.multi_camera_recognition import MultiCameraRecognitionPipeline
 
         pipeline = MultiCameraRecognitionPipeline(
             cameras_config_path="configs/cameras.yaml",
-            gallery_dir="models/galleries/live_gallery",
+            gallery_dir="ml_platform/models/galleries/live_gallery",
         )
 
         self.assertIsNotNone(pipeline.transition_model)

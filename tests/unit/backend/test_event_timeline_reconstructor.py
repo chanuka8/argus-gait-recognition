@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from intelligence.evidence.event_timeline_reconstructor import (
+from app.intelligence.evidence.event_timeline_reconstructor import (
     EventTimelineReconstructor,
 )
 

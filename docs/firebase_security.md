@@ -83,7 +83,7 @@ Authentication tokens **MUST NOT** be passed in URL query strings (e.g. `?token=
 > 
 > The Google Cloud Firebase Admin SDK operates with full administrative service-account privileges (`roles/firebase.admin`). As a consequence:
 > 1. Client-side `firestore.rules` and `storage.rules` **do not apply** to backend operations executed through the Python Firebase Admin SDK.
-> 2. The **authoritative security boundary** for all ARGUS operations is the backend FastAPI authentication and RBAC layer (`security_layer/auth.py`).
+> 2. The **authoritative security boundary** for all ARGUS operations is the backend FastAPI authentication and RBAC layer (`app/security_layer/auth.py`).
 > 3. `firestore.rules` and `storage.rules` serve strictly as defense-in-depth against direct, unauthorized browser-side SDK access to cloud resources.
 
 ---

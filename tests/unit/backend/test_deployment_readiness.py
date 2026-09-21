@@ -5,10 +5,10 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from deployment.doctor import run_doctor
-from models.export.bygait_onnx import export_onnx
-from models.inference.backend import BackendStatus, BackendValidator, get_inference_backend
-from utils.config_validator import ConfigValidator, sanitize_rtsp_url
+from app.utils.config_validator import ConfigValidator, sanitize_rtsp_url
+from ml_platform.models.export.bygait_onnx import export_onnx
+from ml_platform.models.inference.backend import BackendStatus, BackendValidator, get_inference_backend
+from ops.deployment.doctor import run_doctor
 
 
 def _has_onnx_pkgs() -> bool:
@@ -19,7 +19,7 @@ def test_valid_onnx_export_metadata(tmp_path: Path):
     ckpt_file = tmp_path / "model.pth"
     import torch
 
-    from models.architectures.bygait_light import ByGaitLight
+    from ml_platform.models.architectures.bygait_light import ByGaitLight
 
     torch.save(ByGaitLight().state_dict(), ckpt_file)
 
@@ -98,7 +98,7 @@ def test_onnx_numerical_parity_pass_and_fail(tmp_path: Path):
     ckpt_file = tmp_path / "model.pth"
     import torch
 
-    from models.architectures.bygait_light import ByGaitLight
+    from ml_platform.models.architectures.bygait_light import ByGaitLight
 
     torch.save(ByGaitLight().state_dict(), ckpt_file)
 
@@ -148,7 +148,7 @@ def test_onnx_backend_readiness(tmp_path: Path):
     ckpt_file = tmp_path / "model.pth"
     import torch
 
-    from models.architectures.bygait_light import ByGaitLight
+    from ml_platform.models.architectures.bygait_light import ByGaitLight
 
     torch.save(ByGaitLight().state_dict(), ckpt_file)
 

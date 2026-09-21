@@ -17,7 +17,7 @@ from unittest.mock import MagicMock
 import numpy as np
 import pytest
 
-from core.paths import (
+from app.core.paths import (
     get_app_root,
     get_config_path,
     get_model_path,
@@ -102,7 +102,7 @@ class TestCorePathsResolver:
         _ = resolve_app_path("configs/inference.yaml")
         _ = resolve_runtime_path("outputs/reports")
         _ = get_config_path("system.yaml")
-        _ = get_model_path("models/model_store/weights/yolov8n.pt")
+        _ = get_model_path("ml_platform/models/model_store/weights/yolov8n.pt")
 
         assert Path.cwd() == initial_cwd
 
@@ -113,7 +113,7 @@ class TestExternalCwdSubsystemResolution:
     def test_runtime_manifest_outside_repo_cwd(self, monkeypatch, tmp_path: Path):
         """6. RuntimeManifest validates cleanly from external CWD without false missing assets."""
         monkeypatch.chdir(tmp_path)
-        from deployment.runtime_manifest import get_runtime_manifest
+        from ops.deployment.runtime_manifest import get_runtime_manifest
 
         manifest = get_runtime_manifest()
         result = manifest.validate_runtime_assets()
@@ -126,7 +126,7 @@ class TestExternalCwdSubsystemResolution:
     def test_core_config_loads_app_root_base_yaml(self, monkeypatch, tmp_path: Path):
         """7. core.config.Config loads configs/base.yaml from app root when CWD is external."""
         monkeypatch.chdir(tmp_path)
-        from core.config import Config
+        from app.core.config import Config
 
         cfg = Config()
         assert cfg.base_config != {}
@@ -135,7 +135,7 @@ class TestExternalCwdSubsystemResolution:
     def test_logging_loads_app_root_system_yaml(self, monkeypatch, tmp_path: Path):
         """8 & 9. logging loads configs/system.yaml from app root and resolves log_dir to runtime root."""
         monkeypatch.chdir(tmp_path)
-        from monitoring.logging_config import _load_logging_config
+        from app.monitoring.logging_config import _load_logging_config
 
         cfg = _load_logging_config()
         assert isinstance(cfg, dict)
@@ -146,7 +146,7 @@ class TestExternalCwdSubsystemResolution:
     def test_inference_config_loads_from_app_root(self, monkeypatch, tmp_path: Path):
         """10. load_inference_backend_config loads configs/inference.yaml from app root."""
         monkeypatch.chdir(tmp_path)
-        from models.inference.backend import load_inference_backend_config
+        from ml_platform.models.inference.backend import load_inference_backend_config
 
         cfg = load_inference_backend_config()
         assert isinstance(cfg, dict)
@@ -156,17 +156,17 @@ class TestExternalCwdSubsystemResolution:
     def test_detector_config_loads_from_app_root(self, monkeypatch, tmp_path: Path):
         """11. PersonDetector._load_config resolves configs/detection.yaml from app root."""
         monkeypatch.chdir(tmp_path)
-        from pipeline.detection.person_detector import PersonDetector
+        from app.pipeline.detection.person_detector import PersonDetector
 
         cfg = PersonDetector._load_config("configs/detection.yaml")
         assert isinstance(cfg, dict)
         assert "model_path" in cfg
-        assert cfg.get("model_path") == "models/model_store/weights/yolov8n.pt"
+        assert cfg.get("model_path") == "ml_platform/models/model_store/weights/yolov8n.pt"
 
     def test_pytorch_relative_model_resolves_to_app_root(self, monkeypatch, tmp_path: Path):
         """12. PyTorchBackend resolves model path against app root."""
         monkeypatch.chdir(tmp_path)
-        from models.inference.pytorch_backend import PyTorchBackend
+        from ml_platform.models.inference.pytorch_backend import PyTorchBackend
 
         backend = PyTorchBackend(config={"model_path": "runs/exp_001/best_model.pth"})
         assert backend.model_path == (get_app_root() / "runs/exp_001/best_model.pth").resolve()
@@ -175,30 +175,30 @@ class TestExternalCwdSubsystemResolution:
     def test_onnx_relative_engine_resolves_to_app_root(self, monkeypatch, tmp_path: Path):
         """13. ONNXBackend resolves onnx_path against app root."""
         monkeypatch.chdir(tmp_path)
-        from models.inference.onnx_backend import ONNXBackend
+        from ml_platform.models.inference.onnx_backend import ONNXBackend
 
         backend = ONNXBackend(
             config={
-                "onnx_path": "models/model_store/engines/bygait_light.onnx",
+                "onnx_path": "ml_platform/models/model_store/engines/bygait_light.onnx",
                 "allow_fallback": True,
                 "warmup_iterations": 0,
             }
         )
-        assert backend.onnx_path == (get_app_root() / "models/model_store/engines/bygait_light.onnx").resolve()
+        assert backend.onnx_path == (get_app_root() / "ml_platform/models/model_store/engines/bygait_light.onnx").resolve()
 
     def test_tensorrt_relative_engine_resolves_to_app_root(self, monkeypatch, tmp_path: Path):
         """14. TensorRTBackend resolves engine_path against app root."""
         monkeypatch.chdir(tmp_path)
-        from models.inference.tensorrt_backend import TensorRTBackend
+        from ml_platform.models.inference.tensorrt_backend import TensorRTBackend
 
-        backend = TensorRTBackend(config={"engine_path": "models/model_store/engines/bygait_light_fp16.engine", "allow_fallback": True})
-        assert backend.engine_path == (get_app_root() / "models/model_store/engines/bygait_light_fp16.engine").resolve()
+        backend = TensorRTBackend(config={"engine_path": "ml_platform/models/model_store/engines/bygait_light_fp16.engine", "allow_fallback": True})
+        assert backend.engine_path == (get_app_root() / "ml_platform/models/model_store/engines/bygait_light_fp16.engine").resolve()
 
     def test_person_detector_local_model_zero_download_on_external_cwd(self, monkeypatch, tmp_path: Path):
         """15 & 16. Local YOLO asset under app root is resolved; ZERO download/network attempts."""
         import ultralytics
 
-        from pipeline.detection.person_detector import PersonDetector
+        from app.pipeline.detection.person_detector import PersonDetector
 
         fake_app_root = tmp_path / "fake_app"
         external_cwd = tmp_path / "external_cwd"
@@ -234,7 +234,7 @@ class TestExternalCwdSubsystemResolution:
 
         # Isolate model-integrity loading for synthetic weight
         monkeypatch.setattr(
-            "security_layer.model_integrity.verify_model",
+            "app.security_layer.model_integrity.verify_model",
             lambda model_path, *args, **kwargs: Path(model_path).resolve(),
         )
 
@@ -253,7 +253,7 @@ class TestExternalCwdSubsystemResolution:
         mock_device_mgr = MagicMock()
         mock_device_mgr.resolve_component_device.return_value = "cpu"
         monkeypatch.setattr(
-            "pipeline.detection.person_detector.DeviceManager.get_instance",
+            "app.pipeline.detection.person_detector.DeviceManager.get_instance",
             lambda *args, **kwargs: mock_device_mgr,
         )
 
@@ -281,19 +281,19 @@ class TestExternalCwdSubsystemResolution:
     def test_model_manifest_and_sig_resolve_to_app_root(self, monkeypatch, tmp_path: Path):
         """17, 18, 19. ModelVerifier default paths resolve against app root."""
         monkeypatch.chdir(tmp_path)
-        from security_layer.model_integrity import ModelVerifier
+        from app.security_layer.model_integrity import ModelVerifier
 
         verifier = ModelVerifier()
-        assert verifier.default_manifest_path == (get_app_root() / "models/model_manifest.json").resolve()
-        assert verifier.default_signature_path == (get_app_root() / "models/model_manifest.sig").resolve()
+        assert verifier.default_manifest_path == (get_app_root() / "ml_platform/models/model_manifest.json").resolve()
+        assert verifier.default_signature_path == (get_app_root() / "ml_platform/models/model_manifest.sig").resolve()
 
     def test_gallery_default_does_not_follow_process_cwd(self, monkeypatch, tmp_path: Path):
         """20. VectorStore and validate_gallery_files anchor to app root, not external CWD."""
         monkeypatch.chdir(tmp_path)
-        from storage.vector_store import VectorStore, validate_gallery_files
+        from app.storage.vector_store import VectorStore, validate_gallery_files
 
         store = VectorStore()
-        assert store.gallery_dir == (get_app_root() / "models/galleries/gallery").resolve()
+        assert store.gallery_dir == (get_app_root() / "ml_platform/models/galleries/gallery").resolve()
         assert not (tmp_path / "models").exists()
 
         _is_valid, _err, _count = validate_gallery_files()
@@ -309,7 +309,7 @@ class TestExternalCwdSubsystemResolution:
     def test_health_check_does_not_report_missing_because_of_cwd(self, monkeypatch, tmp_path: Path):
         """22. core.health_check.HealthCheck passes from external CWD."""
         monkeypatch.chdir(tmp_path)
-        from core.health_check import HealthCheck
+        from app.core.health_check import HealthCheck
 
         hc = HealthCheck()
         res = hc.run()
@@ -320,7 +320,7 @@ class TestExternalCwdSubsystemResolution:
     def test_readiness_reporter_does_not_report_missing_because_of_cwd(self, monkeypatch, tmp_path: Path):
         """23. DeploymentReadinessReporter finds models and configs from external CWD."""
         monkeypatch.chdir(tmp_path)
-        from deployment.readiness_reporter import DeploymentReadinessReporter
+        from ops.deployment.readiness_reporter import DeploymentReadinessReporter
 
         reporter = DeploymentReadinessReporter()
         report = reporter.evaluate_readiness()
@@ -333,7 +333,7 @@ class TestExternalCwdSubsystemResolution:
         """
         monkeypatch.chdir(tmp_path)
         monkeypatch.setenv("ARGUS_REQUIRE_SECURE_CAMERA_TRANSPORT", "true")
-        from deployment.startup_validator import DeploymentStartupValidator
+        from ops.deployment.startup_validator import DeploymentStartupValidator
 
         mock_backend = MagicMock()
         mock_backend.active_backend = "pytorch"

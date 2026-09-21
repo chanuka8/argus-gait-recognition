@@ -7,8 +7,8 @@ ROOT = Path(__file__).resolve().parents[3]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from evaluation.dataset_split import load_or_create_subject_split
-from evaluation.leakage_validator import (
+from ml_platform.evaluation.dataset_split import load_or_create_subject_split
+from ml_platform.evaluation.leakage_validator import (
     assert_gallery_probe_disjointness,
     assert_no_test_threshold_calibration,
     assert_subject_disjointness,

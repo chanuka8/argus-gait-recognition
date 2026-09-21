@@ -3,8 +3,8 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
-from services.camera_worker import CameraWorker
-from services.gait_service import GaitService
+from app.services.camera_worker import CameraWorker
+from app.services.gait_service import GaitService
 
 
 def _dummy_frame(w: int = 640, h: int = 480):
@@ -26,7 +26,7 @@ def test_02_start_stream_webcam_success():
     mock_cap.read.return_value = (True, _dummy_frame())
 
     with (
-        patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
+        patch("app.services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
         patch.object(service.source_resolver, "probe_usb_webcam", return_value=True),
     ):
         cam_info = service.start_camera(camera_id="CAM-WC-01", source="auto")
@@ -44,7 +44,7 @@ def test_03_start_stream_rtsp_success():
     mock_cap.read.return_value = (True, _dummy_frame())
 
     with (
-        patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
+        patch("app.services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
         patch.object(service.source_resolver, "probe_stream", return_value=True),
     ):
         cam_info = service.start_camera(
@@ -72,7 +72,7 @@ def test_04_webcam_connection_failure():
     }
 
     with (
-        patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
+        patch("app.services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
         patch.object(service, "_load_camera_config", return_value=fast_cfg),
         patch.object(service.source_resolver, "probe_usb_webcam", return_value=True),
     ):
@@ -97,7 +97,7 @@ def test_05_rtsp_connection_failure():
     }
 
     with (
-        patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
+        patch("app.services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
         patch.object(service, "_load_camera_config", return_value=fast_cfg),
         patch.object(service.source_resolver, "probe_stream", return_value=False),
         patch.object(service.source_resolver, "probe_usb_webcam", return_value=False),
@@ -118,7 +118,7 @@ def test_06_stop_stream_hides_source():
     mock_cap.read.return_value = (True, _dummy_frame())
 
     with (
-        patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
+        patch("app.services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
         patch.object(service.source_resolver, "probe_usb_webcam", return_value=True),
     ):
         service.start_camera(camera_id="CAM-STOP-01", source="auto")
@@ -146,7 +146,7 @@ def test_07_unexpected_disconnect_recovery():
         "startup_timeout": 0.5,
     }
 
-    with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
+    with patch("app.services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
         worker = CameraWorker(camera_id="CAM-RECOVERY", camera_config=cfg)
         assert worker.start() is True
         worker.stop(timeout=1.0)
@@ -159,7 +159,7 @@ def test_08_reconnect_detects_runtime_source_again():
     mock_cap.read.return_value = (True, _dummy_frame())
 
     with (
-        patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
+        patch("app.services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
         patch.object(service.source_resolver, "probe_usb_webcam", return_value=True),
     ):
         info1 = service.start_camera(camera_id="CAM-RESTART", source="auto")
@@ -179,7 +179,7 @@ def test_09_multiple_cameras_independent_sources():
     mock_cap.read.return_value = (True, _dummy_frame())
 
     with (
-        patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
+        patch("app.services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
         patch.object(service.source_resolver, "probe_usb_webcam", return_value=True),
         patch.object(service.source_resolver, "probe_stream", return_value=True),
     ):
@@ -196,8 +196,8 @@ def test_09_multiple_cameras_independent_sources():
 def test_10_api_start_stream_endpoint_contract():
     from fastapi.testclient import TestClient
 
-    from api.server import app
-    from api.v1.router import get_gait_service
+    from app.api.server import app
+    from app.api.v1.router import get_gait_service
 
     service = GaitService()
     mock_cap = MagicMock()
@@ -207,7 +207,7 @@ def test_10_api_start_stream_endpoint_contract():
     app.dependency_overrides[get_gait_service] = lambda: service
     try:
         with (
-            patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
+            patch("app.services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
             patch.object(service.source_resolver, "probe_usb_webcam", return_value=True),
         ):
             client = TestClient(app)

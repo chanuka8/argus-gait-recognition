@@ -7,8 +7,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from tools.maintenance.install_git_hooks import HOOK_CONTENT, install_pre_commit_hook
-from tools.maintenance.sync_folder_readmes import (
+from ops.tools.maintenance.install_git_hooks import HOOK_CONTENT, install_pre_commit_hook
+from ops.tools.maintenance.sync_folder_readmes import (
     TARGET_FOLDERS,
     _atomic_write_file,
     _get_script_category,
@@ -283,7 +283,7 @@ class TestReadmeIndex(unittest.TestCase):
 class TestSyncCheckMode(unittest.TestCase):
     def test_check_exits_zero_when_current(self):
         result = subprocess.run(
-            [sys.executable, "tools/maintenance/sync_folder_readmes.py", "--check"],
+            [sys.executable, "ops/tools/maintenance/sync_folder_readmes.py", "--check"],
             capture_output=True,
             text=True,
             cwd=str(Path(__file__).resolve().parents[3]),
@@ -297,7 +297,7 @@ class TestSyncCheckMode(unittest.TestCase):
             ["git", "status", "--porcelain"], capture_output=True, text=True, cwd=str(root), check=False
         ).stdout
         subprocess.run(
-            [sys.executable, "tools/maintenance/sync_folder_readmes.py", "--check"],
+            [sys.executable, "ops/tools/maintenance/sync_folder_readmes.py", "--check"],
             capture_output=True,
             text=True,
             cwd=str(root),
@@ -374,7 +374,7 @@ class TestPreCommitHook(unittest.TestCase):
 
 class TestNoRuntimeSideEffects(unittest.TestCase):
     def test_no_torch_import(self):
-        path = Path(__file__).resolve().parents[3] / "tools" / "maintenance" / "sync_folder_readmes.py"
+        path = Path(__file__).resolve().parents[3] / "ops" / "tools" / "maintenance" / "sync_folder_readmes.py"
         content = path.read_text(encoding="utf-8")
         self.assertNotIn("import torch", content)
         self.assertNotIn("import cv2", content)
@@ -382,12 +382,12 @@ class TestNoRuntimeSideEffects(unittest.TestCase):
         self.assertNotIn("import onnx", content)
 
     def test_no_outputs_write(self):
-        path = Path(__file__).resolve().parents[3] / "tools" / "maintenance" / "sync_folder_readmes.py"
+        path = Path(__file__).resolve().parents[3] / "ops" / "tools" / "maintenance" / "sync_folder_readmes.py"
         content = path.read_text(encoding="utf-8")
         self.assertNotIn("outputs/", content)
 
     def test_sync_script_compiles(self):
-        path = Path(__file__).resolve().parents[3] / "tools" / "maintenance" / "sync_folder_readmes.py"
+        path = Path(__file__).resolve().parents[3] / "ops" / "tools" / "maintenance" / "sync_folder_readmes.py"
         result = subprocess.run(
             [sys.executable, "-m", "py_compile", str(path)],
             capture_output=True,
@@ -582,7 +582,7 @@ class TestSyncIdempotency(unittest.TestCase):
         root_dir = Path(__file__).resolve().parents[3]
 
         res1 = subprocess.run(
-            [sys.executable, "tools/maintenance/sync_folder_readmes.py", "--update"],
+            [sys.executable, "ops/tools/maintenance/sync_folder_readmes.py", "--update"],
             capture_output=True,
             text=True,
             cwd=str(root_dir),
@@ -591,7 +591,7 @@ class TestSyncIdempotency(unittest.TestCase):
         self.assertEqual(res1.returncode, 0)
 
         res2 = subprocess.run(
-            [sys.executable, "tools/maintenance/sync_folder_readmes.py", "--update"],
+            [sys.executable, "ops/tools/maintenance/sync_folder_readmes.py", "--update"],
             capture_output=True,
             text=True,
             cwd=str(root_dir),
@@ -601,7 +601,7 @@ class TestSyncIdempotency(unittest.TestCase):
         self.assertIn("0 updated", res2.stdout)
 
         res3 = subprocess.run(
-            [sys.executable, "tools/maintenance/sync_folder_readmes.py", "--check"],
+            [sys.executable, "ops/tools/maintenance/sync_folder_readmes.py", "--check"],
             capture_output=True,
             text=True,
             cwd=str(root_dir),

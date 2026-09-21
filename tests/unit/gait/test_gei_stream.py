@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from pipeline.gei.stream_gei_builder import StreamGEIBuilder
+from app.pipeline.gei.stream_gei_builder import StreamGEIBuilder
 
 
 class TestStreamGEIBuilder(unittest.TestCase):

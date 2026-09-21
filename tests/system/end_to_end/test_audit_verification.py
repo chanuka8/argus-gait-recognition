@@ -7,11 +7,11 @@ import unittest
 
 import numpy as np
 
-from intelligence.evidence.missing_person_workflow import MissingPersonWorkflow
-from intelligence.tracking.cross_camera_tracker import CrossCameraTracker
-from intelligence.tracking.identity_persistence import IdentityPersistence
-from intelligence.validation.reid_cache import ReIDCache
-from storage.evidence_manager import EvidenceManager
+from app.intelligence.evidence.missing_person_workflow import MissingPersonWorkflow
+from app.intelligence.tracking.cross_camera_tracker import CrossCameraTracker
+from app.intelligence.tracking.identity_persistence import IdentityPersistence
+from app.intelligence.validation.reid_cache import ReIDCache
+from app.storage.evidence_manager import EvidenceManager
 
 
 class TestSystemAuditVerification(unittest.TestCase):

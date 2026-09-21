@@ -1,10 +1,10 @@
 import time
 import unittest
 
-from streaming.camera_scheduler import CameraScheduler
-from streaming.load_balancer import CameraLoadBalancer
-from streaming.performance_optimizer import PerformanceOptimizer
-from streaming.worker_pool import CameraWorkerPool
+from app.streaming.camera_scheduler import CameraScheduler
+from app.streaming.load_balancer import CameraLoadBalancer
+from app.streaming.performance_optimizer import PerformanceOptimizer
+from app.streaming.worker_pool import CameraWorkerPool
 
 
 class TestCameraScheduler(unittest.TestCase):

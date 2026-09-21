@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from intelligence.evidence.missing_person_workflow import MissingPersonWorkflow, WatchlistEntry, WatchlistManager
+from app.intelligence.evidence.missing_person_workflow import MissingPersonWorkflow, WatchlistEntry, WatchlistManager
 
 
 class TestWatchlistEntry(unittest.TestCase):
@@ -118,11 +118,11 @@ class TestWatchlistManager(unittest.TestCase):
 
 
 class TestWatchlistPipelineIntegration(unittest.TestCase):
-    @patch("pipeline.video_recognition.VideoRecognitionPipeline._load_model", return_value=MagicMock())
-    @patch("pipeline.video_recognition.VectorStore")
+    @patch("app.pipeline.video_recognition.VideoRecognitionPipeline._load_model", return_value=MagicMock())
+    @patch("app.pipeline.video_recognition.VectorStore")
     def test_video_pipeline_watchlist_initialization(self, mock_store, mock_load_model):
         mock_store.return_value.load.return_value = (MagicMock(), MagicMock(), {})
-        from pipeline.video_recognition import VideoRecognitionPipeline
+        from app.pipeline.video_recognition import VideoRecognitionPipeline
 
         pipeline = VideoRecognitionPipeline()
         self.assertTrue(hasattr(pipeline, "watchlist_manager"))

@@ -1,4 +1,4 @@
-from intelligence.tracking.track_reliability_scorer import TrackReliabilityScorer
+from app.intelligence.tracking.track_reliability_scorer import TrackReliabilityScorer
 
 
 def test_disabled_by_default_behavior():
@@ -85,7 +85,7 @@ def test_track_reliability_evaluation_dict():
 
 
 def test_backward_compatibility_disabled_pipeline_output():
-    from pipeline.video_recognition import _load_track_reliability_config
+    from app.pipeline.video_recognition import _load_track_reliability_config
 
     cfg = _load_track_reliability_config()
     assert not cfg.get("enabled", False)

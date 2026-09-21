@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tools.maintenance.cleanup_python_comments import (
+from ops.tools.maintenance.cleanup_python_comments import (
     analyze_python_file,
     discover_python_files,
     run_apply,
@@ -281,7 +281,7 @@ class TestCleanupPythonCommentsUnit(unittest.TestCase):
             self.assertEqual(run_check([p_clean]), 0)
 
     def test_22_self_exclusion(self):
-        target_dir = Path("tools/maintenance") if Path("tools/maintenance").exists() else Path("scripts")
+        target_dir = Path("ops/tools/maintenance") if Path("ops/tools/maintenance").exists() else Path("scripts")
         files = discover_python_files(target_dir, include_self=False)
         self.assertTrue(all(f.name != "cleanup_python_comments.py" for f in files))
         files_with_self = discover_python_files(target_dir, include_self=True)

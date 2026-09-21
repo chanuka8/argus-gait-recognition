@@ -7,10 +7,10 @@ import cv2
 import numpy as np
 from fastapi.testclient import TestClient
 
-from api.server import app
-from api.v1.router import get_gait_service
-from services.gait_service import GaitService
-from storage.embedding_database import EmbeddingDatabase
+from app.api.server import app
+from app.api.v1.router import get_gait_service
+from app.services.gait_service import GaitService
+from app.storage.embedding_database import EmbeddingDatabase
 
 
 class TestApiV1Integration(unittest.TestCase):
@@ -93,7 +93,7 @@ class TestApiV1Integration(unittest.TestCase):
         mock_cap.isOpened.return_value = True
         mock_cap.read.return_value = (True, dummy_frame)
 
-        with unittest.mock.patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
+        with unittest.mock.patch("app.services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
             start_res = self.client.post(
                 "/api/v1/cameras/start",
                 json={
@@ -140,7 +140,7 @@ class TestApiV1Integration(unittest.TestCase):
         self.assertIsInstance(response.json(), list)
 
     def test_websocket_recognition(self) -> None:
-        from security_layer.auth import get_session_store
+        from app.security_layer.auth import get_session_store
 
         session = get_session_store().create_session(
             operator_id="test_ws_operator",

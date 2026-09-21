@@ -16,8 +16,8 @@ from pathlib import Path
 
 import pytest
 
-from security_layer.audit_verifier import AuditLogVerifier
-from security_layer.security_logger import (
+from app.security_layer.audit_verifier import AuditLogVerifier
+from app.security_layer.security_logger import (
     GENESIS_HASH,
     SecurityLogger,
     canonicalize_event,

@@ -1,4 +1,4 @@
-from intelligence.decision.recognition_deferral_engine import (
+from app.intelligence.decision.recognition_deferral_engine import (
     RecognitionDeferralEngine,
     RecognitionState,
 )

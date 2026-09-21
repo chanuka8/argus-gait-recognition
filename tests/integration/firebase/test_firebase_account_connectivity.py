@@ -5,14 +5,14 @@ from unittest.mock import MagicMock
 
 from fastapi.testclient import TestClient
 
-from api.server import app
-from security_layer.auth import (
+from app.api.server import app
+from app.security_layer.auth import (
     AuthenticationInfrastructureError,
     get_operator_store,
     get_session_store,
 )
-from security_layer.password_hasher import get_password_hasher
-from tools.migration.passwords import PasswordMigrator
+from app.security_layer.password_hasher import get_password_hasher
+from ops.tools.migration.passwords import PasswordMigrator
 
 
 def test_01_firebase_credentials_missing_fails_closed_503(monkeypatch):

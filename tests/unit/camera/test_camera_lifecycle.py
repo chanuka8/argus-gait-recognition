@@ -5,9 +5,9 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 from fastapi.testclient import TestClient
 
-from api.server import app
-from services.camera_worker import CameraWorker, normalize_camera_source
-from services.gait_service import GaitService
+from app.api.server import app
+from app.services.camera_worker import CameraWorker, normalize_camera_source
+from app.services.gait_service import GaitService
 
 
 def test_normalize_camera_source_webcam_indices():
@@ -32,7 +32,7 @@ def test_camera_start_and_stop_lifecycle():
     mock_cap.read.return_value = (True, _dummy_frame())
 
     with (
-        patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
+        patch("app.services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
         patch.object(service.source_resolver, "probe_usb_webcam", return_value=True),
     ):
         cam_info = service.start_camera(
@@ -58,8 +58,8 @@ def test_camera_api_endpoints():
 
     with (
         TestClient(app) as client,
-        patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
-        patch("services.camera_source_resolver.CameraSourceResolver.probe_usb_webcam", return_value=True),
+        patch("app.services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
+        patch("app.services.camera_source_resolver.CameraSourceResolver.probe_usb_webcam", return_value=True),
     ):
         start_resp = client.post(
             "/api/v1/cameras/start",
@@ -137,7 +137,7 @@ def test_rtsp_startup_retries_then_succeeds():
     mock_cap.isOpened.return_value = True
     mock_cap.read.side_effect = read_effect
 
-    with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
+    with patch("app.services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
         started = worker.start()
 
     assert started is True
@@ -157,7 +157,7 @@ def test_rtsp_startup_timeout_clean_failure():
     mock_cap.isOpened.return_value = True
     mock_cap.read.return_value = (False, None)
 
-    with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
+    with patch("app.services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
         started = worker.start()
 
     assert started is False
@@ -174,7 +174,7 @@ def test_capture_open_failure():
     mock_cap = MagicMock()
     mock_cap.isOpened.return_value = False
 
-    with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
+    with patch("app.services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
         started = worker.start()
 
     assert started is False
@@ -197,7 +197,7 @@ def test_stop_during_startup_handshake():
     stopper = threading.Thread(target=set_stop_after_delay)
     stopper.start()
 
-    with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
+    with patch("app.services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
         started = worker.start()
 
     stopper.join()
@@ -215,7 +215,7 @@ def test_duplicate_start_rejected():
     mock_cap.read.return_value = (True, _dummy_frame())
 
     with (
-        patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
+        patch("app.services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
         patch.object(service.source_resolver, "probe_usb_webcam", return_value=True),
     ):
         info1 = service.start_camera(camera_id="CAM-DUP", source="0", location="Test")
@@ -237,7 +237,7 @@ def test_repeated_stop_is_safe():
     mock_cap.read.return_value = (True, _dummy_frame())
 
     with (
-        patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
+        patch("app.services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
         patch.object(service.source_resolver, "probe_usb_webcam", return_value=True),
     ):
         service.start_camera(camera_id="CAM-RSTOP", source="0", location="Test")
@@ -253,7 +253,7 @@ def test_startup_failure_no_stale_active_worker():
     mock_cap = MagicMock()
     mock_cap.isOpened.return_value = False
 
-    with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
+    with patch("app.services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
         try:
             service.start_camera(
                 camera_id="CAM-STALE",
@@ -274,7 +274,7 @@ def test_startup_failure_releases_zone_reservation():
     mock_cap = MagicMock()
     mock_cap.isOpened.return_value = False
 
-    with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
+    with patch("app.services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
         try:
             service.start_camera(
                 camera_id="CAM-ZONE",
@@ -294,7 +294,7 @@ def test_credential_sanitization_in_error():
     mock_cap = MagicMock()
     mock_cap.isOpened.return_value = False
 
-    with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
+    with patch("app.services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
         try:
             service.start_camera(
                 camera_id="CAM-CRED",
@@ -335,7 +335,7 @@ def test_runtime_frame_failure_triggers_reconnect():
 
     mock_cap.read.side_effect = read_effect
 
-    with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
+    with patch("app.services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
         started = worker.start()
         assert started is True
 
@@ -355,7 +355,7 @@ def test_mjpeg_preview_available_after_startup():
     mock_cap.isOpened.return_value = True
     mock_cap.read.return_value = (True, frame)
 
-    with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
+    with patch("app.services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
         started = worker.start()
 
     assert started is True
@@ -379,7 +379,7 @@ def test_successful_stop_releases_resources():
     mock_cap.isOpened.return_value = True
     mock_cap.read.return_value = (True, frame)
 
-    with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
+    with patch("app.services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
         worker.start()
 
     assert worker.is_running() is True
@@ -399,7 +399,7 @@ def test_camera_worker_restart():
     mock_cap.isOpened.return_value = True
     mock_cap.read.return_value = (True, frame)
 
-    with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
+    with patch("app.services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
         assert worker.start() is True
         assert worker.is_running() is True
 
@@ -460,7 +460,7 @@ def test_source_resolution_file_and_http():
 
 
 def test_resolver_sanitizes_credentials_in_label():
-    from services.camera_source_resolver import CameraSourceResolver
+    from app.services.camera_source_resolver import CameraSourceResolver
 
     resolver = CameraSourceResolver()
     res = resolver.resolve_source(
@@ -496,7 +496,7 @@ def test_reconnect_max_attempts_exceeded_exits_loop():
 
     mock_cap.read.side_effect = read_effect
 
-    with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
+    with patch("app.services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
         assert worker.start() is True
 
         if worker._thread is not None:
@@ -540,7 +540,7 @@ def test_system_config_propagates_to_worker():
         mock_cap.read.return_value = (True, frame)
 
         with (
-            patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
+            patch("app.services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
             patch.object(service.source_resolver, "probe_usb_webcam", return_value=True),
         ):
             cam_info = service.start_camera("CAM-CONFIG-TEST", source="auto")
@@ -569,7 +569,7 @@ def test_concurrent_start_attempts():
     results = []
 
     def start_worker():
-        with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
+        with patch("app.services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
             res = worker.start()
             results.append(res)
 
@@ -594,7 +594,7 @@ def test_start_and_stop_race():
     mock_cap.isOpened.return_value = True
     mock_cap.read.return_value = (True, frame)
 
-    with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
+    with patch("app.services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
         worker.start()
         worker.stop()
 
@@ -629,7 +629,7 @@ def test_restart_during_reconnect_is_safe():
 
     mock_cap.read.side_effect = read_effect
 
-    with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
+    with patch("app.services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
         assert worker.start() is True
         time.sleep(0.1)
 
@@ -652,11 +652,11 @@ def test_failed_startup_followed_by_successful_restart():
     mock_cap_ok.isOpened.return_value = True
     mock_cap_ok.read.return_value = (True, frame)
 
-    with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap_fail):
+    with patch("app.services.camera_worker.cv2.VideoCapture", return_value=mock_cap_fail):
         assert worker.start() is False
         assert worker.is_running() is False
 
-    with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap_ok):
+    with patch("app.services.camera_worker.cv2.VideoCapture", return_value=mock_cap_ok):
         assert worker.restart() is True
         assert worker.is_running() is True
         assert worker.is_connected() is True
@@ -674,7 +674,7 @@ def test_capture_release_exception_safety():
     mock_cap.read.return_value = (True, frame)
     mock_cap.release.side_effect = RuntimeError("Driver crash during release")
 
-    with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
+    with patch("app.services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
         assert worker.start() is True
         assert worker.is_connected() is True
 
@@ -711,7 +711,7 @@ def test_reconnect_attempts_semantics_zero_infinite():
 
     mock_cap.read.side_effect = read_effect
 
-    with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
+    with patch("app.services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
         assert worker.start() is True
         time.sleep(0.3)
         assert worker.is_running() is True
@@ -743,7 +743,7 @@ def test_reconnect_attempts_semantics_one():
 
     mock_cap.read.side_effect = read_effect
 
-    with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
+    with patch("app.services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
         assert worker.start() is True
         if worker._thread is not None:
             worker._thread.join(timeout=2.0)
@@ -758,7 +758,7 @@ def test_credential_masking_complex_password():
     mock_cap = MagicMock()
     mock_cap.isOpened.return_value = False
 
-    with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
+    with patch("app.services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
         try:
             service.start_camera(
                 camera_id="CAM-SPECIAL-CRED",

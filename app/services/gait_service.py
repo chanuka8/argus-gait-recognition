@@ -1,0 +1,1066 @@
+import asyncio
+import threading
+import time
+import uuid
+from collections import deque
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+import cv2
+import numpy as np
+import yaml
+from fastapi import WebSocket
+
+from app.core.logger import setup_logger
+from app.security_layer.credentials import sanitize_rtsp_url
+from app.services.camera_worker import CameraWorker
+from app.storage.vector_store import VectorStore
+
+
+class WebSocketManager:
+    def __init__(self) -> None:
+        self.active_connections: list[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket, subprotocol: str | None = None) -> None:
+        await websocket.accept(subprotocol=subprotocol)
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket) -> None:
+        if websocket in self.active_connections:
+            self.active_connections.remove(websocket)
+
+    async def broadcast(self, message: dict) -> None:
+        for connection in list(self.active_connections):
+            try:
+                await connection.send_json(message)
+            except (RuntimeError, ValueError, OSError):
+                self.disconnect(connection)
+
+
+class GaitService:
+    def __init__(
+        self, gallery_dir: str = "ml_platform/models/galleries/live_gallery", appearance_gallery_dir: str = "ml_platform/models/galleries/appearance_gallery"
+    ) -> None:
+        self.logger = setup_logger("ARGUS.GaitService")
+        self.gallery_dir = gallery_dir
+        self.appearance_gallery_dir = appearance_gallery_dir
+
+        self.store = VectorStore(gallery_dir=gallery_dir)
+        self.appearance_store = VectorStore(gallery_dir=appearance_gallery_dir)
+
+        self._lock = threading.RLock()
+
+        self._firebase_store = None
+        self._embedding_db = None
+        self._model_registry = None
+        self._continuous_engine = None
+        self._extractor = None
+        self._matcher = None
+        self._silhouette_extractor = None
+        self._open_set_recognizer = None
+        self._appearance_extractor = None
+        self._appearance_matcher = None
+        self._detector = None
+        self._tracker = None
+        self._source_resolver = None
+
+        self._is_warmed_up = False
+        self._warmup_error: str | None = None
+        self._warmup_duration: float = 0.0
+        self._readiness: dict[str, str] = {
+            "api": "READY",
+            "gallery": "PENDING",
+            "bygait": "PENDING",
+            "osnet": "PENDING",
+            "detector": "PENDING",
+            "silhouette": "PENDING",
+            "continual_learning": "PENDING",
+        }
+
+        self.ws_manager = WebSocketManager()
+        self.events_log: deque[dict] = deque(maxlen=500)
+        self.active_cameras: dict[str, dict] = {}
+        self.camera_workers: dict[str, CameraWorker] = {}
+
+        self.stats = {
+            "processed_images": 0,
+            "processed_videos": 0,
+            "total_events": 0,
+        }
+
+        self.appearance_gallery_features = np.empty((0, 512), dtype=np.float32)
+        self.appearance_gallery_labels = []
+        self.appearance_metadata = {}
+
+        self.reload_gallery()
+
+    @property
+    def is_warmed_up(self) -> bool:
+        return self._is_warmed_up
+
+    @property
+    def is_recognition_ready(self) -> bool:
+        with self._lock:
+            required = ["bygait", "osnet", "silhouette", "gallery"]
+            return all(self._readiness.get(k) == "READY" for k in required)
+
+    def get_readiness(self) -> dict[str, Any]:
+        with self._lock:
+            rec_ready = self.is_recognition_ready
+            states = {
+                "API_READY": True,
+                "GALLERY_READY": self._readiness.get("gallery") == "READY",
+                "BYGAIT_READY": self._readiness.get("bygait") == "READY",
+                "OSNET_READY": self._readiness.get("osnet") == "READY",
+                "DETECTOR_READY": self._readiness.get("detector") in ("READY", "DISABLED"),
+                "SILHOUETTE_READY": self._readiness.get("silhouette") == "READY",
+                "CONTINUAL_LEARNING_READY": self._readiness.get("continual_learning") == "READY",
+                "RECOGNITION_READY": rec_ready,
+            }
+            return {
+                "api_ready": True,
+                "recognition_ready": rec_ready,
+                "states": states,
+                "components": dict(self._readiness),
+                "warmup_duration_seconds": round(self._warmup_duration, 3),
+            }
+
+    @property
+    def extractor(self):
+        if self._extractor is None:
+            from app.pipeline.steps.feature_extraction import FeatureExtractionStep
+
+            step = FeatureExtractionStep()
+            with self._lock:
+                if self._extractor is None:
+                    self._extractor = step
+        return self._extractor
+
+    @extractor.setter
+    def extractor(self, value: Any) -> None:
+        self._extractor = value
+
+    @property
+    def matcher(self):
+        if self._matcher is None:
+            from app.pipeline.steps.matching_step import MatchingStep
+
+            matcher = MatchingStep(threshold=0.85)
+            with self._lock:
+                if self._matcher is None:
+                    self._matcher = matcher
+        return self._matcher
+
+    @matcher.setter
+    def matcher(self, value: Any) -> None:
+        self._matcher = value
+
+    @property
+    def silhouette_extractor(self):
+        if self._silhouette_extractor is None:
+            from app.pipeline.silhouette.extractor import SilhouetteExtractor
+
+            extractor = SilhouetteExtractor(target_size=(64, 128))
+            with self._lock:
+                if self._silhouette_extractor is None:
+                    self._silhouette_extractor = extractor
+        return self._silhouette_extractor
+
+    @silhouette_extractor.setter
+    def silhouette_extractor(self, value: Any) -> None:
+        self._silhouette_extractor = value
+
+    @property
+    def open_set_recognizer(self):
+        if self._open_set_recognizer is None:
+            from app.intelligence.validation.open_set_recognizer import OpenSetRecognizer
+
+            recognizer = OpenSetRecognizer()
+            with self._lock:
+                if self._open_set_recognizer is None:
+                    self._open_set_recognizer = recognizer
+        return self._open_set_recognizer
+
+    @open_set_recognizer.setter
+    def open_set_recognizer(self, value: Any) -> None:
+        self._open_set_recognizer = value
+
+    @property
+    def appearance_extractor(self):
+        if self._appearance_extractor is None:
+            try:
+                from app.intelligence.appearance_embedding import AppearanceEmbeddingExtractor
+
+                extractor = AppearanceEmbeddingExtractor(update_interval=8)
+            except (ImportError, RuntimeError, ValueError, TypeError, OSError) as app_init_err:
+                self.logger.warning(f"Appearance extractor init deferred: {app_init_err}")
+                extractor = None
+            with self._lock:
+                if self._appearance_extractor is None:
+                    self._appearance_extractor = extractor
+        return self._appearance_extractor
+
+    @appearance_extractor.setter
+    def appearance_extractor(self, value: Any) -> None:
+        self._appearance_extractor = value
+
+    @property
+    def appearance_matcher(self):
+        if self._appearance_matcher is None:
+            try:
+                from app.pipeline.steps.appearance_matching_step import AppearanceMatchingStep
+
+                matcher = AppearanceMatchingStep(threshold=0.60)
+            except (ImportError, RuntimeError, ValueError, TypeError, OSError) as app_init_err:
+                self.logger.warning(f"Appearance matcher init deferred: {app_init_err}")
+                matcher = None
+            with self._lock:
+                if self._appearance_matcher is None:
+                    self._appearance_matcher = matcher
+        return self._appearance_matcher
+
+    @appearance_matcher.setter
+    def appearance_matcher(self, value: Any) -> None:
+        self._appearance_matcher = value
+
+    @property
+    def detector(self):
+        if self._detector is None:
+            try:
+                from app.pipeline.detection.person_detector import PersonDetector
+
+                det = PersonDetector()
+            except (ImportError, RuntimeError, ValueError, OSError) as err:
+                self.logger.warning(f"PersonDetector initialization skipped: {err}")
+                det = None
+            with self._lock:
+                if self._detector is None:
+                    self._detector = det
+        return self._detector
+
+    @detector.setter
+    def detector(self, value: Any) -> None:
+        self._detector = value
+
+    @property
+    def tracker(self):
+        if self._tracker is None:
+            try:
+                from app.pipeline.steps.tracking import TrackingStep
+
+                trk = TrackingStep(detector=self.detector)
+            except (ImportError, RuntimeError, ValueError, OSError) as err:
+                self.logger.warning(f"TrackingStep initialization skipped: {err}")
+                trk = None
+            with self._lock:
+                if self._tracker is None:
+                    self._tracker = trk
+        return self._tracker
+
+    @tracker.setter
+    def tracker(self, value: Any) -> None:
+        self._tracker = value
+
+    @property
+    def source_resolver(self):
+        if self._source_resolver is None:
+            from app.services.camera_source_resolver import CameraSourceResolver
+
+            resolver = CameraSourceResolver()
+            with self._lock:
+                if self._source_resolver is None:
+                    self._source_resolver = resolver
+        return self._source_resolver
+
+    @source_resolver.setter
+    def source_resolver(self, value: Any) -> None:
+        self._source_resolver = value
+
+    @property
+    def firebase_store(self):
+        if self._firebase_store is None:
+            with self._lock:
+                if self._firebase_store is None:
+                    try:
+                        from app.storage.firebase_embedding_store import FirebaseEmbeddingStore
+
+                        self._firebase_store = FirebaseEmbeddingStore(mode="auto")
+                    except (ImportError, RuntimeError, ValueError, TypeError, OSError) as err:
+                        self.logger.warning(f"FirebaseEmbeddingStore init deferred: {err}")
+                        self._firebase_store = None
+        return self._firebase_store
+
+    @firebase_store.setter
+    def firebase_store(self, value: Any) -> None:
+        self._firebase_store = value
+
+    @property
+    def embedding_db(self):
+        if self._embedding_db is None:
+            with self._lock:
+                if self._embedding_db is None:
+                    try:
+                        from app.storage.embedding_database import EmbeddingDatabase
+
+                        self._embedding_db = EmbeddingDatabase(
+                            gait_gallery_dir=self.gallery_dir,
+                            appearance_gallery_dir=self.appearance_gallery_dir,
+                            firebase_store=self.firebase_store,
+                        )
+                    except (ImportError, RuntimeError, ValueError, TypeError, OSError) as err:
+                        self.logger.warning(f"EmbeddingDatabase init deferred: {err}")
+                        self._embedding_db = None
+        return self._embedding_db
+
+    @embedding_db.setter
+    def embedding_db(self, value: Any) -> None:
+        self._embedding_db = value
+
+    @property
+    def model_registry(self):
+        if self._model_registry is None:
+            with self._lock:
+                if self._model_registry is None:
+                    try:
+                        from ml_platform.models.model_registry import ModelRegistry
+
+                        self._model_registry = ModelRegistry()
+                    except (ImportError, RuntimeError, ValueError, TypeError, OSError) as err:
+                        self.logger.warning(f"ModelRegistry init deferred: {err}")
+                        self._model_registry = None
+        return self._model_registry
+
+    @model_registry.setter
+    def model_registry(self, value: Any) -> None:
+        self._model_registry = value
+
+    @property
+    def continuous_engine(self):
+        if self._continuous_engine is None:
+            with self._lock:
+                if self._continuous_engine is None:
+                    try:
+                        from app.intelligence.continuous_improvement_engine import ContinuousImprovementEngine
+
+                        self._continuous_engine = ContinuousImprovementEngine(
+                            registry=self.model_registry,
+                            db=self.embedding_db,
+                        )
+                    except (ImportError, RuntimeError, ValueError, TypeError, OSError) as err:
+                        self.logger.warning(f"ContinuousImprovementEngine init deferred: {err}")
+                        self._continuous_engine = None
+        return self._continuous_engine
+
+    @continuous_engine.setter
+    def continuous_engine(self, value: Any) -> None:
+        self._continuous_engine = value
+
+    def warmup(self) -> dict[str, Any]:
+        with self._lock:
+            if self._is_warmed_up:
+                return {"status": "WARMED_UP", "already_warmed": True}
+            if getattr(self, "_is_warming_up", False):
+                return {"status": "WARMING_UP", "already_warmed": False}
+            self._is_warming_up = True
+
+        self.logger.info("[STARTUP] Beginning background model warmup...")
+        t0 = time.perf_counter()
+        results = {}
+
+        # 1. ByGaitLight Gait Encoder
+        try:
+            with self._lock:
+                self._readiness["bygait"] = "INITIALIZING"
+            ext = self.extractor
+            _ = self.matcher
+            if ext is not None and hasattr(ext, "backend") and ext.backend is not None:
+                dummy_gei = np.zeros((128, 64), dtype=np.float32)
+                _ = ext.backend.predict(dummy_gei)
+            with self._lock:
+                self._readiness["bygait"] = "READY"
+            results["bygait_light"] = "READY"
+        except Exception as e:  # noqa: BLE001
+            with self._lock:
+                self._readiness["bygait"] = "ERROR"
+            results["bygait_light"] = f"ERROR: {e}"
+
+        # 2. Silhouette UNet Extractor
+        try:
+            with self._lock:
+                self._readiness["silhouette"] = "INITIALIZING"
+            sil_ext = self.silhouette_extractor
+            if sil_ext is not None:
+                dummy_crop = np.zeros((128, 64, 3), dtype=np.uint8)
+                cv2.rectangle(dummy_crop, (16, 16), (48, 112), (255, 255, 255), -1)
+                _ = sil_ext.extract_from_crop(dummy_crop)
+            with self._lock:
+                self._readiness["silhouette"] = "READY"
+            results["silhouette_extractor"] = "READY"
+        except Exception as e:  # noqa: BLE001
+            with self._lock:
+                self._readiness["silhouette"] = "ERROR"
+            results["silhouette_extractor"] = f"ERROR: {e}"
+
+        # 3. OSNet Appearance Extractor
+        try:
+            with self._lock:
+                self._readiness["osnet"] = "INITIALIZING"
+            app_ext = self.appearance_extractor
+            _ = self.appearance_matcher
+            if app_ext is not None:
+                dummy_crop = np.zeros((128, 64, 3), dtype=np.uint8)
+                _ = app_ext.extract(dummy_crop)
+            with self._lock:
+                self._readiness["osnet"] = "READY"
+            results["osnet_appearance"] = "READY"
+        except Exception as e:  # noqa: BLE001
+            with self._lock:
+                self._readiness["osnet"] = "ERROR"
+            results["osnet_appearance"] = f"ERROR: {e}"
+
+        # 4. Person Detector
+        try:
+            with self._lock:
+                self._readiness["detector"] = "INITIALIZING"
+            det = self.detector
+            if det is not None:
+                dummy_img = np.zeros((160, 160, 3), dtype=np.uint8)
+                _ = det.detect(dummy_img)
+            det_status = "READY" if self._detector else "DISABLED"
+            with self._lock:
+                self._readiness["detector"] = det_status
+            results["person_detector"] = det_status
+        except Exception as e:  # noqa: BLE001
+            with self._lock:
+                self._readiness["detector"] = "ERROR"
+            results["person_detector"] = f"ERROR: {e}"
+
+        # 5. Continual Learning & Registry
+        try:
+            with self._lock:
+                self._readiness["continual_learning"] = "INITIALIZING"
+            _ = self.open_set_recognizer
+            _ = self.embedding_db
+            _ = self.model_registry
+            _ = self.continuous_engine
+            with self._lock:
+                self._readiness["continual_learning"] = "READY"
+            results["continual_learning"] = "READY"
+        except Exception as e:  # noqa: BLE001
+            with self._lock:
+                self._readiness["continual_learning"] = "ERROR"
+            results["continual_learning"] = f"ERROR: {e}"
+
+        dur = time.perf_counter() - t0
+        with self._lock:
+            self._warmup_duration = dur
+            self._is_warmed_up = True
+            self._is_warming_up = False
+
+        self.logger.info(f"[STARTUP] Background model warmup completed in {dur:.3f}s. Results: {results}")
+
+        # Automatic recovery scanner for unfinished reference video jobs
+        try:
+            from app.services.missing_person_processor import MissingPersonVideoProcessor
+            from app.services.reference_job_manager import ReferenceJobManager
+
+            processor = MissingPersonVideoProcessor(
+                detector=self.detector,
+                tracker=self.tracker,
+                extractor=self.extractor,
+                appearance_extractor=self.appearance_extractor,
+                silhouette_step=self.silhouette_extractor,
+                store=self.store,
+                embedding_db=self.embedding_db,
+            )
+            recovered = ReferenceJobManager.get_instance().recover_unfinished_jobs(
+                processor=processor,
+                gait_service_ref=self,
+            )
+            if recovered:
+                self.logger.info(f"[STARTUP] Recovered and resumed {len(recovered)} unfinished reference job(s).")
+        except Exception as rec_err:  # noqa: BLE001
+            self.logger.warning(f"[STARTUP] Reference job recovery notice: {rec_err}")
+
+        return {"status": "WARMED_UP", "duration": dur, "components": results}
+
+    async def warmup_async(self) -> dict[str, Any]:
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(None, self.warmup)
+
+    async def shutdown_async(self) -> None:
+        for cam_id, worker in list(self.camera_workers.items()):
+            try:
+                worker.stop()
+            except Exception as e:  # noqa: BLE001
+                self.logger.warning(f"Error stopping camera {cam_id}: {e}")
+
+        # Graceful shutdown of reference video job workers and checkpoint persistence
+        try:
+            from app.services.reference_job_manager import ReferenceJobManager
+
+            loop = asyncio.get_running_loop()
+            await loop.run_in_executor(None, ReferenceJobManager.get_instance().shutdown, 5.0)
+        except Exception as e:  # noqa: BLE001
+            self.logger.warning(f"Error during reference job manager shutdown: {e}")
+
+    def reload_gallery(self) -> None:
+        with self._lock:
+            try:
+                gallery = self.store.load()
+                if gallery is not None:
+                    self.gallery_features, labels, self.metadata = gallery
+                    self.gallery_labels = list(labels) if labels is not None else []
+                    self.logger.info(f"Loaded gait gallery with {len(self.gallery_labels)} embeddings.")
+                else:
+                    self.gallery_features = np.empty((0, 256), dtype=np.float32)
+                    self.gallery_labels = []
+                    self.metadata = []
+                    self.logger.warning("No gait gallery found; operating with empty gait gallery.")
+            except (RuntimeError, ValueError, TypeError, OSError) as err:
+                self.logger.error(f"Failed to load gait gallery: {err}")
+                self.gallery_features = np.empty((0, 256), dtype=np.float32)
+                self.gallery_labels = []
+                self.metadata = []
+
+            try:
+                app_gallery = self.appearance_store.load()
+                if app_gallery is not None:
+                    self.appearance_gallery_features, app_labels, self.appearance_metadata = app_gallery
+                    self.appearance_gallery_labels = list(app_labels) if app_labels is not None else []
+                    self.logger.info(
+                        f"Loaded appearance gallery with {len(self.appearance_gallery_labels)} embeddings."
+                    )
+                else:
+                    self.appearance_gallery_features = np.empty((0, 512), dtype=np.float32)
+                    self.appearance_gallery_labels = []
+                    self.appearance_metadata = {}
+            except (RuntimeError, ValueError, TypeError, OSError) as app_err:
+                self.logger.warning(f"Failed to load appearance gallery: {app_err}")
+                self.appearance_gallery_features = np.empty((0, 512), dtype=np.float32)
+                self.appearance_gallery_labels = []
+                self.appearance_metadata = {}
+
+            self._readiness["gallery"] = "READY"
+            workers_snapshot = list(self.camera_workers.values())
+
+        for worker in workers_snapshot:
+            try:
+                if worker.recognition_worker is not None:
+                    worker.recognition_worker.update_gallery(
+                        gallery_features=self.gallery_features,
+                        gallery_labels=self.gallery_labels,
+                        metadata=self.metadata,
+                    )
+                    worker.recognition_worker.update_appearance_gallery(
+                        gallery_features=self.appearance_gallery_features,
+                        gallery_labels=self.appearance_gallery_labels,
+                        metadata=self.appearance_metadata,
+                    )
+            except Exception as w_err:  # noqa: BLE001
+                self.logger.warning(
+                    f"Error updating camera worker gallery for {getattr(worker, 'camera_id', 'unknown')}: {w_err}"
+                )
+
+    def _handle_recognition_event(self, event_dict: dict) -> None:
+        self.events_log.appendleft(event_dict)
+        self.stats["total_events"] += 1
+
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                asyncio.create_task(self.ws_manager.broadcast(event_dict))
+        except (RuntimeError, ValueError, TypeError, OSError):
+            pass
+
+    def get_metrics(self) -> dict:
+        has_labels = len(self.gallery_labels) > 0 if self.gallery_labels is not None else False
+        unique_labels = set(self.gallery_labels) if has_labels else set()
+        return {
+            "people": len(unique_labels),
+            "embeddings": len(self.gallery_labels) if has_labels else 0,
+            "labels": len(unique_labels),
+            "processed_images": self.stats["processed_images"],
+            "processed_videos": self.stats["processed_videos"],
+            "total_events": len(self.events_log),
+        }
+
+    def process_image_bytes(self, image_bytes: bytes, camera_id: str = "upload-image") -> dict:
+        array = np.frombuffer(image_bytes, dtype=np.uint8)
+        frame = cv2.imdecode(array, cv2.IMREAD_COLOR)
+
+        if frame is None or frame.size == 0:
+            raise ValueError("Invalid or corrupted image format")
+
+        self.stats["processed_images"] += 1
+        h, w = frame.shape[:2]
+
+        bbox = [0, 0, w, h]
+        if self.detector is not None:
+            try:
+                detections = self.detector.detect(frame)
+                if detections and len(detections) > 0:
+                    bbox = detections[0]["bbox"]
+            except (RuntimeError, ValueError, TypeError, cv2.error, OSError) as err:
+                self.logger.warning(f"Detection failed; using full frame: {err}")
+
+        x1, y1, x2, y2 = map(int, bbox)
+        crop = frame[max(0, y1) : min(h, y2), max(0, x1) : min(w, x2)]
+        if crop.size == 0:
+            crop = frame
+
+        silhouette = self.silhouette_extractor.extract_from_crop(crop)
+        if silhouette is None:
+            gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
+            silhouette = cv2.resize(gray, (64, 128))
+
+        sil_norm = silhouette.astype(np.float32) / 255.0
+        embedding = self.extractor.backend.predict(sil_norm).flatten().astype(np.float32)
+
+        identity = "UNKNOWN"
+        decision = "UNKNOWN"
+        confidence = 0.0
+
+        if len(self.gallery_features) > 0:
+            open_set_res = self.matcher.match_open_set(
+                embedding,
+                self.gallery_features,
+                self.gallery_labels,
+                self.metadata,
+            )
+            matched_id, score = self.matcher.match(
+                embedding,
+                self.gallery_features,
+                self.gallery_labels,
+                self.metadata,
+            )
+
+            decision = open_set_res.state.value.upper()
+            confidence = float(score)
+            if decision == "KNOWN":
+                identity = str(matched_id)
+            elif decision == "UNCERTAIN":
+                identity = f"UNCERTAIN ({matched_id})"
+            else:
+                identity = "UNKNOWN"
+
+        event = {
+            "event_id": f"evt-{uuid.uuid4().hex[:12]}",
+            "camera_id": camera_id,
+            "track_id": 1,
+            "identity": identity,
+            "decision": decision,
+            "confidence": round(confidence, 4),
+            "quality": 0.85,
+            "bbox": [x1, y1, x2, y2],
+            "recognition_branch": "2D_GEI",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+
+        self.events_log.appendleft(event)
+        self.stats["total_events"] += 1
+
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                loop.create_task(self.ws_manager.broadcast(event))
+        except (RuntimeError, ValueError, TypeError, OSError):
+            pass
+
+        return event
+
+    def enroll_images(self, person_id: str, image_bytes_list: list[bytes]) -> dict:
+        if not person_id or not person_id.replace("_", "").replace("-", "").isalnum():
+            raise ValueError("Invalid person_id: must be alphanumeric (hyphens/underscores permitted)")
+
+        added_embeddings = 0
+        embeddings = []
+        app_embeddings = []
+
+        for raw_bytes in image_bytes_list:
+            array = np.frombuffer(raw_bytes, dtype=np.uint8)
+            frame = cv2.imdecode(array, cv2.IMREAD_COLOR)
+            if frame is None or frame.size == 0:
+                continue
+
+            silhouette = self.silhouette_extractor.extract_from_crop(frame)
+            if silhouette is None:
+                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                silhouette = cv2.resize(gray, (64, 128))
+
+            sil_norm = silhouette.astype(np.float32) / 255.0
+            embedding = self.extractor.backend.predict(sil_norm).flatten().astype(np.float32)
+            embeddings.append(embedding)
+            added_embeddings += 1
+
+            if self.appearance_extractor is not None:
+                try:
+                    app_emb = self.appearance_extractor.extract(frame)
+                    if app_emb is not None and len(app_emb) == 512 and np.isfinite(app_emb).all():
+                        app_embeddings.append(app_emb)
+                except Exception as app_err:  # noqa: BLE001
+                    self.logger.debug(f"Appearance extraction notice during enrollment: {app_err}")
+
+        if added_embeddings == 0:
+            return {
+                "success": False,
+                "person_id": person_id,
+                "message": "No valid images could be processed for enrollment",
+                "embeddings_added": 0,
+                "gait_embeddings_added": 0,
+                "appearance_embeddings_added": 0,
+                "firebase_status": "FAILED",
+                "status": "PROCESSING_FAILED",
+            }
+
+        new_features = np.vstack(embeddings)
+        new_labels = [person_id] * added_embeddings
+
+        if len(self.gallery_features) > 0:
+            self.gallery_features = np.vstack([self.gallery_features, new_features])
+            if not isinstance(self.gallery_labels, list):
+                self.gallery_labels = list(self.gallery_labels)
+            self.gallery_labels.extend(new_labels)
+        else:
+            self.gallery_features = new_features
+            self.gallery_labels = new_labels
+
+        self.store.save(self.gallery_features, self.gallery_labels, self.metadata)
+
+        if app_embeddings:
+            new_app_features = np.vstack(app_embeddings)
+            new_app_labels = [person_id] * len(app_embeddings)
+            if len(self.appearance_gallery_features) > 0:
+                self.appearance_gallery_features = np.vstack([self.appearance_gallery_features, new_app_features])
+                if not isinstance(self.appearance_gallery_labels, list):
+                    self.appearance_gallery_labels = list(self.appearance_gallery_labels)
+                self.appearance_gallery_labels.extend(new_app_labels)
+            else:
+                self.appearance_gallery_features = new_app_features
+                self.appearance_gallery_labels = new_app_labels
+            self.appearance_store.save(
+                self.appearance_gallery_features, self.appearance_gallery_labels, self.appearance_metadata
+            )
+
+        db_persist_result = None
+        if self.embedding_db is not None:
+            try:
+                db_persist_result = self.embedding_db.add_embeddings(
+                    person_id=person_id,
+                    gait_embeddings=embeddings,
+                    appearance_embeddings=app_embeddings if app_embeddings else None,
+                )
+            except (RuntimeError, ValueError, TypeError, OSError) as db_err:
+                self.logger.warning(f"EmbeddingDatabase persistence sync warning: {db_err}")
+
+        fb_res = db_persist_result.get("firebase_results", []) if db_persist_result else []
+        fb_status = (
+            "CONFIRMED"
+            if fb_res and all(r.get("success", False) for r in fb_res)
+            else (
+                "PENDING" if self.embedding_db and getattr(self.embedding_db, "firebase_store", None) else "LOCAL_ONLY"
+            )
+        )
+
+        return {
+            "success": True,
+            "person_id": person_id,
+            "message": f"Successfully enrolled {person_id} with {added_embeddings} gait and {len(app_embeddings)} appearance embeddings",
+            "embeddings_added": added_embeddings,
+            "gait_embeddings_added": added_embeddings,
+            "appearance_embeddings_added": len(app_embeddings),
+            "firebase_status": fb_status,
+            "status": "EMBEDDING_ONLY",
+        }
+
+    def _load_camera_config(self) -> dict:
+        config_path = Path("configs/system.yaml")
+        defaults = {
+            "width": 640,
+            "height": 480,
+            "target_fps": 15,
+            "jpeg_quality": 75,
+            "preview_max_fps": 15,
+            "reconnect_interval": 5,
+            "max_reconnect_attempts": 0,
+            "max_queue_size": 10,
+            "startup_timeout": 10.0,
+            "startup_retry_interval": 0.3,
+        }
+
+        if not config_path.exists():
+            return defaults
+
+        try:
+            with open(config_path, "r", encoding="utf-8") as f:
+                data = yaml.safe_load(f) or {}
+                section = data.get("camera", {})
+                if isinstance(section, dict):
+                    for k in defaults:
+                        if k in section:
+                            defaults[k] = section[k]
+        except (yaml.YAMLError, OSError, ValueError) as e:
+            self.logger.warning(f"Could not load system camera configuration: {e}")
+
+        return defaults
+
+    def _attach_recognition_worker_async(
+        self,
+        camera_id: str,
+        worker: CameraWorker,
+        worker_cfg: dict,
+    ) -> None:
+        """Asynchronously initialize and attach RecognitionWorker without delaying camera stream preview."""
+
+        def _bg_init():
+            try:
+                # If camera was stopped or disconnected while background init was queued, exit cleanly
+                if camera_id not in self.active_cameras or not worker.is_running():
+                    return
+
+                from app.services.recognition_worker import RecognitionWorker
+
+                rec_worker = RecognitionWorker(
+                    camera_id=camera_id,
+                    config=worker_cfg.get("recognition", {}),
+                    detector=self.detector,
+                    silhouette_extractor=self.silhouette_extractor,
+                    extractor=self.extractor,
+                    matcher=self.matcher,
+                    open_set_recognizer=self.open_set_recognizer,
+                    gallery_features=self.gallery_features,
+                    gallery_labels=self.gallery_labels,
+                    metadata=self.metadata,
+                    appearance_extractor=self.appearance_extractor,
+                    appearance_matcher=self.appearance_matcher,
+                    appearance_gallery_features=self.appearance_gallery_features,
+                    appearance_gallery_labels=self.appearance_gallery_labels,
+                    appearance_metadata=self.appearance_metadata,
+                    operational_collector=self.continuous_engine.collector if self.continuous_engine else None,
+                    event_callback=self._handle_recognition_event,
+                )
+
+                if camera_id in self.active_cameras and worker.is_running():
+                    worker.set_recognition_worker(rec_worker)
+                    self.logger.info(f"RecognitionWorker successfully attached to camera '{camera_id}'")
+                else:
+                    rec_worker.stop(timeout=1.0)
+            except Exception as rec_err:  # noqa: BLE001
+                self.logger.warning(f"Recognition worker async initialization notice for {camera_id}: {rec_err}")
+
+        init_thread = threading.Thread(
+            target=_bg_init,
+            name=f"rec-init-{camera_id}",
+            daemon=True,
+        )
+        init_thread.start()
+
+    def start_camera(
+        self,
+        camera_id: str,
+        source: str = "auto",
+        location: str = "Surveillance Zone",
+        zone_id: str | None = None,
+        user_id: str = "default_user",
+        credential_id: str | None = None,
+    ) -> dict:
+        if camera_id in self.active_cameras:
+            return self.get_camera_info(camera_id)
+
+        resolution = self.source_resolver.resolve_source(
+            camera_id=camera_id,
+            requested_source=source or "auto",
+            zone_id=zone_id,
+            user_id=user_id,
+            credential_id=credential_id,
+        )
+
+        resolved_source = resolution["resolved_source"]
+        resolved_type = resolution.get("resolved_source_type") or resolution.get("source_type") or "webcam"
+        source_type = (
+            "webcam"
+            if resolved_type in ("usb", "webcam", "local")
+            else ("rtsp" if resolved_type == "rtsp" else resolved_type)
+        )
+        resolved_label = resolution["resolved_source_label"]
+        res_cred_id = resolution.get("credential_id")
+        res_cred_conf = resolution.get("credential_configured", False)
+
+        sanitized_source = sanitize_rtsp_url(resolved_source)
+        retained_capture = resolution.get("capture")
+        initial_frame = resolution.get("initial_frame")
+
+        camera_defaults = self._load_camera_config()
+        worker_cfg = {
+            **camera_defaults,
+            "type": source_type,
+            "url": resolved_source if source_type != "webcam" else "",
+            "device_index": int(resolved_source) if source_type == "webcam" and str(resolved_source).isdigit() else 0,
+        }
+
+        enforce_admission = bool(worker_cfg.get("enforce_admission", False))
+        try:
+            adm_res = None
+            if hasattr(self, "_deployment_manager") and self._deployment_manager is not None:
+                adm_res = self._deployment_manager.request_camera_admission(
+                    camera_id=camera_id,
+                    current_active_cameras=len(self.active_cameras),
+                )
+            else:
+                # Fast, lightweight resource sanity check without blocking camera preview on heavy Torch imports
+                import psutil
+
+                cpu_pct = psutil.cpu_percent(interval=None)
+                ram_pct = psutil.virtual_memory().percent
+                if cpu_pct >= 90.0:
+                    msg = f"CPU saturated ({cpu_pct:.1f}% >= 90.0%)"
+                    self.logger.warning(f"Camera admission notice for '{camera_id}': {msg}")
+                    if enforce_admission:
+                        self.source_resolver.release_source_by_camera_id(camera_id)
+                        raise RuntimeError(f"Camera admission rejected for '{camera_id}': {msg}")
+                elif ram_pct >= 90.0:
+                    msg = f"Host RAM saturated ({ram_pct:.1f}% >= 90.0%)"
+                    self.logger.warning(f"Camera admission notice for '{camera_id}': {msg}")
+                    if enforce_admission:
+                        self.source_resolver.release_source_by_camera_id(camera_id)
+                        raise RuntimeError(f"Camera admission rejected for '{camera_id}': {msg}")
+
+                # Asynchronously warm up DeploymentReadinessManager in background
+                if not getattr(self, "_dm_initializing", False):
+                    self._dm_initializing = True
+
+                    def _init_dm():
+                        try:
+                            from app.streaming.deployment_readiness import DeploymentReadinessManager
+
+                            self._deployment_manager = DeploymentReadinessManager()
+                        except Exception as dm_err:  # noqa: BLE001
+                            self.logger.debug(f"Background deployment readiness init notice: {dm_err}")
+                        finally:
+                            self._dm_initializing = False
+
+                    threading.Thread(target=_init_dm, name="dm-bg-init", daemon=True).start()
+
+            if adm_res is not None:
+                if not adm_res.admitted:
+                    self.logger.warning(f"Camera admission notice for '{camera_id}': {adm_res.reason}")
+                    if enforce_admission:
+                        self.source_resolver.release_source_by_camera_id(camera_id)
+                        raise RuntimeError(f"Camera admission rejected for '{camera_id}': {adm_res.reason}")
+                elif (
+                    getattr(adm_res, "decision", None) is not None
+                    and getattr(adm_res.decision, "name", "") == "ADMITTED_DEGRADED"
+                ):
+                    self.logger.info(f"Camera '{camera_id}' admitted with degraded FPS ({adm_res.effective_fps:.1f})")
+                    worker_cfg["target_fps"] = max(1, int(adm_res.effective_fps))
+        except RuntimeError:
+            raise
+        except Exception as adm_err:  # noqa: BLE001
+            self.logger.debug(f"Admission check note: {adm_err}")
+
+        # Start CameraWorker immediately to acquire the first frame and expose live preview
+        # without waiting for the heavy ML recognition pipeline to load.
+        worker = CameraWorker(
+            camera_id=camera_id,
+            camera_config=worker_cfg,
+            inference_pipeline=None,
+            detection_processor=None,
+            recognition_worker=None,
+            existing_capture=retained_capture,
+            initial_frame=initial_frame,
+        )
+
+        started = worker.start()
+        if not started:
+            self.source_resolver.release_source_by_camera_id(camera_id)
+            raise RuntimeError(
+                f"Unable to establish stream connection for {sanitized_source} ({camera_id}): failed to capture video frames"
+            )
+
+        self.camera_workers[camera_id] = worker
+
+        stats = worker.get_stats()
+        frames_captured = stats.get("frames_captured", 1)
+
+        cam_info = {
+            "camera_id": camera_id,
+            "zone_id": zone_id,
+            "source": sanitized_source,
+            "source_type": source_type,
+            "location": location,
+            "status": "ACTIVE",
+            "fps": round(stats.get("fps", 0.0), 1),
+            "processed_frames": frames_captured,
+            "active_tracks": stats.get("active_tracks", 0),
+            "recognition_active": stats.get("recognition_active", False),
+            "requested_source": sanitize_rtsp_url(source),
+            "resolved_source": sanitized_source,
+            "resolved_source_type": source_type,
+            "resolved_source_label": sanitize_rtsp_url(resolved_label),
+            "preview_url": f"/api/v1/cameras/{camera_id}/stream",
+            "started_at": datetime.now(timezone.utc).isoformat(),
+            "last_frame_at": stats.get("last_frame_at"),
+            "last_recognition_at": stats.get("last_recognition_at"),
+            "credential_id": res_cred_id,
+            "credential_configured": res_cred_conf,
+        }
+        self.active_cameras[camera_id] = cam_info
+
+        # Launch independent, asynchronous RecognitionWorker attachment after registration
+        self._attach_recognition_worker_async(camera_id, worker, worker_cfg)
+
+        self.logger.info(
+            f"Camera worker {camera_id} active with {sanitize_rtsp_url(resolved_label)} [type={source_type}]"
+        )
+        return cam_info
+
+    def stop_camera(self, camera_id: str) -> bool:
+        cam_info = self.active_cameras.pop(camera_id, None)
+        if cam_info:
+            cam_info["status"] = "STOPPED"
+        self.source_resolver.release_source_by_camera_id(camera_id)
+
+        worker = self.camera_workers.pop(camera_id, None)
+        if worker:
+            try:
+                worker.stop()
+            except (RuntimeError, ValueError, TypeError, OSError) as e:
+                self.logger.warning(f"Error stopping worker {camera_id}: {sanitize_rtsp_url(str(e))}")
+
+        return cam_info is not None
+
+    def get_camera_worker(self, camera_id: str) -> CameraWorker | None:
+        return self.camera_workers.get(camera_id)
+
+    def get_camera_info(self, camera_id: str) -> dict | None:
+        cam = self.active_cameras.get(camera_id)
+        if not cam:
+            return None
+        worker = self.camera_workers.get(camera_id)
+        if worker:
+            stats = worker.get_stats()
+            cam["processed_frames"] = stats.get("frames_captured", cam.get("processed_frames", 0))
+            cam["fps"] = round(stats.get("fps", 0.0), 1)
+            cam["active_tracks"] = stats.get("active_tracks", 0)
+            cam["recognition_active"] = stats.get("recognition_active", False)
+            cam["last_recognition_at"] = stats.get("last_recognition_at")
+            cam["active_clients"] = stats.get("active_clients", 0)
+            cam["recognized_identities"] = stats.get("recognized_identities", [])
+            cam["preview_url"] = f"/api/v1/cameras/{camera_id}/stream"
+            cam["last_frame_at"] = stats.get("last_frame_at")
+            cam["source_type"] = cam.get("source_type") or stats.get("source_type", "webcam")
+            cam["status"] = (
+                "ACTIVE"
+                if worker.is_running() and worker.is_connected()
+                else ("ACTIVE" if worker.is_running() else "STOPPED")
+            )
+        return cam
+
+    def list_all_cameras(self) -> list[dict]:
+        result = []
+        for cam_id in list(self.active_cameras.keys()):
+            info = self.get_camera_info(cam_id)
+            if info:
+                result.append(info)
+        return result

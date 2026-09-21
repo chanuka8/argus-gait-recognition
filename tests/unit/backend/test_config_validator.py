@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from utils.config_validator import ConfigValidator, sanitize_rtsp_url
+from app.utils.config_validator import ConfigValidator, sanitize_rtsp_url
 
 
 def test_rtsp_credential_sanitization_edge_cases():
