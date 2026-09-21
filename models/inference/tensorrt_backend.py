@@ -1,4 +1,3 @@
-
 import numpy as np
 import torch
 
@@ -29,9 +28,25 @@ class TensorRTBackend(BaseInferenceBackend):
             if not self.engine_path.exists():
                 raise FileNotFoundError(f"TensorRT engine file not found: {self.engine_path}")
 
+            from security_layer.model_confidentiality import (
+                ArtifactConfidentiality,
+                load_verified_model_bytes,
+            )
+            from security_layer.model_integrity import ROLE_GAIT_EMBEDDING
+
+            logical_name = (
+                "bygait_light_fp16.engine" if self.engine_path.name.endswith(".enc") else self.engine_path.name
+            )
+            model_bytes = load_verified_model_bytes(
+                self.engine_path,
+                expected_role=ROLE_GAIT_EMBEDDING,
+                logical_filename=logical_name,
+                confidentiality=ArtifactConfidentiality.PROTECTED,
+            )
+
             logger = trt.Logger(trt.Logger.WARNING)
-            with open(self.engine_path, "rb") as f, trt.Runtime(logger) as runtime:
-                self.engine = runtime.deserialize_cuda_engine(f.read())
+            with trt.Runtime(logger) as runtime:
+                self.engine = runtime.deserialize_cuda_engine(model_bytes)
                 if self.engine is not None:
                     self.context = self.engine.create_execution_context()
                     self.execution_provider = "TensorRT-CUDA"

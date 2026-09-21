@@ -144,6 +144,62 @@ def _execute_doctor_checks(json_path: str, md_path: str) -> tuple[int, dict]:
             )
             blocking_issues.append(f"Corrupted ONNX model file at {_to_rel(onnx_path)}")
 
+    # U5 Phase 2 Model Confidentiality check
+    try:
+        from security_layer.model_confidentiality import (
+            MAGIC_HEADER,
+            ArtifactConfidentiality,
+            get_deployment_environment,
+            is_model_encryption_required,
+        )
+
+        active_env = get_deployment_environment()
+        enc_required = is_model_encryption_required(ArtifactConfidentiality.PROTECTED, active_env)
+        enc_ckpt_path = ckpt_path.with_name(ckpt_path.name + ".enc")
+        has_enc = enc_ckpt_path.is_file() and enc_ckpt_path.read_bytes().startswith(MAGIC_HEADER)
+        has_plain = ckpt_path.is_file()
+
+        if enc_required:
+            if has_enc:
+                checks.append(
+                    {
+                        "name": "model_confidentiality",
+                        "category": "security",
+                        "status": "PASS",
+                        "details": f"Production model encryption verified ({_to_rel(enc_ckpt_path)})",
+                    }
+                )
+            else:
+                checks.append(
+                    {
+                        "name": "model_confidentiality",
+                        "category": "security",
+                        "status": "FAIL",
+                        "details": f"Production environment requires encrypted model container; unencrypted plaintext found at {_to_rel(ckpt_path)}",
+                    }
+                )
+                blocking_issues.append(
+                    "Model confidentiality defect: Production environment requires encrypted model artifact"
+                )
+        else:
+            checks.append(
+                {
+                    "name": "model_confidentiality",
+                    "category": "security",
+                    "status": "PASS",
+                    "details": f"Model confidentiality: {active_env} mode (encrypted={has_enc}, plaintext={has_plain})",
+                }
+            )
+    except (RuntimeError, ValueError, TypeError, OSError) as e:
+        checks.append(
+            {
+                "name": "model_confidentiality",
+                "category": "security",
+                "status": "WARN",
+                "details": f"Could not evaluate model confidentiality: {e}",
+            }
+        )
+
     try:
         from models.inference.backend import BackendValidator, get_inference_backend
 
@@ -219,9 +275,11 @@ def _execute_doctor_checks(json_path: str, md_path: str) -> tuple[int, dict]:
             "name": "configuration_files",
             "category": "config",
             "status": "PASS" if all_cfg_ok else "FAIL",
-            "details": "All YAML configurations loaded and validated cleanly"
-            if all_cfg_ok
-            else "Configuration validation errors detected",
+            "details": (
+                "All YAML configurations loaded and validated cleanly"
+                if all_cfg_ok
+                else "Configuration validation errors detected"
+            ),
         }
     )
 
@@ -365,7 +423,6 @@ def _execute_doctor_checks(json_path: str, md_path: str) -> tuple[int, dict]:
 
     m_path = resolve_runtime_path(md_path)
     m_path.parent.mkdir(parents=True, exist_ok=True)
-
 
     rows = []
     for c in checks:

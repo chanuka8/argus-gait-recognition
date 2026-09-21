@@ -1,4 +1,3 @@
-
 import numpy as np
 import torch
 
@@ -32,11 +31,24 @@ class PyTorchBackend(BaseInferenceBackend):
         part_bins = 4
         filtered = {}
         if self.model_path.exists():
-            from security_layer.model_integrity import ROLE_GAIT_EMBEDDING, verify_model
+            import io
 
-            verified_path = verify_model(self.model_path, expected_role=ROLE_GAIT_EMBEDDING)
+            from security_layer.model_confidentiality import (
+                ArtifactConfidentiality,
+                load_verified_model_bytes,
+            )
+            from security_layer.model_integrity import ROLE_GAIT_EMBEDDING
+
             try:
-                checkpoint = torch.load(verified_path, map_location="cpu", weights_only=True)
+                logical_name = "best_model.pth" if self.model_path.name.endswith(".enc") else self.model_path.name
+                model_bytes = load_verified_model_bytes(
+                    self.model_path,
+                    expected_role=ROLE_GAIT_EMBEDDING,
+                    logical_filename=logical_name,
+                    confidentiality=ArtifactConfidentiality.PROTECTED,
+                )
+                buffer = io.BytesIO(model_bytes)
+                checkpoint = torch.load(buffer, map_location="cpu", weights_only=True)
                 for key, value in checkpoint.items():
                     if key.startswith("backbone."):
                         filtered[key.replace("backbone.", "")] = value

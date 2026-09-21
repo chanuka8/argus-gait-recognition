@@ -574,16 +574,26 @@ class LiveRecognitionPipeline:
         self,
         model_path: str,
     ) -> ByGaitLight:
-        from security_layer.model_integrity import ROLE_GAIT_EMBEDDING, verify_model
+        import io
 
-        verified_path = verify_model(model_path, expected_role=ROLE_GAIT_EMBEDDING)
-        if not Path(verified_path).exists():
-            raise FileNotFoundError(f"Model checkpoint not found: {verified_path}")
+        from security_layer.model_confidentiality import (
+            ArtifactConfidentiality,
+            load_verified_model_bytes,
+        )
+        from security_layer.model_integrity import ROLE_GAIT_EMBEDDING
+
+        logical_name = "best_model.pth" if Path(model_path).name.endswith(".enc") else Path(model_path).name
+        model_bytes = load_verified_model_bytes(
+            model_path,
+            expected_role=ROLE_GAIT_EMBEDDING,
+            logical_filename=logical_name,
+            confidentiality=ArtifactConfidentiality.PROTECTED,
+        )
 
         model = ByGaitLight()
 
         checkpoint = torch.load(
-            verified_path,
+            io.BytesIO(model_bytes),
             map_location="cpu",
             weights_only=True,
         )

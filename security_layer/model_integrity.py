@@ -267,7 +267,6 @@ class ModelVerifier:
 
         return None
 
-
     def verify_manifest(
         self,
         manifest_data: dict[str, Any],
@@ -314,64 +313,19 @@ class ModelVerifier:
         except OSError as e:
             raise ModelManifestError(f"Failed to read model manifest: {e}") from e
 
-    def verify_model(
+    def _verify_manifest_and_digest(
         self,
-        model_path: str | Path,
+        manifest_data: dict[str, Any],
+        sig_material: bytes,
+        trusted_pubkey: ed25519.Ed25519PublicKey,
+        actual_sha256: str,
+        actual_size: int,
+        logical_filename: str,
         expected_role: str,
         expected_model_id: str | None = None,
-        manifest_path: str | Path | None = None,
-        signature_path: str | Path | None = None,
-        public_key: str | bytes | ed25519.Ed25519PublicKey | None = None,
-    ) -> Path:
-        """Primary gate: Verifies model authenticity and integrity before loading.
-
-        In strict mode (ARGUS_REQUIRE_SIGNED_MODELS=true):
-        - Fails closed if public key, manifest, signature, or digest validation fails.
-        In development mode:
-        - Allows unsigned model with a single warning if manifest/sig/key is absent.
-        - Fails closed if manifest/sig/key ARE present but verification fails.
-        """
+    ) -> dict[str, Any]:
+        """Shared internal core: Verifies Ed25519 signature, role binding, model ID, SHA-256, and size."""
         canonical_role = normalize_role(expected_role)
-        resolved_path = resolve_app_path(model_path)
-        m_path = resolve_app_path(manifest_path) if manifest_path else self.default_manifest_path
-        s_path = resolve_app_path(signature_path) if signature_path else self.default_signature_path
-
-
-        trusted_pubkey = self.resolve_public_key(public_key)
-        is_strict = self.is_strict_mode()
-
-        # Check if trust assets exist
-        manifest_exists = m_path.is_file()
-        sig_exists = s_path.is_file()
-        key_exists = trusted_pubkey is not None
-
-        if not is_strict and (not manifest_exists or not sig_exists or not key_exists):
-            # Development / legacy mode: allow loading with warning
-            warn_key = f"{resolved_path.name}:{canonical_role}"
-            if warn_key not in self._warned_models:
-                logger.warning(
-                    "[SECURITY WARNING] Model signature verification is not enforced; "
-                    "unsigned legacy model loading is enabled for %s (role: %s).",
-                    resolved_path.name,
-                    canonical_role,
-                )
-                self._warned_models.add(warn_key)
-            return resolved_path
-
-        # Strict mode or explicitly provided trust material -> full verification
-        if not key_exists:
-            raise ModelTrustConfigurationError(
-                "Model verification requires a trusted public key, but none is configured."
-            )
-
-        if not manifest_exists:
-            raise ModelManifestError(f"Model manifest not found: {m_path.name}")
-
-        if not sig_exists:
-            raise ModelSignatureError(f"Model signature not found: {s_path.name}")
-
-        manifest_data = self.load_manifest(m_path)
-        sig_material = s_path.read_bytes()
 
         # Verify signature over manifest
         self.verify_manifest(manifest_data, sig_material, trusted_pubkey)
@@ -381,9 +335,8 @@ class ModelVerifier:
         matched_entry: dict[str, Any] | None = None
         matched_key: str | None = None
 
-        # Search by role and/or filename
-        req_filename = resolved_path.name
-        norm_req_path = resolved_path.as_posix()
+        req_filename = Path(logical_filename).name
+        norm_req_path = Path(logical_filename).as_posix()
 
         for k, entry in models_dict.items():
             if not isinstance(entry, dict):
@@ -432,6 +385,86 @@ class ModelVerifier:
                 f"Model filename mismatch: manifest binds '{entry_filename}', requested '{req_filename}'"
             )
 
+        # Compute digest and size checks
+        expected_size = matched_entry.get("size_bytes")
+        if expected_size is not None and int(expected_size) != actual_size:
+            raise ModelDigestMismatchError(
+                f"Model size mismatch for '{req_filename}': expected {expected_size} bytes, got {actual_size} bytes"
+            )
+
+        expected_sha256 = str(matched_entry.get("sha256", "")).strip().lower()
+        if not expected_sha256 or expected_sha256 != actual_sha256:
+            raise ModelDigestMismatchError(
+                f"Model SHA-256 digest mismatch for '{req_filename}': expected {expected_sha256}, got {actual_sha256}"
+            )
+
+        logger.info(
+            "Model integrity and authenticity verified for %s (role: %s, sha256: %s...)",
+            req_filename,
+            canonical_role,
+            actual_sha256[:12],
+        )
+        return matched_entry
+
+    def verify_model(
+        self,
+        model_path: str | Path,
+        expected_role: str,
+        expected_model_id: str | None = None,
+        manifest_path: str | Path | None = None,
+        signature_path: str | Path | None = None,
+        public_key: str | bytes | ed25519.Ed25519PublicKey | None = None,
+        strict_mode: bool | None = None,
+    ) -> Path:
+        """Primary gate: Verifies model authenticity and integrity before loading.
+
+        In strict mode (ARGUS_REQUIRE_SIGNED_MODELS=true or strict_mode=True):
+        - Fails closed if public key, manifest, signature, or digest validation fails.
+        In development mode:
+        - Allows unsigned model with a single warning if manifest/sig/key is absent.
+        - Fails closed if manifest/sig/key ARE present but verification fails.
+        """
+        canonical_role = normalize_role(expected_role)
+        resolved_path = resolve_app_path(model_path)
+        m_path = resolve_app_path(manifest_path) if manifest_path else self.default_manifest_path
+        s_path = resolve_app_path(signature_path) if signature_path else self.default_signature_path
+
+        trusted_pubkey = self.resolve_public_key(public_key)
+        effective_strict = self.is_strict_mode() if strict_mode is None else bool(strict_mode)
+
+        # Check if trust assets exist
+        manifest_exists = m_path.is_file()
+        sig_exists = s_path.is_file()
+        key_exists = trusted_pubkey is not None
+
+        if not effective_strict and (not manifest_exists or not sig_exists or not key_exists):
+            # Development / legacy mode: allow loading with warning
+            warn_key = f"{resolved_path.name}:{canonical_role}"
+            if warn_key not in self._warned_models:
+                logger.warning(
+                    "[SECURITY WARNING] Model signature verification is not enforced; "
+                    "unsigned legacy model loading is enabled for %s (role: %s).",
+                    resolved_path.name,
+                    canonical_role,
+                )
+                self._warned_models.add(warn_key)
+            return resolved_path
+
+        # Strict mode or explicitly provided trust material -> full verification
+        if not key_exists:
+            raise ModelTrustConfigurationError(
+                "Model verification requires a trusted public key, but none is configured."
+            )
+
+        if not manifest_exists:
+            raise ModelManifestError(f"Model manifest not found: {m_path.name}")
+
+        if not sig_exists:
+            raise ModelSignatureError(f"Model signature not found: {s_path.name}")
+
+        manifest_data = self.load_manifest(m_path)
+        sig_material = s_path.read_bytes()
+
         # Verify physical model file existence
         if not resolved_path.is_file():
             raise ModelIntegrityError(f"Authorized model file does not exist on disk: {resolved_path.name}")
@@ -439,26 +472,81 @@ class ModelVerifier:
         # Compute digest and size
         actual_sha256, actual_size = compute_file_sha256(resolved_path)
 
-        expected_size = matched_entry.get("size_bytes")
-        if expected_size is not None and int(expected_size) != actual_size:
-            raise ModelDigestMismatchError(
-                f"Model size mismatch for '{resolved_path.name}': expected {expected_size} bytes, got {actual_size} bytes"
-            )
-
-        expected_sha256 = str(matched_entry.get("sha256", "")).strip().lower()
-        if not expected_sha256 or expected_sha256 != actual_sha256:
-            raise ModelDigestMismatchError(
-                f"Model SHA-256 digest mismatch for '{resolved_path.name}': "
-                f"expected {expected_sha256}, got {actual_sha256}"
-            )
-
-        logger.info(
-            "Model integrity and authenticity verified for %s (role: %s, sha256: %s...)",
-            resolved_path.name,
-            canonical_role,
-            actual_sha256[:12],
+        self._verify_manifest_and_digest(
+            manifest_data=manifest_data,
+            sig_material=sig_material,
+            trusted_pubkey=trusted_pubkey,
+            actual_sha256=actual_sha256,
+            actual_size=actual_size,
+            logical_filename=resolved_path.name,
+            expected_role=canonical_role,
+            expected_model_id=expected_model_id,
         )
+
         return resolved_path
+
+    def verify_model_bytes(
+        self,
+        model_bytes: bytes,
+        logical_filename: str,
+        expected_role: str,
+        expected_model_id: str | None = None,
+        manifest_path: str | Path | None = None,
+        signature_path: str | Path | None = None,
+        public_key: str | bytes | ed25519.Ed25519PublicKey | None = None,
+        strict_mode: bool | None = None,
+    ) -> dict[str, Any]:
+        """In-memory verification gate: Verifies authenticity, digest, and role for in-memory model bytes."""
+        canonical_role = normalize_role(expected_role)
+        m_path = resolve_app_path(manifest_path) if manifest_path else self.default_manifest_path
+        s_path = resolve_app_path(signature_path) if signature_path else self.default_signature_path
+
+        trusted_pubkey = self.resolve_public_key(public_key)
+        effective_strict = self.is_strict_mode() if strict_mode is None else bool(strict_mode)
+
+        manifest_exists = m_path.is_file()
+        sig_exists = s_path.is_file()
+        key_exists = trusted_pubkey is not None
+
+        if not effective_strict and (not manifest_exists or not sig_exists or not key_exists):
+            warn_key = f"{logical_filename}:{canonical_role}"
+            if warn_key not in self._warned_models:
+                logger.warning(
+                    "[SECURITY WARNING] Model signature verification is not enforced; "
+                    "unsigned in-memory model loading is enabled for %s (role: %s).",
+                    logical_filename,
+                    canonical_role,
+                )
+                self._warned_models.add(warn_key)
+            return {"logical_filename": logical_filename, "model_role": canonical_role}
+
+        if not key_exists:
+            raise ModelTrustConfigurationError(
+                "Model verification requires a trusted public key, but none is configured."
+            )
+
+        if not manifest_exists:
+            raise ModelManifestError(f"Model manifest not found: {m_path.name}")
+
+        if not sig_exists:
+            raise ModelSignatureError(f"Model signature not found: {s_path.name}")
+
+        manifest_data = self.load_manifest(m_path)
+        sig_material = s_path.read_bytes()
+
+        actual_sha256 = hashlib.sha256(model_bytes).hexdigest().lower()
+        actual_size = len(model_bytes)
+
+        return self._verify_manifest_and_digest(
+            manifest_data=manifest_data,
+            sig_material=sig_material,
+            trusted_pubkey=trusted_pubkey,
+            actual_sha256=actual_sha256,
+            actual_size=actual_size,
+            logical_filename=logical_filename,
+            expected_role=canonical_role,
+            expected_model_id=expected_model_id,
+        )
 
 
 # Global singleton instance
@@ -480,6 +568,7 @@ def verify_model(
     manifest_path: str | Path | None = None,
     signature_path: str | Path | None = None,
     public_key: str | bytes | ed25519.Ed25519PublicKey | None = None,
+    strict_mode: bool | None = None,
 ) -> Path:
     """Convenience functional interface for model verification."""
     return get_model_verifier().verify_model(
@@ -489,4 +578,28 @@ def verify_model(
         manifest_path=manifest_path,
         signature_path=signature_path,
         public_key=public_key,
+        strict_mode=strict_mode,
+    )
+
+
+def verify_model_bytes(
+    model_bytes: bytes,
+    logical_filename: str,
+    expected_role: str,
+    expected_model_id: str | None = None,
+    manifest_path: str | Path | None = None,
+    signature_path: str | Path | None = None,
+    public_key: str | bytes | ed25519.Ed25519PublicKey | None = None,
+    strict_mode: bool | None = None,
+) -> dict[str, Any]:
+    """Convenience functional interface for in-memory model verification."""
+    return get_model_verifier().verify_model_bytes(
+        model_bytes=model_bytes,
+        logical_filename=logical_filename,
+        expected_role=expected_role,
+        expected_model_id=expected_model_id,
+        manifest_path=manifest_path,
+        signature_path=signature_path,
+        public_key=public_key,
+        strict_mode=strict_mode,
     )

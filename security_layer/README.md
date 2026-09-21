@@ -21,6 +21,7 @@ The `security_layer` package implements security event classification, decision 
 | [credentials.py](credentials.py) | Encryption and credentials storage manager for RTSP stream passwords |
 | [error_sanitizer.py](error_sanitizer.py) | Module/resource file error_sanitizer.py |
 | [input_validation.py](input_validation.py) | Module/resource file input_validation.py |
+| [model_confidentiality.py](model_confidentiality.py) | Module/resource file model_confidentiality.py |
 | [model_integrity.py](model_integrity.py) | Module/resource file model_integrity.py |
 | [password_hasher.py](password_hasher.py) | Module/resource file password_hasher.py |
 | [rate_limiter.py](rate_limiter.py) | Module/resource file rate_limiter.py |

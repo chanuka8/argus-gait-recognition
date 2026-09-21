@@ -480,12 +480,22 @@ class OSNetBackbone:
             model = _build_osnet_x0_25()
 
             if self.model_path.exists():
-                from security_layer.model_integrity import ROLE_APPEARANCE_EMBEDDING, verify_model
+                import io
 
-                verified_path = verify_model(self.model_path, expected_role=ROLE_APPEARANCE_EMBEDDING)
+                from security_layer.model_confidentiality import load_verified_model_bytes
+                from security_layer.model_integrity import ROLE_APPEARANCE_EMBEDDING
+
+                expected_id = getattr(self, "expected_model_id", "osnet_x0_25_msmt17")
+                logical_name = "osnet_x0_25.pth"
+                model_bytes = load_verified_model_bytes(
+                    self.model_path,
+                    expected_role=ROLE_APPEARANCE_EMBEDDING,
+                    logical_filename=logical_name,
+                    expected_model_id=expected_id,
+                )
                 try:
                     checkpoint = torch.load(
-                        verified_path,
+                        io.BytesIO(model_bytes),
                         map_location="cpu",
                         weights_only=True,
                     )

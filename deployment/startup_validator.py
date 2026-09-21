@@ -30,7 +30,6 @@ class DeploymentStartupValidator:
         self.config_validator = ConfigValidator(configs_dir=self.configs_dir)
         self._backend: Any | None = None
 
-
     @staticmethod
     def _sanitize_error(error: object) -> str:
         return sanitize_rtsp_url(str(error))
@@ -189,8 +188,13 @@ class DeploymentStartupValidator:
                 blocking_issues=blocking_issues,
             )
 
-
         self._validate_camera_transport_security(
+            blocking_issues=blocking_issues,
+            warnings=warnings,
+            unable_to_verify=unable_to_verify,
+        )
+
+        self._validate_model_confidentiality(
             blocking_issues=blocking_issues,
             warnings=warnings,
             unable_to_verify=unable_to_verify,
@@ -266,9 +270,7 @@ class DeploymentStartupValidator:
         )
 
         prod_yaml = self.configs_dir / "production.yaml"
-        strict = is_secure_camera_transport_required(
-            config_path=prod_yaml if prod_yaml.is_file() else None
-        )
+        strict = is_secure_camera_transport_required(config_path=prod_yaml if prod_yaml.is_file() else None)
         network_camera_seen = False
 
         for cam_key, cam_cfg in cameras_section.items():
@@ -352,6 +354,61 @@ class DeploymentStartupValidator:
             unable_to_verify.append(
                 "Live RTSP camera streams network reachability (network check deferred to runtime pipeline launch)"
             )
+
+    def _validate_model_confidentiality(
+        self,
+        blocking_issues: list[str],
+        warnings: list[str],
+        unable_to_verify: list[str],
+    ) -> None:
+        from security_layer.model_confidentiality import (
+            MAGIC_HEADER,
+            ArtifactConfidentiality,
+            ModelConfidentialityError,
+            get_deployment_environment,
+            is_model_encryption_required,
+            load_verified_model_bytes,
+        )
+        from security_layer.model_integrity import ROLE_GAIT_EMBEDDING, ModelIntegrityError
+
+        env = get_deployment_environment()
+        model_path_str = "runs/exp_001/best_model.pth"
+        if self._backend is not None and hasattr(self._backend, "model_path"):
+            model_path_str = str(self._backend.model_path)
+
+        p = resolve_app_path(model_path_str)
+        enc_p = p.with_name(p.name + ".enc")
+        target_p = enc_p if enc_p.is_file() else p
+
+        if not target_p.is_file():
+            return
+
+        is_enc = target_p.read_bytes().startswith(MAGIC_HEADER)
+        req_enc = is_model_encryption_required(ArtifactConfidentiality.PROTECTED, env)
+
+        if req_enc and not is_enc:
+            blocking_issues.append(
+                f"Model confidentiality defect: Protected model '{target_p.name}' is unencrypted in production."
+            )
+        elif is_enc:
+            try:
+                decrypted = load_verified_model_bytes(
+                    model_path=target_p,
+                    expected_role=ROLE_GAIT_EMBEDDING,
+                    logical_filename="best_model.pth",
+                    confidentiality=ArtifactConfidentiality.PROTECTED,
+                )
+                if len(decrypted) == 0:
+                    blocking_issues.append(f"Model decryption defect: Decrypted bytes empty for '{target_p.name}'.")
+            except (ModelConfidentialityError, ModelIntegrityError) as e:
+                blocking_issues.append(f"Model confidentiality verification failed for '{target_p.name}': {e}")
+            except (ValueError, TypeError, OSError) as e:
+                blocking_issues.append(f"Model decryption failed for '{target_p.name}': {e}")
+        else:
+            if env != "production":
+                warnings.append(
+                    f"Model confidentiality notice: Protected model '{target_p.name}' is unencrypted (permitted in {env} mode)."
+                )
 
     def get_backend(self) -> Any:
         if self._backend is None:

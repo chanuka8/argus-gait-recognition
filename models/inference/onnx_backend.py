@@ -1,4 +1,3 @@
-
 import numpy as np
 import torch
 
@@ -66,8 +65,22 @@ class ONNXBackend(BaseInferenceBackend):
                 else (RuntimeError, OSError, ValueError, TypeError, KeyError, AttributeError)
             )
 
+            from security_layer.model_confidentiality import (
+                ArtifactConfidentiality,
+                load_verified_model_bytes,
+            )
+            from security_layer.model_integrity import ROLE_GAIT_EMBEDDING
+
+            logical_name = "bygait_light.onnx" if self.onnx_path.name.endswith(".enc") else self.onnx_path.name
+            model_bytes = load_verified_model_bytes(
+                self.onnx_path,
+                expected_role=ROLE_GAIT_EMBEDDING,
+                logical_filename=logical_name,
+                confidentiality=ArtifactConfidentiality.PROTECTED,
+            )
+
             try:
-                self.session = ort.InferenceSession(str(self.onnx_path), providers=providers)
+                self.session = ort.InferenceSession(model_bytes, providers=providers)
             except ort_exceptions as sess_err:
                 raise RuntimeError(f"Failed to initialize ONNX session: {sess_err}") from sess_err
             self.input_name = self.session.get_inputs()[0].name

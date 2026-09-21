@@ -50,14 +50,21 @@ class LearnedSilhouetteSegmenter:
             if dm.is_cuda and "CUDAExecutionProvider" in providers:
                 provider_list.append("CUDAExecutionProvider")
             provider_list.append("CPUExecutionProvider")
-            from security_layer.model_integrity import (
-                ROLE_SILHOUETTE_SEGMENTER,
-                verify_model,
+            from security_layer.model_confidentiality import (
+                ArtifactConfidentiality,
+                load_verified_model_bytes,
             )
+            from security_layer.model_integrity import ROLE_SILHOUETTE_SEGMENTER
 
-            verified_path = verify_model(target_path, expected_role=ROLE_SILHOUETTE_SEGMENTER)
-            self.session = ort.InferenceSession(str(verified_path), providers=provider_list)
-            self.model_path = verified_path
+            logical_name = "silhouette_segmenter.onnx" if target_path.name.endswith(".enc") else target_path.name
+            model_bytes = load_verified_model_bytes(
+                target_path,
+                expected_role=ROLE_SILHOUETTE_SEGMENTER,
+                logical_filename=logical_name,
+                confidentiality=ArtifactConfidentiality.PROTECTED,
+            )
+            self.session = ort.InferenceSession(model_bytes, providers=provider_list)
+            self.model_path = target_path
         except (OSError, ValueError, RuntimeError, TypeError, AttributeError):
             self.session = None
 
