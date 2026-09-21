@@ -58,7 +58,7 @@ from security_layer.security_headers import SecurityHeadersMiddleware
 app.add_middleware(SecurityHeadersMiddleware)
 
 
-from api.routes.health import health_router
+from api.health import health_router
 from api.v1.auth_router import auth_router
 
 app.include_router(auth_router)

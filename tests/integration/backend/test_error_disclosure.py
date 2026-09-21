@@ -563,8 +563,8 @@ def test_legacy_routes_exception_sanitized(monkeypatch):
     """Prove that legacy /identify and /enroll routes sanitize internal exceptions."""
     from fastapi import FastAPI
 
-    from api.routes import enrollment as legacy_enroll
-    from api.routes import inference as legacy_infer
+    from api.legacy import enrollment as legacy_enroll
+    from api.legacy import inference as legacy_infer
 
     test_app = FastAPI()
     test_app.include_router(legacy_infer.router)

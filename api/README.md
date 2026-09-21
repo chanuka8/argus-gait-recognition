@@ -14,17 +14,17 @@ The `api` package provides RESTful HTTP endpoints and web server infrastructure 
 <!-- BEGIN SYNC: KEY_MODULES -->
 | Module | Purpose |
 | --- | --- |
-| [routes/enrollment.py](routes/enrollment.py) | HTTP endpoints for target identity enrollment requests |
-| [routes/health.py](routes/health.py) | Module/resource file routes/health.py |
-| [routes/inference.py](routes/inference.py) | HTTP endpoints for model inference and feature extraction triggers |
-| [routes/status.py](routes/status.py) | HTTP endpoints for operational status and system metrics |
+| [health.py](health.py) | Module/resource file health.py |
+| `legacy/` | Module/resource file legacy/ |
 | [schemas.py](schemas.py) | Pydantic request and response schemas for API data validation |
 | [server.py](server.py) | FastAPI application factory, server lifecycle, and route mounting |
+| [v1/auth_router.py](v1/auth_router.py) | Module/resource file v1/auth_router.py |
+| [v1/router.py](v1/router.py) | Module/resource file v1/router.py |
 <!-- END SYNC: KEY_MODULES -->
 
 ## Data Flow
 
-HTTP Client Request → `api/server.py` (FastAPI router) → `api/routes/*.py` → `services/camera_manager.py` / `monitoring/watchdog.py` → JSON Response (`api/schemas.py`).
+HTTP Client Request → `api/server.py` (FastAPI router) → `api/v1/*.py` / `api/health.py` → `services/camera_manager.py` / `monitoring/watchdog.py` → JSON Response (`api/schemas.py`). `api/legacy/*.py` holds pre-versioning routes kept unmounted for regression testing only.
 
 ## Configuration
 

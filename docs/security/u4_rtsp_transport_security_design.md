@@ -114,7 +114,7 @@ flowchart TD
 | **CCTV / IP Camera (Parking Lot)** | `rtsp://` (port 554) | Configured (`camera_03`, disabled) | Yes (env / Fernet store) | `cv2.VideoCapture` via FFmpeg | **NONE (Plaintext)** |
 | **Local USB / Built-in Webcam** | DirectShow / V4L2 | Yes (Auto-detected index 0..3) | No | `cv2.VideoCapture(int)` | **N/A (Kernel Device)** |
 | **HTTP / MJPEG Network Stream** | `http://` or `https://` | Supported (`type: "http"`) | Basic auth in URL | `cv2.VideoCapture(str)` | Plaintext for `http://`; TLS for `https://` |
-| **Uploaded Forensic Video** | File I/O (`.mp4`, `.avi`) | Yes (`api/routes/inference.py`) | No | `cv2.VideoCapture(filepath)` | **N/A (Local Disk)** |
+| **Uploaded Forensic Video** | File I/O (`.mp4`, `.avi`) | Yes (`api/legacy/inference.py`) | No | `cv2.VideoCapture(filepath)` | **N/A (Local Disk)** |
 | **Synthetic / Mock Camera** | Unit Mock | Test Only | Synthetic | `unittest.mock.MagicMock` | **N/A (In-Memory Mock)** |
 
 ---
