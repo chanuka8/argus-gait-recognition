@@ -163,13 +163,14 @@ export const AuthProvider = ({ children }) => {
 
     const value = {
         currentUser,
+        loading,
         login,
         logout,
     };
 
     return (
         <AuthContext.Provider value={value}>
-            {!loading && children}
+            {children}
         </AuthContext.Provider>
     );
 };
