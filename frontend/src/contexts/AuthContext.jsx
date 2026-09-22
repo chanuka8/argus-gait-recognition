@@ -90,8 +90,12 @@ export const AuthProvider = ({ children }) => {
                     setCurrentUser(null);
                     addLog('info', `Operator ${currentUser.username} suspended and logged out`, 'Session terminated automatically due to administrator suspension.', currentUser.username);
                 }
-            } else {
-                // If operator document was deleted
+            } else if (!querySnapshot.metadata.fromCache) {
+                // Empty AND server-confirmed (not a local-cache fallback served while
+                // Firestore is unreachable) means the operator document was genuinely
+                // deleted. A transient Firestore outage also delivers an empty snapshot
+                // here (fromCache: true) and must not be treated as deletion, or any
+                // connectivity hiccup would force-logout a legitimately authenticated user.
                 sessionStorage.removeItem('argus_session_token');
                 sessionStorage.removeItem('argus_current_user');
                 setCurrentUser(null);
