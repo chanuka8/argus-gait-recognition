@@ -1,7 +1,7 @@
 import pytest
 
-from intelligence.dual_modal_fusion import DualModalFusion
-from utils.detection_reporter import DetectionReporter
+from app.intelligence.fusion.dual_modal_fusion import DualModalFusion
+from app.utils.detection_reporter import DetectionReporter
 
 
 def test_pipeline_zero_regression_when_disabled():

@@ -1,7 +1,7 @@
 from pathlib import Path
 from unittest.mock import MagicMock
 
-from deployment.build_metadata import (
+from ops.deployment.build_metadata import (
     compute_configuration_fingerprint,
     extract_build_metadata,
     get_application_version,

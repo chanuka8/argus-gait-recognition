@@ -8,18 +8,18 @@ from unittest.mock import MagicMock
 import numpy as np
 import pytest
 
-from intelligence.candidate_validator import CandidateValidator
-from intelligence.date_aware_learning_scheduler import (
-    DateAwareLearningScheduler,
-    LearningJobStatus,
-)
-from intelligence.operational_embedding_collector import (
+from app.intelligence.decision.candidate_validator import CandidateValidator
+from app.intelligence.evidence.operational_embedding_collector import (
     ObservationState,
     OperationalEmbeddingCollector,
 )
-from models.model_registry import ModelDeploymentStatus, ModelRegistry
-from services.recognition_worker import RecognitionResultCache, RecognitionWorker
-from storage.embedding_database import EmbeddingDatabase
+from app.intelligence.learning.date_aware_learning_scheduler import (
+    DateAwareLearningScheduler,
+    LearningJobStatus,
+)
+from app.services.recognition_worker import RecognitionResultCache, RecognitionWorker
+from app.storage.embedding_database import EmbeddingDatabase
+from ml_platform.models.model_registry import ModelDeploymentStatus, ModelRegistry
 
 
 @pytest.fixture
@@ -83,7 +83,7 @@ def test_1_live_cctv_to_collector_and_persistence(target_env):
     mock_gait_matcher.match.return_value = ("Alice", 0.92)
     mock_gait_matcher.top_k_matches.return_value = [("Alice", 0.92)]
 
-    from pipeline.gei.stream_gei_builder import StreamGEIBuilder
+    from app.pipeline.gei.stream_gei_builder import StreamGEIBuilder
 
     gei_builder = StreamGEIBuilder()
     gei_builder.min_frames = 3

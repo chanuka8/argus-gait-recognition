@@ -7,9 +7,9 @@ import numpy as np
 import pytest
 import torch
 
-from intelligence.candidate_validator import CandidateValidator
-from intelligence.nn_fine_tuner import NNFineTuner
-from models.architectures.bygait_light import ByGaitLight
+from app.intelligence.decision.candidate_validator import CandidateValidator
+from app.intelligence.learning.nn_fine_tuner import NNFineTuner
+from ml_platform.models.architectures.bygait_light import ByGaitLight
 
 
 @pytest.fixture

@@ -4,8 +4,8 @@ import warnings
 import numpy as np
 import pytest
 
-import intelligence
-from services.recognition_worker import RecognitionResult, RecognitionResultCache
+from app import intelligence
+from app.services.recognition_worker import RecognitionResult, RecognitionResultCache
 
 
 def test_intelligence_package_exports():
@@ -23,7 +23,7 @@ def test_intelligence_package_exports():
         "OperationalEmbeddingCollector",
     ]
     for symbol in required_exports:
-        assert symbol in intelligence.__all__, f"{symbol} missing from intelligence.__all__"
+        assert symbol in intelligence.__all__, f"{symbol} missing from app.intelligence.__all__"
         assert hasattr(intelligence, symbol), f"{symbol} not accessible on intelligence module"
 
 
@@ -50,7 +50,7 @@ def test_recognition_worker_modality_state_safety():
 
 
 def test_embedding_database_dimension_and_nan_safeguards(tmp_path):
-    from storage.embedding_database import EmbeddingDatabase
+    from app.storage.embedding_database import EmbeddingDatabase
 
     db = EmbeddingDatabase(
         db_dir=str(tmp_path / "embedding_db"),
@@ -95,9 +95,9 @@ def test_embedding_database_dimension_and_nan_safeguards(tmp_path):
 
 
 def test_osnet_backbone_no_future_warnings():
-    from models.reid.osnet_backbone import OSNetBackbone
+    from ml_platform.models.reid.osnet_backbone import OSNetBackbone
 
-    backbone = OSNetBackbone(model_path="models/weights/osnet_x0_25.pth")
+    backbone = OSNetBackbone(model_path="ml_platform/models/model_store/weights/osnet_x0_25.pth")
 
     with warnings.catch_warnings(record=True) as recorded_warnings:
         warnings.simplefilter("always")

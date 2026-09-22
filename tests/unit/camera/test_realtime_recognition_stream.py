@@ -5,11 +5,11 @@ import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 
-from api.server import app
-from pipeline.steps.feature_extraction import FeatureExtractionStep
-from services.camera_worker import CameraWorker
-from services.gait_service import GaitService
-from services.recognition_worker import (
+from app.api.server import app
+from app.pipeline.steps.feature_extraction import FeatureExtractionStep
+from app.services.camera_worker import CameraWorker
+from app.services.gait_service import GaitService
+from app.services.recognition_worker import (
     RecognitionResult,
     RecognitionResultCache,
     RecognitionWorker,
@@ -328,7 +328,7 @@ async def test_api_stream_yields_mjpeg_frames():
     }
     service.camera_workers["test_stream_cam"] = fake_worker
 
-    from api.v1.router import stream_camera
+    from app.api.v1.router import stream_camera
 
     response = await stream_camera(camera_id="test_stream_cam", service=service)
     assert response.status_code == 200
@@ -345,7 +345,7 @@ async def test_api_stream_yields_mjpeg_frames():
 
 
 def test_rtsp_credentials_never_in_stream_telemetry_or_errors():
-    from security_layer.credentials import sanitize_rtsp_url
+    from app.security_layer.credentials import sanitize_rtsp_url
 
     secret_url = "rtsp://admin:super_secret_password_1234@192.168.1.50:554/stream1"
     sanitized = sanitize_rtsp_url(secret_url)

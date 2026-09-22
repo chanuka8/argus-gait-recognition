@@ -2,8 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from enrollment.enrollment_validator import EnrollmentValidator
-from storage.vector_store import VectorStore
+from app.enrollment.enrollment_validator import EnrollmentValidator
+from app.storage.vector_store import VectorStore
 
 
 def test_enrollment_folder_exists(

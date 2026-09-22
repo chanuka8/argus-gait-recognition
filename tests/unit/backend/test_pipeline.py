@@ -1,7 +1,7 @@
 import unittest
 
-from pipeline.cache_engine import CacheEngine
-from pipeline.speed_controller import SpeedController
+from app.pipeline.cache_engine import CacheEngine
+from app.pipeline.speed_controller import SpeedController
 
 
 class TestPipeline(unittest.TestCase):

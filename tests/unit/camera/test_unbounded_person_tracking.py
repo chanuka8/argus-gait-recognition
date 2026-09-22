@@ -4,21 +4,21 @@ import time
 
 import numpy as np
 
-from intelligence.appearance_embedding import AppearanceEmbeddingExtractor
-from intelligence.concurrent_track_manager import (
+from app.intelligence.appearance_embedding import AppearanceEmbeddingExtractor
+from app.intelligence.tracking.concurrent_track_manager import (
     ConcurrentTrackManager,
     PersonTrackContext,
     TrackLifecycleState,
 )
-from pipeline.gei.stream_gei_builder import StreamGEIBuilder
-from streaming.deployment_readiness import ProductionCapacityEstimator
-from streaming.person_track_scheduler import (
+from app.pipeline.gei.stream_gei_builder import StreamGEIBuilder
+from app.streaming.deployment_readiness import ProductionCapacityEstimator
+from app.streaming.person_track_scheduler import (
     AdaptivePersonLoadTier,
     AdaptivePersonProcessingPolicy,
     BatchCandidateItem,
     PersonTrackScheduler,
 )
-from streaming.production_multicamera_engine import (
+from app.streaming.production_multicamera_engine import (
     ProductionMultiCameraEngine,
 )
 

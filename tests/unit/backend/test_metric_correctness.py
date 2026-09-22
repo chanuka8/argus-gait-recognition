@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[3]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from evaluation.metrics import (
+from ml_platform.evaluation.metrics import (
     EvaluationMetrics,
     compute_biometric_rates,
     compute_cmc_curve,

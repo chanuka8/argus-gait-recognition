@@ -8,7 +8,7 @@ import time
 
 import pytest
 
-from services.upload_session_manager import UploadSessionManager
+from app.services.upload_session_manager import UploadSessionManager
 
 
 @pytest.fixture

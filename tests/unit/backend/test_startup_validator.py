@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 import numpy as np
 import pytest
 
-from deployment.startup_validator import DeploymentStartupValidator, StartupValidationError
+from ops.deployment.startup_validator import DeploymentStartupValidator, StartupValidationError
 
 
 def test_startup_validator_all_checks_pass():
@@ -24,10 +24,10 @@ def test_startup_validator_all_checks_pass():
 def test_startup_validator_missing_manifest_asset(monkeypatch, tmp_path: Path):
     validator = DeploymentStartupValidator()
 
-    from deployment.runtime_manifest import RuntimeManifest
+    from ops.deployment.runtime_manifest import RuntimeManifest
 
     mock_manifest = RuntimeManifest(runtime_assets=["non_existent_asset_path.py"])
-    monkeypatch.setattr("deployment.startup_validator.get_runtime_manifest", lambda: mock_manifest)
+    monkeypatch.setattr("ops.deployment.startup_validator.get_runtime_manifest", lambda: mock_manifest)
 
     summary = validator.validate_startup(raise_on_failure=False)
     assert summary["success"] is False
@@ -101,8 +101,8 @@ def test_startup_validator_raises_on_failure_when_enabled(monkeypatch):
 def test_startup_validator_missing_gallery_file_produces_warning_notice(monkeypatch):
     validator = DeploymentStartupValidator()
     monkeypatch.setattr(
-        "deployment.startup_validator.validate_gallery_files",
-        lambda *args, **kwargs: (False, "Gallery features file missing in models/gallery", 0),
+        "ops.deployment.startup_validator.validate_gallery_files",
+        lambda *args, **kwargs: (False, "Gallery features file missing in models/galleries/gallery", 0),
     )
 
     summary = validator.validate_startup(raise_on_failure=False)
@@ -118,7 +118,7 @@ def test_startup_validator_missing_gallery_file_produces_warning_notice(monkeypa
 def test_startup_validator_gallery_corruption_blocks_startup(monkeypatch):
     validator = DeploymentStartupValidator()
     monkeypatch.setattr(
-        "deployment.startup_validator.validate_gallery_files",
+        "ops.deployment.startup_validator.validate_gallery_files",
         lambda *args, **kwargs: (
             False,
             "Corrupted feature array: NaN detected in gallery_features.npy",
@@ -359,7 +359,7 @@ def test_startup_validator_pure_static_zero_network_zero_key(monkeypatch):
         raise AssertionError("FORBIDDEN: CredentialManager.__init__ was called during static transport validation!")
 
     monkeypatch.setattr(
-        "security_layer.credentials.CredentialManager.__init__",
+        "app.security_layer.credentials.CredentialManager.__init__",
         forbidden_credential_manager_init,
     )
 
@@ -475,7 +475,7 @@ def test_real_default_production_fail_closed_outside_fixture(monkeypatch):
     """
     import socket
 
-    from security_layer.credentials import (
+    from app.security_layer.credentials import (
         get_deployment_environment,
         is_secure_camera_transport_required,
     )

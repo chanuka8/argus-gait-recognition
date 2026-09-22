@@ -16,7 +16,7 @@ Built on **Python 3.11**, **PyTorch**, **ONNX Runtime**, **OpenCV**, **FastAPI**
 [![ONNX Runtime](https://img.shields.io/badge/ONNX%20Runtime-1.20.0-blue.svg)](https://onnxruntime.ai/)
 [![Tests: 1,030 Passed](https://img.shields.io/badge/tests-1%2C030%20passed%20%7C%200%20failed%20%7C%201%20skipped-brightgreen.svg)](tests)
 [![Frontend: React 19 + Vite](https://img.shields.io/badge/frontend-React%2019%20%2B%20Vite-61DAFB.svg)](frontend)
-[![Security: Argon2id + RBAC](https://img.shields.io/badge/security-Argon2id%20%7C%20RBAC%20%7C%20Fernet-purple.svg)](security_layer)
+[![Security: Argon2id + RBAC](https://img.shields.io/badge/security-Argon2id%20%7C%20RBAC%20%7C%20Fernet-purple.svg)](app/security_layer)
 [![Status: Advanced Prototype](https://img.shields.io/badge/status-ADVANCED%20PROTOTYPE-orange.svg)](docs)
 [![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](VERSION)
 
@@ -94,7 +94,7 @@ ARGUS AI follows a decoupled, service-oriented architecture where video ingestio
 |     LOCAL-FIRST PRIMARY STORAGE   |       |    ASYNCHRONOUS DURABLE PERSISTENCE   |
 | Hardened VectorStore (.npy)       |       |  Firebase Firestore (Admin SDK)       |
 | SQLite EmbeddingDatabase (<1.5ms) |──────►|  Canonical Schema | Lineage Auditing  |
-| data/cases/{id}_{name}/ Dossiers  |       |  Offline Fallback Queue (data/*.json) |
+| data/runtime/cases/{id}_{name}/   |       |  Offline Fallback Queue (data/*.json) |
 +───────────────────────────────────+       +───────────────────────────────────────+
 ```
 
@@ -133,7 +133,7 @@ Atomic Model Registry Promotion (State: TRAINING_CONSUMED, Zero-Downtime Hot Rel
 
 ## Core Gait Recognition Pipeline
 
-The ARGUS AI gait recognition pipeline is strictly locked in configuration and code (`configs/inference.yaml`, `configs/gei.yaml`, `configs/detection.yaml`, and `pipeline/`):
+The ARGUS AI gait recognition pipeline is strictly locked in configuration and code (`configs/inference.yaml`, `configs/gei.yaml`, `configs/detection.yaml`, and `app/pipeline/`):
 
 ```
 Camera / Video / Reference Media
@@ -165,15 +165,15 @@ EMA Bounding-Box Stabilisation (α = 0.35)
 
 | Stage | Implementation Component | Configuration / Specification | Evidence / Source Code |
 | :--- | :--- | :--- | :--- |
-| **Detection** | `PersonDetector` (`pipeline/detection/`) | YOLOv8n, `class=0` (person), confidence $\ge 0.40$, IoU $\ge 0.45$, input $640 \times 640$ | `configs/detection.yaml` |
-| **Smoothing** | `TrackingStep` (`pipeline/steps/tracking.py`) | Exponential Moving Average (EMA) with smoothing factor $\alpha = 0.35$ to eliminate jitter | `configs/inference.yaml` |
-| **Tracking** | `ByteTrack` (`pipeline/steps/tracking.py`) | Multi-object association with track state machine and lost-track recovery | `pipeline/steps/tracking.py` |
-| **Silhouette** | `SilhouetteExtractor` (`pipeline/silhouette/`) | Neural UNet segmenter (`silhouette_segmenter.onnx`), automatic morphological Otsu fallback | `pipeline/silhouette/extractor.py` |
-| **GEI Builder** | `LiveGEIStep` (`pipeline/steps/live_gei.py`) | Rolling Gait Energy Image window $= 15$ frames, minimum $= 10$ frames, resolution: **64 width $\times$ 128 height** | `configs/gei.yaml` |
-| **Backbone** | `ByGaitLight` (`models/architectures/`) | Lightweight 3-block CNN with Horizontal Part Pooling (HPP, `part_bins=4`), input $1 \times 128 \times 64$ | `models/architectures/bygait_light.py` |
-| **Embedding** | `ByGaitLight.forward()` | **256-dimensional float32 vector**, strictly L2-normalised ($\|e\|_2 = 1.0000 \pm 10^{-5}$) | `models/architectures/bygait_light.py` |
-| **Similarity** | `VectorStore` / `MatchingStep` | Dot product / Cosine similarity against enrolled gallery templates in `models/live_gallery/` | `storage/vector_store.py` |
-| **Decision** | `OpenSetRecognizer` (`intelligence/`) | **Four-Tier Policy**: `KNOWN` ($\ge 0.92$), `UNCERTAIN` ($0.85 - 0.92$), `REVIEW_REQUIRED` ($0.70 - 0.85$), `UNKNOWN` ($< 0.70$) | `configs/inference.yaml` |
+| **Detection** | `PersonDetector` (`app/pipeline/detection/`) | YOLOv8n, `class=0` (person), confidence $\ge 0.40$, IoU $\ge 0.45$, input $640 \times 640$ | `configs/detection.yaml` |
+| **Smoothing** | `TrackingStep` (`app/pipeline/steps/tracking.py`) | Exponential Moving Average (EMA) with smoothing factor $\alpha = 0.35$ to eliminate jitter | `configs/inference.yaml` |
+| **Tracking** | `ByteTrack` (`app/pipeline/steps/tracking.py`) | Multi-object association with track state machine and lost-track recovery | `app/pipeline/steps/tracking.py` |
+| **Silhouette** | `SilhouetteExtractor` (`app/pipeline/silhouette/`) | Neural UNet segmenter (`silhouette_segmenter.onnx`), automatic morphological Otsu fallback | `app/pipeline/silhouette/extractor.py` |
+| **GEI Builder** | `LiveGEIStep` (`app/pipeline/steps/live_gei.py`) | Rolling Gait Energy Image window $= 15$ frames, minimum $= 10$ frames, resolution: **64 width $\times$ 128 height** | `configs/gei.yaml` |
+| **Backbone** | `ByGaitLight` (`ml_platform/models/architectures/`) | Lightweight 3-block CNN with Horizontal Part Pooling (HPP, `part_bins=4`), input $1 \times 128 \times 64$ | `ml_platform/models/architectures/bygait_light.py` |
+| **Embedding** | `ByGaitLight.forward()` | **256-dimensional float32 vector**, strictly L2-normalised ($\|e\|_2 = 1.0000 \pm 10^{-5}$) | `ml_platform/models/architectures/bygait_light.py` |
+| **Similarity** | `VectorStore` / `MatchingStep` | Dot product / Cosine similarity against enrolled gallery templates in `ml_platform/models/galleries/live_gallery/` | `app/storage/vector_store.py` |
+| **Decision** | `OpenSetRecognizer` (`app/intelligence/`) | **Four-Tier Policy**: `KNOWN` ($\ge 0.92$), `UNCERTAIN` ($0.85 - 0.92$), `REVIEW_REQUIRED` ($0.70 - 0.85$), `UNKNOWN` ($< 0.70$) | `configs/inference.yaml` |
 | **Temporal Consensus**| `MatchingPolicy` (`configs/inference.yaml`) | Rolling voting history $= 10$ frames, minimum stable votes required $= 3$ | `configs/inference.yaml` |
 
 > [!IMPORTANT]
@@ -186,9 +186,9 @@ EMA Bounding-Box Stabilisation (α = 0.35)
 
 In addition to kinematic gait representation, ARGUS AI integrates an appearance re-identification (ReID) feature stream for short-term identity association:
 
-* **Appearance Backbone**: `OSNet-x0.25` (`models/reid/osnet_backbone.py`, weights: `models/weights/osnet_x0_25.pth`) lightweight omni-scale network.
+* **Appearance Backbone**: `OSNet-x0.25` (`ml_platform/models/reid/osnet_backbone.py`, weights: `ml_platform/models/model_store/weights/osnet_x0_25.pth`) lightweight omni-scale network.
 * **Feature Representation**: 512-dimensional L2-normalized feature vector extracted from RGB person crops.
-* **Appearance Gallery**: Separate appearance vector store (`models/appearance_gallery/`) managed via `VectorStore`.
+* **Appearance Gallery**: Separate appearance vector store (`ml_platform/models/galleries/appearance_gallery/`) managed via `VectorStore`.
 * **Dual-Modal Score Fusion**:
   $$S_{\text{fused}} = w_{\text{gait}} \cdot S_{\text{gait}} + w_{\text{app}} \cdot S_{\text{app}}$$
   with dynamic weight attenuation based on silhouette quality, bounding-box aspect ratio, and track length.
@@ -270,7 +270,7 @@ The isolation and resilience boundaries were verified through integration test s
 
 ## Missing Person Reference Media Processing
 
-The reference processing engine (`services/missing_person_processor.py` and `services/reference_job_manager.py`) provides offline, camera-independent biometric enrollment from user-submitted media.
+The reference processing engine (`app/services/missing_person_processor.py` and `app/services/reference_job_manager.py`) provides offline, camera-independent biometric enrollment from user-submitted media.
 
 ```
 Uploaded Media (Photo or Video)
@@ -303,7 +303,7 @@ Uploaded Media (Photo or Video)
   * `INSUFFICIENT_GAIT_SEQUENCE`: Detected person track is shorter than the required minimum gait cycle.
   * `AMBIGUOUS_MULTIPLE_PERSONS`: Multiple individuals detected without a dominant foreground subject (prominence ratio $< 2.5$).
 * **Bounded Memory Processing**: Frames are decoded and processed iteratively via generator pipelines rather than loading entire uncompressed video sequences into RAM.
-* **Durable Checkpointing & Job Recovery**: Video processing creates intermediate state checkpoints on disk (`data/reference_jobs/{job_id}_checkpoint.json`). If the host service is terminated, interrupted jobs automatically resume from the last completed processing phase.
+* **Durable Checkpointing & Job Recovery**: Video processing creates intermediate state checkpoints on disk (`data/runtime/reference_jobs/{job_id}_checkpoint.json`). If the host service is terminated, interrupted jobs automatically resume from the last completed processing phase.
 
 ---
 
@@ -321,13 +321,13 @@ Live Inference Loop (<1.5ms) ──► Local EmbeddingDatabase (SQLite)
                              ┌──────────────┴──────────────┐
                              ▼                             ▼
                     Cloud Firestore               Local Fallback Queue
-                    (Online State)          (data/firebase_offline_store.json)
+                    (Online State)          (data/runtime/firebase_offline_store.json)
 ```
 
 ### 1. Local Embedding Database & VectorStore (Primary Inference Path)
 
-* **Hardened VectorStore** (`storage/vector_store.py`): Memory-mapped `.npy` array storage for active biometric templates (`models/live_gallery/` and `models/appearance_gallery/`). Enforces `allow_pickle=False` and rejects object-type NumPy arrays. Match evaluation latency is **$< 1.5\text{ms}$** per candidate.
-* **SQLite Embedding Database** (`storage/embedding_database.py`): Local relational metadata database storing identity records, template associations, operational status (`ACTIVE`, `DISABLED`, `ARCHIVED`), and extraction provenance.
+* **Hardened VectorStore** (`app/storage/vector_store.py`): Memory-mapped `.npy` array storage for active biometric templates (`ml_platform/models/galleries/live_gallery/` and `ml_platform/models/galleries/appearance_gallery/`). Enforces `allow_pickle=False` and rejects object-type NumPy arrays. Match evaluation latency is **$< 1.5\text{ms}$** per candidate.
+* **SQLite Embedding Database** (`app/storage/embedding_database.py`): Local relational metadata database storing identity records, template associations, operational status (`ACTIVE`, `DISABLED`, `ARCHIVED`), and extraction provenance.
 
 ### 2. Firebase Firestore (Asynchronous Durable Persistence)
 
@@ -337,7 +337,7 @@ Live Inference Loop (<1.5ms) ──► Local EmbeddingDatabase (SQLite)
   * `identity_type`: `"USER_REFERENCE"` (gallery watchlist) vs `"LIVE_OPERATIONAL"` (CCTV evidence).
   * `operational_state`: `"PREDICTED"`, `"VERIFIED"`, `"TRAINING_ELIGIBLE"`, `"TRAINING_CONSUMED"`, or `"REFERENCE"`.
   * `training_eligibility`: Explicitly `"NOT_ELIGIBLE"` for reference gallery samples to prevent training set contamination.
-* **Offline Resilience**: When unconfigured or offline, synchronization events buffer into `data/firebase_offline_store.json` and drain automatically upon reconnection.
+* **Offline Resilience**: When unconfigured or offline, synchronization events buffer into `data/runtime/firebase_offline_store.json` and drain automatically upon reconnection.
 
 ---
 
@@ -361,7 +361,7 @@ Continual learning in ARGUS AI is **date-aware and eligibility-driven**. The sys
  Assemble Training Dataset (50% New Date Evidence + 50% Historical Replay Baseline)
               │
               ▼ (PyTorch Gradient Descent via NNFineTuner)
- Candidate Model Checkpoint (models/candidates/*.pth)
+ Candidate Model Checkpoint (models/model_store/candidates/*.pth)
               │
               ▼ (CandidateValidator: 5 Safety Gates)
    Validation Gate Evaluation
@@ -375,29 +375,29 @@ Continual learning in ARGUS AI is **date-aware and eligibility-driven**. The sys
 
 ### Continual Learning Components
 
-* **`OperationalEmbeddingCollector`** (`intelligence/operational_embedding_collector.py`): Captures high-confidence CCTV observations in `PREDICTED` state.
+* **`OperationalEmbeddingCollector`** (`app/intelligence/operational_embedding_collector.py`): Captures high-confidence CCTV observations in `PREDICTED` state.
 * **Reference Data Exclusion Guard**: Reference watchlist embeddings (`USER_REFERENCE`) are tagged `training_eligibility = "NOT_ELIGIBLE"` and are strictly excluded from training pools to avoid overfitting on sparse enrollment data.
-* **`DateAwareLearningScheduler`** (`intelligence/date_aware_learning_scheduler.py`): Groups eligible samples by chronological date (`YYYY-MM-DD`). Requires $\ge 10$ eligible embeddings across $\ge 2$ distinct subjects before triggering training. Automatically rejects future-dated records ($\text{date} > \text{today}$).
-* **`TrainingDatasetBuilder`** (`intelligence/training_dataset_builder.py`): Implements an anti-catastrophic forgetting replay buffer by pairing 50% new operational evidence with 50% historical baseline templates.
-* **`NNFineTuner`** (`intelligence/nn_fine_tuner.py`): Performs genuine PyTorch gradient descent on `ByGaitLight` (Triplet Loss + ArcFace margin). Calculates parameter deltas (`changed_tensors > 0`, `max_param_delta > 0.0`) to verify genuine weight updates.
-* **`CandidateValidator`** (`intelligence/candidate_validator.py`): Enforces 5 strict validation gates before promotion:
+* **`DateAwareLearningScheduler`** (`app/intelligence/date_aware_learning_scheduler.py`): Groups eligible samples by chronological date (`YYYY-MM-DD`). Requires $\ge 10$ eligible embeddings across $\ge 2$ distinct subjects before triggering training. Automatically rejects future-dated records ($\text{date} > \text{today}$).
+* **`TrainingDatasetBuilder`** (`app/intelligence/training_dataset_builder.py`): Implements an anti-catastrophic forgetting replay buffer by pairing 50% new operational evidence with 50% historical baseline templates.
+* **`NNFineTuner`** (`app/intelligence/nn_fine_tuner.py`): Performs genuine PyTorch gradient descent on `ByGaitLight` (Triplet Loss + ArcFace margin). Calculates parameter deltas (`changed_tensors > 0`, `max_param_delta > 0.0`) to verify genuine weight updates.
+* **`CandidateValidator`** (`app/intelligence/candidate_validator.py`): Enforces 5 strict validation gates before promotion:
   1. *False Accept Rate (FAR) Gate*: Candidate FAR must not exceed baseline FAR ($\text{FAR}_{\text{cand}} \le \text{FAR}_{\text{base}}$).
   2. *True Accept Rate (TAR) Gate*: Candidate TAR must not regress beyond tolerance ($\text{TAR}_{\text{cand}} \ge \text{TAR}_{\text{base}} - 0.005$).
   3. *Stability & Shape Gate*: Output dimensionality must strictly match (256-D) with finite, normalized embeddings.
   4. *Anti-Churn Gate*: Rejects trivial parameter updates within random noise thresholds.
   5. *Integrity Gate*: Verifies SHA-256 checkpoint hashing.
-* **`ModelRegistry`** (`models/model_registry.py`): Manages version manifests in `models/model_registry.json`. Supports atomic production promotion and sub-50ms instant rollback to the previous production checkpoint.
+* **`ModelRegistry`** (`ml_platform/models/model_registry.py`): Manages version manifests in `ml_platform/models/model_registry.json`. Supports atomic production promotion and sub-50ms instant rollback to the previous production checkpoint.
 
 ---
 
 ## Case Dossier Management
 
-The Case Dossier capability (`services/case_dossier_manager.py`) organizes investigation cases and missing-person records into structured on-disk directories.
+The Case Dossier capability (`app/services/case_dossier_manager.py`) organizes investigation cases and missing-person records into structured on-disk directories.
 
 ### Filesystem Layout
 
 ```
-data/cases/{case_id}_{person_name}/
+data/runtime/cases/{case_id}_{person_name}/
 ├── case_details.json         # Structured dossier metadata, GPS coordinates, file index
 ├── media/                    # Associated reference photographs and reference videos
 │   ├── reference_photo_01.jpg
@@ -422,7 +422,7 @@ ARGUS AI implements defense-in-depth security across backend endpoints, authenti
 
 ### 1. Password Hashing with Argon2id
 
-Passwords are encrypted using **Argon2id** (`security_layer/password_hasher.py`), the winner of the Password Hashing Competition (PHC), configured to robust memory and time cost parameters:
+Passwords are encrypted using **Argon2id** (`app/security_layer/password_hasher.py`), the winner of the Password Hashing Competition (PHC), configured to robust memory and time cost parameters:
 * Memory cost: $65,536\text{ KB}$ (64 MB)
 * Time cost: $3$ iterations
 * Parallelism: $4$ threads
@@ -431,7 +431,7 @@ Passwords are encrypted using **Argon2id** (`security_layer/password_hasher.py`)
 
 ### 2. Session Management & RBAC
 
-* **Session Tokens**: In-memory, thread-safe `SessionStore` (`security_layer/auth.py`) with sliding idle timeout ($30\text{ minutes}$), maximum session lifetime ($8\text{ hours}$), and maximum concurrent session limits.
+* **Session Tokens**: In-memory, thread-safe `SessionStore` (`app/security_layer/auth.py`) with sliding idle timeout ($30\text{ minutes}$), maximum session lifetime ($8\text{ hours}$), and maximum concurrent session limits.
 * **Role Hierarchy**:
   * `ROOT_ADMIN`: Full administrative control, operator user management, system reconfiguration.
   * `ADMIN`: Camera management, case creation, reference job execution, policy configuration.
@@ -440,7 +440,7 @@ Passwords are encrypted using **Argon2id** (`security_layer/password_hasher.py`)
 
 ### 3. Credential & Media Protection
 
-* **RTSP URL Sanitization & Credential Encryption**: RTSP camera credentials are encrypted with Fernet symmetric encryption (`security_layer/credentials.py`) and masked in logs (`rtsp://***:***@host:port`).
+* **RTSP URL Sanitization & Credential Encryption**: RTSP camera credentials are encrypted with Fernet symmetric encryption (`app/security_layer/credentials.py`) and masked in logs (`rtsp://***:***@host:port`).
 * **Safe PyTorch Checkpoint Loading**: Enforces `torch.load(..., weights_only=True)` across all inference and training loaders, preventing arbitrary code execution from untrusted model binaries.
 * **Hardened Deserialization**: NumPy vector loading rejects arbitrary pickle deserialization (`allow_pickle=False`).
 * **Secret Hygiene**: Zero passwords, tokens, private keys, or Firebase service-account credentials are committed to the Git repository.
@@ -449,11 +449,11 @@ Passwords are encrypted using **Argon2id** (`security_layer/password_hasher.py`)
 
 ## Hardware-Aware Compute Automation
 
-ARGUS AI dynamically adapts to host hardware through a centralized arbitration layer (`DeviceManager` in `automation/device_manager.py`), avoiding hardcoded device assignments.
+ARGUS AI dynamically adapts to host hardware through a centralized arbitration layer (`DeviceManager` in `ops/automation/device_manager.py`), avoiding hardcoded device assignments.
 
 ### 12-Stage Environment Bootstrap Sequence
 
-The bootstrap orchestrator (`automation/bootstrap.py`) executes a deterministic discovery routine during startup:
+The bootstrap orchestrator (`ops/automation/bootstrap.py`) executes a deterministic discovery routine during startup:
 
 | Stage | Subsystem Checked | Validation Action |
 | :---: | :--- | :--- |
@@ -478,7 +478,7 @@ When a compatible NVIDIA GPU is present, computation routes to `cuda:0`. If unav
 
 ## Multi-Camera Scheduling & Admission Control
 
-To support concurrent video feeds without resource starvation, the streaming subsystem (`streaming/`) implements:
+To support concurrent video feeds without resource starvation, the streaming subsystem (`app/streaming/`) implements:
 
 * **Deficit Round-Robin (DRR) Scheduling**: `PersonTrackScheduler` prevents individual high-density camera streams from starving lower-density cameras during GPU batch inference.
 * **Bounded Per-Camera Queues**: Individual camera queues drop stale frames ($> 500\text{ms}$ latency) when backpressure develops, maintaining real-time alignment.
@@ -558,54 +558,69 @@ Scientific evaluation of the ByGaitLight architecture on the **CASIA-B** gait da
 
 ```
 ARGUS_AI/
-├── api/                        # FastAPI REST routers, Pydantic schemas, server lifespan
+├── .agents/                    # AGENTS.md instructions for AI coding assistants
+├── .github/workflows/          # CI: test suite, lint, README-sync verification
+├── .qodo/                      # Qodo AI agent/workflow configuration
+├── app/                        # The running application
+│   ├── api/                    #   FastAPI REST routers (v1/), legacy pre-versioning routes, schemas
+│   ├── core/                   #   System coordinator, path resolver, logging configuration
+│   ├── enrollment/             #   Target identity enrollment managers and lifecycle hooks
+│   ├── events/                 #   Event bus contracts, telemetry dispatchers
+│   ├── intelligence/           #   Biometric intelligence, sub-packaged by concern:
+│   │   ├── fusion/             #     Gait + Appearance score fusion
+│   │   ├── tracking/           #     Cross-camera tracking, identity persistence
+│   │   ├── crowd/              #     Crowd density, occlusion, robustness
+│   │   ├── learning/           #     Continual learning, drift detection, fine-tuning
+│   │   ├── decision/           #     Decision/policy engine, confidence scoring
+│   │   ├── evidence/           #     Operational evidence & embedding collection
+│   │   └── validation/         #     Open-set recognition, statistical validation
+│   ├── monitoring/             #   Structured logging, metrics collectors, telemetry
+│   ├── pipeline/                #   Modular gait recognition steps (Detection, Tracking, GEI, Matching)
+│   ├── security_layer/          #   Argon2id password hashing, SessionStore, RBAC, Fernet encryption
+│   ├── services/                 #   Background services, CameraWorker, MissingPersonProcessor
+│   ├── storage/                   #   Local VectorStore (.npy), SQLite EmbeddingDatabase, Firebase store
+│   ├── streaming/                  #   Multi-camera DRR scheduling, frame ring-buffers, admission control
+│   └── utils/                       #   File I/O, image processing, geometry math utilities
 ├── assets/                     # Graphical assets and repository banner
-├── automation/                 # Hardware detection, arbitration (DeviceManager), 12-stage bootstrap
 ├── configs/                    # YAML configurations (cameras, detection, gei, inference, system)
-├── core/                       # Core system coordinator, shared utilities, logging configuration
-├── data/                       # Local database, reference jobs, video storage, and case dossiers
-│   └── cases/                  # Structured on-disk Case Dossiers ({case_id}_{person_name}/)
-├── deployment/                 # Service shutdown management and environment manifests
+│   └── secrets/                #   Gitignored credentials (e.g. firebase-service-account.json)
+├── data/                       # Gitignored local data, split by lifecycle
+│   ├── datasets/                #   Research datasets (CASIA-B raw/cache/processed)
+│   └── runtime/                 #   Live operational state (cases, galleries DB, enrollment, jobs)
+│       └── cases/                #   Structured on-disk Case Dossiers ({case_id}_{person_name}/)
+├── dataconnect/                # Firebase Data Connect schema
 ├── docs/                       # Architectural documentation, reports, and README index
-├── enrollment/                 # Target identity enrollment managers and lifecycle hooks
-├── evaluation/                 # Scientific evaluation scripts (Rank-k, EER, ROC-AUC, threshold sweep)
-├── events/                     # Event bus contracts, telemetry dispatchers
 ├── frontend/                   # React 19 + Vite surveillance dashboard application
 │   ├── src/
-│   │   ├── admin/              # User management, system policy, log viewers
-│   │   ├── components/         # CCTV network grid, CaseDossierModal, Map, Telemetry
-│   │   ├── contexts/           # AuthContext, GaitContext
-│   │   └── hooks/              # useResizablePanel, useAuth, useGait
-├── intelligence/               # Biometric intelligence, OpenSetRecognizer, Continual Learning
-│   ├── candidate_validator.py  # Multi-gate candidate model validator (FAR/TAR/Anti-churn)
-│   ├── date_aware_learning_scheduler.py # Event-date grouped learning job scheduler
-│   ├── dual_modal_fusion.py    # Gait + Appearance score fusion
-│   ├── nn_fine_tuner.py        # PyTorch ByGaitLight / OSNet gradient fine-tuner
-│   ├── operational_embedding_collector.py # CCTV evidence collector (PREDICTED -> VERIFIED)
-│   └── training_dataset_builder.py # 50% replay buffer and balanced dataset generator
-├── models/                     # Deep learning architectures, model registry, and galleries
-│   ├── architectures/          # ByGaitLight, UNet segmenter definitions
-│   ├── live_gallery/           # Active 256-D ByGaitLight gait embeddings (.npy)
-│   ├── appearance_gallery/     # Active 512-D OSNet appearance embeddings (.npy)
-│   ├── candidates/             # Isolated candidate model weights (.pth)
-│   ├── model_registry.py       # Atomic model version management and instant rollback
-│   └── weights/                # Base weights (silhouette_segmenter.onnx, yolov8n.pt)
-├── monitoring/                 # Structured logging, metrics collectors, telemetry
-├── pipeline/                   # Modular gait recognition steps (Detection, Tracking, GEI, Matching)
-├── preprocessing/              # Video frame extractors, silhouette binarization
-├── security_layer/             # Argon2id password hashing, SessionStore, RBAC, Fernet encryption
-├── services/                   # Background services, CameraWorker, MissingPersonProcessor, CaseDossier
-├── storage/                    # Local VectorStore (.npy), SQLite EmbeddingDatabase, Firebase store
-├── streaming/                  # Multi-camera DRR scheduling, frame ring-buffers, admission control
-├── tests/                      # Automated test suite (1,030 passed, 0 failed, 1 skipped)
-│   ├── integration/            # Multi-component & isolation tests (12 camera/ref scenarios)
-│   └── unit/                   # Unit test suite
-├── tools/                      # Maintenance utilities, gallery builders, data preprocessors
-├── training/                   # Model training routines, loss functions, CASIA-B loaders
-├── utils/                      # File I/O, image processing, geometry math utilities
+│   │   ├── admin/              #   User management, system policy, log viewers
+│   │   ├── components/         #   CCTV network grid, CaseDossierModal, Map, Telemetry
+│   │   ├── contexts/           #   AuthContext, GaitContext
+│   │   └── hooks/              #   useResizablePanel, useAuth, useGait
+├── ml_platform/                # The research / ML platform
+│   ├── evaluation/              #   Scientific evaluation (Rank-k, EER, ROC-AUC); experiments/ holds
+│   │   │                        #   one-off evaluate_*/run_exp*/analyze_* entry-point scripts
+│   │   └── experiments/
+│   ├── models/                   #   Architectures, inference backends, export scripts, registry
+│   │   ├── architectures/         #     ByGaitLight, UNet segmenter definitions
+│   │   ├── model_store/            #     Artifact lifecycle: weights/, active/, candidates/, rollback/, engines/
+│   │   ├── galleries/               #     Identity galleries: gallery/, live_gallery/, appearance_gallery/
+│   │   └── model_registry.py        #     Atomic model version management and instant rollback
+│   ├── preprocessing/                 #   Video frame extractors, silhouette binarization
+│   └── training/                       #   Model training routines, loss functions, CASIA-B loaders
+├── ops/                        # Deployment, hardware automation, and operator tooling
+│   ├── automation/              #   Hardware detection, arbitration (DeviceManager), 12-stage bootstrap
+│   ├── deployment/                #   Service shutdown management and environment manifests
+│   └── tools/                      #   Operational CLI tools, benchmarks, maintenance scripts, migrations
+├── outputs/                    # Gitignored run artifacts: logs, benchmarks, reports, media
+├── runs/                       # Gitignored training run outputs and checkpoints
+├── tests/                      # Automated test suite (1,460 passed, 0 failed, 1 skipped)
+│   ├── integration/            #   Multi-component & isolation tests (12 camera/ref scenarios)
+│   └── unit/                   #   Unit test suite
 ├── cli.py                      # Unified CLI management entry point
 ├── main.py                     # Command-line system runner
 ├── Makefile                    # Make command targets
+├── package.json                # Root dev-orchestration scripts (npm run dev/build/lint)
+├── pyproject.toml              # Declares app/, ml_platform/, ops/ as installable package roots
 ├── requirements.txt            # Python backend dependencies
 └── VERSION                     # Project version file (0.1.0)
 ```
@@ -657,8 +672,12 @@ python -m pip install --upgrade pip setuptools wheel
 # Install backend dependencies
 pip install -r requirements.txt
 
+# Install ARGUS itself in editable mode, so app/, ml_platform/, and ops/
+# import correctly regardless of your current working directory
+pip install -e .
+
 # Run automated hardware discovery and environment bootstrap
-powershell -ExecutionPolicy Bypass -File ".\scripts\bootstrap_env.ps1"
+powershell -ExecutionPolicy Bypass -File ".\ops\tools\bootstrap_env.ps1"
 ```
 
 ### 3. Install Frontend Dependencies
@@ -673,10 +692,10 @@ cd ..
 
 Firebase persistence is **optional**. When unconfigured, ARGUS runs in hermetic offline mode without errors. To enable cloud synchronization:
 1. Place your Firebase Admin SDK service account key JSON at:
-   `config/firebase-service-account.json`
+   `configs/secrets/firebase-service-account.json`
 2. Set the environment variable in PowerShell:
    ```powershell
-   $env:FIREBASE_SERVICE_ACCOUNT_PATH="E:\ARGUS_AI\config\firebase-service-account.json"
+   $env:FIREBASE_SERVICE_ACCOUNT_PATH="E:\ARGUS_AI\configs\secrets\firebase-service-account.json"
    ```
 
 ---
@@ -685,7 +704,7 @@ Firebase persistence is **optional**. When unconfigured, ARGUS runs in hermetic 
 
 ### Option 1: Unified Development Server (Backend + Frontend)
 
-ARGUS AI includes a unified Node.js dev orchestrator (`scripts/dev.js`) that starts the FastAPI server, awaits readiness, and starts the React Vite development server:
+ARGUS AI includes a unified Node.js dev orchestrator (`ops/tools/dev.js`) that starts the FastAPI server, awaits readiness, and starts the React Vite development server:
 
 ```powershell
 npm run dev
@@ -698,7 +717,7 @@ npm run dev
 ### Option 2: Backend Only
 
 ```powershell
-.\.venv\Scripts\python.exe -m uvicorn api.server:app --host 127.0.0.1 --port 8000 --reload
+.\.venv\Scripts\python.exe -m uvicorn app.api.server:app --host 127.0.0.1 --port 8000 --reload
 ```
 
 ### Option 3: Frontend Only
@@ -744,7 +763,7 @@ All verification commands are repository-relative and executable from `E:\ARGUS_
 .\.venv\Scripts\ruff.exe format --check .
 
 # 6. Python Bytecode Compilation Verification across all modules
-.\.venv\Scripts\python.exe -m compileall -q api automation core deployment enrollment evaluation events frontend intelligence models monitoring pipeline preprocessing scripts security_layer services storage streaming tests tools training utils
+.\.venv\Scripts\python.exe -m compileall -q app ml_platform ops tests
 
 # 7. Frontend Linter & Production Build
 npm --prefix frontend run lint
@@ -762,27 +781,27 @@ The following classification separates features verified in the codebase from re
 
 | Subsystem / Capability | Implementation Classification | Evidence / Source of Truth |
 | :--- | :---: | :--- |
-| **YOLOv8n Person Detection & EMA Smoothing** | **Implemented & Verified** | `pipeline/detection/person_detector.py`, `TrackingStep` ($\alpha=0.35$) |
-| **ByteTrack Multi-Object Tracking** | **Implemented & Verified** | `pipeline/steps/tracking.py` |
-| **Silhouette Extraction (UNet + Otsu Fallback)**| **Implemented & Verified** | `pipeline/silhouette/extractor.py`, `models/weights/silhouette_segmenter.onnx` |
-| **Rolling GEI Generation (64 × 128, window=15)** | **Implemented & Verified** | `pipeline/steps/live_gei.py`, `configs/gei.yaml` |
-| **ByGaitLight 256-D L2-Normalized Embedding** | **Implemented & Verified** | `models/architectures/bygait_light.py` (HPP `part_bins=4`) |
-| **Appearance ReID (OSNet-x0.25 512-D)** | **Implemented & Verified** | `models/reid/osnet_backbone.py` |
-| **Four-Tier Open-Set Decision Policy** | **Implemented & Verified** | `intelligence/open_set_recognizer.py`, `configs/inference.yaml` |
+| **YOLOv8n Person Detection & EMA Smoothing** | **Implemented & Verified** | `app/pipeline/detection/person_detector.py`, `TrackingStep` ($\alpha=0.35$) |
+| **ByteTrack Multi-Object Tracking** | **Implemented & Verified** | `app/pipeline/steps/tracking.py` |
+| **Silhouette Extraction (UNet + Otsu Fallback)**| **Implemented & Verified** | `app/pipeline/silhouette/extractor.py`, `ml_platform/models/model_store/weights/silhouette_segmenter.onnx` |
+| **Rolling GEI Generation (64 × 128, window=15)** | **Implemented & Verified** | `app/pipeline/steps/live_gei.py`, `configs/gei.yaml` |
+| **ByGaitLight 256-D L2-Normalized Embedding** | **Implemented & Verified** | `ml_platform/models/architectures/bygait_light.py` (HPP `part_bins=4`) |
+| **Appearance ReID (OSNet-x0.25 512-D)** | **Implemented & Verified** | `ml_platform/models/reid/osnet_backbone.py` |
+| **Four-Tier Open-Set Decision Policy** | **Implemented & Verified** | `app/intelligence/open_set_recognizer.py`, `configs/inference.yaml` |
 | **Temporal Majority Voting (10 frames / 3 min)**| **Implemented & Verified** | `configs/inference.yaml` (`min_stable_votes=3`, `history_size=10`) |
-| **Decoupled Camera Capture & Live Preview** | **Implemented & Verified** | `services/camera_worker.py` (median startup ≈ 914 ms, adoption ≈ 31 ms) |
+| **Decoupled Camera Capture & Live Preview** | **Implemented & Verified** | `app/services/camera_worker.py` (median startup ≈ 914 ms, adoption ≈ 31 ms) |
 | **Camera / Reference Job Isolation** | **Implemented & Verified** | `test_camera_reference_isolation.py` (12/12 integration tests passed) |
-| **Offline Reference Job Recovery & Checkpoints**| **Implemented & Verified** | `services/reference_job_manager.py`, `test_job_recovery.py` (17 tests) |
-| **On-Disk Case Dossiers & HTTP 206 Streaming** | **Implemented & Verified** | `services/case_dossier_manager.py`, `CaseDossierModal.jsx` |
-| **Path Traversal Protection (`relative_to`)** | **Implemented & Verified** | `CaseDossierManager.get_dossier_file()`, `api/v1/router.py` |
-| **Argon2id Password Hashing & RBAC** | **Implemented & Verified** | `security_layer/password_hasher.py`, `security_layer/authorization.py` |
-| **Local-First SQLite & VectorStore Storage** | **Implemented & Verified** | `storage/vector_store.py` (`allow_pickle=False`), `EmbeddingDatabase` |
-| **Asynchronous Firestore Persistence** | **Implemented & Verified** | `storage/firebase_embedding_store.py`, `data/firebase_offline_store.json` |
+| **Offline Reference Job Recovery & Checkpoints**| **Implemented & Verified** | `app/services/reference_job_manager.py`, `test_job_recovery.py` (17 tests) |
+| **On-Disk Case Dossiers & HTTP 206 Streaming** | **Implemented & Verified** | `app/services/case_dossier_manager.py`, `CaseDossierModal.jsx` |
+| **Path Traversal Protection (`relative_to`)** | **Implemented & Verified** | `CaseDossierManager.get_dossier_file()`, `app/api/v1/router.py` |
+| **Argon2id Password Hashing & RBAC** | **Implemented & Verified** | `app/security_layer/password_hasher.py`, `app/security_layer/authorization.py` |
+| **Local-First SQLite & VectorStore Storage** | **Implemented & Verified** | `app/storage/vector_store.py` (`allow_pickle=False`), `EmbeddingDatabase` |
+| **Asynchronous Firestore Persistence** | **Implemented & Verified** | `app/storage/firebase_embedding_store.py`, `data/runtime/firebase_offline_store.json` |
 | **Date-Aware Continual Learning & Replay** | **Implemented & Verified** | `DateAwareLearningScheduler`, `TrainingDatasetBuilder` (50% replay) |
 | **PyTorch NN Fine-Tuning & Multi-Gate Gating** | **Implemented & Verified** | `NNFineTuner`, `CandidateValidator` (FAR/TAR/Anti-churn) |
 | **Atomic Model Registry & Rollback** | **Implemented & Verified** | `ModelRegistry` (Hot-reload, rollback $< 50\text{ms}$) |
-| **Automated Hardware Arbitration (CUDA/CPU)** | **Implemented & Verified** | `automation/device_manager.py`, 12-stage bootstrap |
-| **Multi-Camera Fair-Share Ingestion (DRR)** | **Implemented & Verified** | `streaming/production_multicamera_engine.py` |
+| **Automated Hardware Arbitration (CUDA/CPU)** | **Implemented & Verified** | `ops/automation/device_manager.py`, 12-stage bootstrap |
+| **Multi-Camera Fair-Share Ingestion (DRR)** | **Implemented & Verified** | `app/streaming/production_multicamera_engine.py` |
 | **Full Pytest Test Suite** | **Tested & Verified** | **1,030 passed, 0 failed, 1 skipped** (hardware-dependent webcam) |
 | **Physical Multi-Camera Citywide Deployment** | **Research / Boundary** | Laboratory and local network verified; municipal-scale testing not claimed |
 | **Million-Identity Sub-Millisecond Indexing** | **Future Work** | Evaluated on development gallery templates; FAISS-IVF/HNSW scaling planned |

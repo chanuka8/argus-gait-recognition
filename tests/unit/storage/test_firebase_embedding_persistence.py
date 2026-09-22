@@ -5,27 +5,27 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from enrollment.enrollment_lifecycle import (
+from app.enrollment.enrollment_lifecycle import (
     EnrollmentLifecycleManager,
     EnrollmentStatus,
 )
-from intelligence.background_learning_worker import BackgroundLearningWorker
-from intelligence.candidate_validator import CandidateValidator
-from intelligence.date_aware_learning_scheduler import (
+from app.intelligence.decision.candidate_validator import CandidateValidator
+from app.intelligence.evidence.operational_embedding_collector import (
+    OperationalEmbeddingCollector,
+)
+from app.intelligence.learning.background_learning_worker import BackgroundLearningWorker
+from app.intelligence.learning.date_aware_learning_scheduler import (
     DateAwareLearningScheduler,
     LearningJobRecord,
     LearningJobStatus,
 )
-from intelligence.nn_fine_tuner import NNFineTuner
-from intelligence.operational_embedding_collector import (
-    OperationalEmbeddingCollector,
-)
-from models.model_registry import ModelRegistry
-from storage.embedding_database import EmbeddingDatabase
-from storage.firebase_embedding_store import (
+from app.intelligence.learning.nn_fine_tuner import NNFineTuner
+from app.storage.embedding_database import EmbeddingDatabase
+from app.storage.firebase_embedding_store import (
     FirebaseEmbeddingDocument,
     FirebaseEmbeddingStore,
 )
+from ml_platform.models.model_registry import ModelRegistry
 
 
 @pytest.fixture
@@ -688,7 +688,7 @@ def test_u_disaster_recovery_rebuild(tmp_env):
 
 
 def test_v_schema_validation_boundaries(tmp_env):
-    from storage.firebase_embedding_store import FirebaseEmbeddingDocument
+    from app.storage.firebase_embedding_store import FirebaseEmbeddingDocument
 
     # 1. Valid gait doc (256D)
     valid_gait = FirebaseEmbeddingDocument(
@@ -769,9 +769,9 @@ def test_v_schema_validation_boundaries(tmp_env):
 
 
 def test_w_missing_person_reference_flow_not_training_eligible(tmp_env):
-    from intelligence.missing_person_workflow import MissingPersonWorkflow
-    from storage.embedding_database import EmbeddingDatabase
-    from storage.firebase_embedding_store import FirebaseEmbeddingStore
+    from app.intelligence.evidence.missing_person_workflow import MissingPersonWorkflow
+    from app.storage.embedding_database import EmbeddingDatabase
+    from app.storage.firebase_embedding_store import FirebaseEmbeddingStore
 
     fb_store = FirebaseEmbeddingStore(
         mode="offline",
@@ -820,7 +820,10 @@ def test_w_missing_person_reference_flow_not_training_eligible(tmp_env):
 
 
 def test_x_state_machine_transitions_and_consumption(tmp_env):
-    from intelligence.operational_embedding_collector import ObservationState, OperationalEmbeddingCollector
+    from app.intelligence.evidence.operational_embedding_collector import (
+        ObservationState,
+        OperationalEmbeddingCollector,
+    )
 
     collector = OperationalEmbeddingCollector(output_dir=tmp_env["obs_dir"])
     vec = list(np.random.randn(256).astype(float))
@@ -891,7 +894,7 @@ def test_y_future_date_contamination_rejection(tmp_env):
 
 
 def test_z_deterministic_id_and_connection_health(tmp_env):
-    from storage.firebase_embedding_store import (
+    from app.storage.firebase_embedding_store import (
         FirebaseEmbeddingStore,
         generate_deterministic_id,
     )

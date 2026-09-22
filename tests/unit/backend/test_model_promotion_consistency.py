@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from models.model_registry import (
+from ml_platform.models.model_registry import (
     ModelDeploymentStatus,
     ModelRegistry,
     ModelSyncEvent,

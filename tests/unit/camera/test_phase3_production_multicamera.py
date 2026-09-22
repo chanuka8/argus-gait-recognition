@@ -3,7 +3,7 @@ import time
 import numpy as np
 import pytest
 
-from streaming.production_multicamera_engine import (
+from app.streaming.production_multicamera_engine import (
     CentralStreamScheduler,
     FramePacket,
     HardwareProfile,

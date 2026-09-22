@@ -2,8 +2,8 @@ import io
 
 from fastapi.testclient import TestClient
 
-from api.server import app
-from api.v1.router import get_gait_service
+from app.api.server import app
+from app.api.v1.router import get_gait_service
 
 
 class StubGaitService:

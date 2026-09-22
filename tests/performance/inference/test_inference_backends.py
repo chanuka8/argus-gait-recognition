@@ -3,10 +3,10 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from models.export.bygait_onnx import export_onnx
-from models.inference.backend import get_inference_backend
-from models.inference.pytorch_backend import PyTorchBackend
-from models.inference.tensorrt_backend import TensorRTBackend
+from ml_platform.models.export.bygait_onnx import export_onnx
+from ml_platform.models.inference.backend import get_inference_backend
+from ml_platform.models.inference.pytorch_backend import PyTorchBackend
+from ml_platform.models.inference.tensorrt_backend import TensorRTBackend
 
 
 def test_pytorch_backend_predict_shape_and_l2_normalization():
@@ -66,7 +66,7 @@ def test_onnx_export_script_execution(tmp_path: Path):
     ckpt_file = tmp_path / "model.pth"
     import torch
 
-    from models.architectures.bygait_light import ByGaitLight
+    from ml_platform.models.architectures.bygait_light import ByGaitLight
 
     torch.save(ByGaitLight().state_dict(), ckpt_file)
 
@@ -165,7 +165,7 @@ def test_auto_fallback_properties(tmp_path: Path):
 
 
 def test_backend_validator_and_report_generation(tmp_path: Path):
-    from models.inference.backend import BackendStatus, BackendValidator, generate_backend_report
+    from ml_platform.models.inference.backend import BackendStatus, BackendValidator, generate_backend_report
 
     cfg = {
         "backend": "pytorch",
@@ -193,7 +193,7 @@ def test_genuine_onnx_session_properties_and_metrics(tmp_path: Path):
     ckpt_file = tmp_path / "model.pth"
     import torch
 
-    from models.architectures.bygait_light import ByGaitLight
+    from ml_platform.models.architectures.bygait_light import ByGaitLight
 
     torch.save(ByGaitLight().state_dict(), ckpt_file)
 
@@ -228,7 +228,7 @@ def test_cpu_only_onnx_provider_selection_emits_no_cuda_warning(tmp_path: Path, 
     ckpt_file = tmp_path / "model.pth"
     import torch
 
-    from models.architectures.bygait_light import ByGaitLight
+    from ml_platform.models.architectures.bygait_light import ByGaitLight
 
     torch.save(ByGaitLight().state_dict(), ckpt_file)
 
@@ -237,7 +237,7 @@ def test_cpu_only_onnx_provider_selection_emits_no_cuda_warning(tmp_path: Path, 
     if not onnx_file.exists():
         pytest.skip("ONNX model unavailable for test")
 
-    from models.inference.onnx_backend import ONNXBackend
+    from ml_platform.models.inference.onnx_backend import ONNXBackend
 
     cfg = {
         "backend": "onnxruntime",
@@ -298,7 +298,7 @@ def test_pytorch_fallback_parity_is_exact(tmp_path: Path):
 def test_tensorrt_failure_emits_single_warning():
     import logging
 
-    from monitoring.logging_config import get_logger
+    from app.monitoring.logging_config import get_logger
 
     logger = get_logger("detection")
     records = []
@@ -341,7 +341,7 @@ def test_repeated_inference_resource_safety():
 
 
 def test_benchmark_output_labelled_embedding_only():
-    from tools.benchmark.inference_backends import benchmark_backend
+    from ops.tools.benchmark.inference_backends import benchmark_backend
 
     res = benchmark_backend("pytorch", sample_count=5, device="cpu", precision="fp32")
     assert res["measurement_scope"] == "embedding_only_synthetic_gei"

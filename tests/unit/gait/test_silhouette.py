@@ -3,7 +3,7 @@ import unittest
 import cv2
 import numpy as np
 
-from pipeline.silhouette.extractor import SilhouetteExtractor
+from app.pipeline.silhouette.extractor import SilhouetteExtractor
 
 
 class TestSilhouetteExtractor(unittest.TestCase):

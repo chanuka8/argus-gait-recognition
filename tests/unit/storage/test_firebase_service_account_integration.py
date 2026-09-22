@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from storage.firebase_embedding_store import (
+from app.storage.firebase_embedding_store import (
     FirebaseEmbeddingDocument,
     FirebaseEmbeddingStore,
     PersistenceErrorCategory,

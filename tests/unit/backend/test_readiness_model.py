@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 
-from api.server import app
-from services.gait_service import GaitService
+from app.api.server import app
+from app.services.gait_service import GaitService
 
 
 def test_gait_service_initial_readiness():

@@ -4,9 +4,9 @@ from unittest.mock import MagicMock
 import pytest
 from fastapi.testclient import TestClient
 
-from api.server import app
-from api.v1.router import get_gait_service
-from security_layer.auth import extract_bearer_token, get_session_store
+from app.api.server import app
+from app.api.v1.router import get_gait_service
+from app.security_layer.auth import extract_bearer_token, get_session_store
 
 
 @pytest.fixture(autouse=True)

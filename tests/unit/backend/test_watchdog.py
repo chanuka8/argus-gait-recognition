@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import MagicMock
 
-from monitoring.watchdog import Watchdog
+from app.monitoring.watchdog import Watchdog
 
 
 class TestWatchdog(unittest.TestCase):

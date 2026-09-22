@@ -5,9 +5,9 @@ import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 
-from api.server import app
-from security_layer.auth import get_session_store
-from security_layer.authorization import Permission, Role, has_permission
+from app.api.server import app
+from app.security_layer.auth import get_session_store
+from app.security_layer.authorization import Permission, Role, has_permission
 
 
 @pytest.fixture

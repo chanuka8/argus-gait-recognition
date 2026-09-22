@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-from preprocessing.image_enhancement import DeterministicImageEnhancer
+from ml_platform.preprocessing.image_enhancement import DeterministicImageEnhancer
 
 
 def test_enhancer_initialization() -> None:

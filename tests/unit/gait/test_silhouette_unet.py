@@ -8,11 +8,11 @@ import cv2
 import numpy as np
 import torch
 
-from models.architectures.silhouette_unet import SilhouetteUNet
-from models.export.silhouette_unet_onnx import export_and_validate_onnx
-from pipeline.steps.silhouette_step import LearnedSilhouetteSegmenter, SilhouetteStep
-from training.silhouette_dataset import SilhouetteSegmentationDataset
-from training.train_silhouette_unet import BCEDiceLoss, calculate_metrics
+from app.pipeline.steps.silhouette_step import LearnedSilhouetteSegmenter, SilhouetteStep
+from ml_platform.models.architectures.silhouette_unet import SilhouetteUNet
+from ml_platform.models.export.silhouette_unet_onnx import export_and_validate_onnx
+from ml_platform.training.silhouette_dataset import SilhouetteSegmentationDataset
+from ml_platform.training.train_silhouette_unet import BCEDiceLoss, calculate_metrics
 
 
 class TestSilhouetteUNetPipeline(unittest.TestCase):
@@ -136,7 +136,7 @@ class TestSilhouetteUNetPipeline(unittest.TestCase):
         self.assertTrue(set(np.unique(mask)).issubset({0, 255}))
 
     def test_gei_compatibility(self) -> None:
-        from preprocessing.gei_builder import GEIBuilder
+        from ml_platform.preprocessing.gei_builder import GEIBuilder
 
         step = SilhouetteStep(target_size=(64, 128), method="learned", model_path="non_existent_model.onnx")
 
@@ -163,11 +163,11 @@ class TestSilhouetteUNetPipeline(unittest.TestCase):
         self.assertEqual(gei.dtype, np.uint8)
 
     @unittest.skipUnless(
-        Path("models/weights/silhouette_segmenter.onnx").exists(),
+        Path("ml_platform/models/model_store/weights/silhouette_segmenter.onnx").exists(),
         "Real ONNX model asset not present in local environment",
     )
     def test_real_onnx_asset_integration(self) -> None:
-        segmenter = LearnedSilhouetteSegmenter(model_path="models/weights/silhouette_segmenter.onnx")
+        segmenter = LearnedSilhouetteSegmenter(model_path="ml_platform/models/model_store/weights/silhouette_segmenter.onnx")
         self.assertTrue(segmenter.is_available())
 
         valid, msg = segmenter.validate_model()

@@ -1,7 +1,7 @@
 import numpy as np
 
-from pipeline.steps.quality_estimator import QualityEstimator
-from pipeline.steps.temporal_gait_verifier import TemporalGaitVerifier
+from app.pipeline.steps.quality_estimator import QualityEstimator
+from app.pipeline.steps.temporal_gait_verifier import TemporalGaitVerifier
 
 
 class TestQualityEstimator:

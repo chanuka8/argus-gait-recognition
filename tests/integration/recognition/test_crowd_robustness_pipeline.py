@@ -1,16 +1,16 @@
 from unittest.mock import MagicMock, patch
 
-from intelligence.crowd_density_estimator import CrowdDensityLevel
-from intelligence.crowd_robustness_manager import CrowdRobustnessManager
-from pipeline.live_recognition import LiveRecognitionPipeline
-from pipeline.video_recognition import VideoRecognitionPipeline, _load_crowd_robustness_config
+from app.intelligence.crowd.crowd_density_estimator import CrowdDensityLevel
+from app.intelligence.crowd.crowd_robustness_manager import CrowdRobustnessManager
+from app.pipeline.live_recognition import LiveRecognitionPipeline
+from app.pipeline.video_recognition import VideoRecognitionPipeline, _load_crowd_robustness_config
 
 
-@patch("pipeline.live_recognition.StreamEngine")
-@patch("pipeline.live_recognition.VectorStore")
-@patch("pipeline.live_recognition.LiveRecognitionPipeline._load_model", return_value=MagicMock())
-@patch("pipeline.video_recognition.VectorStore")
-@patch("pipeline.video_recognition.VideoRecognitionPipeline._load_model", return_value=MagicMock())
+@patch("app.pipeline.live_recognition.StreamEngine")
+@patch("app.pipeline.live_recognition.VectorStore")
+@patch("app.pipeline.live_recognition.LiveRecognitionPipeline._load_model", return_value=MagicMock())
+@patch("app.pipeline.video_recognition.VectorStore")
+@patch("app.pipeline.video_recognition.VideoRecognitionPipeline._load_model", return_value=MagicMock())
 def test_pipeline_crowd_robustness_initialization(
     mock_vid_model, mock_vid_store, mock_live_model, mock_live_store, mock_stream
 ):
@@ -63,7 +63,7 @@ def test_crowd_robustness_end_to_end_simulation():
 
 
 def test_inference_skipping_when_evidence_insufficient():
-    from intelligence.crowd_intelligence_system import CrowdIntelligenceSystem
+    from app.intelligence.crowd.crowd_intelligence_system import CrowdIntelligenceSystem
 
     system = CrowdIntelligenceSystem(
         {"enabled": True, "recognition_deferral": {"enabled": True, "minimum_confirmations": 3}}

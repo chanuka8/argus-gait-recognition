@@ -1,8 +1,8 @@
 import unittest
 
-from services.camera_discovery import CameraDiscoveryService, DiscoveredCamera
-from services.onvif_client import ONVIFCapabilities, ONVIFClient, ONVIFProfile
-from services.vendor_adapters import (
+from app.services.camera_discovery import CameraDiscoveryService, DiscoveredCamera
+from app.services.onvif_client import ONVIFCapabilities, ONVIFClient, ONVIFProfile
+from app.services.vendor_adapters import (
     VENDOR_REGISTRY,
     AxisAdapter,
     CameraAdapter,

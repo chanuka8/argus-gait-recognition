@@ -9,12 +9,12 @@ import cv2
 import numpy as np
 from fastapi.testclient import TestClient
 
-from api.server import app
-from services.gait_service import GaitService
-from services.missing_person_processor import MissingPersonVideoProcessor
-from services.reference_job_manager import ReferenceJobManager, ReferenceJobStatus
-from storage.embedding_database import EmbeddingDatabase
-from storage.vector_store import VectorStore
+from app.api.server import app
+from app.services.gait_service import GaitService
+from app.services.missing_person_processor import MissingPersonVideoProcessor
+from app.services.reference_job_manager import ReferenceJobManager, ReferenceJobStatus
+from app.storage.embedding_database import EmbeddingDatabase
+from app.storage.vector_store import VectorStore
 
 
 def _create_synthetic_person_video(

@@ -5,9 +5,9 @@ from unittest.mock import MagicMock
 
 import yaml
 
-from monitoring.camera_monitor import CameraMonitor
-from services.camera_manager import CameraManager
-from services.camera_worker import CameraWorker
+from app.monitoring.camera_monitor import CameraMonitor
+from app.services.camera_manager import CameraManager
+from app.services.camera_worker import CameraWorker
 
 
 class TestCameraWorker(unittest.TestCase):

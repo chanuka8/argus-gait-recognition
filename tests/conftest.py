@@ -24,14 +24,14 @@ def project_root():
 
 @pytest.fixture
 def sample_gei_path():
-    return PROJECT_ROOT / "data" / "casia_processed" / "gei" / "034" / "034_nm-01_126.png"
+    return PROJECT_ROOT / "data" / "datasets" / "casia_processed" / "gei" / "034" / "034_nm-01_126.png"
 
 
 @pytest.fixture
 def enrollment_sample_folder():
-    path = PROJECT_ROOT / "data" / "new_input" / "api_test_person"
+    path = PROJECT_ROOT / "data" / "runtime" / "new_input" / "api_test_person"
     if not path.exists():
-        disabled_path = PROJECT_ROOT / "data" / "new_input" / "_disabled_api_test_person"
+        disabled_path = PROJECT_ROOT / "data" / "runtime" / "new_input" / "_disabled_api_test_person"
         if disabled_path.exists():
             return disabled_path
     return path
@@ -71,7 +71,7 @@ def setup_test_auth_headers(request, monkeypatch):
 
     from fastapi.testclient import TestClient
 
-    from security_layer.auth import get_session_store
+    from app.security_layer.auth import get_session_store
 
     session = get_session_store().create_session(
         operator_id="test_admin_auto",
@@ -97,7 +97,7 @@ def setup_test_auth_headers(request, monkeypatch):
 def isolate_operator_storage(tmp_path, monkeypatch):
     """Hermetically isolate operator store in all tests to prevent mutating production/offline disk files."""
     monkeypatch.setenv("ARGUS_OPERATOR_STORE_MODE", "offline")
-    from security_layer.auth import get_operator_store
+    from app.security_layer.auth import get_operator_store
 
     op_store = get_operator_store()
     orig_path = op_store.offline_store_path

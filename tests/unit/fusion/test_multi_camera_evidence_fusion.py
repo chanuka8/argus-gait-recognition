@@ -1,4 +1,4 @@
-from intelligence.multi_camera_evidence_fusion import (
+from app.intelligence.evidence.multi_camera_evidence_fusion import (
     FusionState,
     MultiCameraEvidenceFusion,
 )

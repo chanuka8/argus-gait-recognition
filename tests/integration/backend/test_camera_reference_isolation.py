@@ -16,15 +16,15 @@ import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 
-from api.server import app
-from security_layer.auth import get_session_store
-from security_layer.authorization import Role
-from services.camera_worker import CameraWorker
-from services.gait_service import GaitService
-from services.missing_person_processor import MissingPersonVideoProcessor
-from services.reference_job_manager import ReferenceJobManager, ReferenceJobStatus
-from storage.embedding_database import EmbeddingDatabase
-from storage.vector_store import VectorStore
+from app.api.server import app
+from app.security_layer.auth import get_session_store
+from app.security_layer.authorization import Role
+from app.services.camera_worker import CameraWorker
+from app.services.gait_service import GaitService
+from app.services.missing_person_processor import MissingPersonVideoProcessor
+from app.services.reference_job_manager import ReferenceJobManager, ReferenceJobStatus
+from app.storage.embedding_database import EmbeddingDatabase
+from app.storage.vector_store import VectorStore
 
 
 def _dummy_frame(width: int = 320, height: int = 240) -> np.ndarray:

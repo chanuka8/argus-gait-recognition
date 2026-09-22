@@ -7,16 +7,16 @@ import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 
-from api.server import app
-from security_layer.credentials import (
+from app.api.server import app
+from app.security_layer.credentials import (
     CredentialManager,
     build_rtsp_url,
     extract_rtsp_credentials,
     sanitize_rtsp_url,
 )
-from services.camera_source_resolver import CameraSourceResolver
-from services.camera_worker import CameraWorker
-from services.gait_service import GaitService
+from app.services.camera_source_resolver import CameraSourceResolver
+from app.services.camera_worker import CameraWorker
+from app.services.gait_service import GaitService
 
 
 def _dummy_frame():
@@ -110,8 +110,8 @@ def test_credentials_never_appear_in_logs(caplog, temp_credential_store):
     mock_cap.read.return_value = (True, _dummy_frame())
 
     with (
-        patch("services.camera_source_resolver.cv2.VideoCapture", return_value=mock_cap),
-        patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
+        patch("app.services.camera_source_resolver.cv2.VideoCapture", return_value=mock_cap),
+        patch("app.services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
     ):
         res = resolver.resolve_source(
             camera_id="CAM-LOG-TEST",
@@ -128,7 +128,7 @@ def test_credentials_never_appear_in_logs(caplog, temp_credential_store):
 
 
 def test_credentials_never_appear_in_api_response():
-    from security_layer.auth import get_session_store
+    from app.security_layer.auth import get_session_store
 
     session = get_session_store().create_session(
         operator_id="test_user_api",
@@ -187,7 +187,7 @@ def test_camera_info_does_not_expose_password(temp_credential_store):
     mock_cap.isOpened.return_value = True
     mock_cap.read.return_value = (True, _dummy_frame())
 
-    with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
+    with patch("app.services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
         cam_info = service.start_camera(
             camera_id="CAM-INFO-TEST",
             source="rtsp://10.0.0.2:554/live",
@@ -402,7 +402,7 @@ def test_rtsp_reconnect_preserves_credentials(temp_credential_store):
 
     mock_cap.read.side_effect = read_effect
 
-    with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
+    with patch("app.services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
         assert worker.start() is True
         time.sleep(0.1)
         assert worker.is_running() is True
@@ -418,7 +418,7 @@ def test_failed_camera_start_releases_credential_reference():
     mock_cap = MagicMock()
     mock_cap.isOpened.return_value = False
 
-    with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap), pytest.raises(RuntimeError):
+    with patch("app.services.camera_worker.cv2.VideoCapture", return_value=mock_cap), pytest.raises(RuntimeError):
         service.start_camera(
             camera_id="CAM-FAIL-REL",
             source="rtsp://admin:pass@10.0.0.5:554/live",
@@ -458,7 +458,7 @@ def test_restart_preserves_credentials(temp_credential_store):
     mock_cap.isOpened.return_value = True
     mock_cap.read.return_value = (True, frame)
 
-    with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
+    with patch("app.services.camera_worker.cv2.VideoCapture", return_value=mock_cap):
         assert worker.start() is True
         assert worker.restart() is True
         assert worker.is_running() is True
@@ -483,7 +483,7 @@ def test_no_plaintext_credentials_in_persisted_camera_config():
 
 
 def test_core_logger_filter_redacts_credentials(tmp_path):
-    from core.logger import setup_logger
+    from app.core.logger import setup_logger
 
     test_logger = setup_logger("ARGUS.TestCoreLogger")
     log_file = Path("outputs/logs/system/argus.log")
@@ -498,7 +498,7 @@ def test_core_logger_filter_redacts_credentials(tmp_path):
 
 
 def test_monitoring_logger_filter_redacts_credentials():
-    from monitoring.logging_config import get_logger
+    from app.monitoring.logging_config import get_logger
 
     test_logger = get_logger("camera")
 
@@ -512,7 +512,7 @@ def test_monitoring_logger_filter_redacts_credentials():
 
 
 def test_api_camera_start_error_response_redacts_credentials():
-    from security_layer.auth import get_session_store
+    from app.security_layer.auth import get_session_store
 
     mock_cap = MagicMock()
     mock_cap.isOpened.return_value = False
@@ -524,7 +524,7 @@ def test_api_camera_start_error_response_redacts_credentials():
     )
     auth_headers = {"Authorization": f"Bearer {session.token}"}
 
-    with patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap), TestClient(app) as client:
+    with patch("app.services.camera_worker.cv2.VideoCapture", return_value=mock_cap), TestClient(app) as client:
         resp = client.post(
             "/api/v1/cameras/start",
             headers=auth_headers,

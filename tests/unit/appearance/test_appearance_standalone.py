@@ -5,12 +5,12 @@ import cv2
 import numpy as np
 import pytest
 
-from enrollment.appearance_gallery_updater import AppearanceGalleryUpdater
-from enrollment.enrollment_manager import EnrollmentManager
-from enrollment.gallery_updater import GalleryUpdater
-from pipeline.steps.appearance_matching_step import AppearanceMatchingStep
-from pipeline.steps.reid_feature_extraction import ReIDFeatureExtractionStep
-from storage.vector_store import VectorStore, validate_gallery_files
+from app.enrollment.appearance_gallery_updater import AppearanceGalleryUpdater
+from app.enrollment.enrollment_manager import EnrollmentManager
+from app.enrollment.gallery_updater import GalleryUpdater
+from app.pipeline.steps.appearance_matching_step import AppearanceMatchingStep
+from app.pipeline.steps.reid_feature_extraction import ReIDFeatureExtractionStep
+from app.storage.vector_store import VectorStore, validate_gallery_files
 
 
 @pytest.fixture

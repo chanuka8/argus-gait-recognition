@@ -2,8 +2,8 @@ import cv2
 import numpy as np
 from fastapi.testclient import TestClient
 
-from api.server import app
-from services.camera_worker import CameraWorker
+from app.api.server import app
+from app.services.camera_worker import CameraWorker
 
 
 def test_camera_worker_latest_jpeg_buffer():
@@ -61,8 +61,8 @@ def test_mjpeg_stream_and_snapshot_endpoints():
 
     with (
         TestClient(app) as client,
-        patch("services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
-        patch("services.camera_source_resolver.CameraSourceResolver.probe_usb_webcam", return_value=True),
+        patch("app.services.camera_worker.cv2.VideoCapture", return_value=mock_cap),
+        patch("app.services.camera_source_resolver.CameraSourceResolver.probe_usb_webcam", return_value=True),
     ):
         resp_404 = client.get("/api/v1/cameras/NON_EXISTENT_CAM/stream")
         assert resp_404.status_code == 404

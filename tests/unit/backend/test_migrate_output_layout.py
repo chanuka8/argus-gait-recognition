@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tools.migration.output_layout import migrate_outputs
+from ops.tools.migration.output_layout import migrate_outputs
 
 
 class TestMigrateOutputLayout(unittest.TestCase):

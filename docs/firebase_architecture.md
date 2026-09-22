@@ -15,16 +15,16 @@ flowchart TD
         CNN --> Emb["256D Gait Embedding"]
         Track -.-> OSNet["OSNet-x0.25 (PyTorch)"]
         OSNet -.-> AppEmb["512D Appearance Embedding"]
-        Emb --> VecStore["Local VectorStore (models/live_gallery/)"]
+        Emb --> VecStore["Local VectorStore (models/galleries/live_gallery/)"]
         AppEmb --> VecStore
         VecStore --> Match["Cosine Similarity & Dual-Modal Fusion"]
         Match --> RealtimeAlert["Real-time UI Recognition (< 10ms)"]
     end
 
     subgraph AsyncSync["ASYNCHRONOUS PERSISTENCE & SYNC (Non-Blocking)"]
-        Match --> LocalDB["Local EmbeddingDatabase (data/embedding_db/)"]
+        Match --> LocalDB["Local EmbeddingDatabase (data/runtime/embedding_db/)"]
         LocalDB --> RetryQ["In-Memory Retry Queue (100 max)"]
-        RetryQ --> OfflineFile["Offline Store (data/firebase_offline_store.json)"]
+        RetryQ --> OfflineFile["Offline Store (data/runtime/firebase_offline_store.json)"]
         RetryQ --> AdminSDK["Firebase Admin SDK (auth, firestore, storage)"]
         AdminSDK --> Firestore["Google Cloud Firestore (argus-17702)"]
         AdminSDK --> GCS["Firebase Storage (argus-17702.firebasestorage.app)"]
@@ -56,9 +56,9 @@ flowchart TD
 
 Firebase operations occur entirely outside the frame-processing loop:
 
-1. **Enrollment**: When an operator enrolls a subject, the embeddings are first saved to the local `VectorStore` and `data/embedding_db/persons/{id}.json`. After local persistence is verified, embeddings are dispatched asynchronously to Firebase.
+1. **Enrollment**: When an operator enrolls a subject, the embeddings are first saved to the local `VectorStore` and `data/runtime/embedding_db/persons/{id}.json`. After local persistence is verified, embeddings are dispatched asynchronously to Firebase.
 2. **Offline Queueing & Automatic Sync**:
-   - If Firebase Admin SDK is offline or returns a network timeout, the write is buffered into an in-memory queue and written to `data/firebase_offline_store.json`.
+   - If Firebase Admin SDK is offline or returns a network timeout, the write is buffered into an in-memory queue and written to `data/runtime/firebase_offline_store.json`.
    - When connectivity resumes, `FirebaseEmbeddingStore.process_retry_queue()` flushes queued documents idempotently.
 3. **Deterministic ID Idempotency**:
    - Document IDs are deterministically generated using `generate_deterministic_id(person_id, modality, capture_timestamp, track_id, camera_id)`.
@@ -71,7 +71,7 @@ Firebase operations occur entirely outside the frame-processing loop:
 | Failure Scenario | Local Pipeline Impact | Firebase Impact | Recovery Mechanism |
 | :--- | :--- | :--- | :--- |
 | **No Internet Connection** | None. Local inference continues at full FPS. | Enters `offline` mode. Writes queued locally. | Automatic retry upon connection restoration. |
-| **Missing Service Account** | None. | Safe fallback to offline mode. | Credentials placed in `config/firebase-service-account.json`. |
+| **Missing Service Account** | None. | Safe fallback to offline mode. | Credentials placed in `configs/secrets/firebase-service-account.json`. |
 | **Firestore Network Timeout** | None. Inference loop never waits for HTTP calls. | Request marked for retry. | Backoff retry queue processed on background worker. |
 | **Local Disk Crash** | Local cache lost. | Full cloud copy preserved. | `FirebaseEmbeddingStore.rebuild_local_from_firebase()` restores entire gallery. |
 
@@ -94,7 +94,7 @@ ARGUS AI implements:
 
 ### 6.1 Authoritative Local State vs Cloud Mirror
 
-- **Local Model Registry (`models/model_registry.json`)**: Authoritative for runtime inference. `LOCAL ACTIVE MODEL = runtime authority`.
+- **Local Model Registry (`ml_platform/models/model_registry.json`)**: Authoritative for runtime inference. `LOCAL ACTIVE MODEL = runtime authority`.
 - **Firestore Model Registry Mirror (`model_registry` collection)**: Asynchronous cloud mirror and governance state. Cloud outages never stop edge model inference.
 
 ### 6.2 Transactional Promotion State Machine
@@ -116,7 +116,7 @@ ARGUS AI implements:
 
 ### 6.4 Durable Synchronization Intent (Outbox)
 
-Cloud sync intent is durably persisted to `data/model_sync_outbox.json`:
+Cloud sync intent is durably persisted to `data/runtime/model_sync_outbox.json`:
 
 - Fields: `event_id`, `model_version`, `model_type`, `desired_status`, `operation`, `registry_revision`, `created_at`, `attempt_count`, `last_attempt_at`, `next_retry_at`, `status`, `checksum_sha256`, `error_info`.
 - Survives process crashes and restarts.
@@ -164,11 +164,11 @@ To execute physical hardware probe on deployment surveillance stations:
 
 ```bash
 # 1. Probe local webcam (index 0) and any secondary USB webcam
-.\.venv\Scripts\python.exe scripts/validate_camera_hardware.py --webcam-index 0 --usb-index 1
+.\.venv\Scripts\python.exe tools/validation/camera_hardware.py --webcam-index 0 --usb-index 1
 
 # 2. Probe live RTSP surveillance feed
-.\.venv\Scripts\python.exe scripts/validate_camera_hardware.py --rtsp-url rtsp://user:pass@camera_ip:554/live
+.\.venv\Scripts\python.exe tools/validation/camera_hardware.py --rtsp-url rtsp://user:pass@camera_ip:554/live
 
 # 3. Verify End-to-End Camera -> ByGaitLight Pipeline
-.\.venv\Scripts\python.exe scripts/verify_camera_to_gait_pipeline.py
+.\.venv\Scripts\python.exe tools/validation/camera_gait_pipeline.py
 ```

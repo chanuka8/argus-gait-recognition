@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from deployment.readiness_reporter import ALLOWED_OVERALL_STATUSES, DeploymentReadinessReporter
+from ops.deployment.readiness_reporter import ALLOWED_OVERALL_STATUSES, DeploymentReadinessReporter
 
 
 def test_readiness_reporter_generation(tmp_path: Path):

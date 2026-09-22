@@ -3,7 +3,7 @@ import threading
 import time
 from unittest.mock import MagicMock
 
-from deployment.shutdown_manager import ShutdownManager, reset_shutdown_manager
+from ops.deployment.shutdown_manager import ShutdownManager, reset_shutdown_manager
 
 
 def test_shutdown_manager_idempotent():

@@ -4,10 +4,10 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from api.server import app
-from security_layer.auth import get_operator_store, get_session_store
-from security_layer.password_hasher import get_password_hasher
-from tools.migration.bootstrap_admin import AdminBootstrapper, validate_password_complexity
+from app.api.server import app
+from app.security_layer.auth import get_operator_store, get_session_store
+from app.security_layer.password_hasher import get_password_hasher
+from ops.tools.migration.bootstrap_admin import AdminBootstrapper, validate_password_complexity
 
 
 def test_password_complexity_rules():

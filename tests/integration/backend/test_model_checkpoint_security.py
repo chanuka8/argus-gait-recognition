@@ -27,8 +27,7 @@ import torch
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519
 
-from models.architectures.bygait_light import ByGaitLight
-from security_layer.model_integrity import (
+from app.security_layer.model_integrity import (
     ROLE_APPEARANCE_EMBEDDING,
     ROLE_GAIT_EMBEDDING,
     ROLE_PERSON_DETECTOR,
@@ -44,6 +43,7 @@ from security_layer.model_integrity import (
     compute_file_sha256,
     load_public_key,
 )
+from ml_platform.models.architectures.bygait_light import ByGaitLight
 
 
 @pytest.fixture
@@ -634,7 +634,7 @@ def test_26_malicious_pickle_rejected_by_weights_only(tmp_path: Path):
 
 def test_27_osnet_does_not_fallback_to_unsafe_pickle(tmp_path: Path, monkeypatch):
     """Test 27: OSNetBackbone raises an error rather than falling back to weights_only=False."""
-    from models.reid.osnet_backbone import OSNetBackbone
+    from ml_platform.models.reid.osnet_backbone import OSNetBackbone
 
     bad_model = tmp_path / "osnet_bad.pth"
     bad_model.write_bytes(b"CORRUPTED_NON_TENSOR_FILE")
@@ -647,7 +647,7 @@ def test_27_osnet_does_not_fallback_to_unsafe_pickle(tmp_path: Path, monkeypatch
 
 def test_28_yolo_path_verification_occurs_before_constructor(monkeypatch, synthetic_model_env):
     """Test 28: YOLO verification gate intercepts before YOLO constructor runs."""
-    from pipeline.steps.detection import DetectionStep
+    from app.pipeline.steps.detection import DetectionStep
 
     env = synthetic_model_env
     # Corrupt detector file
@@ -660,7 +660,7 @@ def test_28_yolo_path_verification_occurs_before_constructor(monkeypatch, synthe
         default_signature_path=env["sig_file"],
         public_key=env["pub_key"],
     )
-    monkeypatch.setattr("security_layer.model_integrity.get_model_verifier", lambda: verifier)
+    monkeypatch.setattr("app.security_layer.model_integrity.get_model_verifier", lambda: verifier)
 
     with pytest.raises(ModelDigestMismatchError):
         DetectionStep(model_path=str(env["detector_file"]))
@@ -668,7 +668,7 @@ def test_28_yolo_path_verification_occurs_before_constructor(monkeypatch, synthe
 
 def test_29_onnx_path_verification_occurs_before_inference_session(monkeypatch, synthetic_model_env):
     """Test 29: Silhouette step verifies model before creating InferenceSession."""
-    from pipeline.steps.silhouette_step import LearnedSilhouetteSegmenter
+    from app.pipeline.steps.silhouette_step import LearnedSilhouetteSegmenter
 
     env = synthetic_model_env
     env["onnx_file"].write_bytes(b"CORRUPTED_ONNX")
@@ -679,7 +679,7 @@ def test_29_onnx_path_verification_occurs_before_inference_session(monkeypatch, 
         default_signature_path=env["sig_file"],
         public_key=env["pub_key"],
     )
-    monkeypatch.setattr("security_layer.model_integrity.get_model_verifier", lambda: verifier)
+    monkeypatch.setattr("app.security_layer.model_integrity.get_model_verifier", lambda: verifier)
 
     with pytest.raises(ModelDigestMismatchError):
         LearnedSilhouetteSegmenter(model_path=str(env["onnx_file"]))
@@ -687,11 +687,11 @@ def test_29_onnx_path_verification_occurs_before_inference_session(monkeypatch, 
 
 def test_30_no_automatic_download_in_strict_mode(monkeypatch, tmp_path: Path):
     """Test 30: Missing model in strict mode fails closed without triggering YOLO download."""
-    from pipeline.steps.detection import DetectionStep
+    from app.pipeline.steps.detection import DetectionStep
 
     missing_path = tmp_path / "nonexistent_yolo.pt"
     verifier = ModelVerifier(strict_mode=True, public_key=b"1" * 32)
-    monkeypatch.setattr("security_layer.model_integrity.get_model_verifier", lambda: verifier)
+    monkeypatch.setattr("app.security_layer.model_integrity.get_model_verifier", lambda: verifier)
 
     with pytest.raises(ModelIntegrityError):
         DetectionStep(model_path=str(missing_path))
@@ -704,35 +704,58 @@ def test_30_no_automatic_download_in_strict_mode(monkeypatch, tmp_path: Path):
 
 def test_31_no_private_signing_key_committed():
     """Test 31: Assert no private signing key material exists in repository source or models."""
-    repo_root = Path("E:/ARGUS_AI")
+    repo_root = Path(__file__).resolve().parents[3]
 
-    # 1. No private key files in models/ directory
-    models_dir = repo_root / "models"
+    files_scanned = 0
+
+    # 1. No private key files in ml_platform/models/ directory
+    models_dir = repo_root / "ml_platform" / "models"
+    assert models_dir.is_dir(), f"Expected models directory not found: {models_dir}"
     for p in models_dir.rglob("*"):
         if p.is_file():
-            assert p.suffix not in {".pem", ".key", ".priv"}, f"Key file found in models/: {p}"
+            files_scanned += 1
+            assert p.suffix not in {".pem", ".key", ".priv"}, f"Key file found in ml_platform/models/: {p}"
             try:
                 content = p.read_text(encoding="utf-8", errors="ignore")
-                assert "PRIVATE KEY" not in content, f"Private key material found in models/ file: {p}"
+                assert "PRIVATE KEY" not in content, f"Private key material found in ml_platform/models/ file: {p}"
             except (UnicodeDecodeError, OSError, PermissionError):
                 pass
 
-    # 2. No private key files in security_layer/ or tools/security/
-    for check_dir in [repo_root / "security_layer", repo_root / "tools" / "security"]:
+    # 2. No private key files in app/security_layer/ or ops/tools/security/
+    for check_dir in [repo_root / "app" / "security_layer", repo_root / "ops" / "tools" / "security"]:
+        assert check_dir.is_dir(), f"Expected directory not found: {check_dir}"
         for p in check_dir.rglob("*"):
             if p.is_file():
+                files_scanned += 1
                 assert p.suffix not in {".pem", ".key", ".priv"}, f"Key file found in {check_dir}: {p}"
 
     # 3. No Ed25519 private key material committed anywhere across source code
-    source_dirs = ["api", "services", "storage", "pipeline", "security_layer", "tools", "models"]
+    source_dirs = [
+        "app/api",
+        "app/services",
+        "app/storage",
+        "app/pipeline",
+        "app/security_layer",
+        "ops/tools",
+        "ml_platform/models",
+    ]
     for s_dir in source_dirs:
-        for p in (repo_root / s_dir).rglob("*"):
+        dir_path = repo_root / s_dir
+        assert dir_path.is_dir(), f"Expected source directory not found: {dir_path}"
+        for p in dir_path.rglob("*"):
             if p.is_file() and p.suffix in {".py", ".json", ".yaml", ".yml", ".md", ".txt"}:
+                files_scanned += 1
                 try:
                     content = p.read_text(encoding="utf-8", errors="ignore")
                     assert "BEGIN ED25519 PRIVATE KEY" not in content, f"Ed25519 private key found in {p}"
                 except (UnicodeDecodeError, OSError, PermissionError):
                     pass
+
+    assert files_scanned >= 100, (
+        f"Expected to scan a substantial number of files for leaked key material, "
+        f"but only inspected {files_scanned}. This likely means the target directories "
+        f"are stale, empty, or misconfigured, and this test is not providing real coverage."
+    )
 
 
 def test_32_no_private_key_printed(capsys):
@@ -809,9 +832,9 @@ def test_35_real_model_files_remain_unchanged():
     """Test 35: Assert real repository model files have not been overwritten or corrupted."""
     real_paths = [
         Path("runs/exp_001/best_model.pth"),
-        Path("models/weights/osnet_x0_25.pth"),
-        Path("models/weights/yolov8n.pt"),
-        Path("models/weights/silhouette_segmenter.onnx"),
+        Path("ml_platform/models/model_store/weights/osnet_x0_25.pth"),
+        Path("ml_platform/models/model_store/weights/yolov8n.pt"),
+        Path("ml_platform/models/model_store/weights/silhouette_segmenter.onnx"),
     ]
     for p in real_paths:
         if p.exists():
@@ -820,7 +843,7 @@ def test_35_real_model_files_remain_unchanged():
 
 def test_36_u2_audit_log_regression_unaffected(tmp_path: Path):
     """Test 36: U2 audit log integrity HMAC-SHA256 logging remains intact."""
-    from security_layer.security_logger import SecurityLogger
+    from app.security_layer.security_logger import SecurityLogger
 
     logger_inst = SecurityLogger(
         log_file=str(tmp_path / "test_u5_audit.csv"),
@@ -840,7 +863,7 @@ def test_36_u2_audit_log_regression_unaffected(tmp_path: Path):
 
 def test_37_u3_biometric_encryption_regression_unaffected(tmp_path: Path):
     """Test 37: U3 biometric template encryption at rest remains functional."""
-    from security_layer.biometric_encryption import BiometricEncryptor
+    from app.security_layer.biometric_encryption import BiometricEncryptor
 
     key = os.urandom(32)
     encryptor = BiometricEncryptor(key=key)
@@ -866,7 +889,7 @@ def test_37_u3_biometric_encryption_regression_unaffected(tmp_path: Path):
 
 def test_38_u4_camera_transport_security_unaffected():
     """Test 38: U4 camera transport credentials sanitization remains intact."""
-    from security_layer.credentials import sanitize_rtsp_url
+    from app.security_layer.credentials import sanitize_rtsp_url
 
     raw = "rtsp://operator:SecretPass999@10.0.0.1:554/live"
     sanitized = sanitize_rtsp_url(raw)

@@ -9,10 +9,10 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
-from intelligence.operational_embedding_collector import (
+from app.intelligence.evidence.operational_embedding_collector import (
     OperationalEmbeddingCollector,
 )
-from services.recognition_worker import RecognitionResultCache, RecognitionWorker
+from app.services.recognition_worker import RecognitionResultCache, RecognitionWorker
 
 
 @pytest.fixture
@@ -235,7 +235,7 @@ def test_f_worker_stop(temp_obs_dir):
     mock_tracker = MagicMock()
     mock_tracker.update.side_effect = make_tracks
 
-    from pipeline.gei.stream_gei_builder import StreamGEIBuilder
+    from app.pipeline.gei.stream_gei_builder import StreamGEIBuilder
 
     gei_builder = StreamGEIBuilder()
     gei_builder.min_frames = 3

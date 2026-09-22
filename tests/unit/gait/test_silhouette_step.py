@@ -4,8 +4,8 @@ from unittest.mock import MagicMock
 import cv2
 import numpy as np
 
-from pipeline.silhouette.extractor import SilhouetteExtractor
-from pipeline.steps.silhouette_step import (
+from app.pipeline.silhouette.extractor import SilhouetteExtractor
+from app.pipeline.steps.silhouette_step import (
     LearnedSilhouetteSegmenter,
     SilhouetteStep,
 )

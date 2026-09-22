@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-from monitoring.logging_config import get_logger, init_logging
+from app.monitoring.logging_config import get_logger, init_logging
 
 
 class TestLoggingConfig(unittest.TestCase):

@@ -1,6 +1,6 @@
 import numpy as np
 
-from preprocessing.video_quality_gate import DeterministicVideoQualityGate
+from ml_platform.preprocessing.video_quality_gate import DeterministicVideoQualityGate
 
 
 def test_video_quality_gate_initialization() -> None:

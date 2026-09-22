@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock
 
-from deployment.backend_summary import BackendStartupSummary, reset_summary_emitted_flag
+from ops.deployment.backend_summary import BackendStartupSummary, reset_summary_emitted_flag
 
 
 def test_backend_summary_emitted_once(capsys):
@@ -55,7 +55,7 @@ def test_backend_summary_no_secrets_or_absolute_user_paths():
     mock_backend.requested_backend = "pytorch"
     mock_backend.active_backend = "pytorch"
     mock_backend.execution_provider = "PyTorch-CPU"
-    mock_backend.config = {"model_path": "models/engines/bygait_light.onnx"}
+    mock_backend.config = {"model_path": "ml_platform/models/model_store/engines/bygait_light.onnx"}
 
     summary_obj = BackendStartupSummary(mock_backend)
     text = summary_obj.format_summary()

@@ -22,10 +22,10 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from api.server import app
-from security_layer.auth import get_operator_store, get_session_store
-from security_layer.password_hasher import get_password_hasher
-from security_layer.rate_limiter import (
+from app.api.server import app
+from app.security_layer.auth import get_operator_store, get_session_store
+from app.security_layer.password_hasher import get_password_hasher
+from app.security_layer.rate_limiter import (
     LoginRateLimiter,
     extract_client_ip,
     get_login_rate_limiter,

@@ -4,10 +4,10 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from api.server import app
-from security_layer.auth import get_operator_store, get_session_store
-from security_layer.password_hasher import get_password_hasher
-from tools.migration.passwords import PasswordMigrator
+from app.api.server import app
+from app.security_layer.auth import get_operator_store, get_session_store
+from app.security_layer.password_hasher import get_password_hasher
+from ops.tools.migration.passwords import PasswordMigrator
 
 
 def test_cli_dry_run_identifies_legacy_and_migrated(tmp_path: Path):

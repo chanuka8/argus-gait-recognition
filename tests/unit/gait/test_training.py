@@ -10,17 +10,17 @@ import torch
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
-from training.dataloader import build_dataloaders
-from training.trainer import GaitClassifier, Trainer
+from ml_platform.training.dataloader import build_dataloaders
+from ml_platform.training.trainer import GaitClassifier, Trainer
 
 
 def test_gei_dataloader() -> None:
-    dataset_dir = ROOT / "data" / "casia_processed" / "gei"
+    dataset_dir = ROOT / "data" / "datasets" / "casia_processed" / "gei"
     if not dataset_dir.exists() or not any(dataset_dir.rglob("*.png")):
         pytest.skip(f"Processed CASIA GEI dataset not found in {dataset_dir}")
 
     train_loader, _val_loader, _dataset = build_dataloaders(
-        root_dir="data/casia_processed/gei",
+        root_dir="data/datasets/casia_processed/gei",
         batch_size=8,
     )
 

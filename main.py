@@ -1,4 +1,4 @@
-from core.system import ArgusSystem
+from app.core.system import ArgusSystem
 
 
 def main() -> None:

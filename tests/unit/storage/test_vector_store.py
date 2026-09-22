@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 
 import cli
-from storage.vector_store import VectorStore
+from app.storage.vector_store import VectorStore
 
 
 class TestVectorStoreSecurity(unittest.TestCase):

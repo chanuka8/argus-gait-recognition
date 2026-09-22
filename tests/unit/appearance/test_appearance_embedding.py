@@ -2,7 +2,7 @@ from unittest.mock import MagicMock
 
 import numpy as np
 
-from intelligence.appearance_embedding import AppearanceEmbeddingExtractor
+from app.intelligence.appearance_embedding import AppearanceEmbeddingExtractor
 
 
 def test_appearance_embedding_initialization():

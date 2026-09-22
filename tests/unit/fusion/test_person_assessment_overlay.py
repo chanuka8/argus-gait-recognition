@@ -4,24 +4,24 @@ import time
 
 import numpy as np
 
-from intelligence.appearance_embedding import AppearanceEmbeddingExtractor
-from intelligence.concurrent_track_manager import (
+from app.intelligence.appearance_embedding import AppearanceEmbeddingExtractor
+from app.intelligence.tracking.concurrent_track_manager import (
     ConcurrentTrackManager,
     MobilityState,
     PersonAssessmentState,
     PersonTrackContext,
 )
-from pipeline.detection.detection_validator import (
+from app.pipeline.detection.detection_validator import (
     DetectionValidator,
 )
-from pipeline.gei.stream_gei_builder import StreamGEIBuilder
-from services.camera_worker import CameraWorker
-from services.recognition_worker import RecognitionResult, RecognitionResultCache
-from streaming.production_multicamera_engine import (
+from app.pipeline.gei.stream_gei_builder import StreamGEIBuilder
+from app.services.camera_worker import CameraWorker
+from app.services.recognition_worker import RecognitionResult, RecognitionResultCache
+from app.streaming.production_multicamera_engine import (
     HardwareProfile,
     ProductionMultiCameraEngine,
 )
-from utils.display_renderer import (
+from app.utils.display_renderer import (
     COLOR_GREEN_BGR,
     COLOR_RED_BGR,
     COLOR_YELLOW_BGR,

@@ -1,6 +1,6 @@
 import unittest
 
-from pipeline.tracking.tracker import PersonTracker
+from app.pipeline.tracking.tracker import PersonTracker
 
 
 class TestPersonTracker(unittest.TestCase):

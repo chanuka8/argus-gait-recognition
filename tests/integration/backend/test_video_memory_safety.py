@@ -23,20 +23,20 @@ import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 
-from api.server import app
-from pipeline.steps.live_gei import LiveGEI
-from security_layer.auth import get_session_store
-from security_layer.authorization import Role
-from security_layer.input_validation import (
+from app.api.server import app
+from app.pipeline.steps.live_gei import LiveGEI
+from app.security_layer.auth import get_session_store
+from app.security_layer.authorization import Role
+from app.security_layer.input_validation import (
     CHUNK_STREAM_BUFFER_SIZE,
     MAX_ANALYZE_VIDEO_SIZE,
     MAX_CROPS_PER_TRACK,
     MAX_TRACKS_WITH_CROPS,
 )
-from services.gait_service import GaitService
-from services.missing_person_processor import MissingPersonVideoProcessor
-from services.reference_job_manager import ReferenceJobStatus
-from services.upload_session_manager import UploadSessionManager, UploadSessionRecord
+from app.services.gait_service import GaitService
+from app.services.missing_person_processor import MissingPersonVideoProcessor
+from app.services.reference_job_manager import ReferenceJobStatus
+from app.services.upload_session_manager import UploadSessionManager, UploadSessionRecord
 
 
 def _create_synthetic_video(
@@ -384,7 +384,7 @@ def test_video_capture_released_on_success(tmp_path):
         def __getattr__(self, name):
             return getattr(self._real, name)
 
-    with patch("services.missing_person_processor.cv2.VideoCapture", VideoCaptureWrapper):
+    with patch("app.services.missing_person_processor.cv2.VideoCapture", VideoCaptureWrapper):
         processor.process_reference_video(
             person_id="MP_SEC07_REL_SUCC",
             video_path=video_path,
@@ -472,7 +472,7 @@ def test_validate_video_rejects_decompression_bomb_resolution(tmp_path):
         cv2.CAP_PROP_FRAME_HEIGHT: 8192,
     }.get(prop, 0)
 
-    with patch("services.missing_person_processor.cv2.VideoCapture", return_value=mock_cap):
+    with patch("app.services.missing_person_processor.cv2.VideoCapture", return_value=mock_cap):
         ok, msg, _meta = processor.validate_video_file(video_path)
         assert ok is False
         assert "exceeds maximum supported resolution" in msg
@@ -492,7 +492,7 @@ def test_validate_video_rejects_extreme_frame_count(tmp_path):
         cv2.CAP_PROP_FRAME_HEIGHT: 1080,
     }.get(prop, 0)
 
-    with patch("services.missing_person_processor.cv2.VideoCapture", return_value=mock_cap):
+    with patch("app.services.missing_person_processor.cv2.VideoCapture", return_value=mock_cap):
         ok, msg, _meta = processor.validate_video_file(video_path)
         assert ok is False
         assert "exceeds maximum allowable duration limit" in msg

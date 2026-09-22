@@ -47,7 +47,7 @@ def health(args=None) -> int:
     return run_command(
         [
             sys.executable,
-            "tools/validation/system_check.py",
+            "ops/tools/validation/system_check.py",
         ]
     )
 
@@ -57,7 +57,7 @@ def preprocess(args=None) -> int:
     return run_command(
         [
             sys.executable,
-            "tools/data/preprocess_casia.py",
+            "ops/tools/data/preprocess_casia.py",
         ]
     )
 
@@ -67,7 +67,7 @@ def train(args=None) -> int:
 
     command = [
         sys.executable,
-        "training/train_model.py",
+        "ml_platform/training/train_model.py",
     ]
 
     if args is not None:
@@ -88,7 +88,7 @@ def build_gallery(args=None) -> int:
     return run_command(
         [
             sys.executable,
-            "tools/maintenance/build_gallery.py",
+            "ops/tools/maintenance/build_gallery.py",
         ]
     )
 
@@ -98,7 +98,7 @@ def evaluate(args=None) -> int:
     return run_command(
         [
             sys.executable,
-            "evaluation/evaluate_model.py",
+            "ml_platform/evaluation/experiments/evaluate_model.py",
         ]
     )
 
@@ -108,19 +108,19 @@ def benchmark(args=None) -> int:
     return run_command(
         [
             sys.executable,
-            "tools/benchmark/benchmark.py",
+            "ops/tools/benchmark/benchmark.py",
         ]
     )
 
 
 def auto_enroll(args=None) -> None:
-    input_dir = getattr(args, "input", None) or "data/new_input"
+    input_dir = getattr(args, "input", None) or "data/runtime/new_input"
 
     print("\nRunning one-time auto enrollment...")
     run_command(
         [
             sys.executable,
-            "tools/data/run_auto_enrollment.py",
+            "ops/tools/data/run_auto_enrollment.py",
             "--input",
             input_dir,
         ]
@@ -128,7 +128,7 @@ def auto_enroll(args=None) -> None:
 
 
 def auto_enroll_watch(args=None) -> None:
-    input_dir = getattr(args, "input", None) or "data/new_input"
+    input_dir = getattr(args, "input", None) or "data/runtime/new_input"
 
     print("\nStarting auto enrollment watcher...")
     print(f"Watching: {input_dir}")
@@ -137,7 +137,7 @@ def auto_enroll_watch(args=None) -> None:
     run_command(
         [
             sys.executable,
-            "tools/data/run_auto_enrollment.py",
+            "ops/tools/data/run_auto_enrollment.py",
             "--input",
             input_dir,
             "--watch",
@@ -166,7 +166,7 @@ def recognize_folder(args=None) -> None:
 
     command = [
         sys.executable,
-        "tools/validation/run_folder_recognition.py",
+        "ops/tools/validation/run_folder_recognition.py",
         "--folder",
         folder,
         "--threshold",
@@ -210,7 +210,7 @@ def recognize_video(args=None) -> None:
 
     command = [
         sys.executable,
-        "tools/validation/run_video_recognition.py",
+        "ops/tools/validation/run_video_recognition.py",
         "--video",
         video,
         "--threshold",
@@ -246,7 +246,7 @@ def remove_identity(args=None) -> None:
     run_command(
         [
             sys.executable,
-            "tools/maintenance/remove_gallery_identity.py",
+            "ops/tools/maintenance/remove_gallery_identity.py",
             "--person-id",
             person_id,
         ]
@@ -270,7 +270,7 @@ def set_status(args=None) -> None:
     run_command(
         [
             sys.executable,
-            "tools/maintenance/set_gallery_identity_status.py",
+            "ops/tools/maintenance/set_gallery_identity_status.py",
             "--person-id",
             person_id,
             "--status",
@@ -285,7 +285,7 @@ def remove_numeric_identities(args=None) -> None:
 
     command = [
         sys.executable,
-        "tools/maintenance/remove_numeric_gallery_identities.py",
+        "ops/tools/maintenance/remove_numeric_gallery_identities.py",
     ]
 
     if dry_run:
@@ -303,7 +303,7 @@ def remove_numeric_identities(args=None) -> None:
 
 
 def live(args=None) -> None:
-    input_dir = getattr(args, "input", None) or "data/new_input"
+    input_dir = getattr(args, "input", None) or "data/runtime/new_input"
 
     print("\nStarting ARGUS live gait recognition system...")
     print("Auto enrollment watcher will run in parallel.")
@@ -317,7 +317,7 @@ def live(args=None) -> None:
         watcher_process = start_background_process(
             [
                 sys.executable,
-                "tools/data/run_auto_enrollment.py",
+                "ops/tools/data/run_auto_enrollment.py",
                 "--input",
                 input_dir,
                 "--watch",
@@ -327,7 +327,7 @@ def live(args=None) -> None:
         run_command(
             [
                 sys.executable,
-                "tools/validation/run_live_recognition.py",
+                "ops/tools/validation/run_live_recognition.py",
             ]
         )
 
@@ -356,7 +356,7 @@ def multi_camera(args=None) -> None:
     print("ARGUS MULTI-CAMERA MODE")
     print("=" * 60)
 
-    from pipeline.multi_camera_recognition import (
+    from app.pipeline.multi_camera_recognition import (
         MultiCameraRecognitionPipeline,
     )
 
@@ -381,7 +381,7 @@ def api(args=None) -> None:
             sys.executable,
             "-m",
             "uvicorn",
-            "api.server:app",
+            "app.api.server:app",
             "--reload",
         ]
     )
@@ -421,7 +421,7 @@ def security_test(args=None) -> int:
     return run_command(
         [
             sys.executable,
-            "tools/validation/demo_security_layer.py",
+            "ops/tools/validation/demo_security_layer.py",
         ]
     )
 
@@ -431,7 +431,7 @@ def confidence_test(args=None) -> int:
     return run_command(
         [
             sys.executable,
-            "tools/validation/demo_confidence_scorer.py",
+            "ops/tools/validation/demo_confidence_scorer.py",
         ]
     )
 
@@ -441,7 +441,7 @@ def visualizer_test(args=None) -> int:
     return run_command(
         [
             sys.executable,
-            "evaluation/generate_visualizer_charts.py",
+            "ml_platform/evaluation/experiments/generate_visualizer_charts.py",
         ]
     )
 
@@ -451,7 +451,7 @@ def streaming_test(args=None) -> int:
     return run_command(
         [
             sys.executable,
-            "tools/validation/demo_streaming_optimization.py",
+            "ops/tools/validation/demo_streaming_optimization.py",
         ]
     )
 
@@ -542,19 +542,19 @@ def research_eval(args=None) -> int:
         return code
 
     print("\nRunning evaluation threshold sweep...")
-    code = run_command([sys.executable, "evaluation/evaluate_threshold_sweep.py"])
+    code = run_command([sys.executable, "ml_platform/evaluation/experiments/evaluate_threshold_sweep.py"])
     if code != 0:
         print("\n[ERROR] Threshold sweep failed.")
         return code
 
     print("\nRunning open-set evaluation...")
-    code = run_command([sys.executable, "evaluation/evaluate_open_set.py"])
+    code = run_command([sys.executable, "ml_platform/evaluation/experiments/evaluate_open_set.py"])
     if code != 0:
         print("\n[ERROR] Open-set evaluation failed.")
         return code
 
     print("\nRunning cross-view evaluation...")
-    code = run_command([sys.executable, "evaluation/evaluate_cross_view.py"])
+    code = run_command([sys.executable, "ml_platform/evaluation/experiments/evaluate_cross_view.py"])
     if code != 0:
         print("\n[ERROR] Cross-view evaluation failed.")
         return code
@@ -596,12 +596,12 @@ def production_test(args=None) -> int:
     else:
         print("[OK] Verified: configs/cameras.yaml exists.")
 
-    live_gallery_dir = Path("models/live_gallery")
+    live_gallery_dir = Path("ml_platform/models/galleries/live_gallery")
     if not (live_gallery_dir.exists() and live_gallery_dir.is_dir()):
         print(f"[ERROR] Required live gallery folder is missing: {live_gallery_dir}")
         return 1
     else:
-        print("[OK] Verified: models/live_gallery exists.")
+        print("[OK] Verified: models/galleries/live_gallery exists.")
 
     inference_cfg = Path("configs/inference.yaml")
     if not inference_cfg.exists():
@@ -642,25 +642,25 @@ def docs_check(args=None) -> int:
             missing = True
 
     target_folders = [
-        "api",
+        "app/api",
         "configs",
-        "core",
-        "enrollment",
-        "evaluation",
-        "events",
-        "intelligence",
-        "models",
-        "monitoring",
-        "pipeline",
-        "preprocessing",
-        "tools",
-        "security_layer",
-        "services",
-        "storage",
-        "streaming",
+        "app/core",
+        "app/enrollment",
+        "ml_platform/evaluation",
+        "app/events",
+        "app/intelligence",
+        "ml_platform/models",
+        "app/monitoring",
+        "app/pipeline",
+        "ml_platform/preprocessing",
+        "ops/tools",
+        "app/security_layer",
+        "app/services",
+        "app/storage",
+        "app/streaming",
         "tests",
-        "training",
-        "utils",
+        "ml_platform/training",
+        "app/utils",
     ]
 
     for folder in target_folders:
@@ -671,10 +671,10 @@ def docs_check(args=None) -> int:
             print(f"[ERROR] Missing package README: {folder_readme}")
             missing = True
 
-    gallery_dir = Path("models/gallery")
+    gallery_dir = Path("ml_platform/models/galleries/gallery")
     if (gallery_dir / "gallery_features.enc").exists() or (gallery_dir / "gallery_features.npy").exists():
         try:
-            from storage.vector_store import validate_gallery_files
+            from app.storage.vector_store import validate_gallery_files
 
             valid, err_msg, count = validate_gallery_files(gallery_dir, expected_dim=256)
             if valid:
@@ -778,7 +778,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     parser.add_argument(
         "--input",
-        default="data/new_input",
+        default="data/runtime/new_input",
         help="Input folder for auto enrollment",
     )
 
@@ -862,7 +862,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
-    from deployment.shutdown_manager import get_shutdown_manager
+    from ops.deployment.shutdown_manager import get_shutdown_manager
 
     get_shutdown_manager().register_signal_handlers()
 

@@ -6,20 +6,20 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
-from enrollment.enrollment_lifecycle import (
+from app.enrollment.enrollment_lifecycle import (
     EnrollmentLifecycleManager,
     EnrollmentStatus,
 )
-from intelligence.candidate_validator import CandidateValidator
-from intelligence.continuous_improvement_engine import ContinuousImprovementEngine
-from intelligence.drift_detector import DriftDetector
-from intelligence.operational_embedding_collector import (
+from app.intelligence.continuous_improvement_engine import ContinuousImprovementEngine
+from app.intelligence.decision.candidate_validator import CandidateValidator
+from app.intelligence.evidence.operational_embedding_collector import (
     ObservationState,
     OperationalEmbeddingCollector,
 )
-from models.model_registry import ModelDeploymentStatus, ModelRegistry
-from storage.embedding_database import EmbeddingDatabase
-from storage.vector_store import VectorStore
+from app.intelligence.learning.drift_detector import DriftDetector
+from app.storage.embedding_database import EmbeddingDatabase
+from app.storage.vector_store import VectorStore
+from ml_platform.models.model_registry import ModelDeploymentStatus, ModelRegistry
 
 
 @pytest.fixture

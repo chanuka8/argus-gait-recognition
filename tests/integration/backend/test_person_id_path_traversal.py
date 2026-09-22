@@ -17,14 +17,14 @@ import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
-from api.server import app
-from security_layer.auth import get_operator_store, get_session_store
-from security_layer.input_validation import (
+from app.api.server import app
+from app.security_layer.auth import get_operator_store, get_session_store
+from app.security_layer.input_validation import (
     validate_path_containment,
     validate_person_id,
 )
-from security_layer.password_hasher import get_password_hasher
-from services.upload_session_manager import UploadSessionManager
+from app.security_layer.password_hasher import get_password_hasher
+from app.services.upload_session_manager import UploadSessionManager
 
 
 @pytest.fixture(autouse=True)
@@ -61,9 +61,9 @@ def setup_sec05_fixtures(tmp_path):
     mgr = UploadSessionManager(sessions_dir=str(tmp_path / "upload_sessions"))
     UploadSessionManager._instance = mgr
 
-    from api.v1.router import get_gait_service
-    from services.gait_service import GaitService
-    from storage.embedding_database import EmbeddingDatabase
+    from app.api.v1.router import get_gait_service
+    from app.services.gait_service import GaitService
+    from app.storage.embedding_database import EmbeddingDatabase
 
     gallery_dir = tmp_path / "live_gallery"
     app_gallery_dir = tmp_path / "appearance_gallery"
@@ -563,7 +563,7 @@ class TestEmbeddingDatabaseSanitization:
     """Verify that the embedding database's existing _person_file sanitization is safe."""
 
     def test_embedding_db_sanitizes_traversal(self, tmp_path):
-        from storage.embedding_database import EmbeddingDatabase
+        from app.storage.embedding_database import EmbeddingDatabase
 
         db = EmbeddingDatabase(
             db_dir=str(tmp_path / "db"),

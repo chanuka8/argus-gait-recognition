@@ -7,32 +7,32 @@ import numpy as np
 import pytest
 import torch
 
-from intelligence.background_learning_worker import BackgroundLearningWorker
-from intelligence.date_aware_learning_scheduler import (
-    DateAwareLearningScheduler,
-    LearningJobStatus,
-)
-from intelligence.longitudinal_accuracy_evaluator import (
-    LongitudinalAccuracyEvaluator,
-)
-from intelligence.operational_embedding_collector import (
+from app.intelligence.evidence.operational_embedding_collector import (
     OperationalEmbeddingCollector,
 )
-from intelligence.operational_evidence_manager import (
+from app.intelligence.evidence.operational_evidence_manager import (
     EvidenceCategory,
     OperationalEvidenceManager,
 )
-from intelligence.statistical_accuracy_validator import (
-    MinimumEvidencePolicy,
-    StatisticalAccuracyValidator,
+from app.intelligence.learning.background_learning_worker import BackgroundLearningWorker
+from app.intelligence.learning.date_aware_learning_scheduler import (
+    DateAwareLearningScheduler,
+    LearningJobStatus,
 )
-from intelligence.training_dataset_builder import (
+from app.intelligence.learning.longitudinal_accuracy_evaluator import (
+    LongitudinalAccuracyEvaluator,
+)
+from app.intelligence.learning.training_dataset_builder import (
     DatasetSampleRecord,
     TrainingDatasetBuilder,
 )
-from models.architectures.bygait_light import ByGaitLight
-from models.model_registry import ModelRegistry
-from storage.embedding_database import EmbeddingDatabase
+from app.intelligence.validation.statistical_accuracy_validator import (
+    MinimumEvidencePolicy,
+    StatisticalAccuracyValidator,
+)
+from app.storage.embedding_database import EmbeddingDatabase
+from ml_platform.models.architectures.bygait_light import ByGaitLight
+from ml_platform.models.model_registry import ModelRegistry
 
 
 @pytest.fixture

@@ -7,18 +7,18 @@ import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 
-from api.server import app
-from security_layer.auth import get_session_store
-from security_layer.authorization import Role
-from services.reference_job_manager import ReferenceJobStatus
+from app.api.server import app
+from app.security_layer.auth import get_session_store
+from app.security_layer.authorization import Role
+from app.services.reference_job_manager import ReferenceJobStatus
 
 
 @pytest.fixture(autouse=True)
 def isolate_gait_storage(tmp_path):
     """Isolate GaitService and EmbeddingDatabase storage to temporary paths for test isolation."""
-    from api.v1.router import get_gait_service
-    from services.gait_service import GaitService
-    from storage.embedding_database import EmbeddingDatabase
+    from app.api.v1.router import get_gait_service
+    from app.services.gait_service import GaitService
+    from app.storage.embedding_database import EmbeddingDatabase
 
     gallery_dir = tmp_path / "live_gallery"
     app_gallery_dir = tmp_path / "appearance_gallery"
@@ -183,7 +183,7 @@ def test_video_upload_chunked_streaming_and_persistence(auth_headers):
         job_id = body["job_id"]
 
         # Verify the file exists on disk and is non-empty
-        videos_dir = Path("data/reference_videos")
+        videos_dir = Path("data/runtime/reference_videos")
         matching_files = list(videos_dir.glob("MP_STREAM_001_*_stream_test.mp4"))
         assert len(matching_files) >= 1
         assert matching_files[0].stat().st_size == len(video_bytes)

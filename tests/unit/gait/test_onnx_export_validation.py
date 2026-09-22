@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from models.export.bygait_onnx import export_onnx
+from ml_platform.models.export.bygait_onnx import export_onnx
 
 
 def test_missing_checkpoint_refuses_export(tmp_path: Path):
@@ -35,7 +35,7 @@ def test_onnx_export_atomic_replacement_and_reports(tmp_path: Path):
     ckpt_file = tmp_path / "model.pth"
     import torch
 
-    from models.architectures.bygait_light import ByGaitLight
+    from ml_platform.models.architectures.bygait_light import ByGaitLight
 
     torch.save(ByGaitLight().state_dict(), ckpt_file)
 
@@ -82,7 +82,7 @@ def test_onnx_export_failure_preserves_sha256_bytes(tmp_path: Path, monkeypatch:
     ckpt_file = tmp_path / "model.pth"
     import torch
 
-    from models.architectures.bygait_light import ByGaitLight
+    from ml_platform.models.architectures.bygait_light import ByGaitLight
 
     torch.save(ByGaitLight().state_dict(), ckpt_file)
 

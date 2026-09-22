@@ -8,23 +8,23 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
-from enrollment.enrollment_lifecycle import (
+from app.enrollment.enrollment_lifecycle import (
     EnrollmentLifecycleManager,
     EnrollmentStatus,
 )
-from intelligence.background_learning_worker import BackgroundLearningWorker
-from intelligence.candidate_validator import CandidateValidator
-from intelligence.continuous_improvement_engine import ContinuousImprovementEngine
-from intelligence.date_aware_learning_scheduler import (
-    DateAwareLearningScheduler,
-    LearningJobStatus,
-)
-from intelligence.operational_embedding_collector import (
+from app.intelligence.continuous_improvement_engine import ContinuousImprovementEngine
+from app.intelligence.decision.candidate_validator import CandidateValidator
+from app.intelligence.evidence.operational_embedding_collector import (
     ObservationState,
     OperationalEmbeddingCollector,
 )
-from models.model_registry import ModelDeploymentStatus, ModelRegistry
-from storage.embedding_database import EmbeddingDatabase
+from app.intelligence.learning.background_learning_worker import BackgroundLearningWorker
+from app.intelligence.learning.date_aware_learning_scheduler import (
+    DateAwareLearningScheduler,
+    LearningJobStatus,
+)
+from app.storage.embedding_database import EmbeddingDatabase
+from ml_platform.models.model_registry import ModelDeploymentStatus, ModelRegistry
 
 
 @pytest.fixture

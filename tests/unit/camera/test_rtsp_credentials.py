@@ -2,13 +2,13 @@ import os
 import unittest
 from pathlib import Path
 
-from security_layer.credentials import (
+from app.security_layer.credentials import (
     CredentialManager,
     extract_url_credentials,
     resolve_camera_config,
     sanitize_rtsp_url,
 )
-from services.camera_manager import CameraManager
+from app.services.camera_manager import CameraManager
 
 
 class TestRTSPCredentials(unittest.TestCase):

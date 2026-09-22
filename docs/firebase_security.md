@@ -5,27 +5,26 @@
 ARGUS AI follows a strict zero-trust credential isolation policy.
 
 ### 1.1 Backend Service Account Security
-- **Backend Only**: Firebase Admin SDK service account keys (`config/firebase-service-account.json`) are strictly restricted to the server-side Python environment.
+- **Backend Only**: Firebase Admin SDK service account keys (`configs/secrets/firebase-service-account.json`) are strictly restricted to the server-side Python environment.
 - **Client Prohibition**: Service account JSON files, private keys, client emails, and internal service credentials are **never** bundled, imported, or transmitted to frontend browser clients.
 - **Resolution Order**:
   1. `FIREBASE_SERVICE_ACCOUNT_PATH` environment variable.
   2. `GOOGLE_APPLICATION_CREDENTIALS` environment variable.
-  3. Safe default repository path: `config/firebase-service-account.json`.
+  3. Safe default repository path: `configs/secrets/firebase-service-account.json`.
   4. If no credentials exist or validation fails: safe closed fallback to offline mode.
 
 ### 1.2 Git Tracking Protection
 All service account files are explicitly ignored in `.gitignore`:
 ```gitignore
 # Firebase & Cloud Credentials
-config/firebase-service-account.json
-config/*service-account*.json
 firebase-service-account.json
 *.service-account.json
+configs/secrets/
 ```
 **Verification Evidence**:
-Running `git check-ignore -v config/firebase-service-account.json` confirms:
+Running `git check-ignore -v configs/secrets/firebase-service-account.json` confirms:
 ```
-.gitignore:50:config/firebase-service-account.json    config/firebase-service-account.json
+.gitignore:36:secrets/    configs/secrets/firebase-service-account.json
 ```
 
 ---
@@ -84,7 +83,7 @@ Authentication tokens **MUST NOT** be passed in URL query strings (e.g. `?token=
 > 
 > The Google Cloud Firebase Admin SDK operates with full administrative service-account privileges (`roles/firebase.admin`). As a consequence:
 > 1. Client-side `firestore.rules` and `storage.rules` **do not apply** to backend operations executed through the Python Firebase Admin SDK.
-> 2. The **authoritative security boundary** for all ARGUS operations is the backend FastAPI authentication and RBAC layer (`security_layer/auth.py`).
+> 2. The **authoritative security boundary** for all ARGUS operations is the backend FastAPI authentication and RBAC layer (`app/security_layer/auth.py`).
 > 3. `firestore.rules` and `storage.rules` serve strictly as defense-in-depth against direct, unauthorized browser-side SDK access to cloud resources.
 
 ---

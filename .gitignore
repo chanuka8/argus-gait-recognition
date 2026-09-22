@@ -29,20 +29,19 @@ venv.bak/
 *service-account*.json
 *firebase*.json
 *credentials*.json
-config/firebase-service-account.json
-config/*service-account*.json
 firebase-service-account.json
 *.service-account.json
 configs/*credential*.json
+configs/secrets/
 secrets/
 data/*.zip
 data/**/*.zip
-models/weights/*
-models/active/*
-models/candidates/*
-models/rollback/*
-models/gallery/*
-models/engines/*
+ml_platform/models/model_store/weights/*
+ml_platform/models/model_store/active/*
+ml_platform/models/model_store/candidates/*
+ml_platform/models/model_store/rollback/*
+ml_platform/models/galleries/gallery/*
+ml_platform/models/model_store/engines/*
 outputs/*
 runs/*
 !**/.gitkeep
@@ -83,6 +82,9 @@ dist-ssr
 *.sw?
 
 # Runtime gait gallery
-models/live_gallery/gallery_features.npy
-models/live_gallery/gallery_labels.npy
-models/live_gallery/gallery_metadata.json
+ml_platform/models/galleries/live_gallery/gallery_features.npy
+ml_platform/models/galleries/live_gallery/gallery_labels.npy
+ml_platform/models/galleries/live_gallery/gallery_metadata.json
+
+# Editable-install build metadata
+*.egg-info/

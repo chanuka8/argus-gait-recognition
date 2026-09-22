@@ -2,8 +2,8 @@ from unittest.mock import patch
 
 import pytest
 
-from security_layer.credentials import CameraTransportSecurityError
-from streaming.multi_stream_engine import CameraStream, MultiStreamEngine
+from app.security_layer.credentials import CameraTransportSecurityError
+from app.streaming.multi_stream_engine import CameraStream, MultiStreamEngine
 
 
 def test_multi_stream_engine_reraises_transport_security_error(monkeypatch):

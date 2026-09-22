@@ -1,5 +1,5 @@
-from intelligence.crowd_intelligence_system import CrowdIntelligenceSystem
-from intelligence.crowd_occlusion_analyzer import CrowdDensityLevel
+from app.intelligence.crowd.crowd_intelligence_system import CrowdIntelligenceSystem
+from app.intelligence.crowd.crowd_occlusion_analyzer import CrowdDensityLevel
 
 
 def test_disabled_by_default_preserves_baseline():
@@ -108,7 +108,7 @@ def test_full_crowd_intelligence_pipeline_enabled(tmp_path):
 
 
 def test_runtime_topology_model_sync():
-    from intelligence.camera_transition_model import CameraTransitionModel
+    from app.intelligence.learning.camera_transition_model import CameraTransitionModel
 
     active_model = CameraTransitionModel()
     config = {

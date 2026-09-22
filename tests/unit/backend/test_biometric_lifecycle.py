@@ -10,8 +10,8 @@ from unittest.mock import MagicMock
 import numpy as np
 import pytest
 
-from services.reference_job_manager import ReferenceJobManager, ReferenceJobStatus
-from storage.embedding_database import EmbeddingDatabase
+from app.services.reference_job_manager import ReferenceJobManager, ReferenceJobStatus
+from app.storage.embedding_database import EmbeddingDatabase
 
 
 @pytest.fixture
@@ -155,7 +155,7 @@ def test_reference_job_manager_lifecycle_and_metrics(temp_db_env):
     job = job_mgr.create_job(
         person_id="CASE_IMAGE_01",
         case_id="CASE_IMAGE_01",
-        media_path="data/reference_photos/photo1.jpg",
+        media_path="data/runtime/reference_photos/photo1.jpg",
         media_type="image",
         owner="investigator_01",
     )
@@ -194,7 +194,7 @@ def test_process_reference_photos_async_flow(temp_db_env):
     """Test decoupled async photo processing via MissingPersonVideoProcessor."""
     import cv2
 
-    from services.missing_person_processor import MissingPersonVideoProcessor
+    from app.services.missing_person_processor import MissingPersonVideoProcessor
 
     db: EmbeddingDatabase = temp_db_env["db"]
     job_mgr: ReferenceJobManager = temp_db_env["job_mgr"]

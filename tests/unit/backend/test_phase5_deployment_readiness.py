@@ -1,7 +1,7 @@
 import pytest
 
-from services.camera_source_resolver import CameraSourceResolver
-from streaming.deployment_readiness import (
+from app.services.camera_source_resolver import CameraSourceResolver
+from app.streaming.deployment_readiness import (
     AdaptiveInferencePolicy,
     AdmissionDecision,
     CameraAdmissionController,
@@ -22,7 +22,7 @@ from streaming.deployment_readiness import (
     SystemProfile,
     SystemProfileEngine,
 )
-from streaming.production_runtime import (
+from app.streaming.production_runtime import (
     CameraState,
     ProductionSurveillanceRuntime,
 )

@@ -5,14 +5,14 @@ from unittest.mock import MagicMock
 
 from fastapi.testclient import TestClient
 
-from api.server import app
-from security_layer.auth import (
+from app.api.server import app
+from app.security_layer.auth import (
     AuthenticationInfrastructureError,
     get_operator_store,
     get_session_store,
 )
-from security_layer.password_hasher import get_password_hasher
-from tools.migration.passwords import PasswordMigrator
+from app.security_layer.password_hasher import get_password_hasher
+from ops.tools.migration.passwords import PasswordMigrator
 
 
 def test_01_firebase_credentials_missing_fails_closed_503(monkeypatch):
@@ -346,8 +346,8 @@ def test_10_mock_firebase_suspended_account_rejected(monkeypatch):
 
 
 def test_11_test_execution_cannot_mutate_production_operator_store():
-    """Verify that test suite execution does NOT touch or mutate data/operator_store.json."""
-    real_store_path = Path("data/operator_store.json")
+    """Verify that test suite execution does NOT touch or mutate data/runtime/operator_store.json."""
+    real_store_path = Path("data/runtime/operator_store.json")
     if real_store_path.exists():
         initial_hash = hashlib.sha256(real_store_path.read_bytes()).hexdigest()
 
@@ -356,7 +356,7 @@ def test_11_test_execution_cannot_mutate_production_operator_store():
         store._save_offline_store({"admins": {"temp": {"username": "temp"}}})
 
         after_hash = hashlib.sha256(real_store_path.read_bytes()).hexdigest()
-        assert initial_hash == after_hash, "Regression: Test mutated data/operator_store.json!"
+        assert initial_hash == after_hash, "Regression: Test mutated data/runtime/operator_store.json!"
 
 
 def test_12_password_migration_dry_run_is_non_destructive(tmp_path: Path):

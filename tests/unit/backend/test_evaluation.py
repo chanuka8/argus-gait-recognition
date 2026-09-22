@@ -1,9 +1,9 @@
 import unittest
 from pathlib import Path
 
-from evaluation.benchmarks.evaluate_enrollment_safeguards import EnrollmentSafeguardEvaluator
-from evaluation.benchmarks.evaluate_temporal_aggregation import TemporalTrackEvaluator
-from evaluation.visualizer import EvaluationVisualizer
+from ml_platform.evaluation.benchmarks.evaluate_enrollment_safeguards import EnrollmentSafeguardEvaluator
+from ml_platform.evaluation.benchmarks.evaluate_temporal_aggregation import TemporalTrackEvaluator
+from ml_platform.evaluation.visualizer import EvaluationVisualizer
 
 
 class TestEvaluation(unittest.TestCase):
