@@ -91,7 +91,7 @@ def main() -> None:
 
     if not onnx_file.exists():
         print(f"[ERROR] Input ONNX file does not exist: {onnx_file}")
-        print("[HINT] Run 'python tools/maintenance/export_bygait_onnx.py' first.")
+        print("[HINT] Run 'python ops/tools/maintenance/export_bygait_onnx.py' first.")
         sys.exit(1)
 
     success = build_engine_python(onnx_file, engine_file, precision=args.precision)

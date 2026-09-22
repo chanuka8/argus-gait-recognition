@@ -65,6 +65,6 @@ Below is the complete list of package-level documentation files for all major co
 
 Folder documentation alignment is automatically enforced and maintained:
 
-1. **Local Pre-Commit Hook**: Automatically runs `python tools/maintenance/sync_folder_readmes.py` before every commit, updating and staging README files.
-2. **CI Freshness Check**: The GitHub Actions workflow `.github/workflows/readme_sync_check.yml` verifies README freshness using `python tools/maintenance/sync_folder_readmes.py --check`.
-3. **Manual Verification**: Developers can run `python tools/maintenance/sync_folder_readmes.py --check` or `python tools/maintenance/sync_folder_readmes.py` at any time.
+1. **Local Pre-Commit Hook**: Automatically runs `python ops/tools/maintenance/sync_folder_readmes.py` before every commit, updating and staging README files.
+2. **CI Freshness Check**: The GitHub Actions workflow `.github/workflows/readme_sync_check.yml` verifies README freshness using `python ops/tools/maintenance/sync_folder_readmes.py --check`.
+3. **Manual Verification**: Developers can run `python ops/tools/maintenance/sync_folder_readmes.py --check` or `python ops/tools/maintenance/sync_folder_readmes.py` at any time.

@@ -278,7 +278,7 @@ class VectorStore:
 
             logger.warning(
                 f"SECURITY NOTICE: Loading unencrypted legacy biometric gallery at '{self.features_file}'. "
-                "Migrate to encrypted container format using tools/security/migrate_gallery_encryption.py."
+                "Migrate to encrypted container format using ops/tools/security/migrate_gallery_encryption.py."
             )
             try:
                 features = np.load(

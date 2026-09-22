@@ -16,7 +16,7 @@ Built on **Python 3.11**, **PyTorch**, **ONNX Runtime**, **OpenCV**, **FastAPI**
 [![ONNX Runtime](https://img.shields.io/badge/ONNX%20Runtime-1.20.0-blue.svg)](https://onnxruntime.ai/)
 [![Tests: 1,030 Passed](https://img.shields.io/badge/tests-1%2C030%20passed%20%7C%200%20failed%20%7C%201%20skipped-brightgreen.svg)](tests)
 [![Frontend: React 19 + Vite](https://img.shields.io/badge/frontend-React%2019%20%2B%20Vite-61DAFB.svg)](frontend)
-[![Security: Argon2id + RBAC](https://img.shields.io/badge/security-Argon2id%20%7C%20RBAC%20%7C%20Fernet-purple.svg)](security_layer)
+[![Security: Argon2id + RBAC](https://img.shields.io/badge/security-Argon2id%20%7C%20RBAC%20%7C%20Fernet-purple.svg)](app/security_layer)
 [![Status: Advanced Prototype](https://img.shields.io/badge/status-ADVANCED%20PROTOTYPE-orange.svg)](docs)
 [![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](VERSION)
 
@@ -672,8 +672,12 @@ python -m pip install --upgrade pip setuptools wheel
 # Install backend dependencies
 pip install -r requirements.txt
 
+# Install ARGUS itself in editable mode, so app/, ml_platform/, and ops/
+# import correctly regardless of your current working directory
+pip install -e .
+
 # Run automated hardware discovery and environment bootstrap
-powershell -ExecutionPolicy Bypass -File ".\tools\bootstrap_env.ps1"
+powershell -ExecutionPolicy Bypass -File ".\ops\tools\bootstrap_env.ps1"
 ```
 
 ### 3. Install Frontend Dependencies
@@ -713,7 +717,7 @@ npm run dev
 ### Option 2: Backend Only
 
 ```powershell
-.\.venv\Scripts\python.exe -m uvicorn api.server:app --host 127.0.0.1 --port 8000 --reload
+.\.venv\Scripts\python.exe -m uvicorn app.api.server:app --host 127.0.0.1 --port 8000 --reload
 ```
 
 ### Option 3: Frontend Only
@@ -759,7 +763,7 @@ All verification commands are repository-relative and executable from `E:\ARGUS_
 .\.venv\Scripts\ruff.exe format --check .
 
 # 6. Python Bytecode Compilation Verification across all modules
-.\.venv\Scripts\python.exe -m compileall -q api automation core deployment enrollment evaluation events frontend intelligence models monitoring pipeline preprocessing scripts security_layer services storage streaming tests tools training utils
+.\.venv\Scripts\python.exe -m compileall -q app ml_platform ops tests
 
 # 7. Frontend Linter & Production Build
 npm --prefix frontend run lint

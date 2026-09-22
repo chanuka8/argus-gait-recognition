@@ -98,7 +98,7 @@ def evaluate(args=None) -> int:
     return run_command(
         [
             sys.executable,
-            "ml_platform/evaluation/evaluate_model.py",
+            "ml_platform/evaluation/experiments/evaluate_model.py",
         ]
     )
 
@@ -441,7 +441,7 @@ def visualizer_test(args=None) -> int:
     return run_command(
         [
             sys.executable,
-            "ml_platform/evaluation/generate_visualizer_charts.py",
+            "ml_platform/evaluation/experiments/generate_visualizer_charts.py",
         ]
     )
 
@@ -542,19 +542,19 @@ def research_eval(args=None) -> int:
         return code
 
     print("\nRunning evaluation threshold sweep...")
-    code = run_command([sys.executable, "ml_platform/evaluation/evaluate_threshold_sweep.py"])
+    code = run_command([sys.executable, "ml_platform/evaluation/experiments/evaluate_threshold_sweep.py"])
     if code != 0:
         print("\n[ERROR] Threshold sweep failed.")
         return code
 
     print("\nRunning open-set evaluation...")
-    code = run_command([sys.executable, "ml_platform/evaluation/evaluate_open_set.py"])
+    code = run_command([sys.executable, "ml_platform/evaluation/experiments/evaluate_open_set.py"])
     if code != 0:
         print("\n[ERROR] Open-set evaluation failed.")
         return code
 
     print("\nRunning cross-view evaluation...")
-    code = run_command([sys.executable, "ml_platform/evaluation/evaluate_cross_view.py"])
+    code = run_command([sys.executable, "ml_platform/evaluation/experiments/evaluate_cross_view.py"])
     if code != 0:
         print("\n[ERROR] Cross-view evaluation failed.")
         return code
