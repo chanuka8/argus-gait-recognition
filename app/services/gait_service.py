@@ -129,12 +129,11 @@ class GaitService:
     @property
     def extractor(self):
         if self._extractor is None:
-            from app.pipeline.steps.feature_extraction import FeatureExtractionStep
-
-            step = FeatureExtractionStep()
             with self._lock:
                 if self._extractor is None:
-                    self._extractor = step
+                    from app.pipeline.steps.feature_extraction import FeatureExtractionStep
+
+                    self._extractor = FeatureExtractionStep()
         return self._extractor
 
     @extractor.setter
@@ -144,12 +143,11 @@ class GaitService:
     @property
     def matcher(self):
         if self._matcher is None:
-            from app.pipeline.steps.matching_step import MatchingStep
-
-            matcher = MatchingStep(threshold=0.85)
             with self._lock:
                 if self._matcher is None:
-                    self._matcher = matcher
+                    from app.pipeline.steps.matching_step import MatchingStep
+
+                    self._matcher = MatchingStep(threshold=0.85)
         return self._matcher
 
     @matcher.setter
@@ -159,12 +157,11 @@ class GaitService:
     @property
     def silhouette_extractor(self):
         if self._silhouette_extractor is None:
-            from app.pipeline.silhouette.extractor import SilhouetteExtractor
-
-            extractor = SilhouetteExtractor(target_size=(64, 128))
             with self._lock:
                 if self._silhouette_extractor is None:
-                    self._silhouette_extractor = extractor
+                    from app.pipeline.silhouette.extractor import SilhouetteExtractor
+
+                    self._silhouette_extractor = SilhouetteExtractor(target_size=(64, 128))
         return self._silhouette_extractor
 
     @silhouette_extractor.setter
@@ -174,12 +171,11 @@ class GaitService:
     @property
     def open_set_recognizer(self):
         if self._open_set_recognizer is None:
-            from app.intelligence.validation.open_set_recognizer import OpenSetRecognizer
-
-            recognizer = OpenSetRecognizer()
             with self._lock:
                 if self._open_set_recognizer is None:
-                    self._open_set_recognizer = recognizer
+                    from app.intelligence.validation.open_set_recognizer import OpenSetRecognizer
+
+                    self._open_set_recognizer = OpenSetRecognizer()
         return self._open_set_recognizer
 
     @open_set_recognizer.setter
@@ -189,16 +185,15 @@ class GaitService:
     @property
     def appearance_extractor(self):
         if self._appearance_extractor is None:
-            try:
-                from app.intelligence.appearance_embedding import AppearanceEmbeddingExtractor
-
-                extractor = AppearanceEmbeddingExtractor(update_interval=8)
-            except (ImportError, RuntimeError, ValueError, TypeError, OSError) as app_init_err:
-                self.logger.warning(f"Appearance extractor init deferred: {app_init_err}")
-                extractor = None
             with self._lock:
                 if self._appearance_extractor is None:
-                    self._appearance_extractor = extractor
+                    try:
+                        from app.intelligence.appearance_embedding import AppearanceEmbeddingExtractor
+
+                        self._appearance_extractor = AppearanceEmbeddingExtractor(update_interval=8)
+                    except (ImportError, RuntimeError, ValueError, TypeError, OSError) as app_init_err:
+                        self.logger.warning(f"Appearance extractor init deferred: {app_init_err}")
+                        self._appearance_extractor = None
         return self._appearance_extractor
 
     @appearance_extractor.setter
@@ -208,16 +203,15 @@ class GaitService:
     @property
     def appearance_matcher(self):
         if self._appearance_matcher is None:
-            try:
-                from app.pipeline.steps.appearance_matching_step import AppearanceMatchingStep
-
-                matcher = AppearanceMatchingStep(threshold=0.60)
-            except (ImportError, RuntimeError, ValueError, TypeError, OSError) as app_init_err:
-                self.logger.warning(f"Appearance matcher init deferred: {app_init_err}")
-                matcher = None
             with self._lock:
                 if self._appearance_matcher is None:
-                    self._appearance_matcher = matcher
+                    try:
+                        from app.pipeline.steps.appearance_matching_step import AppearanceMatchingStep
+
+                        self._appearance_matcher = AppearanceMatchingStep(threshold=0.60)
+                    except (ImportError, RuntimeError, ValueError, TypeError, OSError) as app_init_err:
+                        self.logger.warning(f"Appearance matcher init deferred: {app_init_err}")
+                        self._appearance_matcher = None
         return self._appearance_matcher
 
     @appearance_matcher.setter
@@ -227,16 +221,15 @@ class GaitService:
     @property
     def detector(self):
         if self._detector is None:
-            try:
-                from app.pipeline.detection.person_detector import PersonDetector
-
-                det = PersonDetector()
-            except (ImportError, RuntimeError, ValueError, OSError) as err:
-                self.logger.warning(f"PersonDetector initialization skipped: {err}")
-                det = None
             with self._lock:
                 if self._detector is None:
-                    self._detector = det
+                    try:
+                        from app.pipeline.detection.person_detector import PersonDetector
+
+                        self._detector = PersonDetector()
+                    except (ImportError, RuntimeError, ValueError, OSError) as err:
+                        self.logger.warning(f"PersonDetector initialization skipped: {err}")
+                        self._detector = None
         return self._detector
 
     @detector.setter
@@ -246,16 +239,15 @@ class GaitService:
     @property
     def tracker(self):
         if self._tracker is None:
-            try:
-                from app.pipeline.steps.tracking import TrackingStep
-
-                trk = TrackingStep(detector=self.detector)
-            except (ImportError, RuntimeError, ValueError, OSError) as err:
-                self.logger.warning(f"TrackingStep initialization skipped: {err}")
-                trk = None
             with self._lock:
                 if self._tracker is None:
-                    self._tracker = trk
+                    try:
+                        from app.pipeline.steps.tracking import TrackingStep
+
+                        self._tracker = TrackingStep(detector=self.detector)
+                    except (ImportError, RuntimeError, ValueError, OSError) as err:
+                        self.logger.warning(f"TrackingStep initialization skipped: {err}")
+                        self._tracker = None
         return self._tracker
 
     @tracker.setter
@@ -265,12 +257,11 @@ class GaitService:
     @property
     def source_resolver(self):
         if self._source_resolver is None:
-            from app.services.camera_source_resolver import CameraSourceResolver
-
-            resolver = CameraSourceResolver()
             with self._lock:
                 if self._source_resolver is None:
-                    self._source_resolver = resolver
+                    from app.services.camera_source_resolver import CameraSourceResolver
+
+                    self._source_resolver = CameraSourceResolver()
         return self._source_resolver
 
     @source_resolver.setter
@@ -365,6 +356,9 @@ class GaitService:
             self._is_warming_up = True
 
         self.logger.info("[STARTUP] Beginning background model warmup...")
+        from app.core.thread_limits import configure_native
+
+        configure_native()  # first real torch/cv2 import happens here, off the FastAPI event loop
         t0 = time.perf_counter()
         results = {}
 
@@ -436,17 +430,32 @@ class GaitService:
                 self._readiness["detector"] = "ERROR"
             results["person_detector"] = f"ERROR: {e}"
 
-        # 5. Continual Learning & Registry
+        # 5. Continual Learning & Registry (BACKGROUND_OPTIONAL: not required
+        # for login, auth, or core recognition - safe to lazy-load on a
+        # RAM-constrained machine instead of paying its RSS cost at startup).
         try:
-            with self._lock:
-                self._readiness["continual_learning"] = "INITIALIZING"
-            _ = self.open_set_recognizer
-            _ = self.embedding_db
-            _ = self.model_registry
-            _ = self.continuous_engine
-            with self._lock:
-                self._readiness["continual_learning"] = "READY"
-            results["continual_learning"] = "READY"
+            low_resource = False
+            try:
+                from app.core.resource_profile import is_low_resource
+
+                low_resource = is_low_resource()
+            except Exception:  # noqa: BLE001 - profile check must never block warmup
+                pass
+
+            if low_resource:
+                with self._lock:
+                    self._readiness["continual_learning"] = "DEFERRED"
+                results["continual_learning"] = "DEFERRED (low-resource profile; loads lazily on first use)"
+            else:
+                with self._lock:
+                    self._readiness["continual_learning"] = "INITIALIZING"
+                _ = self.open_set_recognizer
+                _ = self.embedding_db
+                _ = self.model_registry
+                _ = self.continuous_engine
+                with self._lock:
+                    self._readiness["continual_learning"] = "READY"
+                results["continual_learning"] = "READY"
         except Exception as e:  # noqa: BLE001
             with self._lock:
                 self._readiness["continual_learning"] = "ERROR"
