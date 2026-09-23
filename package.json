@@ -8,7 +8,9 @@
     "dev:frontend": "npm --prefix frontend run dev:frontend",
     "build": "npm --prefix frontend run build",
     "lint": "npm --prefix frontend run lint",
-    "preview": "npm --prefix frontend run preview"
+    "preview": "npm --prefix frontend run preview",
+    "start": "node ops/tools/start_prod.js",
+    "prod": "node ops/tools/start_prod.js"
   },
   "description": "ARGUS AI - Gait Recognition and Intelligent CCTV Surveillance ML System"
 }
