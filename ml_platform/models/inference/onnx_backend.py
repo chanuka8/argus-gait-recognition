@@ -79,8 +79,10 @@ class ONNXBackend(BaseInferenceBackend):
                 confidentiality=ArtifactConfidentiality.PROTECTED,
             )
 
+            from app.core.thread_limits import onnx_session_options
+
             try:
-                self.session = ort.InferenceSession(model_bytes, providers=providers)
+                self.session = ort.InferenceSession(model_bytes, sess_options=onnx_session_options(), providers=providers)
             except ort_exceptions as sess_err:
                 raise RuntimeError(f"Failed to initialize ONNX session: {sess_err}") from sess_err
             self.input_name = self.session.get_inputs()[0].name

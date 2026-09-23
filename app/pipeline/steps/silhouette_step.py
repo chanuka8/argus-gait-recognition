@@ -63,7 +63,9 @@ class LearnedSilhouetteSegmenter:
                 logical_filename=logical_name,
                 confidentiality=ArtifactConfidentiality.PROTECTED,
             )
-            self.session = ort.InferenceSession(model_bytes, providers=provider_list)
+            from app.core.thread_limits import onnx_session_options
+
+            self.session = ort.InferenceSession(model_bytes, sess_options=onnx_session_options(), providers=provider_list)
             self.model_path = target_path
         except (OSError, ValueError, RuntimeError, TypeError, AttributeError):
             self.session = None

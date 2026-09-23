@@ -24,6 +24,7 @@ The `core` package provides system initialization, logging setup, process lifecy
 | [paths.py](paths.py) | Module/resource file paths.py |
 | [system.py](system.py) | Primary application container and lifecycle coordinator |
 | [system_monitor.py](system_monitor.py) | Background monitoring for CPU, RAM, and GPU resource usage |
+| [thread_limits.py](thread_limits.py) | Hardware-aware OMP/MKL/OpenBLAS/PyTorch/OpenCV/ONNXRuntime thread-pool limits, configured once before any ML library is imported |
 | [threshold_manager.py](threshold_manager.py) | Authoritative recognition threshold manager and calibration resolution |
 <!-- END SYNC: KEY_MODULES -->
 
