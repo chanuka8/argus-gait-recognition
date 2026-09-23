@@ -7,16 +7,28 @@ core. Loaded independently, several of those pools end up alive at once
 each trying to claim every core, starving the OS, the browser, and
 FastAPI's own event loop.
 
-`configure()` must run before torch/cv2/numpy are imported anywhere in the
-process, since OMP_NUM_THREADS/MKL_NUM_THREADS/OPENBLAS_NUM_THREADS are
-read once when those native libraries are loaded. Every real process
-entrypoint (app/api/server.py, main.py) calls it as its first statement,
-before any other import.
+Two-stage design, because importing torch is itself expensive (tens of
+seconds when the OS file cache is cold - see Phase-3A profiling) and must
+not block `/health`:
+
+- `configure_env()` only sets OMP_NUM_THREADS/MKL_NUM_THREADS/
+  OPENBLAS_NUM_THREADS/NUMEXPR_NUM_THREADS. It imports nothing and costs
+  microseconds. These env vars are read once when a native library is
+  first loaded, so this must still run before torch/cv2/numpy are
+  imported anywhere in the process - every real entrypoint
+  (app/api/server.py, main.py) calls it as its first statement.
+- `configure_native()` actually imports torch/cv2 and calls their
+  explicit thread-count APIs (env vars alone don't fully control torch's
+  intra-op pool). This is deferred to GaitService.warmup(), which already
+  runs off the FastAPI event loop, so the one-time torch import cost
+  lands during background warmup instead of blocking health-ready.
 """
 
 import os
 
 _budget: int | None = None
+_env_configured = False
+_native_configured = False
 
 
 def _compute_budget() -> int:
@@ -31,15 +43,40 @@ def _compute_budget() -> int:
     return max(2, cores - reserved)
 
 
-def configure() -> int:
-    """Set BLAS/OpenMP env vars and native thread pools. Idempotent."""
-    global _budget
-    if _budget is not None:
-        return _budget
+def configure_env() -> int:
+    """Set BLAS/OpenMP env vars only. No imports. Idempotent. Cheap."""
+    global _budget, _env_configured
+    if _budget is None:
+        _budget = int(os.environ.get("ARGUS_THREAD_BUDGET", _compute_budget()))
+    if not _env_configured:
+        for var in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS", "NUMEXPR_NUM_THREADS"):
+            os.environ.setdefault(var, str(_budget))
+        _env_configured = True
+    return _budget
 
-    budget = int(os.environ.get("ARGUS_THREAD_BUDGET", _compute_budget()))
-    for var in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS", "NUMEXPR_NUM_THREADS"):
-        os.environ.setdefault(var, str(budget))
+
+def configure_native() -> int:
+    """Import torch/cv2 and apply explicit thread-count APIs. Idempotent.
+
+    Expensive on first call (imports torch). Call this only from a path
+    that's already off the request/startup critical path, such as
+    GaitService.warmup().
+    """
+    global _native_configured
+    budget = configure_env()
+    if _native_configured:
+        return budget
+
+    # RAM-headroom check (psutil + nvidia-smi, a couple seconds) is deferred
+    # to here rather than configure_env(), so it never delays /health.
+    try:
+        from app.core.resource_profile import get_runtime_parameters
+
+        params = get_runtime_parameters()
+        if params.profile_name == "LOW_RESOURCE":
+            budget = min(budget, 2)
+    except Exception:  # noqa: BLE001 - thread limiting must never block warmup
+        pass
 
     try:
         import torch
@@ -59,12 +96,12 @@ def configure() -> int:
     except ImportError:
         pass
 
-    _budget = budget
+    _native_configured = True
     return budget
 
 
 def current_budget() -> int:
-    return _budget if _budget is not None else configure()
+    return configure_env()
 
 
 def onnx_session_options(intra_op_threads: int | None = None):
