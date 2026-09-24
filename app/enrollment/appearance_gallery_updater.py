@@ -81,36 +81,36 @@ class AppearanceGalleryUpdater:
             vec = (vec / norm).astype(np.float32)
             validated_embeddings.append(vec)
 
-        current = self.store.load()
+        def mutator(current):
+            if current is None:
+                features = []
+                labels = []
+                metadata = {}
+            else:
+                features, labels, metadata = current
+                features = features.tolist()
+                labels = labels.tolist()
 
-        if current is None:
-            features = []
-            labels = []
-            metadata = {}
-        else:
-            features, labels, metadata = current
-            features = features.tolist()
-            labels = labels.tolist()
+            for embedding in validated_embeddings:
+                features.append(
+                    embedding.tolist(),
+                )
+                labels.append(
+                    str(person_id),
+                )
 
-        for embedding in validated_embeddings:
-            features.append(
-                embedding.tolist(),
+            metadata[str(person_id)] = self._metadata_entry(
+                metadata.get(
+                    str(person_id),
+                ),
+                len(validated_embeddings),
             )
-            labels.append(
-                str(person_id),
-            )
 
-        metadata[str(person_id)] = self._metadata_entry(
-            metadata.get(
-                str(person_id),
-            ),
-            len(validated_embeddings),
-        )
+            return features, labels, metadata
 
-        self.store.save(
-            features,
-            labels,
-            metadata,
-        )
+        # Held under a single cross-process lock so a concurrent enrollment
+        # from another process can't read the same pre-update state and
+        # clobber this addition (see VectorStore.update docstring).
+        self.store.update(mutator)
 
         print(f"Added appearance identity {person_id} ({len(validated_embeddings)} embeddings)")

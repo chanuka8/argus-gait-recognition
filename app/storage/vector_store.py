@@ -126,6 +126,30 @@ class VectorStore:
         and written to gallery_features.enc. In development mode without a key, legacy .npy
         writes are performed with an explicit security warning.
         """
+        with FileLock(str(self.lock_file), timeout=10.0):
+            self._save_locked(features, labels, metadata)
+
+    def update(self, mutator) -> None:
+        """Read-modify-write the gallery under a single held inter-process lock.
+
+        `mutator` receives the current `load()` result (`None` if the gallery is empty)
+        and must return the `(features, labels, metadata)` tuple to persist. Holding the
+        lock across both the read and the write closes the lost-update race that a bare
+        `load()` followed by a separate `save()` call has under concurrent writers: two
+        processes each reading the old state, appending their own entry, and saving would
+        otherwise silently clobber each other instead of merging.
+        """
+        with FileLock(str(self.lock_file), timeout=10.0):
+            current = self.load()
+            features, labels, metadata = mutator(current)
+            self._save_locked(features, labels, metadata)
+
+    def _save_locked(
+        self,
+        features,
+        labels,
+        metadata,
+    ) -> None:
         logger.info(
             f"[AUDIT] gallery write: dir={self.gallery_dir} n_features={len(features) if features is not None else 0} "
             f"n_labels={len(labels) if labels is not None else 0} n_subjects={len(metadata) if metadata else 0}"
@@ -160,69 +184,68 @@ class VectorStore:
                 f"metadata bookkeeping has drifted from the actual feature/label arrays."
             )
 
-        with FileLock(str(self.lock_file), timeout=10.0):
-            # 1. Features persistence (Encrypted or Plaintext)
-            if self.encryptor.is_configured:
-                # Encrypt to memory buffer
-                container_bytes = self.encryptor.encrypt_gallery_container(
-                    features=feats_arr,
-                    labels=lbls_arr,
-                    gallery_type=self.gallery_type,
-                )
-                tmp_enc = self.gallery_dir / f".tmp_{uuid.uuid4().hex}.enc"
-                with open(tmp_enc, "wb") as f:
-                    f.write(container_bytes)
-                    f.flush()
-                    try:
-                        os.fsync(f.fileno())
-                    except OSError:
-                        pass
-                os.replace(tmp_enc, self.encrypted_features_file)
-            else:
-                if self.strict_mode:
-                    raise RuntimeError(
-                        "Cannot save unencrypted biometric gallery: strict production encryption mode "
-                        "is active but ARGUS_BIOMETRIC_ENCRYPTION_KEY is not configured."
-                    )
-                logger.warning(
-                    f"SECURITY WARNING: Persisting biometric templates in plaintext .npy format at "
-                    f"'{self.features_file}'. Configure ARGUS_BIOMETRIC_ENCRYPTION_KEY to protect templates at rest."
-                )
-                tmp_npy = self.gallery_dir / f".tmp_{uuid.uuid4().hex}.npy"
-                with open(tmp_npy, "wb") as f:
-                    np.save(f, feats_arr)
-                    f.flush()
-                    try:
-                        os.fsync(f.fileno())
-                    except OSError:
-                        pass
-                os.replace(tmp_npy, self.features_file)
-
-            # 2. Labels persistence (atomic)
-            tmp_lbls = self.gallery_dir / f".tmp_{uuid.uuid4().hex}.npy"
-            with open(tmp_lbls, "wb") as f:
-                np.save(f, lbls_arr)
+        # 1. Features persistence (Encrypted or Plaintext)
+        if self.encryptor.is_configured:
+            # Encrypt to memory buffer
+            container_bytes = self.encryptor.encrypt_gallery_container(
+                features=feats_arr,
+                labels=lbls_arr,
+                gallery_type=self.gallery_type,
+            )
+            tmp_enc = self.gallery_dir / f".tmp_{uuid.uuid4().hex}.enc"
+            with open(tmp_enc, "wb") as f:
+                f.write(container_bytes)
                 f.flush()
                 try:
                     os.fsync(f.fileno())
                 except OSError:
                     pass
-            os.replace(tmp_lbls, self.labels_file)
-
-            # 3. Metadata persistence (atomic)
-            tmp_meta = self.gallery_dir / f".tmp_{uuid.uuid4().hex}.json"
-            with open(tmp_meta, "w", encoding="utf-8") as file:
-                json.dump(
-                    metadata,
-                    file,
-                    indent=4,
+            os.replace(tmp_enc, self.encrypted_features_file)
+        else:
+            if self.strict_mode:
+                raise RuntimeError(
+                    "Cannot save unencrypted biometric gallery: strict production encryption mode "
+                    "is active but ARGUS_BIOMETRIC_ENCRYPTION_KEY is not configured."
                 )
-                file.flush()
+            logger.warning(
+                f"SECURITY WARNING: Persisting biometric templates in plaintext .npy format at "
+                f"'{self.features_file}'. Configure ARGUS_BIOMETRIC_ENCRYPTION_KEY to protect templates at rest."
+            )
+            tmp_npy = self.gallery_dir / f".tmp_{uuid.uuid4().hex}.npy"
+            with open(tmp_npy, "wb") as f:
+                np.save(f, feats_arr)
+                f.flush()
                 try:
-                    os.fsync(file.fileno())
+                    os.fsync(f.fileno())
                 except OSError:
                     pass
-            os.replace(tmp_meta, self.metadata_file)
+            os.replace(tmp_npy, self.features_file)
+
+        # 2. Labels persistence (atomic)
+        tmp_lbls = self.gallery_dir / f".tmp_{uuid.uuid4().hex}.npy"
+        with open(tmp_lbls, "wb") as f:
+            np.save(f, lbls_arr)
+            f.flush()
+            try:
+                os.fsync(f.fileno())
+            except OSError:
+                pass
+        os.replace(tmp_lbls, self.labels_file)
+
+        # 3. Metadata persistence (atomic)
+        tmp_meta = self.gallery_dir / f".tmp_{uuid.uuid4().hex}.json"
+        with open(tmp_meta, "w", encoding="utf-8") as file:
+            json.dump(
+                metadata,
+                file,
+                indent=4,
+            )
+            file.flush()
+            try:
+                os.fsync(file.fileno())
+            except OSError:
+                pass
+        os.replace(tmp_meta, self.metadata_file)
 
     def load(self):
         """Load gallery features, labels, and metadata with strict downgrade prevention.
