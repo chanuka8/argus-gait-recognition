@@ -5,85 +5,57 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT))
 
-from ml_platform.evaluation.open_set_evaluator import OpenSetEvaluator
+from ml_platform.evaluation.open_set_evaluator import SubjectDisjointOpenSetEvaluator
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Evaluate ARGUS Open-Set Gait Recognition Metrics")
 
-    parser.add_argument(
-        "--max-images",
-        type=int,
-        default=500,
-        help="Max images to evaluate. Default: 500.",
-    )
-
-    parser.add_argument(
-        "--gallery-ratio",
-        type=float,
-        default=0.5,
-        help="Ratio of features to keep in gallery for known subjects. Default: 0.5.",
-    )
-
-    parser.add_argument(
-        "--threshold",
-        type=float,
-        default=0.85,
-        help="Rejection threshold. Default: 0.85.",
-    )
-
-    parser.add_argument(
-        "--known-ratio",
-        type=float,
-        default=0.6,
-        help="Ratio of subjects to treat as known. Default: 0.6.",
-    )
-
-    parser.add_argument(
-        "--matching-mode",
-        type=str,
-        choices=["flat", "centroid", "centroid_margin", "centroid_margin_topk"],
-        default="flat",
-        help="Matching step algorithm to evaluate. Default: flat.",
-    )
+    parser.add_argument("--gei-root", type=str, default="data/datasets/casia_processed/gei")
+    parser.add_argument("--model-path", type=str, default="runs/exp_001/best_model.pth")
+    parser.add_argument("--split-config", type=str, default="configs/subject_split.json")
+    parser.add_argument("--threshold", type=float, default=0.85)
+    parser.add_argument("--known-ratio", type=float, default=0.5, help="Ratio of test subjects treated as known.")
+    parser.add_argument("--output-dir", type=str, default="runs/exp_001/evaluation_open_set")
 
     args = parser.parse_args()
 
     print("\n=== STARTING OPEN-SET GAIT EVALUATION ===")
-    print(f"Matching Mode: {args.matching_mode}")
     print(f"Known Ratio: {args.known_ratio:.2f}")
-    print(f"Gallery Ratio: {args.gallery_ratio:.2f}")
-    print(f"Rejection Threshold: {args.threshold:.2f}")
-    print(f"Max Images to test: {args.max_images}")
+    print(f"Threshold: {args.threshold:.2f}")
 
-    evaluator = OpenSetEvaluator(
-        gallery_ratio=args.gallery_ratio,
+    evaluator = SubjectDisjointOpenSetEvaluator(
+        gei_root=args.gei_root,
+        model_path=args.model_path,
+        split_config_path=args.split_config,
         threshold=args.threshold,
         known_ratio=args.known_ratio,
+        report_dir=args.output_dir,
     )
 
-    results = evaluator.evaluate_open_set(
-        max_test_images=args.max_images,
-        matching_mode=args.matching_mode,
-    )
+    results = evaluator.evaluate_open_set_protocol()
+
+    operating = results["operating_metrics"]
+    state_counts = results["open_set_state_counts"]
 
     print("\n=== OPEN-SET EVALUATION RESULTS ===")
-    print(f"Total Tested: {results['total_tested']}")
-    print(f"Known Subjects Queries: {results['total_known']}")
-    print(f"Unknown Subjects Queries: {results['total_unknown']}")
+    print(f"Gallery Samples: {results['gallery_samples_count']}")
+    print(f"Total Probes: {results['total_probe_count']}")
+    print(f"Known Probes: {results['known_probe_count']}")
+    print(f"Unknown Probes: {results['unknown_probe_count']}")
     print("-" * 40)
-    print(f"True Positives (TP): {results['TP']}")
-    print(f"False Positives (FP): {results['FP']}")
-    print(f"True Negatives (TN): {results['TN']}")
-    print(f"False Negatives (FN): {results['FN']}")
+    print(f"Open-Set State Counts: KNOWN={state_counts['KNOWN']} UNKNOWN={state_counts['UNKNOWN']} UNCERTAIN={state_counts['UNCERTAIN']}")
     print("-" * 40)
-    print(f"Known Subject Acc: {results['known_accuracy'] * 100:.2f}%")
-    print(f"Unknown Rejection Rate: {results['unknown_rejection_rate'] * 100:.2f}%")
-    print(f"False Accept Rate (FAR): {results['false_accept_rate'] * 100:.2f}%")
-    print(f"False Reject Rate (FRR): {results['false_reject_rate'] * 100:.2f}%")
+    print(f"ROC AUC: {results['ROC_AUC']}")
+    print(f"Equal Error Rate (EER): {results['EER'] * 100:.2f}%")
+    print(f"False Accept Rate (FAR): {operating['FAR'] * 100:.2f}%")
+    print(f"False Reject Rate (FRR): {operating['FRR'] * 100:.2f}%")
+    print(f"True Accept Rate (TAR): {operating['TAR'] * 100:.2f}%")
+    print(f"True Negative Rate (TNR): {operating['TNR'] * 100:.2f}%")
+    print(f"Precision: {operating['precision']:.4f}  Recall: {operating['recall']:.4f}  F1: {operating['f1_score']:.4f}")
     print("-" * 40)
-    print("Saved JSON Report -> outputs/reports/evaluation/open_set_report.json")
-    print("Saved CSV Report -> outputs/reports/evaluation/open_set_report.csv")
+    print(f"Saved JSON Report -> {evaluator.report_dir / 'open_set_report.json'}")
+    print(f"Saved CSV Report -> {evaluator.report_dir / 'open_set_report.csv'}")
 
 
 if __name__ == "__main__":

@@ -6,34 +6,28 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT))
 
-from ml_platform.evaluation.evaluator import SplitEvaluator
+from ml_platform.evaluation.evaluator import SubjectDisjointEvaluator
 
 
 def main() -> None:
 
     parser = argparse.ArgumentParser(description="Evaluate ARGUS gait recognition model")
 
-    parser.add_argument(
-        "--max-images",
-        type=int,
-        default=500,
-    )
-
-    parser.add_argument(
-        "--gallery-ratio",
-        type=float,
-        default=0.5,
-    )
+    parser.add_argument("--gei-root", type=str, default="data/datasets/casia_processed/gei")
+    parser.add_argument("--model-path", type=str, default="runs/exp_001/best_model.pth")
+    parser.add_argument("--split-config", type=str, default="configs/subject_split.json")
+    parser.add_argument("--threshold", type=float, default=0.85)
 
     args = parser.parse_args()
 
-    evaluator = SplitEvaluator(
-        gallery_ratio=args.gallery_ratio,
+    evaluator = SubjectDisjointEvaluator(
+        gei_root=args.gei_root,
+        model_path=args.model_path,
+        split_config_path=args.split_config,
+        threshold=args.threshold,
     )
 
-    results = evaluator.evaluate(
-        max_test_images=args.max_images,
-    )
+    results = evaluator.evaluate()
 
     print("\n=== ARGUS SPLIT EVALUATION ===")
 

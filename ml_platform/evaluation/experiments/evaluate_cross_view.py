@@ -5,56 +5,50 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT))
 
-from ml_platform.evaluation.cross_view_evaluator import CrossViewEvaluator
+from ml_platform.evaluation.cross_view_evaluator import SubjectDisjointCrossViewEvaluator
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Evaluate ARGUS Cross-View Gait Recognition Metrics")
 
-    parser.add_argument(
-        "--max-images",
-        type=int,
-        default=500,
-        help="Max images to evaluate. Default: 500.",
-    )
-
-    parser.add_argument(
-        "--gallery-ratio",
-        type=float,
-        default=0.5,
-        help="Ratio of features to keep in gallery. Default: 0.5.",
-    )
-
-    parser.add_argument(
-        "--threshold",
-        type=float,
-        default=0.75,
-        help="Recognition threshold. Default: 0.75.",
-    )
+    parser.add_argument("--gei-root", type=str, default="data/datasets/casia_processed/gei")
+    parser.add_argument("--model-path", type=str, default="runs/exp_001/best_model.pth")
+    parser.add_argument("--split-config", type=str, default="configs/subject_split.json")
+    parser.add_argument("--threshold", type=float, default=0.85)
+    parser.add_argument("--output-dir", type=str, default="runs/exp_001/evaluation_cross_view")
 
     args = parser.parse_args()
 
     print("\n=== STARTING CROSS-VIEW GAIT EVALUATION ===")
-    print(f"Gallery Ratio: {args.gallery_ratio:.2f}")
+    print(f"GEI Root: {args.gei_root}")
+    print(f"Model Path: {args.model_path}")
     print(f"Threshold: {args.threshold:.2f}")
-    print(f"Max Images to test: {args.max_images}")
 
-    evaluator = CrossViewEvaluator(
-        gallery_ratio=args.gallery_ratio,
+    evaluator = SubjectDisjointCrossViewEvaluator(
+        gei_root=args.gei_root,
+        model_path=args.model_path,
+        split_config_path=args.split_config,
         threshold=args.threshold,
+        report_dir=args.output_dir,
     )
 
-    results = evaluator.evaluate_cross_view(max_test_images=args.max_images)
+    results = evaluator.evaluate_cross_view_matrices()
 
     print("\n=== CROSS-VIEW EVALUATION RESULTS ===")
-    print(f"{'View Angle':<12} | {'Correct':<8} | {'Total':<8} | {'Accuracy':<10}")
-    print("-" * 45)
-    for angle, metrics in sorted(results["per_view_metrics"].items()):
-        print(f"{angle:<12} | {metrics['correct']:<8} | {metrics['total']:<8} | {metrics['accuracy'] * 100:.2f}%")
-    print("-" * 45)
-    print(f"Fallback view parsing used: {results['fallback_used']}")
-    print("Saved JSON Report -> outputs/reports/evaluation/cross_view_report.json")
-    print("Saved CSV Report -> outputs/reports/evaluation/cross_view_report.csv")
+    print(f"{'Gallery Angle':<15} | {'Avg Rank-1 Accuracy':<20}")
+    print("-" * 40)
+    for gallery_angle in results["angles_evaluated"]:
+        per_probe_angle = results["matrix_rank1"].get(gallery_angle, {})
+        avg_accuracy = sum(per_probe_angle.values()) / len(per_probe_angle) if per_probe_angle else 0.0
+        print(f"{gallery_angle:<15} | {avg_accuracy * 100:.2f}%")
+    print("-" * 40)
+    print(f"Same-View Avg:      {results['same_view_average_rank1'] * 100:.2f}%")
+    print(f"Cross-View Avg:     {results['cross_view_average_rank1'] * 100:.2f}%")
+    print(f"Overall Matrix Avg: {results['overall_average_rank1'] * 100:.2f}%")
+    print("-" * 40)
+    print(f"Saved JSON Report -> {evaluator.report_dir / 'cross_view_report.json'}")
+    print(f"Saved CSV Report -> {evaluator.report_dir / 'cross_view_matrix.csv'}")
+    print(f"Saved Markdown Report -> {evaluator.report_dir / 'cross_view_report.md'}")
 
 
 if __name__ == "__main__":
