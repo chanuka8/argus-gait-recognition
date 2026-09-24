@@ -19,6 +19,7 @@ The `core` package provides system initialization, logging setup, process lifecy
 | [context.py](context.py) | Thread-safe global system context and runtime state holder |
 | [exceptions.py](exceptions.py) | Custom exception hierarchy for ARGUS AI error handling |
 | [health_check.py](health_check.py) | Hardware, CUDA, disk space, and memory health verifiers |
+| [inference_gate.py](inference_gate.py) | Module/resource file inference_gate.py |
 | [logger.py](logger.py) | Logger creation and formatting utilities |
 | [orchestrator.py](orchestrator.py) | Top-level coordinator managing streaming, recognition, and security layers |
 | [paths.py](paths.py) | Module/resource file paths.py |
