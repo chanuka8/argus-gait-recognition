@@ -66,9 +66,16 @@ export const AuthProvider = ({ children }) => {
         checkSession();
     }, []);
 
-    // Listen for operator suspension or removal events in real-time
+    // Listen for operator suspension or removal events in real-time.
+    // The backend tells us (via capabilities.realtime_operator_status,
+    // returned by both /auth/login and /auth/me) whether this session's
+    // operator store is Firebase-backed and therefore has a Firestore
+    // document to watch. In offline mode (dev/test) no such document ever
+    // exists, so this listener must not run there - its absence would
+    // otherwise be misread as the operator having been deleted.
     useEffect(() => {
         if (!currentUser || !currentUser.username) return;
+        if (!currentUser.capabilities?.realtime_operator_status) return;
 
         const roleLower = (currentUser.role || '').toLowerCase();
         const targetCollection = (roleLower === 'admin' || roleLower === 'root admin' || roleLower === 'root_admin')
