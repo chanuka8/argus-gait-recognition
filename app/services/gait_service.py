@@ -752,31 +752,72 @@ class GaitService:
         new_features = np.vstack(embeddings)
         new_labels = [person_id] * added_embeddings
 
-        if len(self.gallery_features) > 0:
-            self.gallery_features = np.vstack([self.gallery_features, new_features])
-            if not isinstance(self.gallery_labels, list):
-                self.gallery_labels = list(self.gallery_labels)
-            self.gallery_labels.extend(new_labels)
-        else:
-            self.gallery_features = new_features
-            self.gallery_labels = new_labels
+        def _metadata_entry(current_value, embeddings_added: int) -> dict:
+            if isinstance(current_value, dict):
+                previous = int(current_value.get("embeddings", 0))
+                status = str(current_value.get("status", "ACTIVE")).upper()
+                enabled = bool(current_value.get("enabled", status == "ACTIVE"))
+                if status != "ACTIVE":
+                    enabled = False
+                return {
+                    "embeddings": previous + embeddings_added,
+                    "status": status,
+                    "enabled": enabled,
+                    "updated_at": time.time(),
+                }
+            return {
+                "embeddings": embeddings_added,
+                "status": "ACTIVE",
+                "enabled": True,
+                "updated_at": time.time(),
+            }
 
-        self.store.save(self.gallery_features, self.gallery_labels, self.metadata)
+        # Read-modify-write under the VectorStore's own inter-process lock,
+        # against whatever is actually on disk right now - not this
+        # in-memory cache, which can be stale relative to concurrent writers
+        # (e.g. a background reference-job enrollment via a different
+        # VectorStore.update() call on the same gallery). A plain
+        # self.store.save(self.gallery_features, ...) based on a stale
+        # snapshot would silently overwrite such a write.
+        def gait_mutator(current):
+            if current is None:
+                features, labels, metadata = [], [], {}
+            else:
+                cur_features, cur_labels, cur_metadata = current
+                features = cur_features.tolist() if hasattr(cur_features, "tolist") else list(cur_features)
+                labels = list(cur_labels)
+                metadata = dict(cur_metadata)
+            features.extend(new_features.tolist())
+            labels.extend(new_labels)
+            metadata[person_id] = _metadata_entry(metadata.get(person_id), added_embeddings)
+            return features, labels, metadata
+
+        self.store.update(gait_mutator)
 
         if app_embeddings:
             new_app_features = np.vstack(app_embeddings)
             new_app_labels = [person_id] * len(app_embeddings)
-            if len(self.appearance_gallery_features) > 0:
-                self.appearance_gallery_features = np.vstack([self.appearance_gallery_features, new_app_features])
-                if not isinstance(self.appearance_gallery_labels, list):
-                    self.appearance_gallery_labels = list(self.appearance_gallery_labels)
-                self.appearance_gallery_labels.extend(new_app_labels)
-            else:
-                self.appearance_gallery_features = new_app_features
-                self.appearance_gallery_labels = new_app_labels
-            self.appearance_store.save(
-                self.appearance_gallery_features, self.appearance_gallery_labels, self.appearance_metadata
-            )
+
+            def appearance_mutator(current):
+                if current is None:
+                    features, labels, metadata = [], [], {}
+                else:
+                    cur_features, cur_labels, cur_metadata = current
+                    features = cur_features.tolist() if hasattr(cur_features, "tolist") else list(cur_features)
+                    labels = list(cur_labels)
+                    metadata = dict(cur_metadata)
+                features.extend(new_app_features.tolist())
+                labels.extend(new_app_labels)
+                metadata[person_id] = _metadata_entry(metadata.get(person_id), len(app_embeddings))
+                return features, labels, metadata
+
+            self.appearance_store.update(appearance_mutator)
+
+        # Refresh the in-memory cache (and push it to active camera workers)
+        # from what's now actually on disk, via the same locked, tested path
+        # every other gallery load goes through - rather than trusting this
+        # method's own local computation to match what update() persisted.
+        self.reload_gallery()
 
         db_persist_result = None
         if self.embedding_db is not None:
