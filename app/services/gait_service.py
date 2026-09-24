@@ -1,4 +1,5 @@
 import asyncio
+import os
 import threading
 import time
 import uuid
@@ -461,6 +462,54 @@ class GaitService:
                 self._readiness["continual_learning"] = "ERROR"
             results["continual_learning"] = f"ERROR: {e}"
 
+        # Startup recovery scan of unfinished reference jobs - explicitly gated
+        # (default ON, matching prior behavior) so this biometric-mutating path is
+        # a deliberate, documented configuration rather than an implicit side
+        # effect of warmup(). Set ARGUS_ENABLE_STARTUP_RECOVERY=0 for strictly
+        # read-only startup. This runs (and is logged) BEFORE warmup_duration_seconds
+        # is set below: that field is the signal external readiness probes act on,
+        # and it must not report "done" while the recovery scan/audit log is still
+        # in flight - otherwise a probe-triggered restart could kill the process
+        # mid-scan, leaving a job perpetually INTERRUPTED and replayed on every
+        # subsequent start.
+        recovery_enabled = os.environ.get("ARGUS_ENABLE_STARTUP_RECOVERY", "1").lower() not in ("0", "false", "no")
+        if not recovery_enabled:
+            self.logger.info("[STARTUP] Reference job recovery disabled via ARGUS_ENABLE_STARTUP_RECOVERY=0.")
+        else:
+            try:
+                from app.services.missing_person_processor import MissingPersonVideoProcessor
+                from app.services.reference_job_manager import RECOVERABLE_STATUSES, ReferenceJobManager
+
+                job_manager = ReferenceJobManager.get_instance()
+                candidate_ids = [
+                    j.job_id for j in job_manager._jobs.values() if j.status in RECOVERABLE_STATUSES
+                ]
+                self.logger.info(
+                    f"[STARTUP] [AUDIT] Reference job recovery scan: {len(candidate_ids)} "
+                    f"recoverable job(s) found: {candidate_ids}"
+                )
+
+                processor = MissingPersonVideoProcessor(
+                    detector=self.detector,
+                    tracker=self.tracker,
+                    extractor=self.extractor,
+                    appearance_extractor=self.appearance_extractor,
+                    silhouette_step=self.silhouette_extractor,
+                    store=self.store,
+                    embedding_db=self.embedding_db,
+                )
+                recovered = job_manager.recover_unfinished_jobs(
+                    processor=processor,
+                    gait_service_ref=self,
+                )
+                if recovered:
+                    self.logger.info(
+                        f"[STARTUP] [AUDIT] Recovered and resumed {len(recovered)} unfinished reference "
+                        f"job(s): {[j.job_id for j in recovered]}"
+                    )
+            except Exception as rec_err:  # noqa: BLE001
+                self.logger.warning(f"[STARTUP] Reference job recovery notice: {rec_err}")
+
         dur = time.perf_counter() - t0
         with self._lock:
             self._warmup_duration = dur
@@ -468,29 +517,6 @@ class GaitService:
             self._is_warming_up = False
 
         self.logger.info(f"[STARTUP] Background model warmup completed in {dur:.3f}s. Results: {results}")
-
-        # Automatic recovery scanner for unfinished reference video jobs
-        try:
-            from app.services.missing_person_processor import MissingPersonVideoProcessor
-            from app.services.reference_job_manager import ReferenceJobManager
-
-            processor = MissingPersonVideoProcessor(
-                detector=self.detector,
-                tracker=self.tracker,
-                extractor=self.extractor,
-                appearance_extractor=self.appearance_extractor,
-                silhouette_step=self.silhouette_extractor,
-                store=self.store,
-                embedding_db=self.embedding_db,
-            )
-            recovered = ReferenceJobManager.get_instance().recover_unfinished_jobs(
-                processor=processor,
-                gait_service_ref=self,
-            )
-            if recovered:
-                self.logger.info(f"[STARTUP] Recovered and resumed {len(recovered)} unfinished reference job(s).")
-        except Exception as rec_err:  # noqa: BLE001
-            self.logger.warning(f"[STARTUP] Reference job recovery notice: {rec_err}")
 
         return {"status": "WARMED_UP", "duration": dur, "components": results}
 

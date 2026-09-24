@@ -231,6 +231,9 @@ class ReferenceJobManager:
         self._claimed_jobs: set[str] = set()
         self._shutdown_event = threading.Event()
         self._executor = ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="RefJobWorker")
+        self.processed_sources_file = self.jobs_dir / "processed_sources_index.json"
+        self._processed_sources: dict[str, dict] = {}
+        self._load_processed_sources_index()
         self._load_persisted_jobs()
 
     @property
@@ -255,6 +258,70 @@ class ReferenceJobManager:
                 except Exception as exc:  # noqa: BLE001
                     cls._instance.logger.debug("Reset instance shutdown error: %s", exc)
                 cls._instance = None
+
+    def _load_processed_sources_index(self) -> None:
+        """Loads the one-time-processing checkpoint: {person_id}:{sha256(source bytes)} ->
+        record, so the same physical source can never be embedded twice for the same
+        person even if it arrives under a different job_id (retry, re-upload, replay)."""
+        if not self.processed_sources_file.exists():
+            return
+        try:
+            with open(self.processed_sources_file, "r", encoding="utf-8") as f:
+                self._processed_sources = json.load(f)
+        except (OSError, json.JSONDecodeError) as err:
+            self.logger.warning(f"Could not load processed-sources index: {err}")
+            self._processed_sources = {}
+
+    def _persist_processed_sources_index(self) -> None:
+        tmp = self.jobs_dir / f".processed_sources_{os.getpid()}_{uuid.uuid4().hex[:6]}.tmp"
+        try:
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump(self._processed_sources, f, indent=2)
+                f.flush()
+                os.fsync(f.fileno())
+            _safe_atomic_replace(tmp, self.processed_sources_file)
+        except OSError as e:
+            self.logger.error(f"Failed to persist processed-sources index: {e}")
+            if tmp.exists():
+                tmp.unlink(missing_ok=True)
+
+    @staticmethod
+    def compute_source_hash(path: str | Path) -> str:
+        """SHA-256 of the source file's bytes: the identity used for one-time processing."""
+        import hashlib
+
+        h = hashlib.sha256()
+        with open(path, "rb") as f:
+            for chunk in iter(lambda: f.read(1024 * 1024), b""):
+                h.update(chunk)
+        return h.hexdigest()
+
+    def get_processed_source(self, person_id: str, content_hash: str) -> dict | None:
+        key = f"{person_id}:{content_hash}"
+        with self._lock:
+            return self._processed_sources.get(key)
+
+    def mark_source_processed(
+        self,
+        person_id: str,
+        content_hash: str,
+        job_id: str,
+        embeddings_added: int,
+    ) -> None:
+        key = f"{person_id}:{content_hash}"
+        with self._lock:
+            self._processed_sources[key] = {
+                "person_id": person_id,
+                "content_hash": content_hash,
+                "job_id": job_id,
+                "embeddings_added": embeddings_added,
+                "processed_at": time.time(),
+            }
+            self._persist_processed_sources_index()
+        self.logger.info(
+            f"[AUDIT] source processed: person_id={person_id} job_id={job_id} "
+            f"content_hash={content_hash[:12]}... embeddings_added={embeddings_added}"
+        )
 
     def _load_persisted_jobs(self) -> None:
         count = 0
