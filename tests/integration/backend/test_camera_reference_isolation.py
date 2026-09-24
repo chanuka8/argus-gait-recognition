@@ -209,6 +209,17 @@ def test_env():
 
     app.state.gait_service = service
 
+    # This suite exercises real camera/enrollment isolation behavior, not
+    # the memory-headroom admission-control gate (covered separately in
+    # test_low_memory_ml_deferral.py) - force sufficient headroom so
+    # on-demand warmup isn't deferred depending on how much RAM happens to
+    # be free on whatever machine runs the suite.
+    headroom_patcher = patch(
+        "app.core.resource_profile.has_sufficient_ml_startup_headroom",
+        return_value=(True, 4096.0, 1024.0),
+    )
+    headroom_patcher.start()
+
     yield {
         "temp_dir": temp_dir,
         "service": service,
@@ -217,6 +228,8 @@ def test_env():
         "db_dir": db_dir,
         "jobs_dir": jobs_dir,
     }
+
+    headroom_patcher.stop()
 
     # Teardown
     for cam_id in list(service.camera_workers.keys()):

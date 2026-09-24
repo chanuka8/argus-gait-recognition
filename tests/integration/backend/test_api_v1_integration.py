@@ -37,6 +37,19 @@ class TestApiV1Integration(unittest.TestCase):
         app.state.gait_service = self.service
         app.dependency_overrides[get_gait_service] = lambda: self.service
 
+        # This suite exercises real request/response behavior, not the
+        # memory-headroom admission-control gate (covered separately in
+        # test_low_memory_ml_deferral.py) - force sufficient headroom so
+        # on-demand warmup (triggered by the first inference request) isn't
+        # deferred depending on how much RAM happens to be free on whatever
+        # machine runs the suite.
+        self._headroom_patcher = unittest.mock.patch(
+            "app.core.resource_profile.has_sufficient_ml_startup_headroom",
+            return_value=(True, 4096.0, 1024.0),
+        )
+        self._headroom_patcher.start()
+        self.addCleanup(self._headroom_patcher.stop)
+
         self.client_cm = TestClient(app)
         self.client = self.client_cm.__enter__()
 

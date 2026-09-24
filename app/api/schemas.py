@@ -23,6 +23,7 @@ class ReadinessResponse(BaseModel):
     recognition_ready: bool = False
     states: dict[str, bool] = Field(default_factory=dict)
     components: dict[str, str] = Field(default_factory=dict)
+    warmup_deferred_reason: str | None = None
     warmup_duration_seconds: float = 0.0
 
 

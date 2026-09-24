@@ -26,7 +26,7 @@ Verifies:
 """
 
 import logging
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -34,6 +34,18 @@ from fastapi.testclient import TestClient
 from app.api.server import app
 from app.security_layer.auth import get_session_store
 from app.services.upload_session_manager import UploadSessionManager
+
+
+@pytest.fixture(autouse=True)
+def _sufficient_ml_startup_headroom():
+    """This suite exercises exception-message sanitization inside the real
+    inference pipeline, not the memory-headroom admission-control gate
+    (covered separately in test_low_memory_ml_deferral.py) - force
+    sufficient headroom for every test here so on-demand warmup isn't
+    deferred depending on how much RAM happens to be free on whatever
+    machine runs the suite."""
+    with patch("app.core.resource_profile.has_sufficient_ml_startup_headroom", return_value=(True, 4096.0, 1024.0)):
+        yield
 
 
 @pytest.fixture

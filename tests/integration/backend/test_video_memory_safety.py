@@ -39,6 +39,18 @@ from app.services.reference_job_manager import ReferenceJobManager, ReferenceJob
 from app.services.upload_session_manager import UploadSessionManager, UploadSessionRecord
 
 
+@pytest.fixture(autouse=True)
+def _sufficient_ml_startup_headroom():
+    """This suite exercises video-upload/processing memory-safety behavior,
+    not the memory-headroom admission-control gate on ML warmup itself
+    (covered separately in test_low_memory_ml_deferral.py) - force
+    sufficient headroom for every test here so on-demand warmup isn't
+    deferred depending on how much RAM happens to be free on whatever
+    machine runs the suite."""
+    with patch("app.core.resource_profile.has_sufficient_ml_startup_headroom", return_value=(True, 4096.0, 1024.0)):
+        yield
+
+
 def _isolated_processor_kwargs(tmp_path: Path) -> dict:
     """Isolated gallery/db/job-state dirs so these tests never touch the real,
     git-tracked default galleries under ml_platform/models/galleries/ or the

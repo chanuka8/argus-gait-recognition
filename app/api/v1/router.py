@@ -149,6 +149,33 @@ def get_gait_service(request: Request = None) -> GaitService:
     return _fallback_gait_service
 
 
+async def _require_ml_ready(service: GaitService) -> None:
+    """Gate before any live inference call: never let a request silently
+    hang waiting on ML models that were deferred because startup found
+    insufficient memory headroom (see GaitService.warmup /
+    app.core.resource_profile.has_sufficient_ml_startup_headroom).
+
+    ensure_warm_or_deferred() is a bounded, on-demand retry - not a busy
+    loop - and is itself single-flight safe, so concurrent callers never
+    trigger duplicate model construction. Offloaded to a thread since a
+    real (non-deferred) warmup attempt can take several seconds.
+    """
+    ready = await asyncio.to_thread(service.ensure_warm_or_deferred)
+    if not ready:
+        reason = service.warmup_deferred_reason
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "error": "ml_unavailable",
+                "message": (
+                    "Recognition is temporarily unavailable and will retry automatically "
+                    "on the next request. " + (reason or "Model initialization is still in progress.")
+                ),
+                "reason": "insufficient_memory_headroom" if reason else "initializing",
+            },
+        )
+
+
 v1_router = APIRouter(
     prefix="/api/v1",
     tags=["v1"],
@@ -286,6 +313,11 @@ async def identify_image(
                 status_code=400,
                 detail="Uploaded file is empty",
             )
+
+        # Checked after input validation, not before: a malformed/empty/
+        # wrong-type request should still get its real 4xx regardless of ML
+        # readiness - there's no reason to gate it on model availability.
+        await _require_ml_ready(service)
 
         async with get_inference_gate():
             return await asyncio.to_thread(
@@ -457,6 +489,11 @@ async def analyze_video(
             )
 
         service.stats["processed_videos"] += 1
+
+        # Checked after input validation (size/emptiness), not before: a
+        # malformed/oversized/empty upload should still get its real 4xx
+        # regardless of ML readiness.
+        await _require_ml_ready(service)
 
         async with get_inference_gate():
             return await asyncio.to_thread(_analyze_video_frames, service, temporary_path)
@@ -924,6 +961,13 @@ async def enroll_subject(
                 status_code=400,
                 detail="No valid image files supplied",
             )
+
+        # Checked after input validation, not before: a request with no
+        # files or only invalid file types should still get its real 4xx
+        # regardless of ML readiness. Both branches below (queued and
+        # synchronous) touch detector/extractor/etc., so this must run
+        # before either.
+        await _require_ml_ready(service)
 
         if async_mode:
             photos_dir = Path("data/runtime/reference_photos")

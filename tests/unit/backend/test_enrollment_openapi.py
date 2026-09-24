@@ -21,6 +21,18 @@ class StubGaitService:
             "embeddings_added": len(image_bytes_list),
         }
 
+    # Satisfies the readiness contract app.api.v1.router._require_ml_ready
+    # checks on any real GaitService - this stub always reports "already
+    # warm", so this contract test exercises the enroll endpoint's request/
+    # response shape without the low-memory admission-control gate
+    # (covered separately) interfering.
+    def ensure_warm_or_deferred(self) -> bool:
+        return True
+
+    @property
+    def warmup_deferred_reason(self) -> str | None:
+        return None
+
 
 def test_enrollment_openapi_schema():
     app.openapi_schema = None

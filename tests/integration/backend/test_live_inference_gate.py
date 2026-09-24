@@ -42,6 +42,17 @@ class _ConcurrencyTrackingFakeService:
         self._lock = threading.Lock()
         self.call_count = 0
 
+    # Satisfies the same readiness contract app.api.v1.router._require_ml_ready
+    # checks on any real GaitService - this fake always reports "already
+    # warm", so tests exercise inference-gate/threading behavior without the
+    # low-memory admission-control gate (covered separately) interfering.
+    def ensure_warm_or_deferred(self) -> bool:
+        return True
+
+    @property
+    def warmup_deferred_reason(self) -> str | None:
+        return None
+
     def process_image_bytes(self, image_bytes: bytes, camera_id: str = "upload-image") -> dict:
         with self._lock:
             self._active += 1
