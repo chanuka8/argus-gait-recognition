@@ -16,6 +16,12 @@ venv.bak/
 /activate_venv.bat
 /activate_venv.sh
 
+# ultralytics auto-download fallback: when the managed weight under
+# ml_platform/models/model_store/weights/ (already ignored below) isn't
+# present, detection code falls back to YOLO("yolov8n.pt"), which
+# ultralytics auto-downloads to the process CWD (repo root in dev).
+/yolov8n*.pt
+
 # Unrelated standalone side-project sometimes present at repo root on
 # shared dev machines; never part of ARGUS AI itself.
 /Face recognition Model/
