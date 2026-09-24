@@ -352,7 +352,7 @@ class MissingPersonVideoProcessor:
         normalized_person_id = person_id.strip()
         v_path = Path(video_path)
 
-        # 0. Check if job was already completed (Idempotency guarantee)
+        # 0. Check if job was already completed (Idempotency guarantee - by job_id)
         if job_id:
             existing_job = self.job_manager.get_job(job_id)
             if existing_job and existing_job.status == ReferenceJobStatus.COMPLETED:
@@ -362,6 +362,30 @@ class MissingPersonVideoProcessor:
                     "status": "COMPLETED",
                     "person_id": normalized_person_id,
                 }
+
+        # 0b. Idempotency guarantee by SOURCE CONTENT (not just job_id): the same
+        # physical video re-submitted under a different job_id (retry, re-upload,
+        # a stale recovery replay) must not be embedded twice for the same person.
+        source_hash = None
+        if v_path.exists():
+            try:
+                source_hash = self.job_manager.compute_source_hash(v_path)
+                prior = self.job_manager.get_processed_source(normalized_person_id, source_hash)
+                if prior is not None:
+                    self.logger.info(
+                        f"[AUDIT] ALREADY_PROCESSED: person_id={normalized_person_id} "
+                        f"content_hash={source_hash[:12]}... originally job_id={prior.get('job_id')} "
+                        f"(this job_id={job_id}) - skipping re-embedding, no-op."
+                    )
+                    return {
+                        "success": True,
+                        "status": "ALREADY_PROCESSED",
+                        "person_id": normalized_person_id,
+                        "embeddings_added": 0,
+                        "original_job_id": prior.get("job_id"),
+                    }
+            except OSError as hash_err:
+                self.logger.warning(f"Could not hash source video for idempotency check: {hash_err}")
 
         # Check for previous checkpoint state
         chk_data = self.job_manager.load_checkpoint_data(job_id) if job_id else None
@@ -865,6 +889,14 @@ class MissingPersonVideoProcessor:
         if job_id:
             self.job_manager.complete_job(job_id, summary_result, status=ReferenceJobStatus.COMPLETED)
 
+        if source_hash:
+            self.job_manager.mark_source_processed(
+                person_id=normalized_person_id,
+                content_hash=source_hash,
+                job_id=job_id or "",
+                embeddings_added=len(dedup_embeddings),
+            )
+
         if is_resume:
             self.logger.info(f"[RECOVERY] Job completed successfully: {job_id}")
 
@@ -900,6 +932,35 @@ class MissingPersonVideoProcessor:
                     "status": "COMPLETED",
                     "person_id": normalized_person_id,
                 }
+
+        # Idempotency by SOURCE CONTENT: hash the sorted set of photo bytes together,
+        # so the same exact photo set re-submitted under a new job_id is a no-op.
+        photo_source_hash = None
+        existing_paths = [Path(p) for p in photo_paths if Path(p).exists()]
+        if existing_paths:
+            try:
+                import hashlib
+
+                combined = hashlib.sha256()
+                for p in sorted(existing_paths, key=str):
+                    combined.update(self.job_manager.compute_source_hash(p).encode("ascii"))
+                photo_source_hash = combined.hexdigest()
+                prior = self.job_manager.get_processed_source(normalized_person_id, photo_source_hash)
+                if prior is not None:
+                    self.logger.info(
+                        f"[AUDIT] ALREADY_PROCESSED (photos): person_id={normalized_person_id} "
+                        f"content_hash={photo_source_hash[:12]}... originally job_id={prior.get('job_id')} "
+                        f"(this job_id={job_id}) - skipping re-embedding, no-op."
+                    )
+                    return {
+                        "success": True,
+                        "status": "ALREADY_PROCESSED",
+                        "person_id": normalized_person_id,
+                        "embeddings_added": 0,
+                        "original_job_id": prior.get("job_id"),
+                    }
+            except OSError as hash_err:
+                self.logger.warning(f"Could not hash source photos for idempotency check: {hash_err}")
 
         if job_id:
             self.job_manager.update_progress(
@@ -1042,6 +1103,14 @@ class MissingPersonVideoProcessor:
 
         if job_id:
             self.job_manager.complete_job(job_id, summary_result, status=ReferenceJobStatus.COMPLETED)
+
+        if photo_source_hash:
+            self.job_manager.mark_source_processed(
+                person_id=normalized_person_id,
+                content_hash=photo_source_hash,
+                job_id=job_id or "",
+                embeddings_added=len(dedup_embeddings),
+            )
 
         self.logger.info(
             f"Reference photo processing completed for '{normalized_person_id}': "

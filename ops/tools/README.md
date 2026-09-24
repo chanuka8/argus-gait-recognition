@@ -25,6 +25,7 @@ The `tools` package provides operational CLI utilities, benchmarks, maintenance 
 | [manage_venv.ps1](manage_venv.ps1) | Module/resource file manage_venv.ps1 |
 | `migration/` | Module/resource file migration/ |
 | `security/` | Module/resource file security/ |
+| [start_prod.js](start_prod.js) | Production launcher: builds the frontend once and runs Uvicorn without --reload, no Vite dev server |
 | [start_system.bat](start_system.bat) | Module/resource file start_system.bat |
 | [start_system.sh](start_system.sh) | Module/resource file start_system.sh |
 | `validation/` | Module/resource file validation/ |

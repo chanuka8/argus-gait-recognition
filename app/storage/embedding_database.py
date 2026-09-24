@@ -286,6 +286,13 @@ class EmbeddingDatabase:
         created_at: float | None = None,
         observation_date: str | None = None,
     ) -> dict[str, Any]:
+        self._logger.info(
+            f"[AUDIT] add_embeddings: person_id={person_id} "
+            f"n_gait={len(gait_embeddings) if gait_embeddings else 0} "
+            f"n_appearance={len(appearance_embeddings) if appearance_embeddings else 0} "
+            f"source_session_id={source_session_id!r}"
+        )
+
         person = self.get_person(person_id)
         if person is None:
             person = PersonRecord(person_id=person_id)
@@ -626,6 +633,8 @@ class EmbeddingDatabase:
         return True, "Persistence verified"
 
     def _sync_vector_stores(self) -> None:
+        self._logger.info("[AUDIT] _sync_vector_stores: rewriting gait/appearance VectorStore galleries from EmbeddingDatabase")
+
         all_persons = self.list_all_persons()
 
         gait_feats = []

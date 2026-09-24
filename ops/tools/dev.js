@@ -330,7 +330,7 @@ async function main() {
     // -------------------------------------------------------------------------
     // 3. Start Frontend Process (Vite)
     // -------------------------------------------------------------------------
-    logArgus('Starting Vite frontend dev server on http://localhost:5173 ...');
+    logArgus('Starting Vite frontend dev server...');
 
     const isWin = process.platform === 'win32';
     const frontendCommand = isWin ? 'cmd.exe' : 'npm';
@@ -346,10 +346,29 @@ async function main() {
         shell: false,
     });
 
+    // Vite auto-increments its port (5173 -> 5174 -> ...) whenever the
+    // preferred one is already taken, so the real URL can only be known by
+    // reading Vite's own "Local:" line rather than assuming a fixed port.
+    let detectedFrontendUrl = null;
+    const viteLocalUrlPattern = /Local:\s+(https?:\/\/[^\s]+)/;
+
+    const captureFrontendUrl = (line) => {
+        if (detectedFrontendUrl) return;
+        // eslint-disable-next-line no-control-regex
+        const plain = line.replace(/\x1b\[[0-9;]*m/g, '');
+        const match = plain.match(viteLocalUrlPattern);
+        if (match) {
+            detectedFrontendUrl = match[1].replace(/\/$/, '');
+        }
+    };
+
     frontendProc.stdout.on('data', (data) => {
         const text = data.toString();
         text.split(/\r?\n/).forEach((line) => {
-            if (line.trim()) logFrontend(line);
+            if (line.trim()) {
+                logFrontend(line);
+                captureFrontendUrl(line);
+            }
         });
     });
 
@@ -367,11 +386,23 @@ async function main() {
         }
     });
 
+    // Wait briefly for Vite to report its actual URL instead of assuming
+    // the default port; fall back to the default only if detection times out.
+    const urlWaitStart = Date.now();
+    while (!detectedFrontendUrl && Date.now() - urlWaitStart < 10000) {
+        if (isShuttingDown) return;
+        await new Promise((r) => setTimeout(r, 100));
+    }
+    const frontendUrl = detectedFrontendUrl || 'http://localhost:5173';
+    if (!detectedFrontendUrl) {
+        logArgus(`${YELLOW}Could not detect Vite's actual URL in time; showing the default. Check the [FRONTEND] log above for the real address.${RESET}`);
+    }
+
     logArgus(`${BOLD}${GREEN}====================================================${RESET}`);
     logArgus(`${BOLD}${GREEN}ARGUS AI IS READY!${RESET}`);
-    logArgus(`• Web Portal:  ${BOLD}${CYAN}http://localhost:5173/${RESET}`);
+    logArgus(`• Web Portal:  ${BOLD}${CYAN}${frontendUrl}/${RESET}`);
     logArgus(`• API Backend: ${BOLD}${CYAN}http://127.0.0.1:8000/docs${RESET}`);
-    logArgus(`• Camera Zone: ${BOLD}${CYAN}http://localhost:5173/cctv-network${RESET}`);
+    logArgus(`• Camera Zone: ${BOLD}${CYAN}${frontendUrl}/cctv-network${RESET}`);
     logArgus(`${BOLD}${GREEN}====================================================${RESET}`);
 }
 

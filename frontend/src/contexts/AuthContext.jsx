@@ -11,45 +11,56 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         const checkSession = async () => {
-            const token = sessionStorage.getItem('argus_session_token');
-            const cachedUser = sessionStorage.getItem('argus_current_user');
+            try {
+                const token = sessionStorage.getItem('argus_session_token');
+                const cachedUser = sessionStorage.getItem('argus_current_user');
 
-            if (token) {
-                try {
-                    const res = await fetch(`${API_BASE}/api/v1/auth/me`, {
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                        },
-                    });
+                if (token) {
+                    try {
+                        const res = await fetch(`${API_BASE}/api/v1/auth/me`, {
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                            },
+                        });
 
-                    if (res.ok) {
-                        const profile = await res.json();
-                        sessionStorage.setItem('argus_current_user', JSON.stringify(profile));
-                        setCurrentUser(profile);
-                    } else {
-                        // Session expired or invalid on server
-                        sessionStorage.removeItem('argus_session_token');
-                        sessionStorage.removeItem('argus_current_user');
-                        setCurrentUser(null);
-                    }
-                } catch {
-                    // Fallback to cached profile if network temporarily unavailable
-                    if (cachedUser) {
-                        try {
-                            setCurrentUser(JSON.parse(cachedUser));
-                        } catch {
+                        if (res.ok) {
+                            // Authenticated: server confirmed the session token.
+                            const profile = await res.json();
+                            sessionStorage.setItem('argus_current_user', JSON.stringify(profile));
+                            setCurrentUser(profile);
+                        } else {
+                            // Unauthenticated: 401/403 (or any non-2xx) means the token is
+                            // missing, expired, or invalid. This is normal, expected state
+                            // for a logged-out visitor, not an error condition.
+                            sessionStorage.removeItem('argus_session_token');
+                            sessionStorage.removeItem('argus_current_user');
                             setCurrentUser(null);
                         }
-                    } else {
-                        setCurrentUser(null);
+                    } catch {
+                        // Network/CORS-level failure reaching the backend at all.
+                        // Fall back to the cached profile if one exists, otherwise
+                        // treat as logged out.
+                        if (cachedUser) {
+                            try {
+                                setCurrentUser(JSON.parse(cachedUser));
+                            } catch {
+                                setCurrentUser(null);
+                            }
+                        } else {
+                            setCurrentUser(null);
+                        }
                     }
+                } else {
+                    sessionStorage.removeItem('argus_session_token');
+                    sessionStorage.removeItem('argus_current_user');
+                    setCurrentUser(null);
                 }
-            } else {
-                sessionStorage.removeItem('argus_session_token');
-                sessionStorage.removeItem('argus_current_user');
-                setCurrentUser(null);
+            } finally {
+                // Guaranteed to run on every path, including any unexpected
+                // synchronous throw above (e.g. sessionStorage being unavailable),
+                // so the app can never get stuck in a permanent loading state.
+                setLoading(false);
             }
-            setLoading(false);
         };
 
         checkSession();
@@ -79,8 +90,12 @@ export const AuthProvider = ({ children }) => {
                     setCurrentUser(null);
                     addLog('info', `Operator ${currentUser.username} suspended and logged out`, 'Session terminated automatically due to administrator suspension.', currentUser.username);
                 }
-            } else {
-                // If operator document was deleted
+            } else if (!querySnapshot.metadata.fromCache) {
+                // Empty AND server-confirmed (not a local-cache fallback served while
+                // Firestore is unreachable) means the operator document was genuinely
+                // deleted. A transient Firestore outage also delivers an empty snapshot
+                // here (fromCache: true) and must not be treated as deletion, or any
+                // connectivity hiccup would force-logout a legitimately authenticated user.
                 sessionStorage.removeItem('argus_session_token');
                 sessionStorage.removeItem('argus_current_user');
                 setCurrentUser(null);
@@ -163,13 +178,14 @@ export const AuthProvider = ({ children }) => {
 
     const value = {
         currentUser,
+        loading,
         login,
         logout,
     };
 
     return (
         <AuthContext.Provider value={value}>
-            {!loading && children}
+            {children}
         </AuthContext.Provider>
     );
 };

@@ -22,8 +22,10 @@ The `core` package provides system initialization, logging setup, process lifecy
 | [logger.py](logger.py) | Logger creation and formatting utilities |
 | [orchestrator.py](orchestrator.py) | Top-level coordinator managing streaming, recognition, and security layers |
 | [paths.py](paths.py) | Module/resource file paths.py |
+| [resource_profile.py](resource_profile.py) | Torch-free RAM/CPU/GPU profile (LOW_RESOURCE/BALANCED/PERFORMANCE) used to size thread budgets and defer background-optional ML components |
 | [system.py](system.py) | Primary application container and lifecycle coordinator |
 | [system_monitor.py](system_monitor.py) | Background monitoring for CPU, RAM, and GPU resource usage |
+| [thread_limits.py](thread_limits.py) | Hardware-aware OMP/MKL/OpenBLAS/PyTorch/OpenCV/ONNXRuntime thread-pool limits, configured once before any ML library is imported |
 | [threshold_manager.py](threshold_manager.py) | Authoritative recognition threshold manager and calibration resolution |
 <!-- END SYNC: KEY_MODULES -->
 

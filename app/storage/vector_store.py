@@ -126,6 +126,11 @@ class VectorStore:
         and written to gallery_features.enc. In development mode without a key, legacy .npy
         writes are performed with an explicit security warning.
         """
+        logger.info(
+            f"[AUDIT] gallery write: dir={self.gallery_dir} n_features={len(features) if features is not None else 0} "
+            f"n_labels={len(labels) if labels is not None else 0} n_subjects={len(metadata) if metadata else 0}"
+        )
+
         metadata = self._normalize_metadata(
             metadata or {},
         )
@@ -137,6 +142,23 @@ class VectorStore:
         lbls_arr = np.asarray(labels)
         if lbls_arr.size == 0 and lbls_arr.ndim != 1:
             lbls_arr = np.empty((0,), dtype=str)
+
+        # Schema/shape validation before any write - a mismatch here means a bug
+        # upstream produced a corrupt gallery; reject it rather than persist it and
+        # silently desynchronize features from labels.
+        if feats_arr.shape[0] != lbls_arr.shape[0]:
+            raise ValueError(
+                f"Refusing to save gallery '{self.gallery_dir}': feature/label count mismatch "
+                f"({feats_arr.shape[0]} features vs {lbls_arr.shape[0]} labels)."
+            )
+        metadata_total = sum(int(v.get("embeddings", 0)) for v in metadata.values() if isinstance(v, dict))
+        if metadata_total != lbls_arr.shape[0]:
+            logger.warning(
+                f"[AUDIT] gallery write count mismatch for '{self.gallery_dir}': "
+                f"metadata reports {metadata_total} total embeddings, but {lbls_arr.shape[0]} label rows "
+                f"are being written. Proceeding (labels are authoritative), but this indicates the caller's "
+                f"metadata bookkeeping has drifted from the actual feature/label arrays."
+            )
 
         with FileLock(str(self.lock_file), timeout=10.0):
             # 1. Features persistence (Encrypted or Plaintext)
