@@ -223,6 +223,7 @@ def test_process_reference_photos_async_flow(temp_db_env):
         extractor=mock_extractor,
         silhouette_step=mock_silhouette,
         store=db.gait_store,
+        appearance_store=db.appearance_store,
         embedding_db=db,
         job_manager=job_mgr,
     )

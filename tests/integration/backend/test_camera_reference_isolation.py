@@ -323,7 +323,7 @@ def test_camera_off_video_upload_e2e(test_env, auth_headers):
         t_proc_start = time.perf_counter()
         final_job = None
         stages_observed = []
-        for _ in range(80):
+        for _ in range(300):
             st_resp = client.get(f"/api/v1/cases/jobs/{job_id}", headers=auth_headers)
             assert st_resp.status_code == 200
             st_data = st_resp.json()
@@ -480,15 +480,20 @@ def test_camera_on_video_upload_e2e(test_env, auth_headers):
         assert resp.status_code == 202
         job_id = resp.json()["job_id"]
 
-        # Poll job to completion
+        # Poll job to completion. This scenario runs reference-video processing
+        # concurrently with an active camera worker, so it needs more headroom
+        # than the simpler polling loops elsewhere in this file (8s was proven
+        # too tight under real CPU contention on a low-resource machine).
         t_proc_start = time.perf_counter()
         final_job = None
-        for _ in range(80):
+        for _ in range(300):
             st_resp = client.get(f"/api/v1/cases/jobs/{job_id}", headers=auth_headers)
             st_data = st_resp.json()
             if st_data["status"] == ReferenceJobStatus.COMPLETED.value:
                 final_job = st_data
                 break
+            if st_data["status"] == ReferenceJobStatus.FAILED.value:
+                pytest.fail(f"Camera ON video job failed: {st_data.get('error_message')}")
             time.sleep(0.1)
 
         assert final_job is not None, "Camera ON video job timed out"
@@ -553,7 +558,7 @@ def test_camera_interruption_disconnect_during_video_processing(test_env, auth_h
 
         # Job must still finish COMPLETED
         final_job = None
-        for _ in range(80):
+        for _ in range(300):
             st_data = client.get(f"/api/v1/cases/jobs/{job_id}", headers=auth_headers).json()
             if st_data["status"] == ReferenceJobStatus.COMPLETED.value:
                 final_job = st_data
@@ -601,7 +606,7 @@ def test_camera_interruption_reconnect_during_video_processing(test_env, auth_he
         mock_cap.reconnect()
 
         final_job = None
-        for _ in range(80):
+        for _ in range(300):
             st_data = client.get(f"/api/v1/cases/jobs/{job_id}", headers=auth_headers).json()
             if st_data["status"] == ReferenceJobStatus.COMPLETED.value:
                 final_job = st_data
@@ -648,7 +653,7 @@ def test_camera_interruption_stop_during_video_processing(test_env, auth_headers
         assert "cam_stop_mid" not in service.active_cameras
 
         final_job = None
-        for _ in range(80):
+        for _ in range(300):
             st_data = client.get(f"/api/v1/cases/jobs/{job_id}", headers=auth_headers).json()
             if st_data["status"] == ReferenceJobStatus.COMPLETED.value:
                 final_job = st_data
@@ -694,7 +699,7 @@ def test_camera_interruption_start_while_processing(test_env, auth_headers):
         assert "cam_dyn_start" in service.active_cameras
 
         final_job = None
-        for _ in range(80):
+        for _ in range(300):
             st_data = client.get(f"/api/v1/cases/jobs/{job_id}", headers=auth_headers).json()
             if st_data["status"] == ReferenceJobStatus.COMPLETED.value:
                 final_job = st_data
@@ -798,6 +803,7 @@ def test_embedding_validation_numerical_rejection(test_env):
     """Verify that validate_embedding strictly rejects non-finite vectors or wrong dimensions."""
     processor = MissingPersonVideoProcessor(
         store=test_env["service"].store,
+        appearance_store=test_env["service"].appearance_store,
         embedding_db=test_env["service"].embedding_db,
     )
 
