@@ -49,9 +49,25 @@ export const GaitProvider = ({ children }) => {
     }
   }, []);
 
+  // Health/status polling is auth-independent (getHealth/getStatus work
+  // unauthenticated) and only needs to start once per mount.
   useEffect(() => {
     fetchState();
     const interval = setInterval(fetchState, 10000);
+    return () => clearInterval(interval);
+  }, [fetchState]);
+
+  // The realtime event WebSocket is auth-gated: gaitApi.createWebSocket()'s
+  // internal connect() checks sessionStorage directly, not currentUser, so a
+  // single effect keyed on currentUser used to run twice per page load -
+  // once while currentUser was still null (checkSession() hadn't resolved
+  // yet, but sessionStorage already had a token from before this render),
+  // opening a connection, and again once currentUser updated - leaving two
+  // sockets open briefly. Gating this effect on currentUser itself (rather
+  // than memoizing its identity) means it simply does nothing until
+  // authentication has actually resolved, so it connects exactly once.
+  useEffect(() => {
+    if (!currentUser) return undefined;
 
     const ws = gaitApi.createWebSocket(
       (newEvent) => {
@@ -69,10 +85,9 @@ export const GaitProvider = ({ children }) => {
     );
 
     return () => {
-      clearInterval(interval);
       ws.close();
     };
-  }, [fetchState, currentUser]);
+  }, [currentUser]);
 
   const identifyImage = async (file, cameraId) => {
     const event = await gaitApi.identifyImage(file, cameraId);
