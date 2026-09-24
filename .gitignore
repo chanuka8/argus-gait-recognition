@@ -16,6 +16,10 @@ venv.bak/
 /activate_venv.bat
 /activate_venv.sh
 
+# Unrelated standalone side-project sometimes present at repo root on
+# shared dev machines; never part of ARGUS AI itself.
+/Face recognition Model/
+
 # Environment and Secrets
 .env
 .env.*

@@ -7,7 +7,11 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from ops.tools.maintenance.install_git_hooks import HOOK_CONTENT, install_pre_commit_hook
+from ops.tools.maintenance.install_git_hooks import (
+    HOOK_CONTENT,
+    _resolve_git_hooks_dir,
+    install_pre_commit_hook,
+)
 from ops.tools.maintenance.sync_folder_readmes import (
     TARGET_FOLDERS,
     _atomic_write_file,
@@ -360,7 +364,9 @@ class TestPreCommitHook(unittest.TestCase):
         root_dir = Path(__file__).resolve().parents[3]
         success = install_pre_commit_hook(root_dir)
         self.assertTrue(success)
-        hook_path = root_dir / ".git" / "hooks" / "pre-commit"
+        # Resolve the same way the installer does: in a linked git worktree,
+        # hooks live under the shared common git dir, not `<root>/.git/hooks`.
+        hook_path = _resolve_git_hooks_dir(root_dir) / "pre-commit"
         self.assertTrue(hook_path.exists())
         content = hook_path.read_text(encoding="utf-8")
         self.assertIn("sync_folder_readmes.py", content)

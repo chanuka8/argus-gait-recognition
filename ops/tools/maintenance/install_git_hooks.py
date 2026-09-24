@@ -1,5 +1,6 @@
 import os
 import stat
+import subprocess
 import sys
 from pathlib import Path
 
@@ -41,18 +42,48 @@ if [ $SYNC_EXIT -ne 0 ]; then
     exit 1
 fi
 
-# Automatically stage updated README files
-git add README.md 2>/dev/null || true
-git add */README.md 2>/dev/null || true
-git add docs/README_INDEX.md 2>/dev/null || true
+# Stage only the README files the sync script actually modified, never an
+# unrelated top-level folder's README that merely happens to exist (a broad
+# `git add */README.md` would silently pick those up too).
+CHANGED_READMES=$(git diff --name-only -- '*/README.md' 'README.md' 'docs/README_INDEX.md')
+if [ -n "$CHANGED_READMES" ]; then
+    echo "$CHANGED_READMES" | while IFS= read -r f; do
+        git add -- "$f"
+    done
+fi
 
 echo "[pre-commit] README documentation synchronized and staged automatically."
 exit 0
 """
 
 
+def _resolve_git_hooks_dir(root_dir: Path) -> Path:
+    """Resolve the real hooks directory, including inside a linked git worktree.
+
+    A worktree's `.git` is a file pointing at `<main-repo>/.git/worktrees/<name>`,
+    not a directory - hooks always live under the shared common git dir, never
+    per-worktree. `git rev-parse --git-common-dir` resolves that correctly in
+    both a normal checkout and a worktree; falling back to `.git/hooks` keeps
+    this working even if git itself isn't on PATH.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--git-common-dir"],
+            cwd=root_dir,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        common_dir = Path(result.stdout.strip())
+        if not common_dir.is_absolute():
+            common_dir = (root_dir / common_dir).resolve()
+        return common_dir / "hooks"
+    except (subprocess.CalledProcessError, OSError, FileNotFoundError):
+        return root_dir / ".git" / "hooks"
+
+
 def install_pre_commit_hook(root_dir: Path) -> bool:
-    git_hooks_dir = root_dir / ".git" / "hooks"
+    git_hooks_dir = _resolve_git_hooks_dir(root_dir)
     if not git_hooks_dir.exists():
         print(f"[ERROR] .git/hooks directory not found at {git_hooks_dir}.")
         return False
