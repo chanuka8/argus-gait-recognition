@@ -30,8 +30,8 @@ Enrollment Files → `app/enrollment/folder_watcher.py` → `app/enrollment/enro
 
 ## Configuration
 
-- [configs/system.yaml](../configs/system.yaml): `recognition.gallery_dir`
-- [configs/inference.yaml](../configs/inference.yaml): matching policy thresholds
+- [configs/system.yaml](../../configs/system.yaml): `recognition.gallery_dir`
+- [configs/inference.yaml](../../configs/inference.yaml): matching policy thresholds
 
 ## Public Interfaces
 
@@ -41,10 +41,10 @@ Enrollment Files → `app/enrollment/folder_watcher.py` → `app/enrollment/enro
 
 ## Tests
 
-- [tests/integration/test_dual_modal_pipeline.py](../tests/integration/test_dual_modal_pipeline.py)
-- [tests/test_watchlist_integration.py](../tests/test_watchlist_integration.py)
+- [tests/integration/test_dual_modal_pipeline.py](../../tests/integration/recognition/test_dual_modal_pipeline.py)
+- [tests/test_watchlist_integration.py](../../tests/integration/recognition/test_watchlist_integration.py)
 
 ## Related Documentation
 
-- [Root README](../README.md)
+- [Root README](../../README.md)
 - [Intelligence Documentation](../intelligence/README.md)

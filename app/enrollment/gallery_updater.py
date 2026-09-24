@@ -93,37 +93,39 @@ class GalleryUpdater:
             vec = (vec / norm).astype(np.float32)
             validated_embeddings.append(vec)
 
-        current = self.store.load()
+        added_entry = {}
 
-        if current is None:
-            features = []
-            labels = []
-            metadata = {}
-        else:
-            features, labels, metadata = current
-            features = features.tolist()
-            labels = labels.tolist()
+        def mutator(current):
+            if current is None:
+                features = []
+                labels = []
+                metadata = {}
+            else:
+                features, labels, metadata = current
+                features = features.tolist()
+                labels = labels.tolist()
 
-        for embedding in validated_embeddings:
-            features.append(
-                embedding.tolist(),
+            for embedding in validated_embeddings:
+                features.append(
+                    embedding.tolist(),
+                )
+                labels.append(
+                    str(person_id),
+                )
+
+            metadata[str(person_id)] = self._metadata_entry(
+                metadata.get(str(person_id)),
+                len(validated_embeddings),
             )
-            labels.append(
-                str(person_id),
-            )
+            added_entry.update(metadata[str(person_id)])
 
-        metadata[str(person_id)] = self._metadata_entry(
-            metadata.get(str(person_id)),
-            len(validated_embeddings),
-        )
+            return features, labels, metadata
 
-        self.store.save(
-            features,
-            labels,
-            metadata,
-        )
-
-        entry = metadata[str(person_id)]
+        # Held under a single cross-process lock so a concurrent enrollment
+        # from another process can't read the same pre-update state and
+        # clobber this addition (see VectorStore.update docstring).
+        self.store.update(mutator)
+        entry = added_entry
 
         print(
             f"Added {person_id} "

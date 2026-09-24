@@ -14,7 +14,7 @@
     Installs additional dependencies from requirements.txt following bootstrap.
 
 .EXAMPLE
-    powershell -ExecutionPolicy Bypass -File tools/bootstrap_env.ps1
+    powershell -ExecutionPolicy Bypass -File ops/tools/bootstrap_env.ps1
 #>
 
 [CmdletBinding()]
@@ -65,7 +65,7 @@ if (-not (Test-Path -LiteralPath $PythonExe)) {
 }
 
 # 2. Run Production-Grade ARGUS AI Environment Bootstrap Orchestrator
-$bootstrapArgs = @("-u", "-m", "automation.bootstrap")
+$bootstrapArgs = @("-u", "-m", "ops.automation.bootstrap")
 if ($ForceRepair) {
     $bootstrapArgs += "--force-repair"
 }

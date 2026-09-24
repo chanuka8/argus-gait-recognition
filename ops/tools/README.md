@@ -52,5 +52,5 @@ Operator / CLI Invocation → `ops/tools/<category>/<tool>.py` → Target System
 
 ## Related Documentation
 
-- [Root README](../README.md)
-- [Deployment Documentation](../docs/README_INDEX.md)
+- [Root README](../../README.md)
+- [Deployment Documentation](../../docs/README_INDEX.md)

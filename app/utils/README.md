@@ -37,7 +37,7 @@ Raw Detection Boxes & Matches → `app/utils/box_stabilizer.py` & `app/utils/pre
 
 ## Configuration
 
-- [configs/inference.yaml](../configs/inference.yaml): `reporting` section (`output_dir`, `snapshot_dir`, `cooldown_seconds`)
+- [configs/inference.yaml](../../configs/inference.yaml): `reporting` section (`output_dir`, `snapshot_dir`, `cooldown_seconds`)
 
 ## Public Interfaces
 
@@ -50,10 +50,10 @@ Raw Detection Boxes & Matches → `app/utils/box_stabilizer.py` & `app/utils/pre
 
 ## Tests
 
-- [tests/integration/test_dual_modal_pipeline.py](../tests/integration/test_dual_modal_pipeline.py)
-- [tests/unit/test_output_layout.py](../tests/unit/test_output_layout.py)
+- [tests/integration/test_dual_modal_pipeline.py](../../tests/integration/recognition/test_dual_modal_pipeline.py)
+- [tests/unit/test_output_layout.py](../../tests/unit/backend/test_output_layout.py)
 
 ## Related Documentation
 
-- [Root README](../README.md)
+- [Root README](../../README.md)
 - [Pipeline Documentation](../pipeline/README.md)

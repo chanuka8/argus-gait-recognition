@@ -34,8 +34,8 @@ RTSP / USB / File Stream → `app/streaming/stream_engine.py` → `app/streaming
 
 ## Configuration
 
-- [configs/system.yaml](../configs/system.yaml): `camera.target_fps`, `camera.max_queue_size`, `camera.type`, `camera.url`
-- [configs/cameras.yaml](../configs/cameras.yaml): RTSP camera streams
+- [configs/system.yaml](../../configs/system.yaml): `camera.target_fps`, `camera.max_queue_size`, `camera.type`, `camera.url`
+- [configs/cameras.yaml](../../configs/cameras.yaml): RTSP camera streams
 
 ## Public Interfaces
 
@@ -54,10 +54,10 @@ RTSP / USB / File Stream → `app/streaming/stream_engine.py` → `app/streaming
 
 ## Tests
 
-- [tests/test_phase4_streaming.py](../tests/test_phase4_streaming.py)
-- [tests/test_camera_service.py](../tests/test_camera_service.py)
+- [tests/test_phase4_streaming.py](../../tests/unit/camera/test_phase4_streaming.py)
+- [tests/test_camera_service.py](../../tests/unit/camera/test_camera_service.py)
 
 ## Related Documentation
 
-- [Root README](../README.md)
+- [Root README](../../README.md)
 - [Services Documentation](../services/README.md)

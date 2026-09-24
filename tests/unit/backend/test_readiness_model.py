@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from fastapi.testclient import TestClient
 
 from app.api.server import app
@@ -42,7 +44,13 @@ def test_health_and_readiness_endpoints():
 def test_warmup_transitions_recognition_ready():
     """Verify that completing warmup transitions all components to READY and RECOGNITION_READY to True."""
     service = GaitService()
-    warmup_res = service.warmup()
+    # This test verifies the real-warmup happy path specifically, not the
+    # memory-headroom gate (covered separately in
+    # test_low_memory_ml_deferral.py) - force sufficient headroom so this
+    # assertion doesn't depend on how much RAM happens to be free on
+    # whatever machine runs the suite.
+    with patch("app.core.resource_profile.has_sufficient_ml_startup_headroom", return_value=(True, 4096.0, 1024.0)):
+        warmup_res = service.warmup()
 
     assert warmup_res["status"] == "WARMED_UP"
     assert service.is_warmed_up is True

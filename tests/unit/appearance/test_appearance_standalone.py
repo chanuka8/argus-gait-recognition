@@ -205,6 +205,10 @@ def test_enrollment_manager_appearance_flow(tmp_path, temp_gallery_dir):
 
     manager = EnrollmentManager()
     manager.appearance_gallery_updater = AppearanceGalleryUpdater(gallery_dir=temp_gallery_dir)
+    # enroll_appearance_person() also best-effort syncs through self.embedding_db,
+    # which EnrollmentManager() constructs with default (real, git-tracked) gallery
+    # paths - disable that secondary sync so this test only touches temp_gallery_dir.
+    manager.embedding_db = None
 
     res = manager.enroll_person(str(person_folder))
     assert res["success"] is True

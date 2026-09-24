@@ -33,22 +33,22 @@ Pipeline Feature Embeddings → `app/intelligence/open_set_recognizer.py` & `app
 
 ## Configuration
 
-- [configs/inference.yaml](../configs/inference.yaml): thresholds, ReID, watchlist, crowd intelligence, topology parameters
+- [configs/inference.yaml](../../configs/inference.yaml): thresholds, ReID, watchlist, crowd intelligence, topology parameters
 
 ## Public Interfaces
 
-- `OpenSetRecognizer`: Open-set matching engine in [intelligence/open_set_recognizer.py](open_set_recognizer.py).
-- `DualModalFusion`: Adaptive gait and appearance fusion in [intelligence/dual_modal_fusion.py](dual_modal_fusion.py).
-- `CrowdIntelligenceSystem`: Crowd orchestrator in [intelligence/crowd_intelligence_system.py](crowd_intelligence_system.py).
-- `MissingPersonWorkflow` (`WatchlistManager`): Watchlist engine in [intelligence/missing_person_workflow.py](missing_person_workflow.py).
+- `OpenSetRecognizer`: Open-set matching engine in [intelligence/open_set_recognizer.py](validation/open_set_recognizer.py).
+- `DualModalFusion`: Adaptive gait and appearance fusion in [intelligence/dual_modal_fusion.py](fusion/dual_modal_fusion.py).
+- `CrowdIntelligenceSystem`: Crowd orchestrator in [intelligence/crowd_intelligence_system.py](crowd/crowd_intelligence_system.py).
+- `MissingPersonWorkflow` (`WatchlistManager`): Watchlist engine in [intelligence/missing_person_workflow.py](evidence/missing_person_workflow.py).
 
 ## Tests
 
-- [tests/unit/test_dual_modal_fusion.py](../tests/unit/test_dual_modal_fusion.py)
-- [tests/test_phase6_intelligence.py](../tests/test_phase6_intelligence.py)
-- [tests/test_watchlist_integration.py](../tests/test_watchlist_integration.py)
+- [tests/unit/test_dual_modal_fusion.py](../../tests/unit/fusion/test_dual_modal_fusion.py)
+- [tests/test_phase6_intelligence.py](../../tests/integration/recognition/test_phase6_intelligence.py)
+- [tests/test_watchlist_integration.py](../../tests/integration/recognition/test_watchlist_integration.py)
 
 ## Related Documentation
 
-- [Root README](../README.md)
+- [Root README](../../README.md)
 - [Pipeline Documentation](../pipeline/README.md)

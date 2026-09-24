@@ -46,10 +46,10 @@ YAML/JSON Manifests → `app/core/config.py` / `app/utils/detection_reporter.py`
 
 ## Tests
 
-- [tests/test_audit_verification.py](../tests/test_audit_verification.py)
-- [tests/unit/test_output_layout.py](../tests/unit/test_output_layout.py)
+- [tests/test_audit_verification.py](../tests/system/end_to_end/test_audit_verification.py)
+- [tests/unit/test_output_layout.py](../tests/unit/backend/test_output_layout.py)
 
 ## Related Documentation
 
 - [Root README](../README.md)
-- [Core Documentation](../core/README.md)
+- [Core Documentation](../app/core/README.md)

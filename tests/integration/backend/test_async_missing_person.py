@@ -1,6 +1,7 @@
 """Targeted integration test for Missing Person photo/video async upload and processing flow."""
 
 import io
+from unittest.mock import patch
 
 import cv2
 import numpy as np
@@ -40,9 +41,20 @@ def isolate_gait_storage(tmp_path):
     orig_service = getattr(app.state, "gait_service", None)
     app.state.gait_service = service
     app.dependency_overrides[get_gait_service] = lambda: service
+    # This suite exercises the real missing-person photo/video enrollment
+    # flow, not the memory-headroom admission-control gate (covered
+    # separately in test_low_memory_ml_deferral.py) - force sufficient
+    # headroom so on-demand warmup isn't deferred depending on how much RAM
+    # happens to be free on whatever machine runs the suite.
+    headroom_patcher = patch(
+        "app.core.resource_profile.has_sufficient_ml_startup_headroom",
+        return_value=(True, 4096.0, 1024.0),
+    )
+    headroom_patcher.start()
     try:
         yield service
     finally:
+        headroom_patcher.stop()
         app.dependency_overrides.pop(get_gait_service, None)
         app.state.gait_service = orig_service
 

@@ -7,73 +7,57 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT))
 
-from ml_platform.evaluation.open_set_evaluator import OpenSetEvaluator
+from ml_platform.evaluation.open_set_evaluator import SubjectDisjointOpenSetEvaluator
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Evaluate ARGUS Open-Set Threshold and Matching Mode Sweep")
+    parser = argparse.ArgumentParser(description="Evaluate ARGUS Open-Set Threshold Sweep")
 
-    parser.add_argument(
-        "--max-images",
-        type=int,
-        default=500,
-        help="Max images to evaluate per configuration. Default: 500.",
-    )
-
-    parser.add_argument(
-        "--gallery-ratio",
-        type=float,
-        default=0.5,
-        help="Ratio of features to keep in gallery. Default: 0.5.",
-    )
-
-    parser.add_argument(
-        "--known-ratio",
-        type=float,
-        default=0.6,
-        help="Ratio of subjects to treat as known. Default: 0.6.",
-    )
+    parser.add_argument("--gei-root", type=str, default="data/datasets/casia_processed/gei")
+    parser.add_argument("--model-path", type=str, default="runs/exp_001/best_model.pth")
+    parser.add_argument("--split-config", type=str, default="configs/subject_split.json")
+    parser.add_argument("--known-ratio", type=float, default=0.5, help="Ratio of test subjects treated as known.")
+    parser.add_argument("--output-dir", type=str, default="runs/exp_001/evaluation_open_set/threshold_sweep")
 
     args = parser.parse_args()
 
     thresholds = [0.75, 0.80, 0.85, 0.88, 0.90, 0.92, 0.95]
-    modes = ["flat", "centroid", "centroid_margin", "centroid_margin_topk"]
 
-    print("\n=== RUNNING OPEN-SET THRESHOLD & MATCHING MODE SWEEP ===")
+    print("\n=== RUNNING OPEN-SET THRESHOLD SWEEP ===")
     print(f"Known Ratio: {args.known_ratio:.2f}")
-    print(f"Gallery Ratio: {args.gallery_ratio:.2f}")
-    print(f"Max Images to test per run: {args.max_images}")
+    print(f"Thresholds: {thresholds}")
 
     sweep_results = []
 
-    for mode in modes:
-        for t in thresholds:
-            print(f"Running mode={mode:<22} threshold={t:.2f}...")
-            evaluator = OpenSetEvaluator(
-                gallery_ratio=args.gallery_ratio,
-                threshold=t,
-                known_ratio=args.known_ratio,
-            )
-            res = evaluator.evaluate_open_set(
-                max_test_images=args.max_images,
-                matching_mode=mode,
-            )
-            sweep_results.append(
-                {
-                    "matching_mode": mode,
-                    "threshold": t,
-                    "TP": res["TP"],
-                    "FP": res["FP"],
-                    "TN": res["TN"],
-                    "FN": res["FN"],
-                    "known_accuracy": res["known_accuracy"],
-                    "unknown_rejection_rate": res["unknown_rejection_rate"],
-                    "false_accept_rate": res["false_accept_rate"],
-                    "false_reject_rate": res["false_reject_rate"],
-                }
-            )
+    for t in thresholds:
+        print(f"Running threshold={t:.2f}...")
+        evaluator = SubjectDisjointOpenSetEvaluator(
+            gei_root=args.gei_root,
+            model_path=args.model_path,
+            split_config_path=args.split_config,
+            threshold=t,
+            known_ratio=args.known_ratio,
+            report_dir=str(Path(args.output_dir) / f"threshold_{t:.2f}"),
+        )
+        res = evaluator.evaluate_open_set_protocol()
+        operating = res["operating_metrics"]
 
-    output_dir = Path("outputs/reports/evaluation")
+        sweep_results.append(
+            {
+                "threshold": t,
+                "ROC_AUC": res["ROC_AUC"],
+                "EER": res["EER"],
+                "FAR": operating["FAR"],
+                "FRR": operating["FRR"],
+                "TAR": operating["TAR"],
+                "TNR": operating["TNR"],
+                "precision": operating["precision"],
+                "recall": operating["recall"],
+                "f1_score": operating["f1_score"],
+            }
+        )
+
+    output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     json_path = output_dir / "open_set_threshold_sweep.json"
@@ -85,16 +69,16 @@ def main() -> None:
         writer = csv.DictWriter(
             f,
             fieldnames=[
-                "matching_mode",
                 "threshold",
-                "TP",
-                "FP",
-                "TN",
-                "FN",
-                "known_accuracy",
-                "unknown_rejection_rate",
-                "false_accept_rate",
-                "false_reject_rate",
+                "ROC_AUC",
+                "EER",
+                "FAR",
+                "FRR",
+                "TAR",
+                "TNR",
+                "precision",
+                "recall",
+                "f1_score",
             ],
         )
         writer.writeheader()
@@ -102,19 +86,18 @@ def main() -> None:
             writer.writerow(r)
 
     print("\n" + "=" * 110)
-    print("OPEN-SET MATCHING SWEEP SUMMARY TABLE")
+    print("OPEN-SET THRESHOLD SWEEP SUMMARY TABLE")
     print("=" * 110)
     print(
-        f"{'Matching Mode':<22} | {'Thresh':<6} | {'TP':<4} | {'FP':<4} | {'TN':<4} | {'FN':<4} | "
-        f"{'Known Acc':<9} | {'Unk Rej':<9} | {'FAR':<8} | {'FRR':<8}"
+        f"{'Thresh':<8} | {'ROC AUC':<9} | {'EER':<8} | {'FAR':<8} | {'FRR':<8} | "
+        f"{'TAR':<8} | {'TNR':<8} | {'Prec':<8} | {'Recall':<8} | {'F1':<8}"
     )
     print("-" * 110)
     for r in sweep_results:
         print(
-            f"{r['matching_mode']:<22} | {r['threshold']:<6.2f} | "
-            f"{r['TP']:<4} | {r['FP']:<4} | {r['TN']:<4} | {r['FN']:<4} | "
-            f"{r['known_accuracy'] * 100:<8.1f}% | {r['unknown_rejection_rate'] * 100:<8.1f}% | "
-            f"{r['false_accept_rate'] * 100:<7.1f}% | {r['false_reject_rate'] * 100:<7.1f}%"
+            f"{r['threshold']:<8.2f} | {r['ROC_AUC']:<9.4f} | {r['EER']:<8.4f} | "
+            f"{r['FAR']:<8.4f} | {r['FRR']:<8.4f} | {r['TAR']:<8.4f} | {r['TNR']:<8.4f} | "
+            f"{r['precision']:<8.4f} | {r['recall']:<8.4f} | {r['f1_score']:<8.4f}"
         )
     print("=" * 110)
 

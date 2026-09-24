@@ -19,6 +19,7 @@ The `core` package provides system initialization, logging setup, process lifecy
 | [context.py](context.py) | Thread-safe global system context and runtime state holder |
 | [exceptions.py](exceptions.py) | Custom exception hierarchy for ARGUS AI error handling |
 | [health_check.py](health_check.py) | Hardware, CUDA, disk space, and memory health verifiers |
+| [inference_gate.py](inference_gate.py) | Module/resource file inference_gate.py |
 | [logger.py](logger.py) | Logger creation and formatting utilities |
 | [orchestrator.py](orchestrator.py) | Top-level coordinator managing streaming, recognition, and security layers |
 | [paths.py](paths.py) | Module/resource file paths.py |
@@ -35,8 +36,8 @@ The `core` package provides system initialization, logging setup, process lifecy
 
 ## Configuration
 
-- [configs/system.yaml](../configs/system.yaml): `logging`, `watchdog`, `service` sections
-- [configs/base.yaml](../configs/base.yaml): path defaults and system flags
+- [configs/system.yaml](../../configs/system.yaml): `logging`, `watchdog`, `service` sections
+- [configs/base.yaml](../../configs/base.yaml): path defaults and system flags
 
 ## Public Interfaces
 
@@ -46,10 +47,10 @@ The `core` package provides system initialization, logging setup, process lifecy
 
 ## Tests
 
-- [tests/test_audit_verification.py](../tests/test_audit_verification.py)
-- [tests/test_logging.py](../tests/test_logging.py)
+- [tests/test_audit_verification.py](../../tests/system/end_to_end/test_audit_verification.py)
+- [tests/test_logging.py](../../tests/unit/backend/test_logging.py)
 
 ## Related Documentation
 
-- [Root README](../README.md)
+- [Root README](../../README.md)
 - [Monitoring Documentation](../monitoring/README.md)

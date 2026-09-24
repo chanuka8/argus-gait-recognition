@@ -9,6 +9,8 @@ import torch and would reintroduce the eager-torch-import cost this module
 exists to avoid. Safe to call from the startup critical path.
 """
 
+import os
+
 from app.streaming.deployment_readiness import (
     CUDAInfo,
     GPUInfo,
@@ -19,6 +21,51 @@ from app.streaming.deployment_readiness import (
 )
 
 _params: RuntimeParameters | None = None
+
+# Conservative default, derived from measured evidence on an 8GB-class dev
+# machine: normal ML startup takes 6-18s with adequate headroom, but took
+# over 2 hours when available RAM dropped to roughly 270-470MB (severe
+# Windows page-fault thrashing, not a slow-but-working startup). This sits
+# comfortably above that observed danger zone with real margin, while still
+# being reachable on an 8GB machine under ordinary desktop load. This is
+# deliberately a *different, lower-level* gate than the existing 1536MB
+# LOW_RESOURCE tier threshold below - LOW_RESOURCE only tunes batch sizes
+# for an already-safe-to-start warmup, it was never a safety gate on
+# whether to start warmup at all.
+_DEFAULT_MIN_ML_STARTUP_HEADROOM_MB = 1024.0
+
+
+def min_ml_startup_headroom_mb() -> float:
+    """ARGUS_MIN_ML_STARTUP_HEADROOM_MB, validated, with a safe default."""
+    raw = os.environ.get("ARGUS_MIN_ML_STARTUP_HEADROOM_MB")
+    if raw is None:
+        return _DEFAULT_MIN_ML_STARTUP_HEADROOM_MB
+    try:
+        value = float(raw)
+    except ValueError:
+        return _DEFAULT_MIN_ML_STARTUP_HEADROOM_MB
+    if value <= 0:
+        return _DEFAULT_MIN_ML_STARTUP_HEADROOM_MB
+    return value
+
+
+def current_available_ram_mb() -> float:
+    """Fresh (uncached) available-RAM reading.
+
+    Unlike get_runtime_parameters(), which computes its profile once per
+    process and caches it forever, this re-measures on every call - it's
+    meant to be checked immediately before any heavy ML construction, not
+    just once at process start, since available RAM on a shared desktop
+    machine can swing by gigabytes over a session.
+    """
+    return HardwareCapabilityDetector()._detect_ram().available_mb
+
+
+def has_sufficient_ml_startup_headroom() -> tuple[bool, float, float]:
+    """Returns (sufficient, available_mb, threshold_mb), all freshly measured."""
+    available = current_available_ram_mb()
+    threshold = min_ml_startup_headroom_mb()
+    return available >= threshold, available, threshold
 
 
 def _compute() -> RuntimeParameters:

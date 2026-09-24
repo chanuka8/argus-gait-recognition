@@ -47,6 +47,14 @@ class SessionToken:
             "image": self.image,
             "status": self.status,
             "last_activity": self.last_activity,
+            "capabilities": {
+                # Only the Firebase-backed operator store has a Firestore document
+                # for the client to watch. In offline mode (dev/test), no such
+                # document ever exists, so its absence must never be interpreted
+                # as deletion - the frontend must not register the realtime
+                # suspension/deletion listener in that mode.
+                "realtime_operator_status": get_operator_store().mode == "firebase",
+            },
         }
 
 

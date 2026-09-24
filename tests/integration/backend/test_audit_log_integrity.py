@@ -547,6 +547,11 @@ def test_real_security_events_csv_baseline():
     if real_path.exists():
         verifier = AuditLogVerifier(hmac_key=TEST_HMAC_KEY)
         result = verifier.verify_file(real_path)
+        if result.status == "EMPTY":
+            # outputs/ is gitignored and this file is created empty the moment
+            # any earlier test in the run triggers security-logger init; only
+            # a file with real accumulated legacy events is this test's target.
+            pytest.skip("security_events.csv exists but has no events recorded yet")
         assert result.is_valid is True
         assert result.status == "LEGACY_UNSIGNED"
         assert result.legacy_count > 0

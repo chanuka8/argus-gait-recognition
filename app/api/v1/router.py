@@ -47,6 +47,7 @@ from app.api.schemas import (
     UploadSessionInitResponse,
     UploadSessionStatusResponse,
 )
+from app.core.inference_gate import get_inference_gate
 from app.security_layer.auth import SessionToken, extract_bearer_token, get_session_store
 from app.security_layer.authorization import (
     Permission,
@@ -146,6 +147,33 @@ def get_gait_service(request: Request = None) -> GaitService:
         _fallback_gait_service = GaitService()
 
     return _fallback_gait_service
+
+
+async def _require_ml_ready(service: GaitService) -> None:
+    """Gate before any live inference call: never let a request silently
+    hang waiting on ML models that were deferred because startup found
+    insufficient memory headroom (see GaitService.warmup /
+    app.core.resource_profile.has_sufficient_ml_startup_headroom).
+
+    ensure_warm_or_deferred() is a bounded, on-demand retry - not a busy
+    loop - and is itself single-flight safe, so concurrent callers never
+    trigger duplicate model construction. Offloaded to a thread since a
+    real (non-deferred) warmup attempt can take several seconds.
+    """
+    ready = await asyncio.to_thread(service.ensure_warm_or_deferred)
+    if not ready:
+        reason = service.warmup_deferred_reason
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "error": "ml_unavailable",
+                "message": (
+                    "Recognition is temporarily unavailable and will retry automatically "
+                    "on the next request. " + (reason or "Model initialization is still in progress.")
+                ),
+                "reason": "insufficient_memory_headroom" if reason else "initializing",
+            },
+        )
 
 
 v1_router = APIRouter(
@@ -286,10 +314,17 @@ async def identify_image(
                 detail="Uploaded file is empty",
             )
 
-        return service.process_image_bytes(
-            content,
-            camera_id=camera_id,
-        )
+        # Checked after input validation, not before: a malformed/empty/
+        # wrong-type request should still get its real 4xx regardless of ML
+        # readiness - there's no reason to gate it on model availability.
+        await _require_ml_ready(service)
+
+        async with get_inference_gate():
+            return await asyncio.to_thread(
+                service.process_image_bytes,
+                content,
+                camera_id=camera_id,
+            )
 
     except HTTPException:
         raise
@@ -316,6 +351,93 @@ async def identify_image(
 
     finally:
         await file.close()
+
+
+def _analyze_video_frames(service: GaitService, temporary_path: str) -> list[RecognitionEvent]:
+    """Decode and run inference on sampled frames of an uploaded video.
+
+    Synchronous and CPU-bound end to end (video decode + person detection +
+    silhouette extraction + gait/appearance encoding + gallery matching per
+    sampled frame) - always run this via asyncio.to_thread under the shared
+    inference gate, never called directly from an async route.
+    """
+    import cv2
+
+    capture = cv2.VideoCapture(temporary_path)
+    if not capture.isOpened():
+        raise HTTPException(
+            status_code=400,
+            detail="Video decoder failed to open or parse the uploaded video file",
+        )
+
+    width = int(capture.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    if width > MAX_VIDEO_DIMENSION or height > MAX_VIDEO_DIMENSION:
+        capture.release()
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Video resolution {width}x{height} exceeds maximum supported "
+                f"resolution ({MAX_VIDEO_DIMENSION}x{MAX_VIDEO_DIMENSION})"
+            ),
+        )
+
+    events: list[RecognitionEvent] = []
+    frame_index = 0
+
+    try:
+        while capture.isOpened():
+            success, frame = capture.read()
+
+            if not success:
+                break
+
+            if frame_index % 15 == 0:
+                encoded, image_buffer = cv2.imencode(
+                    ".jpg",
+                    frame,
+                )
+
+                if encoded:
+                    event = service.process_image_bytes(
+                        image_buffer.tobytes(),
+                        camera_id="upload-video",
+                    )
+                    events.append(event)
+
+                if len(events) >= 10:
+                    break
+
+            frame_index += 1
+
+    finally:
+        capture.release()
+
+    if not events:
+        fallback_frame = np.zeros(
+            (200, 100, 3),
+            dtype=np.uint8,
+        )
+
+        encoded, image_buffer = cv2.imencode(
+            ".jpg",
+            fallback_frame,
+        )
+
+        if not encoded:
+            raise HTTPException(
+                status_code=500,
+                detail="Unable to create fallback video frame",
+            )
+
+        events.append(
+            service.process_image_bytes(
+                image_buffer.tobytes(),
+                camera_id="upload-video",
+            )
+        )
+
+    return events
 
 
 @v1_router.post(
@@ -368,83 +490,13 @@ async def analyze_video(
 
         service.stats["processed_videos"] += 1
 
-        import cv2
+        # Checked after input validation (size/emptiness), not before: a
+        # malformed/oversized/empty upload should still get its real 4xx
+        # regardless of ML readiness.
+        await _require_ml_ready(service)
 
-        capture = cv2.VideoCapture(temporary_path)
-        if not capture.isOpened():
-            raise HTTPException(
-                status_code=400,
-                detail="Video decoder failed to open or parse the uploaded video file",
-            )
-
-        width = int(capture.get(cv2.CAP_PROP_FRAME_WIDTH))
-        height = int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        if width > MAX_VIDEO_DIMENSION or height > MAX_VIDEO_DIMENSION:
-            capture.release()
-            raise HTTPException(
-                status_code=400,
-                detail=(
-                    f"Video resolution {width}x{height} exceeds maximum supported "
-                    f"resolution ({MAX_VIDEO_DIMENSION}x{MAX_VIDEO_DIMENSION})"
-                ),
-            )
-
-        events: list[RecognitionEvent] = []
-        frame_index = 0
-
-        try:
-            while capture.isOpened():
-                success, frame = capture.read()
-
-                if not success:
-                    break
-
-                if frame_index % 15 == 0:
-                    encoded, image_buffer = cv2.imencode(
-                        ".jpg",
-                        frame,
-                    )
-
-                    if encoded:
-                        event = service.process_image_bytes(
-                            image_buffer.tobytes(),
-                            camera_id="upload-video",
-                        )
-                        events.append(event)
-
-                    if len(events) >= 10:
-                        break
-
-                frame_index += 1
-
-        finally:
-            capture.release()
-
-        if not events:
-            fallback_frame = np.zeros(
-                (200, 100, 3),
-                dtype=np.uint8,
-            )
-
-            encoded, image_buffer = cv2.imencode(
-                ".jpg",
-                fallback_frame,
-            )
-
-            if not encoded:
-                raise HTTPException(
-                    status_code=500,
-                    detail="Unable to create fallback video frame",
-                )
-
-            events.append(
-                service.process_image_bytes(
-                    image_buffer.tobytes(),
-                    camera_id="upload-video",
-                )
-            )
-
-        return events
+        async with get_inference_gate():
+            return await asyncio.to_thread(_analyze_video_frames, service, temporary_path)
 
     except HTTPException:
         raise
@@ -910,6 +962,13 @@ async def enroll_subject(
                 detail="No valid image files supplied",
             )
 
+        # Checked after input validation, not before: a request with no
+        # files or only invalid file types should still get its real 4xx
+        # regardless of ML readiness. Both branches below (queued and
+        # synchronous) touch detector/extractor/etc., so this must run
+        # before either.
+        await _require_ml_ready(service)
+
         if async_mode:
             photos_dir = Path("data/runtime/reference_photos")
             photos_dir.mkdir(parents=True, exist_ok=True)
@@ -961,10 +1020,12 @@ async def enroll_subject(
                 "job_id": job.job_id,
             }
 
-        result = service.enroll_images(
-            normalized_person_id,
-            image_bytes_list,
-        )
+        async with get_inference_gate():
+            result = await asyncio.to_thread(
+                service.enroll_images,
+                normalized_person_id,
+                image_bytes_list,
+            )
 
         return result
 

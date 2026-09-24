@@ -89,6 +89,7 @@ class MissingPersonVideoProcessor:
         extractor: FeatureExtractionStep | None = None,
         appearance_extractor: Any | None = None,
         store: VectorStore | None = None,
+        appearance_store: VectorStore | None = None,
         embedding_db: EmbeddingDatabase | None = None,
         job_manager: ReferenceJobManager | None = None,
         firebase_store: Any | None = None,
@@ -121,7 +122,7 @@ class MissingPersonVideoProcessor:
 
         # Storage components
         self.store = store or VectorStore(gallery_dir=gait_gallery_dir)
-        self.appearance_store = VectorStore(gallery_dir=appearance_gallery_dir)
+        self.appearance_store = appearance_store or VectorStore(gallery_dir=appearance_gallery_dir)
         self.embedding_db = embedding_db or EmbeddingDatabase(
             db_dir=db_dir,
             gait_gallery_dir=gait_gallery_dir,

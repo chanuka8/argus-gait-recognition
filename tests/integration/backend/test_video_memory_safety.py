@@ -35,8 +35,33 @@ from app.security_layer.input_validation import (
 )
 from app.services.gait_service import GaitService
 from app.services.missing_person_processor import MissingPersonVideoProcessor
-from app.services.reference_job_manager import ReferenceJobStatus
+from app.services.reference_job_manager import ReferenceJobManager, ReferenceJobStatus
 from app.services.upload_session_manager import UploadSessionManager, UploadSessionRecord
+
+
+@pytest.fixture(autouse=True)
+def _sufficient_ml_startup_headroom():
+    """This suite exercises video-upload/processing memory-safety behavior,
+    not the memory-headroom admission-control gate on ML warmup itself
+    (covered separately in test_low_memory_ml_deferral.py) - force
+    sufficient headroom for every test here so on-demand warmup isn't
+    deferred depending on how much RAM happens to be free on whatever
+    machine runs the suite."""
+    with patch("app.core.resource_profile.has_sufficient_ml_startup_headroom", return_value=(True, 4096.0, 1024.0)):
+        yield
+
+
+def _isolated_processor_kwargs(tmp_path: Path) -> dict:
+    """Isolated gallery/db/job-state dirs so these tests never touch the real,
+    git-tracked default galleries under ml_platform/models/galleries/ or the
+    real data/runtime/ state (both would otherwise be silently mutated by any
+    test that calls process_reference_video/process_reference_photos)."""
+    return {
+        "gait_gallery_dir": str(tmp_path / "live_gallery"),
+        "appearance_gallery_dir": str(tmp_path / "appearance_gallery"),
+        "db_dir": str(tmp_path / "embedding_db"),
+        "job_manager": ReferenceJobManager(jobs_dir=str(tmp_path / "reference_jobs"), max_workers=2),
+    }
 
 
 def _create_synthetic_video(
@@ -311,7 +336,7 @@ def test_concurrent_uploads_are_individually_bounded(tmp_path, auth_headers):
 def test_frames_processed_sequentially_without_full_video_retention(tmp_path):
     """Verify that MissingPersonVideoProcessor decodes frames sequentially without full accumulation."""
     video_path = _create_synthetic_video(tmp_path / "test_seq.mp4", num_frames=30)
-    processor = MissingPersonVideoProcessor()
+    processor = MissingPersonVideoProcessor(**_isolated_processor_kwargs(tmp_path))
 
     # Track how many frame objects are simultaneously retained
     active_frame_shapes = []
@@ -353,9 +378,9 @@ def test_live_gei_rolling_buffer_remains_strictly_bounded():
     assert result.shape == (128, 64)
 
 
-def test_track_crops_bounded_across_many_subjects():
+def test_track_crops_bounded_across_many_subjects(tmp_path):
     """Verify that crop accumulation in MissingPersonVideoProcessor is capped per track and across tracks."""
-    processor = MissingPersonVideoProcessor()
+    processor = MissingPersonVideoProcessor(**_isolated_processor_kwargs(tmp_path))
     assert processor.max_crops_per_track == MAX_CROPS_PER_TRACK
     assert processor.max_tracks_with_crops == MAX_TRACKS_WITH_CROPS
 
@@ -368,7 +393,7 @@ def test_track_crops_bounded_across_many_subjects():
 def test_video_capture_released_on_success(tmp_path):
     """Verify VideoCapture.release() is called after successful processing."""
     video_path = _create_synthetic_video(tmp_path / "release_succ.mp4", num_frames=20)
-    processor = MissingPersonVideoProcessor()
+    processor = MissingPersonVideoProcessor(**_isolated_processor_kwargs(tmp_path))
 
     real_capture_class = cv2.VideoCapture
     released_count = [0]
@@ -399,7 +424,7 @@ def test_video_capture_released_on_validation_failure(tmp_path):
     bad_video = tmp_path / "corrupted.mp4"
     bad_video.write_bytes(b"\x00\x00\x00\x18ftypmp42corruptdata")
 
-    processor = MissingPersonVideoProcessor()
+    processor = MissingPersonVideoProcessor(**_isolated_processor_kwargs(tmp_path))
     ok, _err, _meta = processor.validate_video_file(bad_video)
     # File either fails decoder or fails resolution/frame check
     assert ok is False
@@ -460,7 +485,7 @@ def test_analyze_video_rejects_oversized_upload(tmp_path, auth_headers):
 def test_validate_video_rejects_decompression_bomb_resolution(tmp_path):
     """Verify validate_video_file rejects video exceeding MAX_VIDEO_DIMENSION (4096)."""
     video_path = _create_synthetic_video(tmp_path / "bomb.mp4", num_frames=15)
-    processor = MissingPersonVideoProcessor()
+    processor = MissingPersonVideoProcessor(**_isolated_processor_kwargs(tmp_path))
 
     # Mock VideoCapture to declare 8192x8192 resolution
     mock_cap = MagicMock()
@@ -481,7 +506,7 @@ def test_validate_video_rejects_decompression_bomb_resolution(tmp_path):
 def test_validate_video_rejects_extreme_frame_count(tmp_path):
     """Verify validate_video_file rejects video with total_frames exceeding MAX_VIDEO_FRAMES."""
     video_path = _create_synthetic_video(tmp_path / "long.mp4", num_frames=15)
-    processor = MissingPersonVideoProcessor()
+    processor = MissingPersonVideoProcessor(**_isolated_processor_kwargs(tmp_path))
 
     mock_cap = MagicMock()
     mock_cap.isOpened.return_value = True
@@ -544,7 +569,7 @@ def test_normal_photo_processing_remains_unchanged(tmp_path):
         cv2.imwrite(str(p), img)
         photo_paths.append(p)
 
-    processor = MissingPersonVideoProcessor()
+    processor = MissingPersonVideoProcessor(**_isolated_processor_kwargs(tmp_path))
     # Mock extractor backend predict to produce valid 256D normalized vectors
     mock_vec = np.ones((256,), dtype=np.float32) / np.sqrt(256)
     mock_backend = MagicMock()

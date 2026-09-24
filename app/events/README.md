@@ -25,7 +25,7 @@ Pipeline Step / Alert → `app/events/event_bus.py` → `app/events/dispatcher.p
 
 ## Configuration
 
-- [configs/system.yaml](../configs/system.yaml): system event settings
+- [configs/system.yaml](../../configs/system.yaml): system event settings
 
 ## Public Interfaces
 
@@ -35,10 +35,10 @@ Pipeline Step / Alert → `app/events/event_bus.py` → `app/events/dispatcher.p
 
 ## Tests
 
-- [tests/unit/test_output_layout.py](../tests/unit/test_output_layout.py)
-- [tests/test_audit_verification.py](../tests/test_audit_verification.py)
+- [tests/unit/test_output_layout.py](../../tests/unit/backend/test_output_layout.py)
+- [tests/test_audit_verification.py](../../tests/system/end_to_end/test_audit_verification.py)
 
 ## Related Documentation
 
-- [Root README](../README.md)
+- [Root README](../../README.md)
 - [Utils Documentation](../utils/README.md)

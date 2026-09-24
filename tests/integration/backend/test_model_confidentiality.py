@@ -653,6 +653,15 @@ def test_14_startup_validator_and_doctor_diagnostics(tmp_path, monkeypatch):
     warnings = []
     unable = []
 
+    # `_validate_model_confidentiality` falls back to the default repo-relative
+    # path "runs/exp_001/best_model.pth" when no backend is set, which only
+    # exists locally after real training and is gitignored - not present on a
+    # fresh checkout. Point it at a real (unencrypted) dummy checkpoint under
+    # tmp_path instead, so this test doesn't depend on local training output.
+    dummy_model_path = tmp_path / "best_model.pth"
+    dummy_model_path.write_bytes(b"not-a-real-checkpoint")
+    validator._backend = type("_FakeBackend", (), {"model_path": str(dummy_model_path)})()
+
     validator._validate_model_confidentiality(
         blocking_issues=blocking,
         warnings=warnings,

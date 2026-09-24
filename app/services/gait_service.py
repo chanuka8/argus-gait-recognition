@@ -69,6 +69,7 @@ class GaitService:
         self._is_warmed_up = False
         self._warmup_error: str | None = None
         self._warmup_duration: float = 0.0
+        self._warmup_deferred_reason: str | None = None
         self._readiness: dict[str, str] = {
             "api": "READY",
             "gallery": "PENDING",
@@ -106,6 +107,56 @@ class GaitService:
             required = ["bygait", "osnet", "silhouette", "gallery"]
             return all(self._readiness.get(k) == "READY" for k in required)
 
+    @property
+    def warmup_deferred_reason(self) -> str | None:
+        with self._lock:
+            return self._warmup_deferred_reason
+
+    # Bound on how long a request will wait for an *already in-progress*
+    # warmup (e.g. the one fired by lifespan startup) before giving up and
+    # returning False. Real warmup takes 6-18s under healthy conditions
+    # (measured) - this is not a busy-poll to decide whether to start
+    # construction, only a short wait for one already underway, so a
+    # request that merely races startup by a few hundred ms doesn't get a
+    # spurious 503 for work that was about to finish anyway.
+    _WARMUP_WAIT_TIMEOUT_S = 20.0
+    _WARMUP_WAIT_POLL_INTERVAL_S = 0.2
+
+    def ensure_warm_or_deferred(self) -> bool:
+        """On-demand, explicit retry - not a background poller or busy loop.
+
+        Called from the request path when recognition isn't ready yet. If
+        warmup already completed (with everything READY) this is a fast,
+        lock-only check. Otherwise it calls warmup() again, which is always
+        safe to re-attempt: it re-measures available memory fresh on every
+        call and only proceeds with real model construction if headroom is
+        currently sufficient, deferring again (quickly, no construction
+        attempted) otherwise.
+
+        If memory is currently insufficient (status DEFERRED), this returns
+        False immediately - waiting would not help, the memory isn't there.
+
+        If another caller's warmup is already running (status WARMING_UP -
+        e.g. the background task lifespan fires at startup), this waits
+        briefly (bounded, not indefinite) rather than failing fast on every
+        request that happens to race an in-progress warmup that's about to
+        succeed.
+        """
+        if self.is_recognition_ready:
+            return True
+        result = self.warmup()
+        if result.get("status") == "DEFERRED":
+            return False
+        if result.get("status") == "WARMING_UP":
+            deadline = time.monotonic() + self._WARMUP_WAIT_TIMEOUT_S
+            while time.monotonic() < deadline:
+                if self.is_recognition_ready:
+                    return True
+                if self.warmup_deferred_reason is not None:
+                    return False
+                time.sleep(self._WARMUP_WAIT_POLL_INTERVAL_S)
+        return self.is_recognition_ready
+
     def get_readiness(self) -> dict[str, Any]:
         with self._lock:
             rec_ready = self.is_recognition_ready
@@ -124,6 +175,7 @@ class GaitService:
                 "recognition_ready": rec_ready,
                 "states": states,
                 "components": dict(self._readiness),
+                "warmup_deferred_reason": self._warmup_deferred_reason,
                 "warmup_duration_seconds": round(self._warmup_duration, 3),
             }
 
@@ -357,6 +409,45 @@ class GaitService:
             self._is_warming_up = True
 
         self.logger.info("[STARTUP] Beginning background model warmup...")
+
+        # Admission control: heavy model construction (torch import, YOLO
+        # detector, gait/appearance encoders) is expensive even under normal
+        # conditions and can turn into severe OS-level page-fault thrashing
+        # under real memory pressure - measured on this class of machine at
+        # over 2 hours where a healthy run takes 6-18s. Check fresh (not the
+        # cached process-start profile) immediately before attempting it, so
+        # a machine that's merely momentarily under load doesn't get stuck
+        # with a stale decision from process start.
+        from app.core.resource_profile import has_sufficient_ml_startup_headroom
+
+        sufficient, available_mb, threshold_mb = has_sufficient_ml_startup_headroom()
+        if not sufficient:
+            reason = (
+                f"insufficient_memory_headroom: {available_mb:.0f}MB available, "
+                f"{threshold_mb:.0f}MB required (ARGUS_MIN_ML_STARTUP_HEADROOM_MB)"
+            )
+            self.logger.warning(
+                f"[STARTUP] Deferring heavy ML warmup - {reason}. Attempting full model "
+                "construction now risks severe system-wide paging/lag rather than a merely "
+                "slow startup. API, auth, health, and the SPA remain available; recognition "
+                "will report DEFERRED until a request or a later warmup attempt finds "
+                "sufficient headroom."
+            )
+            with self._lock:
+                for key in ("bygait", "silhouette", "osnet", "detector", "continual_learning"):
+                    self._readiness[key] = "DEFERRED"
+                self._warmup_deferred_reason = reason
+                self._is_warming_up = False
+            return {
+                "status": "DEFERRED",
+                "reason": "insufficient_memory_headroom",
+                "available_mb": available_mb,
+                "threshold_mb": threshold_mb,
+            }
+
+        with self._lock:
+            self._warmup_deferred_reason = None
+
         from app.core.thread_limits import configure_native
 
         configure_native()  # first real torch/cv2 import happens here, off the FastAPI event loop
@@ -752,31 +843,72 @@ class GaitService:
         new_features = np.vstack(embeddings)
         new_labels = [person_id] * added_embeddings
 
-        if len(self.gallery_features) > 0:
-            self.gallery_features = np.vstack([self.gallery_features, new_features])
-            if not isinstance(self.gallery_labels, list):
-                self.gallery_labels = list(self.gallery_labels)
-            self.gallery_labels.extend(new_labels)
-        else:
-            self.gallery_features = new_features
-            self.gallery_labels = new_labels
+        def _metadata_entry(current_value, embeddings_added: int) -> dict:
+            if isinstance(current_value, dict):
+                previous = int(current_value.get("embeddings", 0))
+                status = str(current_value.get("status", "ACTIVE")).upper()
+                enabled = bool(current_value.get("enabled", status == "ACTIVE"))
+                if status != "ACTIVE":
+                    enabled = False
+                return {
+                    "embeddings": previous + embeddings_added,
+                    "status": status,
+                    "enabled": enabled,
+                    "updated_at": time.time(),
+                }
+            return {
+                "embeddings": embeddings_added,
+                "status": "ACTIVE",
+                "enabled": True,
+                "updated_at": time.time(),
+            }
 
-        self.store.save(self.gallery_features, self.gallery_labels, self.metadata)
+        # Read-modify-write under the VectorStore's own inter-process lock,
+        # against whatever is actually on disk right now - not this
+        # in-memory cache, which can be stale relative to concurrent writers
+        # (e.g. a background reference-job enrollment via a different
+        # VectorStore.update() call on the same gallery). A plain
+        # self.store.save(self.gallery_features, ...) based on a stale
+        # snapshot would silently overwrite such a write.
+        def gait_mutator(current):
+            if current is None:
+                features, labels, metadata = [], [], {}
+            else:
+                cur_features, cur_labels, cur_metadata = current
+                features = cur_features.tolist() if hasattr(cur_features, "tolist") else list(cur_features)
+                labels = list(cur_labels)
+                metadata = dict(cur_metadata)
+            features.extend(new_features.tolist())
+            labels.extend(new_labels)
+            metadata[person_id] = _metadata_entry(metadata.get(person_id), added_embeddings)
+            return features, labels, metadata
+
+        self.store.update(gait_mutator)
 
         if app_embeddings:
             new_app_features = np.vstack(app_embeddings)
             new_app_labels = [person_id] * len(app_embeddings)
-            if len(self.appearance_gallery_features) > 0:
-                self.appearance_gallery_features = np.vstack([self.appearance_gallery_features, new_app_features])
-                if not isinstance(self.appearance_gallery_labels, list):
-                    self.appearance_gallery_labels = list(self.appearance_gallery_labels)
-                self.appearance_gallery_labels.extend(new_app_labels)
-            else:
-                self.appearance_gallery_features = new_app_features
-                self.appearance_gallery_labels = new_app_labels
-            self.appearance_store.save(
-                self.appearance_gallery_features, self.appearance_gallery_labels, self.appearance_metadata
-            )
+
+            def appearance_mutator(current):
+                if current is None:
+                    features, labels, metadata = [], [], {}
+                else:
+                    cur_features, cur_labels, cur_metadata = current
+                    features = cur_features.tolist() if hasattr(cur_features, "tolist") else list(cur_features)
+                    labels = list(cur_labels)
+                    metadata = dict(cur_metadata)
+                features.extend(new_app_features.tolist())
+                labels.extend(new_app_labels)
+                metadata[person_id] = _metadata_entry(metadata.get(person_id), len(app_embeddings))
+                return features, labels, metadata
+
+            self.appearance_store.update(appearance_mutator)
+
+        # Refresh the in-memory cache (and push it to active camera workers)
+        # from what's now actually on disk, via the same locked, tested path
+        # every other gallery load goes through - rather than trusting this
+        # method's own local computation to match what update() persisted.
+        self.reload_gallery()
 
         db_persist_result = None
         if self.embedding_db is not None:

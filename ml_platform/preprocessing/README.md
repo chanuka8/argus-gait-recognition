@@ -31,7 +31,7 @@ Person Crop BGR Image â†’ `ml_platform/preprocessing/silhouette_extractor.py` â†
 
 ## Configuration
 
-- [configs/gei.yaml](../configs/gei.yaml): silhouette size, Otsu blur parameters, GEI temporal window length
+- [configs/gei.yaml](../../configs/gei.yaml): silhouette size, Otsu blur parameters, GEI temporal window length
 
 ## Public Interfaces
 
@@ -42,10 +42,10 @@ Person Crop BGR Image â†’ `ml_platform/preprocessing/silhouette_extractor.py` â†
 
 ## Tests
 
-- [tests/test_silhouette.py](../tests/test_silhouette.py)
-- [tests/test_gei_stream.py](../tests/test_gei_stream.py)
+- [tests/test_silhouette.py](../../tests/unit/gait/test_silhouette.py)
+- [tests/test_gei_stream.py](../../tests/unit/gait/test_gei_stream.py)
 
 ## Related Documentation
 
-- [Root README](../README.md)
+- [Root README](../../README.md)
 - [Training Documentation](../training/README.md)
