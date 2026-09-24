@@ -35,8 +35,8 @@ GEI Training Dataset → `ml_platform/training/dataset.py` & `ml_platform/traini
 
 ## Configuration
 
-- [configs/train.yaml](../configs/train.yaml): hyper-parameters, batch size, learning rate, epoch count
-- [configs/auto_train.yaml](../configs/auto_train.yaml): automated re-training parameters
+- [configs/train.yaml](../../configs/train.yaml): hyper-parameters, batch size, learning rate, epoch count
+- [configs/auto_train.yaml](../../configs/auto_train.yaml): automated re-training parameters
 
 ## Public Interfaces
 
@@ -47,11 +47,11 @@ GEI Training Dataset → `ml_platform/training/dataset.py` & `ml_platform/traini
 
 ## Tests
 
-- [tests/unit/test_output_layout.py](../tests/unit/test_output_layout.py)
+- [tests/unit/test_output_layout.py](../../tests/unit/backend/test_output_layout.py)
 - [evaluation/experiments/evaluate_model.py](../evaluation/experiments/evaluate_model.py)
 
 ## Related Documentation
 
-- [Root README](../README.md)
+- [Root README](../../README.md)
 - [Models Documentation](../models/README.md)
 - [Evaluation Documentation](../evaluation/README.md)

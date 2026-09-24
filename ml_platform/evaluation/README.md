@@ -38,8 +38,8 @@ Dataset GEIs / Models → `ml_platform/evaluation/evaluator.py` → `ml_platform
 
 ## Configuration
 
-- [configs/subject_split.json](../configs/subject_split.json): subject-disjoint train/test split manifest
-- [configs/gallery_probe_manifest.json](../configs/gallery_probe_manifest.json): gallery/probe set configuration
+- [configs/subject_split.json](../../configs/subject_split.json): subject-disjoint train/test split manifest
+- [configs/gallery_probe_manifest.json](../../configs/gallery_probe_manifest.json): gallery/probe set configuration
 
 ## Public Interfaces
 
@@ -50,10 +50,10 @@ Dataset GEIs / Models → `ml_platform/evaluation/evaluator.py` → `ml_platform
 
 ## Tests
 
-- [tests/test_leakage_prevention.py](../tests/test_leakage_prevention.py)
+- [tests/test_leakage_prevention.py](../../tests/unit/backend/test_leakage_prevention.py)
 - [experiments/evaluate_model.py](experiments/evaluate_model.py)
 
 ## Related Documentation
 
-- [Root README](../README.md)
+- [Root README](../../README.md)
 - [Training Documentation](../training/README.md)

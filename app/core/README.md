@@ -35,8 +35,8 @@ The `core` package provides system initialization, logging setup, process lifecy
 
 ## Configuration
 
-- [configs/system.yaml](../configs/system.yaml): `logging`, `watchdog`, `service` sections
-- [configs/base.yaml](../configs/base.yaml): path defaults and system flags
+- [configs/system.yaml](../../configs/system.yaml): `logging`, `watchdog`, `service` sections
+- [configs/base.yaml](../../configs/base.yaml): path defaults and system flags
 
 ## Public Interfaces
 
@@ -46,10 +46,10 @@ The `core` package provides system initialization, logging setup, process lifecy
 
 ## Tests
 
-- [tests/test_audit_verification.py](../tests/test_audit_verification.py)
-- [tests/test_logging.py](../tests/test_logging.py)
+- [tests/test_audit_verification.py](../../tests/system/end_to_end/test_audit_verification.py)
+- [tests/test_logging.py](../../tests/unit/backend/test_logging.py)
 
 ## Related Documentation
 
-- [Root README](../README.md)
+- [Root README](../../README.md)
 - [Monitoring Documentation](../monitoring/README.md)

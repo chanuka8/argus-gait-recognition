@@ -29,7 +29,7 @@ Component Execution → `app/monitoring/logging_config.py` & `app/monitoring/met
 
 ## Configuration
 
-- [configs/system.yaml](../configs/system.yaml): `logging` and `watchdog` sections
+- [configs/system.yaml](../../configs/system.yaml): `logging` and `watchdog` sections
 
 ## Public Interfaces
 
@@ -39,11 +39,11 @@ Component Execution → `app/monitoring/logging_config.py` & `app/monitoring/met
 
 ## Tests
 
-- [tests/test_logging.py](../tests/test_logging.py)
-- [tests/test_watchdog.py](../tests/test_watchdog.py)
-- [tests/unit/test_output_layout.py](../tests/unit/test_output_layout.py)
+- [tests/test_logging.py](../../tests/unit/backend/test_logging.py)
+- [tests/test_watchdog.py](../../tests/unit/backend/test_watchdog.py)
+- [tests/unit/test_output_layout.py](../../tests/unit/backend/test_output_layout.py)
 
 ## Related Documentation
 
-- [Root README](../README.md)
+- [Root README](../../README.md)
 - [Core Documentation](../core/README.md)

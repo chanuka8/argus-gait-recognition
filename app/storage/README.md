@@ -31,7 +31,7 @@ Detection Output → `app/storage/evidence_manager.py` → `outputs/media/detect
 
 ## Configuration
 
-- [configs/system.yaml](../configs/system.yaml): `recognition.gallery_dir`
+- [configs/system.yaml](../../configs/system.yaml): `recognition.gallery_dir`
 
 ## Firebase Admin SDK Setup (Optional Live Mode)
 
@@ -81,10 +81,10 @@ When unconfigured, ARGUS runs in **offline mode** with zero inference degradatio
 
 ## Tests
 
-- [tests/unit/test_output_layout.py](../tests/unit/test_output_layout.py)
-- [tests/integration/test_dual_modal_pipeline.py](../tests/integration/test_dual_modal_pipeline.py)
+- [tests/unit/test_output_layout.py](../../tests/unit/backend/test_output_layout.py)
+- [tests/integration/test_dual_modal_pipeline.py](../../tests/integration/recognition/test_dual_modal_pipeline.py)
 
 ## Related Documentation
 
-- [Root README](../README.md)
+- [Root README](../../README.md)
 - [Security Layer Documentation](../security_layer/README.md)

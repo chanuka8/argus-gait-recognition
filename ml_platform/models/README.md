@@ -24,8 +24,8 @@ Input GEI Tensor (1×1×128×64) → `ml_platform/models/architectures/bygait_li
 
 ## Configuration
 
-- [configs/system.yaml](../configs/system.yaml): `recognition.model_path`, `recognition.gallery_dir`
-- [configs/inference.yaml](../configs/inference.yaml): model inference parameters
+- [configs/system.yaml](../../configs/system.yaml): `recognition.model_path`, `recognition.gallery_dir`
+- [configs/inference.yaml](../../configs/inference.yaml): model inference parameters
 
 ## Public Interfaces
 
@@ -34,10 +34,10 @@ Input GEI Tensor (1×1×128×64) → `ml_platform/models/architectures/bygait_li
 
 ## Tests
 
-- [tests/integration/test_dual_modal_pipeline.py](../tests/integration/test_dual_modal_pipeline.py)
+- [tests/integration/test_dual_modal_pipeline.py](../../tests/integration/recognition/test_dual_modal_pipeline.py)
 - [evaluation/experiments/evaluate_model.py](../evaluation/experiments/evaluate_model.py)
 
 ## Related Documentation
 
-- [Root README](../README.md)
+- [Root README](../../README.md)
 - [Training Documentation](../training/README.md)

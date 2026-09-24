@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 import torch
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT))
 
 from ml_platform.training.dataloader import build_dataloaders

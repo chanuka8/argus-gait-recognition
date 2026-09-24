@@ -36,8 +36,8 @@ Recognition Match Output → `app/security_layer/security_engine.py` → Securit
 
 ## Configuration
 
-- [configs/system.yaml](../configs/system.yaml): `recognition.security_threshold`
-- [configs/cameras.yaml](../configs/cameras.yaml): RTSP camera credentials
+- [configs/system.yaml](../../configs/system.yaml): `recognition.security_threshold`
+- [configs/cameras.yaml](../../configs/cameras.yaml): RTSP camera credentials
 
 ## Public Interfaces
 
@@ -47,11 +47,11 @@ Recognition Match Output → `app/security_layer/security_engine.py` → Securit
 
 ## Tests
 
-- [tests/test_audit_verification.py](../tests/test_audit_verification.py)
-- [tests/test_rtsp_credentials.py](../tests/test_rtsp_credentials.py)
-- [tests/unit/test_output_layout.py](../tests/unit/test_output_layout.py)
+- [tests/test_audit_verification.py](../../tests/system/end_to_end/test_audit_verification.py)
+- [tests/test_rtsp_credentials.py](../../tests/unit/camera/test_rtsp_credentials.py)
+- [tests/unit/test_output_layout.py](../../tests/unit/backend/test_output_layout.py)
 
 ## Related Documentation
 
-- [Root README](../README.md)
+- [Root README](../../README.md)
 - [Monitoring Documentation](../monitoring/README.md)

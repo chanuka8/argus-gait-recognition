@@ -36,8 +36,8 @@ RTSP/USB Hardware Streams → `app/services/camera_worker.py` → `app/services/
 
 ## Configuration
 
-- [configs/system.yaml](../configs/system.yaml): `camera` and `service` sections
-- [configs/cameras.yaml](../configs/cameras.yaml): RTSP camera configurations
+- [configs/system.yaml](../../configs/system.yaml): `camera` and `service` sections
+- [configs/cameras.yaml](../../configs/cameras.yaml): RTSP camera configurations
 
 ## Public Interfaces
 
@@ -48,10 +48,10 @@ RTSP/USB Hardware Streams → `app/services/camera_worker.py` → `app/services/
 
 ## Tests
 
-- [tests/test_camera_service.py](../tests/test_camera_service.py)
-- [tests/test_phase5_cctv.py](../tests/test_phase5_cctv.py)
+- [tests/test_camera_service.py](../../tests/unit/camera/test_camera_service.py)
+- [tests/test_phase5_cctv.py](../../tests/unit/camera/test_phase5_cctv.py)
 
 ## Related Documentation
 
-- [Root README](../README.md)
-- [Deployment Guide](../deployment/README.md)
+- [Root README](../../README.md)
+- [Deployment Guide](../../ops/deployment/README.md)

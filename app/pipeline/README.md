@@ -37,8 +37,8 @@ Video Frame Stream → Detection & ByteTrack → Silhouette Extraction → GEI B
 
 ## Configuration
 
-- [configs/inference.yaml](../configs/inference.yaml): thresholds, GEI settings, ReID, reporting
-- [configs/mode_config.yaml](../configs/mode_config.yaml): pipeline mode options
+- [configs/inference.yaml](../../configs/inference.yaml): thresholds, GEI settings, ReID, reporting
+- [configs/mode_config.yaml](../../configs/mode_config.yaml): pipeline mode options
 
 ## Public Interfaces
 
@@ -49,13 +49,13 @@ Video Frame Stream → Detection & ByteTrack → Silhouette Extraction → GEI B
 
 ## Tests
 
-- [tests/integration/test_dual_modal_pipeline.py](../tests/integration/test_dual_modal_pipeline.py)
-- [tests/test_detector.py](../tests/test_detector.py)
-- [tests/test_tracker.py](../tests/test_tracker.py)
-- [tests/test_silhouette.py](../tests/test_silhouette.py)
-- [tests/test_gei_stream.py](../tests/test_gei_stream.py)
+- [tests/integration/test_dual_modal_pipeline.py](../../tests/integration/recognition/test_dual_modal_pipeline.py)
+- [tests/test_detector.py](../../tests/unit/gait/test_detector.py)
+- [tests/test_tracker.py](../../tests/unit/camera/test_tracker.py)
+- [tests/test_silhouette.py](../../tests/unit/gait/test_silhouette.py)
+- [tests/test_gei_stream.py](../../tests/unit/gait/test_gei_stream.py)
 
 ## Related Documentation
 
-- [Root README](../README.md)
+- [Root README](../../README.md)
 - [Intelligence Documentation](../intelligence/README.md)

@@ -28,8 +28,8 @@ HTTP Client Request → `app/api/server.py` (FastAPI router) → `app/api/v1/*.p
 
 ## Configuration
 
-- [configs/system.yaml](../configs/system.yaml): `service.name`, `service.headless`
-- [configs/base.yaml](../configs/base.yaml): system host and port parameters
+- [configs/system.yaml](../../configs/system.yaml): `service.name`, `service.headless`
+- [configs/base.yaml](../../configs/base.yaml): system host and port parameters
 
 ## Public Interfaces
 
@@ -39,10 +39,10 @@ HTTP Client Request → `app/api/server.py` (FastAPI router) → `app/api/v1/*.p
 
 ## Tests
 
-- [tests/integration/test_dual_modal_pipeline.py](../tests/integration/test_dual_modal_pipeline.py)
-- [tests/unit/test_output_layout.py](../tests/unit/test_output_layout.py)
+- [tests/integration/test_dual_modal_pipeline.py](../../tests/integration/recognition/test_dual_modal_pipeline.py)
+- [tests/unit/test_output_layout.py](../../tests/unit/backend/test_output_layout.py)
 
 ## Related Documentation
 
-- [Root README](../README.md)
+- [Root README](../../README.md)
 - [Services Documentation](../services/README.md)

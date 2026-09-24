@@ -19,7 +19,7 @@ Key Features:
 
 ## Deployment Hardening Modules
 
-- [runtime_manifest.py](runtime_manifest.py): Build vs runtime asset separator ([runtime_manifest.json](runtime_manifest.json), [runtime_manifest.md](runtime_manifest.md)).
+- [runtime_manifest.py](runtime_manifest.py): Build vs runtime asset separator ([runtime_manifest.json](runtime_manifest.json)).
 - [startup_validator.py](startup_validator.py): Pre-flight deployment health validator emitting approved status codes.
 - [backend_summary.py](backend_summary.py): Formats and logs single-emit backend startup summaries.
 - [build_metadata.py](build_metadata.py): Extracts git version, build, configuration fingerprint, and runtime metadata contracts.
