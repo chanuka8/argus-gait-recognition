@@ -6,16 +6,19 @@ on:
   pull_request:
     branches: [ "main" ]
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v7
       with:
         python-version: '3.11'
         cache: 'pip'
@@ -30,6 +33,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
         pip install -r requirements.txt
+        pip install -e .
         python -m pip install --upgrade "ruff==0.15.20"
 
     - name: Code Compilation
@@ -41,7 +45,7 @@ jobs:
         python -m ruff check --config ./ruff.toml .
 
     - name: Set up Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v7
       with:
         node-version: '20'
         cache: 'npm'
@@ -50,10 +54,15 @@ jobs:
     - name: Install Frontend Dependencies
       run: npm --prefix frontend ci
 
+    - name: Run Frontend Linter
+      run: npm --prefix frontend run lint
+
     - name: Build Frontend
       run: npm --prefix frontend run build
 
     - name: Run Tests
       env:
         QT_QPA_PLATFORM: offscreen
+        ARGUS_OPERATOR_STORE_MODE: offline
+        ARGUS_ENVIRONMENT: development
       run: pytest tests -v
