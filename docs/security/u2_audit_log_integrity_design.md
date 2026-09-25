@@ -4,7 +4,6 @@
 **Target Finding**: U2 — Audit Log Integrity / Tamper Evidence
 **Document Status**: AUDIT & ARCHITECTURE DESIGN ONLY (Zero Code Changes)
 **Date**: 2026-09-16
-**Auditor**: Antigravity Security Agent
 **Repository**: `ARGUS_AI` (`chanuka8/argus-gait-recognition`)
 **Branch**: `main`
 **Classification**: **HISTORICAL UNNUMBERED FINDING (U2) — PROPOSED NEXT SECURITY ITEM**
@@ -17,7 +16,7 @@ This document presents the complete evidence-based security audit and architectu
 
 The current ARGUS security audit logger ([`security_layer/security_logger.py`](file:///e:/ARGUS_AI/security_layer/security_logger.py)) appends surveillance recognition events to a plaintext comma-separated values file ([`outputs/logs/security/security_events.csv`](file:///e:/ARGUS_AI/outputs/logs/security/security_events.csv)). This file contains **no cryptographic hash, message authentication code (MAC), signature, or sequence continuity mechanism**. Consequently, any local process, compromised account, or post-incident actor with filesystem access can modify, delete, reorder, or inject log records without detection.
 
-In accordance with strict pair-programming instructions:
+Scope constraints for this report:
 - **Zero production code has been modified.**
 - **Zero tests or configurations have been altered.**
 - **Finding U2 is NOT designated as SEC-10** (SEC-10 remains authoritatively undefined in repository records pending explicit maintainer designation).
@@ -383,7 +382,7 @@ The current baseline was independently verified prior to any proposed changes:
 - **Is U2 historically authoritative?**: **YES**. Documented in `08_security_and_privacy.md` and `FUTURE_ENGINEERING_GAP_AND_REMEDIATION_REPORT.md`.
 - **Is U2 unresolved in active code?**: **YES**. `security_events.csv` is currently unsigned plaintext.
 - **Is U2 officially numbered as SEC-10 in repository records?**: **NO**. The repository contains zero definitions of `SEC-10`.
-- **Can the AGENT assign SEC-10?**: **NO**. Per the project's evidence-based reporting policy:
+- **Can this report assign SEC-10?**: **NO**. Per the project's evidence-based reporting policy:
   > *"U2 is a verified historical security finding, but the repository does not authoritatively define it as SEC-10."*
 - **Action**: Finding U2 should be presented to the repository maintainer as a proposed hardening item. If the maintainer formally assigns `SEC-10` to this scope, that authorization will serve as the evidentiary basis for the identifier.
 

@@ -6,7 +6,6 @@
 **Security Status**: **UNRESOLVED / DESIGN READY**
 **Numbering Designation**: **U4 — Camera / RTSP Stream Transport Security** (NOT SEC-10; SEC-10 Remains Undefined)
 **Date**: 2026-09-16
-**Auditor / Security Architect**: Antigravity Security Agent
 **Repository**: `ARGUS_AI` (`chanuka8/argus-gait-recognition`)
 **Branch**: `main`
 

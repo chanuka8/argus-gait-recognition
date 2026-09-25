@@ -1,7 +1,6 @@
 # U5 — Model Checkpoint & AI Model Asset Protection: Security Audit & Architecture Design
 
 **Date**: 2026-09-16
-**Auditor**: Antigravity Security Agent
 **Repository**: `ARGUS_AI` (`chanuka8/argus-gait-recognition`)
 **Target**: Historical Finding U5 — Model Checkpoint / AI Model Asset Protection
 **Current Status**: **AUDIT & DESIGN ONLY — IMPLEMENTATION NOT AUTHORIZED**

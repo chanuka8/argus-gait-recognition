@@ -4,7 +4,6 @@
 **Status**: **IMPLEMENTED & VERIFIED**
 **Classification**: **U2 PASS** (Historical unnumbered finding; NOT SEC-10)
 **Date**: 2026-09-16
-**Auditor / Implementer**: Antigravity Security Agent
 **Repository**: `ARGUS_AI` (`chanuka8/argus-gait-recognition`)
 **Branch**: `main`
 
