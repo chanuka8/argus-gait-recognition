@@ -236,6 +236,7 @@ def test_env():
         service.stop_camera(cam_id)
     job_mgr.shutdown(timeout=1.0)
     ReferenceJobManager._instance = None
+    app.state.gait_service = None
     shutil.rmtree(temp_dir, ignore_errors=True)
 
 

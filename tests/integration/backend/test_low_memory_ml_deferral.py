@@ -125,15 +125,30 @@ def test_recognition_request_returns_503_not_hang_while_deferred():
 
     app.state.gait_service = service
     try:
-        with TestClient(app) as client:
+        # The lifespan handler (app/api/server.py) unconditionally fires a
+        # background asyncio.create_task(gait_service.warmup_async()) on every
+        # TestClient(app) entry, even when app.state.gait_service was already
+        # configured above - it does not know this service's warmup was
+        # already (deliberately) deferred. That background task makes its own,
+        # separately-timed call to has_sufficient_ml_startup_headroom() the
+        # instant the `with` block below is entered, before client.post() ever
+        # runs. Patching only around client.post() leaves that startup call
+        # unmocked, so on a host with real free headroom it can complete a
+        # genuine warmup and flip is_recognition_ready to True before the
+        # "protected" request arrives - the mock never bypassed, just racing
+        # a call outside its scope. The patch must therefore cover the whole
+        # TestClient block, not just the request.
+        with (
+            patch("app.core.resource_profile.has_sufficient_ml_startup_headroom", side_effect=_low_memory),
+            TestClient(app) as client,
+        ):
             headers = _auth_headers()
-            with patch("app.core.resource_profile.has_sufficient_ml_startup_headroom", side_effect=_low_memory):
-                resp = client.post(
-                    "/api/v1/identify/image",
-                    files={"file": ("test.jpg", io.BytesIO(b"\xff\xd8\xff\xe0fake"), "image/jpeg")},
-                    data={"camera_id": "cam1"},
-                    headers=headers,
-                )
+            resp = client.post(
+                "/api/v1/identify/image",
+                files={"file": ("test.jpg", io.BytesIO(b"\xff\xd8\xff\xe0fake"), "image/jpeg")},
+                data={"camera_id": "cam1"},
+                headers=headers,
+            )
             assert resp.status_code == 503
             body = resp.json()["detail"]
             assert body["error"] == "ml_unavailable"
